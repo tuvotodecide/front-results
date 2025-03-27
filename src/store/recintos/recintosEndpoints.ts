@@ -7,6 +7,10 @@ export const recintosApiSlice = apiSlice.injectEndpoints({
       query: () => "/admin/locations",
       keepUnusedDataFor: 60,
     }),
+    getRecinto: builder.query<RecintoElectoral, string>({
+      query: (id) => `/admin/locations/${id}`,
+      keepUnusedDataFor: 60,
+    }),
     createRecinto: builder.mutation<
       RecintoElectoral,
       Omit<RecintoElectoral, "_id">
@@ -41,6 +45,7 @@ export const recintosApiSlice = apiSlice.injectEndpoints({
 
 export const {
   useGetRecintosQuery,
+  useGetRecintoQuery,
   useCreateRecintoMutation,
   useUpdateRecintoMutation,
   useDeleteRecintoMutation,

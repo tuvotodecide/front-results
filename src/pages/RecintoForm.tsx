@@ -2,12 +2,27 @@ import React from "react";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { RecintoElectoral } from "../types/recintos";
-import { useCreateRecintoMutation } from "../store/recintos/recintosEndpoints";
-import { useNavigate } from "react-router-dom";
+import {
+  useCreateRecintoMutation,
+  useUpdateRecintoMutation,
+  useGetRecintoQuery,
+} from "../store/recintos/recintosEndpoints";
+import { useNavigate, useParams } from "react-router-dom";
 
 const RecintoForm: React.FC = () => {
-  const [createRecinto, { isLoading, error }] = useCreateRecintoMutation();
+  const { id } = useParams<{ id: string }>();
+  const isEditMode = Boolean(id);
   const navigate = useNavigate();
+
+  const [createRecinto, { isLoading: isCreating, error: createError }] =
+    useCreateRecintoMutation();
+  const [updateRecinto, { isLoading: isUpdating, error: updateError }] =
+    useUpdateRecintoMutation();
+  const { data: currentRecinto, isLoading: isLoadingRecinto } =
+    useGetRecintoQuery(id!, { skip: !id });
+
+  const error = createError || updateError;
+  const isLoading = isCreating || isUpdating || isLoadingRecinto;
 
   const validationSchema = Yup.object({
     name: Yup.string().required("Este campo es obligatorio"),
@@ -32,28 +47,32 @@ const RecintoForm: React.FC = () => {
   });
 
   const initialValues = {
-    name: "",
-    address: "",
-    code: "",
-    department: "",
-    municipality: "",
-    province: "",
-    totalTables: 0,
+    name: currentRecinto?.name || "",
+    address: currentRecinto?.address || "",
+    code: currentRecinto?.code || "",
+    department: currentRecinto?.department || "",
+    municipality: currentRecinto?.municipality || "",
+    province: currentRecinto?.province || "",
+    totalTables: currentRecinto?.totalTables || 0,
     coordinates: {
-      latitude: 0,
-      longitude: 0,
+      latitude: currentRecinto?.coordinates.latitude || 0,
+      longitude: currentRecinto?.coordinates.longitude || 0,
     },
-    active: true,
+    active: currentRecinto?.active ?? true,
   };
 
   const handleSubmit = async (
     values: Omit<RecintoElectoral, "_id" | "createdAt" | "updatedAt">
   ) => {
     try {
-      await createRecinto(values).unwrap();
-      navigate("/recintos"); // Adjust this route according to your app's routing
+      if (isEditMode && id) {
+        await updateRecinto({ id, recinto: values }).unwrap();
+      } else {
+        await createRecinto(values).unwrap();
+      }
+      navigate("/recintos");
     } catch (err) {
-      console.error("Failed to create recinto:", err);
+      console.error("Failed to save recinto:", err);
     }
   };
 
@@ -61,17 +80,19 @@ const RecintoForm: React.FC = () => {
     <div className="p-6 bg-gray-100 min-h-screen">
       <div className="w-full max-w-4xl p-8 bg-white rounded shadow-md">
         <h1 className="text-2xl font-bold text-left mb-6 text-red-600">
-          Registro de Recinto Electoral
+          {isEditMode ? "Editar" : "Registro de"} Recinto Electoral
         </h1>
         {error && (
           <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-            Error al crear el recinto. Por favor intente nuevamente.
+            Error al {isEditMode ? "actualizar" : "crear"} el recinto. Por favor
+            intente nuevamente.
           </div>
         )}
         <Formik
           initialValues={initialValues}
           validationSchema={validationSchema}
           onSubmit={handleSubmit}
+          enableReinitialize
         >
           {({ isSubmitting }) => (
             <Form>

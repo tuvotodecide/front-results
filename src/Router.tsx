@@ -30,6 +30,7 @@ const AppRouter: React.FC = () => {
               <Route path="/panel" element={<PanelControl />} />
               <Route path="/recintos" element={<RecintosElectorales />} />
               <Route path="/recintos/nuevo" element={<RecintoForm />} />
+              <Route path="/recintos/editar/:id" element={<RecintoForm />} />
               <Route path="/registroJurado" element={<RegistroJurado />} />
               <Route path="/envioActa" element={<EnvioActa />} />
               <Route path="/resultados" element={<Resultados />} />
