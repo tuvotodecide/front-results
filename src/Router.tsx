@@ -8,6 +8,13 @@ const PanelControl = React.lazy(() => import("./pages/PanelControl"));
 const RegistroJurado = React.lazy(() => import("./pages/RegistroJurado"));
 const EnvioActa = React.lazy(() => import("./pages/EnvioActa"));
 const Resultados = React.lazy(() => import("./pages/Resultados"));
+const CrearCuenta = React.lazy(() => import("./pages/CrearCuenta"));
+const ProtectedRoutes = React.lazy(() => import("./pages/ProtectedRoutes"));
+const RecintosElectorales = React.lazy(
+  () => import("./pages/RecintosElectorales")
+);
+const NuevoRecinto = React.lazy(() => import("./pages/NuevoRecinto"));
+const Layout = React.lazy(() => import("./components/Layout"));
 
 const AppRouter: React.FC = () => {
   return (
@@ -17,10 +24,17 @@ const AppRouter: React.FC = () => {
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/panel" element={<PanelControl />} />
-          <Route path="/registroJurado" element={<RegistroJurado />} />
-          <Route path="/envioActa" element={<EnvioActa />} />
-          <Route path="/resultados" element={<Resultados />} />
+          <Route path="/crearCuenta" element={<CrearCuenta />} />
+          <Route element={<ProtectedRoutes />}>
+            <Route element={<Layout />}>
+              <Route path="/panel" element={<PanelControl />} />
+              <Route path="/recintos" element={<RecintosElectorales />} />
+              <Route path="/recintos/nuevo" element={<NuevoRecinto />} />
+              <Route path="/registroJurado" element={<RegistroJurado />} />
+              <Route path="/envioActa" element={<EnvioActa />} />
+              <Route path="/resultados" element={<Resultados />} />
+            </Route>
+          </Route>
         </Routes>
       </React.Suspense>
     </Router>
