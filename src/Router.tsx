@@ -13,7 +13,7 @@ const ProtectedRoutes = React.lazy(() => import("./pages/ProtectedRoutes"));
 const RecintosElectorales = React.lazy(
   () => import("./pages/RecintosElectorales")
 );
-const NuevoRecinto = React.lazy(() => import("./pages/NuevoRecinto"));
+const RecintoForm = React.lazy(() => import("./pages/RecintoForm"));
 const Layout = React.lazy(() => import("./components/Layout"));
 
 const AppRouter: React.FC = () => {
@@ -29,7 +29,7 @@ const AppRouter: React.FC = () => {
             <Route element={<Layout />}>
               <Route path="/panel" element={<PanelControl />} />
               <Route path="/recintos" element={<RecintosElectorales />} />
-              <Route path="/recintos/nuevo" element={<NuevoRecinto />} />
+              <Route path="/recintos/nuevo" element={<RecintoForm />} />
               <Route path="/registroJurado" element={<RegistroJurado />} />
               <Route path="/envioActa" element={<EnvioActa />} />
               <Route path="/resultados" element={<Resultados />} />
