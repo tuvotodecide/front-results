@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
+import { useSubmitBallotMutation } from "../store/actas/actasEndpoints";
 
 interface FormValues {
   file: File | null;
@@ -16,6 +17,7 @@ const validationSchema = Yup.object({
 });
 
 const ActasForm: React.FC = () => {
+  const [submitBallot] = useSubmitBallotMutation();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const initialValues: FormValues = {
@@ -25,9 +27,22 @@ const ActasForm: React.FC = () => {
     locationCode: "",
   };
 
-  const handleSubmit = (values: FormValues) => {
-    console.log(values);
-    // Handle form submission here
+  const handleSubmit = async (values: FormValues) => {
+    const formData = new FormData();
+    if (values.file) {
+      formData.append("file", values.file);
+    }
+    formData.append("tableNumber", values.tableNumber);
+    formData.append("citizenId", values.citizenId);
+    formData.append("locationCode", values.locationCode);
+
+    try {
+      await submitBallot(formData).unwrap();
+      // Clear the form or show success message
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      // Handle error here
+    }
   };
 
   const handleImageChange = (
@@ -48,7 +63,7 @@ const ActasForm: React.FC = () => {
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
       <div className="w-full max-w-md mx-auto p-6 bg-white rounded shadow-md">
-        <h2 className="text-2xl font-bold mb-6 text-center">Submit Acta</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center">Subir Acta</h2>
 
         <Formik
           initialValues={initialValues}
@@ -59,7 +74,7 @@ const ActasForm: React.FC = () => {
             <Form className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Upload Image
+                  Cargar Imagen
                 </label>
                 <input
                   type="file"
@@ -80,7 +95,7 @@ const ActasForm: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Table Number
+                  Numero de la Mesa
                 </label>
                 <Field
                   name="tableNumber"
@@ -96,7 +111,7 @@ const ActasForm: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Citizen ID
+                  Carnet de identidad del ciudadano
                 </label>
                 <Field
                   name="citizenId"
@@ -112,7 +127,7 @@ const ActasForm: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Location Code
+                  Codigo del Recinto
                 </label>
                 <Field
                   name="locationCode"

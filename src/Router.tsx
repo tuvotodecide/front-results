@@ -27,6 +27,8 @@ const AppRouter: React.FC = () => {
           <Route path="/about" element={<About />} />
           <Route path="/login" element={<Login />} />
           <Route path="/crearCuenta" element={<CrearCuenta />} />
+          <Route path="/enviarActa" element={<ActasForm />} />
+          <Route path="/resultados" element={<Resultados />} />
           <Route element={<ProtectedRoutes />}>
             <Route element={<Layout />}>
               <Route path="/panel" element={<PanelControl />} />
@@ -34,11 +36,11 @@ const AppRouter: React.FC = () => {
               <Route path="/recintos/nuevo" element={<RecintoForm />} />
               <Route path="/recintos/editar/:id" element={<RecintoForm />} />
               <Route path="/registroJurado" element={<RegistroJurado />} />
-              <Route path="/envioActa" element={<EnvioActa />} />
+
               <Route path="/actas" element={<Actas />} />
               <Route path="/actas/nuevo" element={<ActasForm />} />
               <Route path="/actas/editar/:id" element={<ActasForm />} />
-              <Route path="/resultados" element={<Resultados />} />
+              {/* <Route path="/resultados" element={<Resultados />} /> */}
             </Route>
           </Route>
         </Routes>
