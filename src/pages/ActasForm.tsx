@@ -63,7 +63,7 @@ const ActasForm: React.FC = () => {
   return (
     <div className="flex items-center justify-center w-full">
       <div className="w-full max-w-md p-8 bg-white rounded shadow-md">
-        <h2 className="text-2xl font-bold mb-6 text-center text-red-600">
+        <h2 className="text-2xl font-bold text-center mb-6 text-red-600">
           Subir Acta
         </h2>
 
@@ -75,14 +75,14 @@ const ActasForm: React.FC = () => {
           {({ setFieldValue }) => (
             <Form className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700">
                   Cargar Imagen
                 </label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={(e) => handleImageChange(e, setFieldValue)}
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 />
                 {previewUrl && (
                   <div className="mt-2">
@@ -96,58 +96,58 @@ const ActasForm: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700">
                   Numero de la Mesa
                 </label>
                 <Field
                   name="tableNumber"
                   type="text"
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 />
                 <ErrorMessage
                   name="tableNumber"
                   component="div"
-                  className="text-red-500 text-sm mt-1"
+                  className="text-sm text-red-500 mt-1"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700">
                   Carnet de identidad del ciudadano
                 </label>
                 <Field
                   name="citizenId"
                   type="text"
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 />
                 <ErrorMessage
                   name="citizenId"
                   component="div"
-                  className="text-red-500 text-sm mt-1"
+                  className="text-sm text-red-500 mt-1"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700">
                   Codigo del Recinto
                 </label>
                 <Field
                   name="locationCode"
                   type="text"
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 />
                 <ErrorMessage
                   name="locationCode"
                   component="div"
-                  className="text-red-500 text-sm mt-1"
+                  className="text-sm text-red-500 mt-1"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors"
+                className="w-full py-2 px-4 bg-red-600 text-white font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
               >
-                Submit
+                Enviar
               </button>
             </Form>
           )}
