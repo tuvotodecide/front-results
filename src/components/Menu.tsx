@@ -6,7 +6,6 @@ import "./Menu.css";
 const navigationItems = [
   { title: "Resultados", path: "/resultados" },
   { title: "Subir acta", path: "/enviarActa" },
-  { title: "Crear usuario", path: "/crearCuenta" },
   { title: "Login", path: "/login" },
 ];
 
@@ -15,14 +14,12 @@ const Menu = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSearchActive, setIsSearchActive] = useState(false);
   const navRef = useRef<HTMLElement>(null);
-  const bodyRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    bodyRef.current = document.querySelector("body");
     const getMode = localStorage.getItem("mode");
     if (getMode && getMode === "dark-mode") {
       setIsDarkMode(true);
-      bodyRef.current?.classList.add("dark");
+      navRef.current?.classList.add("dark");
     }
   }, []);
 
@@ -50,7 +47,7 @@ const Menu = () => {
 
   const handleModeToggle = () => {
     setIsDarkMode(!isDarkMode);
-    bodyRef.current?.classList.toggle("dark");
+    navRef.current?.classList.toggle("dark");
     localStorage.setItem("mode", isDarkMode ? "light-mode" : "dark-mode");
   };
 
@@ -59,7 +56,10 @@ const Menu = () => {
   };
 
   return (
-    <nav ref={navRef} className={isActive ? "active" : ""}>
+    <nav
+      ref={navRef}
+      className={`${isActive ? "active" : ""} ${isDarkMode ? "dark" : ""}`}
+    >
       <div className="nav-bar">
         <div
           className="sidebarOpen"
@@ -69,13 +69,13 @@ const Menu = () => {
           <FaBars size={24} color="white" />
         </div>
         <span className="logo navLogo">
-          <Link to="/">CodingLab</Link>
+          <Link to="/">Yo Participo</Link>
         </span>
 
         <div className="menu">
           <div className="logo-toggle">
             <span className="logo">
-              <Link to="/">CodingLab</Link>
+              <Link to="/">Yo Participo</Link>
             </span>
             <FaTimes className="siderbarClose" color="white" />
           </div>

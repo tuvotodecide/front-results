@@ -1,39 +1,16 @@
-/* ===== Google Font Import - Poppins ===== */
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap");
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: "Poppins", sans-serif;
-  transition: all 0.4s ease;
-}
-*/
-
-/* ===== Colours ===== */
-:root {
+nav {
+  /* Colors */
   --body-color: #e4e9f7;
-  --nav-color: #4070f4;
-  --side-nav: #010718;
+  --nav-color: #be3b3b;
+  --side-nav: #ad3b3b;
   --text-color: #fff;
   --search-bar: #f2f2f2;
   --search-text: #010718;
-}
 
-body {
-  height: 100vh;
-  background-color: var(--body-color);
-}
-
-body.dark {
-  --body-color: #18191a;
-  --nav-color: #242526;
-  --side-nav: #242526;
-  --text-color: #ccc;
-  --search-bar: #242526;
-}
-
-nav {
+  /* Base styles */
+  font-family: "Poppins", sans-serif;
   position: fixed;
   top: 0;
   left: 0;
@@ -43,8 +20,23 @@ nav {
   z-index: 100;
 }
 
-body.dark nav {
+/* Dark mode styles */
+nav.dark {
+  --body-color: #18191a;
+  --nav-color: #242526;
+  --side-nav: #242526;
+  --text-color: #ccc;
+  --search-bar: #242526;
   border: 1px solid #393838;
+}
+
+nav *,
+nav *::before,
+nav *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  transition: all 0.4s ease;
 }
 
 nav .nav-bar {
@@ -222,7 +214,7 @@ nav .nav-bar .logo a {
   background-color: var(--search-bar);
 }
 
-body.dark .search-field input {
+nav.dark .search-field input {
   color: var(--text-color);
 }
 
@@ -234,7 +226,7 @@ body.dark .search-field input {
   cursor: pointer;
 }
 
-body.dark .search-field i {
+nav.dark .search-field i {
   color: var(--text-color);
 }
 
