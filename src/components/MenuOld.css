@@ -1,0 +1,143 @@
+.menu {
+  position: fixed;
+  width: 100%;
+  /* min-height: 8vh; */
+  min-height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  transition: 1s;
+  color: black;
+  z-index: 999;
+}
+
+.logo {
+  /*width: 30%;*/
+  display: flex;
+
+  letter-spacing: 5px;
+  font-size: 20px;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.menu .logo .menu-icono {
+  display: none;
+}
+
+.menu .logo h2 {
+  font-size: 1.5rem;
+  line-height: 100%;
+  width: 8rem;
+}
+
+.nav-links {
+  width: 40%;
+  transition: 1s;
+  margin-left: 2rem;
+  display: flex;
+  justify-content: space-around;
+  letter-spacing: 2px;
+  list-style: none;
+  text-align: center;
+  align-items: center;
+}
+
+.nav-links li {
+  /*display: inline-block;*/
+  font-family: "Merienda One", cursive;
+  padding: 0.8rem;
+  font-size: 1.2rem;
+  transition: 0.5s;
+}
+
+.nav-links li a {
+  text-decoration: none;
+  color: black;
+  font-weight: bold;
+}
+
+.nav-links li:hover {
+  transition: 0.5s;
+  /*padding: 10px 20px 10px 20px;
+	background: wheat;*/
+  border: 0 solid white;
+  transform: scale(1.2);
+}
+
+.burger {
+  display: none;
+}
+
+.burger div {
+  width: 35px;
+  height: 5px;
+  background-color: black;
+  margin: 5px;
+  border-radius: 1px;
+  transition: all 0.3s ease;
+}
+
+@media (max-width: 800px) {
+  .menu {
+    height: 40px;
+  }
+  .menu .logo .menu-icono {
+    display: block;
+    float: right;
+    width: 24px;
+    height: 24px;
+    margin: 0px 100px 0 0;
+  }
+
+  .nav-links {
+    position: absolute;
+    right: 0px;
+    height: 92vh;
+    top: 8vh;
+    background-color: rgba(200, 40, 40, 0.97);
+    display: flex;
+    align-items: center;
+    width: 50%;
+    transform: translateX(100%);
+    transition: transform 0.5s ease-in;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .nav-links li {
+    opacity: 0;
+  }
+
+  .burger {
+    display: block;
+    cursor: pointer;
+  }
+}
+
+.nav-active {
+  transform: translateX(0%);
+}
+
+@keyframes menufade {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0px);
+  }
+}
+
+.rotar .linea1 {
+  transform: rotate(-45deg) translate(-5px, 8px);
+}
+.rotar .linea2 {
+  opacity: 0;
+}
+.rotar .linea3 {
+  transform: rotate(45deg) translate(-5px, -8px);
+}

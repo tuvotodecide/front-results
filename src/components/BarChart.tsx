@@ -88,7 +88,7 @@ const BarChart: React.FC = () => {
         const containerWidth = containerRef.current.clientWidth;
         setDimensions({
           width: containerWidth,
-          height: Math.min(containerWidth * 0.6, 400), // Responsive height
+          height: Math.min(containerWidth * 0.8, 500), // Increased multiplier and max height
         });
       }
     };
@@ -104,9 +104,9 @@ const BarChart: React.FC = () => {
 
     const svg = d3.select(chartRef.current);
     const margin = {
-      top: 20,
-      right: dimensions.width < 600 ? 40 : 60, // Adjust margins for mobile
-      bottom: 30,
+      top: 10, // Reduced from 20
+      right: dimensions.width < 600 ? 40 : 60,
+      bottom: 60, // Increased bottom margin to accommodate label
       left: dimensions.width < 600 ? 60 : 100,
     };
 
@@ -134,15 +134,25 @@ const BarChart: React.FC = () => {
     const y = d3
       .scaleBand()
       .domain(sortedData.map((d) => d.partyId))
-      .range([0, height])
-      .padding(0.1);
+      .range([margin.top, height]) // Changed from [0, height] to use more vertical space
+      .padding(0.25); // Slightly reduced from 0.3 to make bars thicker while keeping good spacing
 
     // Add x-axis with responsive font size
     g.append("g")
       .attr("transform", `translate(0,${height})`)
       .call(d3.axisBottom(x))
       .selectAll("text")
-      .style("font-size", dimensions.width < 600 ? "12px" : "14px");
+      .style("font-size", dimensions.width < 600 ? "12px" : "14px")
+      .attr("dy", "1.5em"); // Add space between axis line and numbers
+
+    // Add x-axis label
+    g.append("text")
+      .attr("class", "x-axis-label")
+      .attr("text-anchor", "middle")
+      .attr("x", width / 2)
+      .attr("y", height + 50) // Position below x-axis
+      .style("font-size", dimensions.width < 600 ? "14px" : "16px")
+      .text("Porcentaje");
 
     // Add y-axis with responsive font size
     g.append("g")
