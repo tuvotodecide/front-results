@@ -61,9 +61,11 @@ const ActasForm: React.FC = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <div className="w-full max-w-md mx-auto p-6 bg-white rounded shadow-md">
-        <h2 className="text-2xl font-bold mb-6 text-center">Subir Acta</h2>
+    <div className="flex items-center justify-center w-full">
+      <div className="w-full max-w-md p-8 bg-white rounded shadow-md">
+        <h2 className="text-2xl font-bold mb-6 text-center text-red-600">
+          Subir Acta
+        </h2>
 
         <Formik
           initialValues={initialValues}

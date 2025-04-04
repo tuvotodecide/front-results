@@ -7,23 +7,14 @@ const BasicLayout: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div>
+    <div className="min-h-screen flex flex-col">
       <header className="bg-primary text-black">
-        {/* <nav className="flex">
-          <div
-            onClick={() => {
-              navigate("/");
-            }}
-          >
-            Yo participo
-          </div>
-          <div className="ml-auto px-2">
-            <div className="flex gap-6"></div>
-          </div>
-        </nav> */}
         <Menu />
       </header>
-      <main style={{ paddingTop: "65px" }}>
+      <main
+        className="flex-1 flex items-center justify-center bg-gray-100"
+        style={{ paddingTop: "70px" }}
+      >
         <Outlet />
       </main>
     </div>
