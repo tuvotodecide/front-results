@@ -38,10 +38,10 @@ const CrearCuenta: React.FC = () => {
   });
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <div className="w-full max-w-4xl p-8 bg-white rounded shadow-md">
-        <h1 className="text-2xl font-bold text-left mb-6 text-red-600">
-          Registrarse en Yo Participo
+    <div className="w-full">
+      <div className="w-full max-w-2xl p-8 bg-white rounded shadow-md mx-auto">
+        <h1 className="text-2xl font-bold text-center mb-6 text-red-600">
+          Registrarse
         </h1>
         {serverErrors.length > 0 && ( // Display server errors
           <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">
@@ -151,7 +151,7 @@ const CrearCuenta: React.FC = () => {
                   />
                 </div>
               </div>
-              <div className="flex justify-end mt-6">
+              <div className="flex justify-center mt-6">
                 <button
                   type="button"
                   className="bg-gray-500 text-white py-2 px-4 rounded-md shadow-sm hover:bg-gray-600 mr-2"
