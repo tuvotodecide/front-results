@@ -73,7 +73,10 @@ const Menu = () => {
         </span>
 
         <div className="menu">
-          <div className="logo-toggle">
+          <div>
+            <h3>test</h3>
+          </div>
+          {/* <div className="logo-toggle">
             <span className="logo">
               <Link to="/">Yo Participo</Link>
             </span>
@@ -86,22 +89,22 @@ const Menu = () => {
                 <Link to={item.path}>{item.title}</Link>
               </li>
             ))}
-          </ul>
+          </ul> */}
         </div>
+        <div className="flex items-center justify-between">
+          <div className="darkLight-searchBox">
+            <div
+              className={`dark-light ${isDarkMode ? "active" : ""}`}
+              onClick={handleModeToggle}
+            >
+              {isDarkMode ? (
+                <FaSun size={18} className="sun" color="white" />
+              ) : (
+                <FaMoon size={18} className="moon" color="white" />
+              )}
+            </div>
 
-        <div className="darkLight-searchBox">
-          <div
-            className={`dark-light ${isDarkMode ? "active" : ""}`}
-            onClick={handleModeToggle}
-          >
-            {isDarkMode ? (
-              <FaSun size={24} className="sun" color="white" />
-            ) : (
-              <FaMoon size={24} className="moon" color="white" />
-            )}
-          </div>
-
-          {/* <div className="searchBox">
+            {/* <div className="searchBox">
             <div
               className={`searchToggle ${isSearchActive ? "active" : ""}`}
               onClick={handleSearchToggle}
@@ -127,6 +130,14 @@ const Menu = () => {
               </div>
             </div>
           </div> */}
+          </div>
+          <ul className="nav-links" style={{ marginLeft: "20px" }}>
+            {navigationItems.map((item) => (
+              <li key={item.title}>
+                <Link to={item.path}>{item.title}</Link>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </nav>

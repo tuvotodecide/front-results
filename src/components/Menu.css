@@ -67,6 +67,18 @@ nav .nav-bar .logo a {
   text-decoration: none;
 }
 
+.menu {
+  position: fixed;
+  height: 100%;
+  width: 320px;
+  left: -100%;
+  top: 0;
+  padding: 20px;
+  background-color: var(--side-nav);
+  z-index: 100;
+  transition: all 0.4s ease;
+}
+
 .menu .logo-toggle {
   display: none;
 }
@@ -235,18 +247,6 @@ nav.dark .search-field i {
     display: block;
   }
 
-  .menu {
-    position: fixed;
-    height: 100%;
-    width: 320px;
-    left: -100%;
-    top: 0;
-    padding: 20px;
-    background-color: var(--side-nav);
-    z-index: 100;
-    transition: all 0.4s ease;
-  }
-
   nav.active .menu {
     left: -0%;
   }
@@ -271,8 +271,9 @@ nav.dark .search-field i {
   }
 
   .nav-bar .nav-links {
-    flex-direction: column;
-    padding-top: 30px;
+    display: none;
+    /* flex-direction: column;
+    padding-top: 30px; */
   }
 
   .nav-links li a {
