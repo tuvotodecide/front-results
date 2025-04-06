@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Modal from "react-modal";
 import { useNavigate } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage } from "formik";
@@ -24,6 +24,16 @@ const ActasForm: React.FC = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef({
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+    translateX: 0,
+    translateY: 0,
+  });
   const navigate = useNavigate();
 
   const initialValues: FormValues = {
@@ -80,6 +90,65 @@ const ActasForm: React.FC = () => {
     }
   };
 
+  const handleDragStart = (e: React.MouseEvent) => {
+    if (!isZoomed) return;
+    const target = e.currentTarget as HTMLDivElement;
+    dragRef.current = {
+      isDragging: true,
+      startX: e.clientX - dragRef.current.translateX,
+      startY: e.clientY - dragRef.current.translateY,
+      translateX: dragRef.current.translateX,
+      translateY: dragRef.current.translateY,
+    };
+    target.style.cursor = "grabbing";
+  };
+
+  const handleDrag = (e: React.MouseEvent) => {
+    if (!isZoomed || !dragRef.current.isDragging) return;
+    if (e.buttons === 1) {
+      const newX = e.clientX - dragRef.current.startX;
+      const newY = e.clientY - dragRef.current.startY;
+      dragRef.current.translateX = newX;
+      dragRef.current.translateY = newY;
+
+      if (previewRef.current) {
+        const img = previewRef.current.querySelector("img");
+        if (img) {
+          img.style.transition = "none";
+          img.style.transform = `translate3d(${newX}px, ${newY}px, 0) scale3d(1.5, 1.5, 1)`;
+        }
+      }
+    }
+  };
+
+  const handleDragEnd = (e: React.MouseEvent) => {
+    dragRef.current.isDragging = false;
+    e.currentTarget.style.cursor = "grab";
+    if (previewRef.current) {
+      const img = previewRef.current.querySelector("img");
+      if (img) {
+        img.style.transition = "transform 200ms";
+      }
+    }
+  };
+
+  const resetZoomAndPosition = () => {
+    setIsZoomed(false);
+    dragRef.current = {
+      isDragging: false,
+      startX: 0,
+      startY: 0,
+      translateX: 0,
+      translateY: 0,
+    };
+    if (previewRef.current) {
+      const img = previewRef.current.querySelector("img");
+      if (img) {
+        img.style.transform = "none";
+      }
+    }
+  };
+
   return (
     <>
       <div className="flex items-center justify-center w-full">
@@ -105,11 +174,30 @@ const ActasForm: React.FC = () => {
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                   />
                   {previewUrl && (
-                    <div className="mt-2">
+                    <div
+                      className="mt-2 relative cursor-pointer"
+                      onClick={() => setIsPreviewModalOpen(true)}
+                    >
+                      <div className="absolute inset-0 flex items-center justify-center hover:bg-black/30 transition-colors duration-200 rounded-lg">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                          />
+                        </svg>
+                      </div>
                       <img
                         src={previewUrl}
                         alt="Preview"
-                        className="max-w-full h-auto rounded"
+                        className="w-full h-auto rounded-lg border border-gray-300"
                       />
                     </div>
                   )}
@@ -232,6 +320,70 @@ const ActasForm: React.FC = () => {
         </div>
       </Modal>
 
+      <Modal
+        isOpen={isPreviewModalOpen}
+        onRequestClose={() => {
+          setIsPreviewModalOpen(false);
+          resetZoomAndPosition();
+        }}
+        className="modal-content"
+        overlayClassName="modal-overlay"
+        shouldCloseOnOverlayClick={true}
+      >
+        <div className="bg-white p-4 rounded-lg shadow-xl max-w-4xl w-full mx-auto relative">
+          <button
+            onClick={() => {
+              setIsPreviewModalOpen(false);
+              resetZoomAndPosition();
+            }}
+            className="absolute top-2 right-2 z-50 text-gray-500 hover:text-gray-700 bg-white rounded-full p-1"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+          {previewUrl && (
+            <div
+              ref={previewRef}
+              className={`cursor-${
+                isZoomed ? "grab" : "zoom-in"
+              } overflow-hidden ${isZoomed ? "h-[80vh]" : ""}`}
+              onClick={() => !isZoomed && setIsZoomed(true)}
+              onMouseDown={handleDragStart}
+              onMouseMove={handleDrag}
+              onMouseUp={handleDragEnd}
+              onMouseLeave={handleDragEnd}
+            >
+              <img
+                src={previewUrl}
+                alt="Preview"
+                className="w-full h-auto"
+                style={{
+                  transform: isZoomed
+                    ? `translate3d(${dragRef.current.translateX}px, ${dragRef.current.translateY}px, 0) scale3d(1.5, 1.5, 1)`
+                    : "none",
+                  transition: dragRef.current.isDragging
+                    ? "none"
+                    : "transform 200ms",
+                }}
+                draggable={false}
+              />
+            </div>
+          )}
+        </div>
+      </Modal>
+
       <style>
         {`
           .modal-overlay {
@@ -241,10 +393,12 @@ const ActasForm: React.FC = () => {
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 1rem;
           }
           .modal-content {
             position: relative;
             outline: none;
+            width: 100%;
           }
         `}
       </style>
