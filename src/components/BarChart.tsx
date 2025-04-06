@@ -1,67 +1,21 @@
 import * as d3 from "d3";
 import React, { useEffect, useRef, useState } from "react";
 
-const BarChart: React.FC = () => {
+interface ResultData {
+  totalVotes: number;
+  ballotCount: number;
+  partyId: string;
+  color: string;
+}
+
+interface BarChartProps {
+  resultsData: ResultData[];
+}
+
+const BarChart: React.FC<BarChartProps> = ({ resultsData }) => {
   const chartRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-
-  const resultsData = [
-    {
-      totalVotes: 87,
-      ballotCount: 1,
-      partyId: "MAS-IPSP",
-      color: "#1a53ff",
-    },
-    {
-      totalVotes: 33,
-      ballotCount: 1,
-      partyId: "C.C.",
-      color: "#ffa300",
-    },
-    {
-      totalVotes: 17,
-      ballotCount: 1,
-      partyId: "MTS",
-      color: "#ebdc78",
-    },
-    {
-      totalVotes: 3,
-      ballotCount: 1,
-      partyId: "FPV",
-      color: "#b30000",
-    },
-    {
-      totalVotes: 1,
-      ballotCount: 1,
-      partyId: "UCS",
-      color: "#7c1158",
-    },
-    {
-      totalVotes: 1,
-      ballotCount: 1,
-      partyId: "MNR",
-      color: "#fdcce5",
-    },
-    {
-      totalVotes: 0,
-      ballotCount: 1,
-      partyId: "PDC",
-      color: "#ffee65",
-    },
-    {
-      totalVotes: 0,
-      ballotCount: 1,
-      partyId: "PAN-BOL",
-      color: "#87bc45",
-    },
-    {
-      totalVotes: 0,
-      ballotCount: 1,
-      partyId: "21F",
-      color: "#9b19f5",
-    },
-  ];
 
   const totalVotes = resultsData.reduce(
     (acc, party) => acc + party.totalVotes,
