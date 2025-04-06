@@ -56,6 +56,12 @@ const resultsData = [
     partyId: "21F",
     color: "#9b19f5",
   },
+  {
+    totalVotes: 33,
+    ballotCount: 1,
+    partyId: "otros",
+    color: "#9b59f5",
+  },
 ];
 
 const Resultados: React.FC = () => {

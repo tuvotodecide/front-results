@@ -40,9 +40,13 @@ const BarChart: React.FC<BarChartProps> = ({ resultsData }) => {
     const handleResize = () => {
       if (containerRef.current) {
         const containerWidth = containerRef.current.clientWidth;
+        const barHeight = 60; // Height per bar
+        const totalBars = resultsData.filter((d) => d.totalVotes > 0).length;
+        const minHeight = Math.max(totalBars * barHeight, 200); // Minimum height of 200px
+
         setDimensions({
           width: containerWidth,
-          height: Math.min(containerWidth * 0.8, 500), // Increased multiplier and max height
+          height: minHeight + 100, // Add extra space for axes and labels
         });
       }
     };
@@ -51,7 +55,7 @@ const BarChart: React.FC<BarChartProps> = ({ resultsData }) => {
     window.addEventListener("resize", handleResize);
 
     return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  }, [resultsData]); // Add resultsData as dependency since we use it for calculation
 
   useEffect(() => {
     if (!chartRef.current || dimensions.width === 0) return;
