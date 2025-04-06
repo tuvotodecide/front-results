@@ -36,6 +36,10 @@ nav *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  /* transition: all 0.4s ease; */
+}
+
+nav {
   transition: all 0.4s ease;
 }
 
@@ -44,7 +48,7 @@ nav .nav-bar {
   height: 100%;
   max-width: 1000px;
   width: 100%;
-  background-color: var(--nav-color);
+  /* background-color: var(--nav-color); */
   margin: 0 auto;
   padding: 0 30px;
   display: flex;
@@ -65,18 +69,6 @@ nav .nav-bar .logo a {
   font-weight: 500;
   color: var(--text-color);
   text-decoration: none;
-}
-
-.menu {
-  position: fixed;
-  height: 100%;
-  width: 320px;
-  left: -100%;
-  top: 0;
-  padding: 20px;
-  background-color: var(--side-nav);
-  z-index: 100;
-  transition: all 0.4s ease;
 }
 
 .menu .logo-toggle {
@@ -247,8 +239,20 @@ nav.dark .search-field i {
     display: block;
   }
 
+  .menu {
+    position: fixed;
+    height: 100%;
+    width: 320px;
+    right: -100%;
+    top: 0;
+    padding: 20px;
+    background-color: var(--side-nav);
+    z-index: 100;
+    transition: all 0.4s ease;
+  }
+
   nav.active .menu {
-    left: -0%;
+    right: -0%;
   }
 
   nav.active .nav-bar .navLogo a {
@@ -271,9 +275,9 @@ nav.dark .search-field i {
   }
 
   .nav-bar .nav-links {
-    display: none;
-    /* flex-direction: column;
-    padding-top: 30px; */
+    /* display: none; */
+    flex-direction: column;
+    padding-top: 30px;
   }
 
   .nav-links li a {

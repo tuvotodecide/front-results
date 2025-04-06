@@ -61,50 +61,19 @@ const Menu = () => {
       className={`${isActive ? "active" : ""} ${isDarkMode ? "dark" : ""}`}
     >
       <div className="nav-bar">
-        <div
-          className="sidebarOpen"
-          onClick={handleSidebarOpen}
-          style={{ cursor: "pointer", padding: "8px" }}
-        >
-          <FaBars size={24} color="white" />
-        </div>
-        <span className="logo navLogo">
-          <Link to="/">Yo Participo</Link>
-        </span>
-
-        <div className="menu">
-          <div>
-            <h3>test</h3>
-          </div>
-          {/* <div className="logo-toggle">
-            <span className="logo">
-              <Link to="/">Yo Participo</Link>
-            </span>
-            <FaTimes className="siderbarClose" color="white" />
+        <div className="darkLight-searchBox">
+          <div
+            className={`dark-light ${isDarkMode ? "active" : ""}`}
+            onClick={handleModeToggle}
+          >
+            {isDarkMode ? (
+              <FaSun size={18} className="sun" color="white" />
+            ) : (
+              <FaMoon size={18} className="moon" color="white" />
+            )}
           </div>
 
-          <ul className="nav-links">
-            {navigationItems.map((item) => (
-              <li key={item.title}>
-                <Link to={item.path}>{item.title}</Link>
-              </li>
-            ))}
-          </ul> */}
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="darkLight-searchBox">
-            <div
-              className={`dark-light ${isDarkMode ? "active" : ""}`}
-              onClick={handleModeToggle}
-            >
-              {isDarkMode ? (
-                <FaSun size={18} className="sun" color="white" />
-              ) : (
-                <FaMoon size={18} className="moon" color="white" />
-              )}
-            </div>
-
-            {/* <div className="searchBox">
+          {/* <div className="searchBox">
             <div
               className={`searchToggle ${isSearchActive ? "active" : ""}`}
               onClick={handleSearchToggle}
@@ -130,14 +99,40 @@ const Menu = () => {
               </div>
             </div>
           </div> */}
+        </div>
+        <span className="logo navLogo">
+          <Link to="/">Yo Participo</Link>
+        </span>
+
+        <div className="menu">
+          <div className="logo-toggle">
+            <span className="logo">
+              <Link to="/">Yo Participo</Link>
+            </span>
+            <FaTimes className="siderbarClose" color="white" />
           </div>
-          <ul className="nav-links" style={{ marginLeft: "20px" }}>
+
+          <ul className="nav-links">
             {navigationItems.map((item) => (
               <li key={item.title}>
                 <Link to={item.path}>{item.title}</Link>
               </li>
             ))}
           </ul>
+        </div>
+        {/* <ul className="nav-links" style={{ marginLeft: "20px" }}>
+          {navigationItems.map((item) => (
+            <li key={item.title}>
+              <Link to={item.path}>{item.title}</Link>
+            </li>
+          ))}
+        </ul> */}
+        <div
+          className="sidebarOpen"
+          onClick={handleSidebarOpen}
+          style={{ cursor: "pointer", padding: "8px" }}
+        >
+          <FaBars size={24} color="white" />
         </div>
       </div>
     </nav>
