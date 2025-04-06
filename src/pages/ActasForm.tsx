@@ -26,6 +26,7 @@ const ActasForm: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1.5);
   const previewRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({
     isDragging: false,
@@ -115,7 +116,7 @@ const ActasForm: React.FC = () => {
         const img = previewRef.current.querySelector("img");
         if (img) {
           img.style.transition = "none";
-          img.style.transform = `translate3d(${newX}px, ${newY}px, 0) scale3d(1.5, 1.5, 1)`;
+          img.style.transform = `translate3d(${newX}px, ${newY}px, 0) scale3d(${zoomLevel}, ${zoomLevel}, 1)`;
         }
       }
     }
@@ -132,8 +133,19 @@ const ActasForm: React.FC = () => {
     }
   };
 
+  const handleZoomIn = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setZoomLevel((prev) => Math.min(prev + 0.5, 4));
+  };
+
+  const handleZoomOut = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setZoomLevel((prev) => Math.max(prev - 0.5, 1));
+  };
+
   const resetZoomAndPosition = () => {
     setIsZoomed(false);
+    setZoomLevel(1.5);
     dragRef.current = {
       isDragging: false,
       startX: 0,
@@ -358,7 +370,7 @@ const ActasForm: React.FC = () => {
               ref={previewRef}
               className={`cursor-${
                 isZoomed ? "grab" : "zoom-in"
-              } overflow-hidden ${isZoomed ? "h-[80vh]" : ""}`}
+              } overflow-hidden ${isZoomed ? "h-[80vh]" : ""} relative`}
               onClick={() => !isZoomed && setIsZoomed(true)}
               onMouseDown={handleDragStart}
               onMouseMove={handleDrag}
@@ -371,7 +383,7 @@ const ActasForm: React.FC = () => {
                 className="w-full h-auto"
                 style={{
                   transform: isZoomed
-                    ? `translate3d(${dragRef.current.translateX}px, ${dragRef.current.translateY}px, 0) scale3d(1.5, 1.5, 1)`
+                    ? `translate3d(${dragRef.current.translateX}px, ${dragRef.current.translateY}px, 0) scale3d(${zoomLevel}, ${zoomLevel}, 1)`
                     : "none",
                   transition: dragRef.current.isDragging
                     ? "none"
@@ -379,6 +391,48 @@ const ActasForm: React.FC = () => {
                 }}
                 draggable={false}
               />
+              {isZoomed && (
+                <div className="absolute bottom-4 right-4 flex gap-2">
+                  <button
+                    onClick={handleZoomOut}
+                    className="bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg hover:bg-gray-100"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M20 12H4"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={handleZoomIn}
+                    className="bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg hover:bg-gray-100"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
