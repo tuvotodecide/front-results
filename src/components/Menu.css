@@ -83,6 +83,7 @@ nav .nav-bar .logo a {
 .nav-bar .nav-links li {
   margin: 0 5px;
   list-style: none;
+  position: relative; /* Ensure subitems-panel is positioned relative to the parent item */
 }
 
 .nav-links li a {
@@ -109,6 +110,11 @@ nav .nav-bar .logo a {
 }
 
 .nav-links li:hover a::before {
+  opacity: 1;
+}
+
+.nav-links li:hover .subitems-panel {
+  visibility: visible; /* Show panel on hover */
   opacity: 1;
 }
 
@@ -232,6 +238,54 @@ nav.dark .search-field input {
 
 nav.dark .search-field i {
   color: var(--text-color);
+}
+
+/* Adjusted styles to fix the disappearing subitems-panel issue and reduce menu width */
+.subitems-panel {
+  position: absolute;
+  top: 100%; /* Directly below the menu item */
+  right: 0;
+  background-color: var(--nav-color);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  z-index: 10;
+  padding: 10px 0;
+  min-width: 200px; /* Adjusted width for compactness */
+  visibility: hidden; /* Initially hidden */
+  opacity: 0;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.subitems-panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.subitems-panel li {
+  padding: 8px 15px;
+}
+
+.subitems-panel li a {
+  color: var(--text-color);
+  text-decoration: none;
+  font-size: 14px;
+  display: block;
+}
+
+.subitems-panel li:hover {
+  background-color: var(--side-nav);
+}
+
+/* Ensure menu-item-text has the same styles as .nav-links li a */
+.menu-item-text {
+  position: relative;
+  font-size: 17px;
+  font-weight: 400;
+  color: var(--text-color);
+  text-decoration: none;
+  padding: 10px;
+  display: inline-block;
 }
 
 @media (max-width: 790px) {

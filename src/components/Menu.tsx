@@ -1,18 +1,24 @@
 import { useState, useEffect, useRef } from "react";
-import { FaBars, FaTimes, FaMoon, FaSun, FaSearch } from "react-icons/fa";
+import { FaBars, FaTimes, FaMoon, FaSun } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import "./Menu.css";
 
-const navigationItems = [
-  { title: "Resultados", path: "/resultados" },
-  { title: "Subir acta", path: "/enviarActa" },
-  { title: "Login", path: "/login" },
-];
+type NavigationItem = {
+  title: string;
+  path?: string;
+  subItems?: NavigationItem[];
+  method?: () => void;
+  isLink?: boolean;
+};
 
-const Menu = () => {
+type MenuProps = {
+  navigationItems: NavigationItem[];
+};
+
+const Menu: React.FC<MenuProps> = ({ navigationItems }) => {
   const [isActive, setIsActive] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isSearchActive, setIsSearchActive] = useState(false);
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const navRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -51,10 +57,6 @@ const Menu = () => {
     localStorage.setItem("mode", isDarkMode ? "light-mode" : "dark-mode");
   };
 
-  const handleSearchToggle = () => {
-    setIsSearchActive(!isSearchActive);
-  };
-
   return (
     <nav
       ref={navRef}
@@ -72,33 +74,6 @@ const Menu = () => {
               <FaMoon size={18} className="moon" color="white" />
             )}
           </div>
-
-          {/* <div className="searchBox">
-            <div
-              className={`searchToggle ${isSearchActive ? "active" : ""}`}
-              onClick={handleSearchToggle}
-            >
-              {isSearchActive ? (
-                <FaTimes className="cancel" color="white" />
-              ) : (
-                <FaSearch className="search" color="white" />
-              )}
-            </div>
-
-            <div className="search-field">
-              <input type="text" placeholder="Search..." />
-              <div
-                style={{
-                  position: "absolute",
-                  right: "15px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                }}
-              >
-                <FaSearch color="var(--nav-color)" />
-              </div>
-            </div>
-          </div> */}
         </div>
         <span className="logo navLogo">
           <Link to="/">Yo Participo</Link>
@@ -114,19 +89,47 @@ const Menu = () => {
 
           <ul className="nav-links">
             {navigationItems.map((item) => (
-              <li key={item.title}>
-                <Link to={item.path}>{item.title}</Link>
+              <li
+                key={item.title}
+                onMouseEnter={() => setHoveredItem(item.title)}
+                onMouseLeave={() => setHoveredItem(null)}
+              >
+                {item.isLink === false || !item.path ? (
+                  <span
+                    className="menu-item-text"
+                    onClick={item.method ? item.method : undefined}
+                  >
+                    {item.title}
+                  </span>
+                ) : (
+                  <Link to={item.path}>{item.title}</Link>
+                )}
+                {item.subItems && hoveredItem === item.title && (
+                  <div className="subitems-panel">
+                    <ul>
+                      {item.subItems.map((subitem) => (
+                        <li key={subitem.title}>
+                          {subitem.isLink === false || !subitem.path ? (
+                            <span
+                              className="menu-item-text"
+                              onClick={
+                                subitem.method ? subitem.method : undefined
+                              }
+                            >
+                              {subitem.title}
+                            </span>
+                          ) : (
+                            <Link to={subitem.path}>{subitem.title}</Link>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </li>
             ))}
           </ul>
         </div>
-        {/* <ul className="nav-links" style={{ marginLeft: "20px" }}>
-          {navigationItems.map((item) => (
-            <li key={item.title}>
-              <Link to={item.path}>{item.title}</Link>
-            </li>
-          ))}
-        </ul> */}
         <div
           className="sidebarOpen"
           onClick={handleSidebarOpen}

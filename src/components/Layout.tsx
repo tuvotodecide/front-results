@@ -3,49 +3,36 @@ import { Outlet } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { selectAuth, logOut } from "../store/auth/authSlice";
+import Menu from "./Menu";
 
 const Layout: React.FC = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user } = useSelector(selectAuth);
+  console.log("user", user);
+
   const logout = () => {
+    console.log("Logout action triggered");
     dispatch(logOut());
     navigate("/login");
   };
+
+  const navigationItems = [
+    { title: "Resultados", path: "/resultados" },
+    { title: "Subir acta", path: "/enviarActa" },
+    {
+      title: user?.name || "Usuario",
+      path: "/panel",
+      subItems: [{ title: "Cerrar sesión", method: logout }],
+    },
+  ];
+
   return (
     <div>
-      <header className="bg-primary text-black p-4">
-        <nav className="flex">
-          {/* <ul className="flex gap-4">
-            <li>
-              <Link to="/panel">Panel de Control</Link>
-            </li>
-            <li>
-              <Link to="/registroJurado">Registro de Jurado</Link>
-            </li>
-            <li>
-              <Link to="/envioActa">Envío de Acta</Link>
-            </li>
-            <li>
-              <Link to="/resultados">Resultados</Link>
-            </li>
-          </ul> */}
-          <div
-            onClick={() => {
-              navigate("/panel");
-            }}
-          >
-            Yo participo
-          </div>
-          <div className="ml-auto px-2">
-            <div className="flex gap-6">
-              <p>{user?.name}</p>
-              <button onClick={logout}>cerrar sesión</button>
-            </div>
-          </div>
-        </nav>
+      <header className="bg-primary text-black">
+        <Menu navigationItems={navigationItems} />
       </header>
-      <main>
+      <main style={{ paddingTop: "70px" }}>
         <Outlet />
       </main>
     </div>
