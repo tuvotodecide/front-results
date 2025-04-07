@@ -75,8 +75,8 @@ const Resultados: React.FC = () => {
         Resultados
       </h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <section>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <section className="lg:col-span-1">
           <h2 className="text-xl sm:text-2xl font-semibold mb-4 text-gray-800">
             Tabla de Resultados
           </h2>
@@ -85,7 +85,7 @@ const Resultados: React.FC = () => {
           </div>
         </section>
 
-        <section>
+        <section className="lg:col-span-2">
           <h2 className="text-xl sm:text-2xl font-semibold mb-4 text-gray-800">
             Gráficos
           </h2>
