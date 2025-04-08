@@ -1,5 +1,6 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import LoadingSkeleton from "./components/LoadingSkeleton";
 
 const Home = React.lazy(() => import("./pages/Home"));
 const Login = React.lazy(() => import("./pages/Login"));
@@ -21,7 +22,7 @@ const BasicLayout = React.lazy(() => import("./components/BasicLayout"));
 const AppRouter: React.FC = () => {
   return (
     <Router>
-      <React.Suspense fallback={<div>Loading...</div>}>
+      <React.Suspense fallback={<LoadingSkeleton />}>
         <Routes>
           <Route element={<BasicLayout />}>
             <Route path="/" element={<Home />} />
