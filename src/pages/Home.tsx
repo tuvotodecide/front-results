@@ -1,5 +1,20 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import Table from "../components/Table";
+import type { ColumnDef } from "@tanstack/react-table";
+
+const data = [
+  { id: 1, name: "Juan", age: 28, email: "juan@email.com" },
+  { id: 2, name: "Ana", age: 34, email: "ana@email.com" },
+  { id: 3, name: "Luis", age: 22, email: "luis@email.com" },
+];
+
+const columns: ColumnDef<(typeof data)[0]>[] = [
+  { accessorKey: "id", header: "ID" },
+  { accessorKey: "name", header: "Nombre" },
+  { accessorKey: "age", header: "Edad" },
+  { accessorKey: "email", header: "Email" },
+];
 
 const Home: React.FC = () => {
   return (
@@ -7,6 +22,9 @@ const Home: React.FC = () => {
       <Link to="/resultados">Resultados</Link> |{" "}
       <Link to="/enviarActa">Enviar acta</Link>
       <h1>Home</h1>
+      <div className="my-8">
+        <Table data={data} columns={columns} />
+      </div>
       <div>
         Lorem ipsum dolor sit amet consectetur, adipisicing elit. Amet, mollitia
         placeat quod dolore, illum nihil aliquid rerum sit quos est tenetur
