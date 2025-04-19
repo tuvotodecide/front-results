@@ -3,7 +3,7 @@ import Modal from "react-modal";
 import { useNavigate } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
-import { useSubmitBallotMutation } from "../store/actas/actasEndpoints";
+import { useSubmitBallotMutation } from "../../store/actas/actasEndpoints";
 import { CheckCircleIcon } from "@heroicons/react/24/solid";
 
 interface FormValues {

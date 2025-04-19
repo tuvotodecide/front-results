@@ -13,6 +13,12 @@ const PanelControl: React.FC = () => {
   const cards = [
     {
       icon: <FaChalkboardTeacher className="text-red-600 text-4xl" />,
+      title: "Partidos",
+      description: "Administra los partidos electorales.",
+      path: "/partidos",
+    },
+    {
+      icon: <FaChalkboardTeacher className="text-red-600 text-4xl" />,
       title: "Recintos Electorales",
       description: "Administra los recintos electorales.",
       path: "/recintos",

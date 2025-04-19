@@ -1,6 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { FaBars, FaTimes, FaMoon, FaSun } from "react-icons/fa";
 import { Link } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import { selectIsLoggedIn, selectAuth, logOut } from "../store/auth/authSlice";
 import "./Menu.css";
 
 type NavigationItem = {
@@ -11,15 +13,16 @@ type NavigationItem = {
   isLink?: boolean;
 };
 
-type MenuProps = {
-  navigationItems: NavigationItem[];
-};
+type MenuProps = {};
 
-const Menu: React.FC<MenuProps> = ({ navigationItems }) => {
+const Menu: React.FC<MenuProps> = () => {
   const [isActive, setIsActive] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const navRef = useRef<HTMLElement>(null);
+  const isLoggedIn = useSelector(selectIsLoggedIn);
+  const { user } = useSelector(selectAuth);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const getMode = localStorage.getItem("mode");
@@ -33,6 +36,11 @@ const Menu: React.FC<MenuProps> = ({ navigationItems }) => {
     e.stopPropagation();
     setIsActive(true);
   };
+
+  useEffect(() => {
+    console.log("Menu component mounted or updated");
+    console.log("Is logged in:", isLoggedIn);
+  }, [isLoggedIn]);
 
   useEffect(() => {
     const handleBodyClick = (e: MouseEvent) => {
@@ -51,11 +59,32 @@ const Menu: React.FC<MenuProps> = ({ navigationItems }) => {
     };
   }, []);
 
+  const logout = () => {
+    dispatch(logOut());
+  };
+
   const handleModeToggle = () => {
     setIsDarkMode(!isDarkMode);
     navRef.current?.classList.toggle("dark");
     localStorage.setItem("mode", isDarkMode ? "light-mode" : "dark-mode");
   };
+
+  const navigationItems = useMemo(() => {
+    const items: NavigationItem[] = [
+      { title: "Resultados", path: "/resultados" },
+      { title: "Subir acta", path: "/enviarActa" },
+    ];
+    if (isLoggedIn) {
+      items.push({
+        title: user?.name || "Usuario",
+        path: "/panel",
+        subItems: [{ title: "Cerrar sesión", method: logout }],
+      });
+    } else {
+      items.push({ title: "Login", path: "/login" });
+    }
+    return items;
+  }, [isLoggedIn, user, logout]);
 
   return (
     <nav

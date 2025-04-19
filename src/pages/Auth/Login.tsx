@@ -3,8 +3,8 @@ import { useDispatch } from "react-redux";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { useNavigate, Link, useLocation } from "react-router-dom";
-import { useLoginUserMutation } from "../store/auth/authEndpoints";
-import { setAuth } from "../store/auth/authSlice";
+import { useLoginUserMutation } from "../../store/auth/authEndpoints";
+import { setAuth } from "../../store/auth/authSlice";
 
 const Login: React.FC = () => {
   const dispatch = useDispatch();

@@ -38,3 +38,8 @@ export const authSlice = createSlice({
 
 export const { setAuth, logOut } = authSlice.actions;
 export const selectAuth = (state: RootState) => state.auth;
+
+// Selector to check if user is logged in
+export const selectIsLoggedIn = (state: RootState) => {
+  return Boolean(state.auth.token && state.auth.user);
+};

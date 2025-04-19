@@ -2,8 +2,8 @@ import React, { useEffect } from "react";
 import {
   useGetRecintosQuery,
   useDeleteRecintoMutation,
-} from "../store/recintos/recintosEndpoints";
-import { RecintoTable } from "../components/RecintoTable";
+} from "../../store/recintos/recintosEndpoints";
+import { RecintoTable } from "../../components/RecintoTable";
 import { useNavigate } from "react-router-dom";
 
 const RecintosElectorales: React.FC = () => {

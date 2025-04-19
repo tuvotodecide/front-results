@@ -1,12 +1,12 @@
 import React from "react";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
-import { RecintoElectoral } from "../types/recintos";
+import { RecintoElectoral } from "../../types/recintos";
 import {
   useCreateRecintoMutation,
   useUpdateRecintoMutation,
   useGetRecintoQuery,
-} from "../store/recintos/recintosEndpoints";
+} from "../../store/recintos/recintosEndpoints";
 import { useNavigate, useParams } from "react-router-dom";
 
 const RecintoForm: React.FC = () => {
