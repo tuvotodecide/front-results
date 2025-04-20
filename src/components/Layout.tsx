@@ -8,11 +8,10 @@ const Layout: React.FC = () => {
       <header className="bg-primary text-black">
         <Menu />
       </header>
-      <main
-        className="bg-gray-100 flex items-center justify-center"
-        style={{ paddingTop: "70px" }}
-      >
-        <Outlet />
+      <main className="bg-gray-100" style={{ paddingTop: "70px" }}>
+        <div className="inline-block w-full h-full">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

@@ -44,7 +44,7 @@ const PanelControl: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col items-left min-h-screen bg-gray-100 p-8">
+    <div className="flex flex-col items-left bg-gray-100 p-8">
       <div className="w-full p-8 bg-white rounded shadow-md">
         <h1 className="text-2xl font-bold text-left mb-6">Panel de Control</h1>
         <div className="grid grid-cols-3 gap-6">

@@ -163,8 +163,8 @@ const ActasForm: React.FC = () => {
 
   return (
     <>
-      <div className="flex items-center justify-center w-full">
-        <div className="w-full max-w-md p-8 bg-white rounded shadow-md">
+      <div className="flex h-full justify-center items-center">
+        <div className="grow max-w-md p-8 bg-white rounded shadow-md">
           <h2 className="text-2xl font-bold text-center mb-6 text-red-600">
             Subir Acta
           </h2>
@@ -304,6 +304,7 @@ const ActasForm: React.FC = () => {
           </Formik>
         </div>
       </div>
+
       <Modal
         isOpen={isModalOpen}
         onRequestClose={() => setIsModalOpen(false)}

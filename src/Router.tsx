@@ -21,8 +21,8 @@ const RecintoForm = React.lazy(() => import("./pages/Recintos/RecintoForm"));
 const Actas = React.lazy(() => import("./pages/Actas/Actas"));
 const ActasForm = React.lazy(() => import("./pages/Actas/ActasForm"));
 const Layout = React.lazy(() => import("./components/Layout"));
-const BasicLayout = React.lazy(() => import("./components/BasicLayout"));
 const Partidos = React.lazy(() => import("./pages/Partidos/Partidos"));
+const PartidoForm = React.lazy(() => import("./pages/Partidos/PartidoForm"));
 
 const AppRouter: React.FC = () => {
   const dispatch = useDispatch();
@@ -54,6 +54,8 @@ const AppRouter: React.FC = () => {
             <Route element={<ProtectedRoutes />}>
               <Route path="/panel" element={<PanelControl />} />
               <Route path="/partidos" element={<Partidos />} />
+              <Route path="/partidos/nuevo" element={<PartidoForm />} />
+              <Route path="/partidos/editar/:id" element={<PartidoForm />} />
               <Route path="/recintos" element={<RecintosElectorales />} />
               <Route path="/recintos/nuevo" element={<RecintoForm />} />
               <Route path="/recintos/editar/:id" element={<RecintoForm />} />

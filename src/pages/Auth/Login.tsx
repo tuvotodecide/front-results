@@ -52,7 +52,7 @@ const Login: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex items-center justify-center w-full">
+    <div className="flex items-center justify-center w-full h-full">
       <div className="w-full max-w-md p-8 bg-white rounded shadow-md">
         <h1 className="text-2xl font-bold text-center mb-6 text-red-600">
           YO PARTICIPO

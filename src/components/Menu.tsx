@@ -92,18 +92,6 @@ const Menu: React.FC<MenuProps> = () => {
       className={`${isActive ? "active" : ""} ${isDarkMode ? "dark" : ""}`}
     >
       <div className="nav-bar">
-        <div className="darkLight-searchBox">
-          <div
-            className={`dark-light ${isDarkMode ? "active" : ""}`}
-            onClick={handleModeToggle}
-          >
-            {isDarkMode ? (
-              <FaSun size={18} className="sun" color="white" />
-            ) : (
-              <FaMoon size={18} className="moon" color="white" />
-            )}
-          </div>
-        </div>
         <span className="logo navLogo">
           <Link to="/">Yo Participo</Link>
         </span>
