@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Modal from "react-modal";
-import { Formik, Form, Field, ErrorMessage } from "formik";
+import { Formik, Form, Field, ErrorMessage, FieldArray } from "formik";
 import * as Yup from "yup";
 import {
   useCreatePartidoMutation,
@@ -36,8 +36,8 @@ const PartidoForm: React.FC = () => {
   const validationSchema = Yup.object({
     partyId: Yup.string().required("Este campo es obligatorio"),
     fullName: Yup.string().required("Este campo es obligatorio"),
-    logoUrl: Yup.string().required("Este campo es obligatorio"),
-    color: Yup.string().required("Este campo es obligatorio"),
+    // logoUrl: Yup.string().required("Este campo es obligatorio"),
+    // color: Yup.string().required("Este campo es obligatorio"),
     legalRepresentative: Yup.string().required("Este campo es obligatorio"),
     electionParticipation: Yup.array().of(
       Yup.object().shape({
@@ -62,16 +62,17 @@ const PartidoForm: React.FC = () => {
   };
 
   const handleSubmit = async (values: Omit<Partido, "_id">) => {
-    try {
-      if (isEditMode && id) {
-        await updateItem({ id, partido: values }).unwrap();
-      } else {
-        await createItem(values).unwrap();
-      }
-      navigate("/partidos");
-    } catch (err) {
-      console.error("Failed to save partido:", err);
-    }
+    // try {
+    //   if (isEditMode && id) {
+    //     await updateItem({ id, partido: values }).unwrap();
+    //   } else {
+    //     await createItem(values).unwrap();
+    //   }
+    //   navigate("/partidos");
+    // } catch (err) {
+    //   console.error("Failed to save partido:", err);
+    // }
+    console.log("Form submitted:", values);
   };
 
   const handleImageChange = (
@@ -108,7 +109,7 @@ const PartidoForm: React.FC = () => {
             onSubmit={handleSubmit}
             enableReinitialize
           >
-            {({ isSubmitting, setFieldValue }) => (
+            {({ isSubmitting, setFieldValue, values }) => (
               <Form>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div>
@@ -231,10 +232,134 @@ const PartidoForm: React.FC = () => {
                   </div>
                 </div>
 
+                <div className="mt-6">
+                  <h2 className="text-xl font-semibold mb-4">
+                    Participación Electoral
+                  </h2>
+                  <FieldArray name="electionParticipation">
+                    {({ push, remove }) => (
+                      <div>
+                        {values.electionParticipation.map((_, index) => (
+                          <div
+                            key={index}
+                            className="mb-4 p-4 border rounded-lg bg-gray-50"
+                          >
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700">
+                                  Año Electoral
+                                </label>
+                                <Field
+                                  name={`electionParticipation.${index}.electionYear`}
+                                  type="number"
+                                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                                />
+                                <ErrorMessage
+                                  name={`electionParticipation.${index}.electionYear`}
+                                  component="div"
+                                  className="text-red-500 text-sm mt-1"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700">
+                                  Nombre del Candidato
+                                </label>
+                                <Field
+                                  name={`electionParticipation.${index}.candidateName`}
+                                  type="text"
+                                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                                />
+                                <ErrorMessage
+                                  name={`electionParticipation.${index}.candidateName`}
+                                  component="div"
+                                  className="text-red-500 text-sm mt-1"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700">
+                                  Cargo
+                                </label>
+                                <Field
+                                  name={`electionParticipation.${index}.position`}
+                                  type="text"
+                                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                                />
+                                <ErrorMessage
+                                  name={`electionParticipation.${index}.position`}
+                                  component="div"
+                                  className="text-red-500 text-sm mt-1"
+                                />
+                              </div>
+                              <div className="flex items-center space-x-4">
+                                <div>
+                                  <label className="flex items-center space-x-2">
+                                    <Field
+                                      type="checkbox"
+                                      name={`electionParticipation.${index}.enabled`}
+                                      className="rounded border-gray-300 text-red-600 shadow-sm focus:border-red-300 focus:ring focus:ring-red-200 focus:ring-opacity-50"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700">
+                                      Habilitado
+                                    </span>
+                                  </label>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => remove(index)}
+                                  className="mt-6 bg-red-100 text-red-600 hover:bg-red-200 p-2 rounded-full"
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-5 w-5"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            push({
+                              electionYear: new Date().getFullYear(),
+                              candidateName: "",
+                              position: "",
+                              enabled: true,
+                            })
+                          }
+                          className="mt-2 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="-ml-1 mr-2 h-5 w-5"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          Agregar Participación Electoral
+                        </button>
+                      </div>
+                    )}
+                  </FieldArray>
+                </div>
+
                 <div className="flex justify-end mt-6">
                   <button
                     type="button"
-                    onClick={() => navigate("/recintos")}
+                    onClick={() => navigate("/partidos")}
                     className="bg-gray-500 text-white py-2 px-4 rounded-md shadow-sm hover:bg-gray-600 mr-2"
                     disabled={isLoading}
                   >
