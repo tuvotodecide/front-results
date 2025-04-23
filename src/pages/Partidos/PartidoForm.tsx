@@ -86,7 +86,7 @@ const PartidoForm: React.FC = () => {
       <div className="p-6 bg-gray-100 min-h-screen">
         <div className="w-full max-w-4xl p-8 bg-white rounded shadow-md">
           <h1 className="text-2xl font-bold text-left mb-6 text-red-600">
-            {isEditMode ? "Editar" : "Registro de"} Recinto Electoral
+            {isEditMode ? "Editar" : "Registro de"} Partido Politico
           </h1>
           {error && (
             <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -145,6 +145,25 @@ const PartidoForm: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div>
+                    <label
+                      htmlFor="legalRepresentative"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Representante Legal
+                    </label>
+                    <Field
+                      id="legalRepresentative"
+                      name="legalRepresentative"
+                      type="text"
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                    />
+                    <ErrorMessage
+                      name="legalRepresentative"
+                      component="div"
+                      className="text-red-500 text-sm mt-1"
+                    />
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-gray-700">
                       Cargar Imagen
                     </label>
@@ -182,46 +201,6 @@ const PartidoForm: React.FC = () => {
                         />
                       </div>
                     )}
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="coordinates.latitude"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Latitud
-                    </label>
-                    <Field
-                      id="coordinates.latitude"
-                      name="coordinates.latitude"
-                      type="number"
-                      step="0.000001"
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
-                    />
-                    <ErrorMessage
-                      name="coordinates.latitude"
-                      component="div"
-                      className="text-red-500 text-sm mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="coordinates.longitude"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Longitud
-                    </label>
-                    <Field
-                      id="coordinates.longitude"
-                      name="coordinates.longitude"
-                      type="number"
-                      step="0.000001"
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
-                    />
-                    <ErrorMessage
-                      name="coordinates.longitude"
-                      component="div"
-                      className="text-red-500 text-sm mt-1"
-                    />
                   </div>
                 </div>
 
@@ -283,20 +262,42 @@ const PartidoForm: React.FC = () => {
         className="modal-content"
         overlayClassName="modal-overlay"
         shouldCloseOnOverlayClick={true}
+        style={{
+          overlay: {
+            zIndex: 1000,
+            backgroundColor: "rgba(0, 0, 0, 0.75)",
+          },
+        }}
       >
-        <div className="bg-white p-4 rounded-lg shadow-xl max-w-4xl w-full mx-auto relative">
+        <div className="bg-white p-4 rounded-lg shadow-xl max-w-4xl w-full mx-auto relative max-h-[90vh] overflow-y-auto">
           <button
             onClick={() => {
               setIsPreviewModalOpen(false);
             }}
-            className="absolute top-2 right-2 z-50 text-gray-500 hover:text-gray-700 bg-white rounded-full p-1"
-          ></button>
+            className="absolute top-2 right-2 z-50 text-gray-500 hover:text-gray-700 bg-white rounded-full p-2"
+            aria-label="Close modal"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
           {previewUrl && (
-            <div>
+            <div className="mt-8">
               <img
                 src={previewUrl}
                 alt="Preview"
-                className="w-full h-auto"
+                className="w-full h-auto object-contain"
                 draggable={false}
               />
             </div>
@@ -308,7 +309,6 @@ const PartidoForm: React.FC = () => {
           .modal-overlay {
             position: fixed;
             inset: 0;
-            background-color: rgba(0, 0, 0, 0.5);
             display: flex;
             align-items: center;
             justify-content: center;
