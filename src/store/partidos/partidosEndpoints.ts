@@ -20,12 +20,12 @@ export const partidosApiSlice = apiSlice.injectEndpoints({
     }),
     updatePartido: builder.mutation<
       Partido,
-      { id: string; recinto: Partial<Partido> }
+      { id: string; partido: Partial<Partido> }
     >({
-      query: ({ id, recinto }) => ({
+      query: ({ id, partido }) => ({
         url: `/admin/parties/${id}`,
         method: "PUT",
-        body: recinto,
+        body: partido,
       }),
     }),
     deletePartido: builder.mutation<void, string>({

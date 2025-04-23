@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import Modal from "react-modal";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
-import { RecintoElectoral } from "../../types/recintos";
 import {
   useCreatePartidoMutation,
   useUpdatePartidoMutation,
@@ -10,6 +9,7 @@ import {
 } from "../../store/partidos/partidosEndpoints";
 import { useNavigate, useParams } from "react-router-dom";
 import { CheckCircleIcon } from "@heroicons/react/24/solid";
+import { Partido } from "../../types/partidos";
 
 Modal.setAppElement("#root");
 
@@ -39,30 +39,38 @@ const PartidoForm: React.FC = () => {
     logoUrl: Yup.string().required("Este campo es obligatorio"),
     color: Yup.string().required("Este campo es obligatorio"),
     legalRepresentative: Yup.string().required("Este campo es obligatorio"),
+    electionParticipation: Yup.array().of(
+      Yup.object().shape({
+        electionYear: Yup.number().required("El año es obligatorio"),
+        candidateName: Yup.string().required(
+          "El nombre del candidato es obligatorio"
+        ),
+        position: Yup.string().required("El cargo es obligatorio"),
+        enabled: Yup.boolean(),
+      })
+    ),
   });
 
   const initialValues = {
     partyId: currentItem?.partyId || "",
     fullName: currentItem?.fullName || "",
     logoUrl: currentItem?.logoUrl || "",
-    color: currentItem?.color || "",
+    color: currentItem?.color || "#000000",
     legalRepresentative: currentItem?.legalRepresentative || "",
-    active: currentItem?.active || "",
-    electionParticipation: [],
+    active: currentItem?.active ?? true,
+    electionParticipation: currentItem?.electionParticipation || [],
   };
 
-  const handleSubmit = async (
-    values: Omit<RecintoElectoral, "_id" | "createdAt" | "updatedAt">
-  ) => {
+  const handleSubmit = async (values: Omit<Partido, "_id">) => {
     try {
       if (isEditMode && id) {
-        await updateItem({ id, recinto: values }).unwrap();
+        await updateItem({ id, partido: values }).unwrap();
       } else {
         await createItem(values).unwrap();
       }
-      navigate("/recintos");
+      navigate("/partidos");
     } catch (err) {
-      console.error("Failed to save recinto:", err);
+      console.error("Failed to save partido:", err);
     }
   };
 
@@ -105,38 +113,38 @@ const PartidoForm: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div>
                     <label
-                      htmlFor="department"
+                      htmlFor="partyId"
                       className="block text-sm font-medium text-gray-700"
                     >
                       Sigla del Partido
                     </label>
                     <Field
-                      id="department"
-                      name="department"
+                      id="partyId"
+                      name="partyId"
                       type="text"
                       className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
                     />
                     <ErrorMessage
-                      name="department"
+                      name="partyId"
                       component="div"
                       className="text-red-500 text-sm mt-1"
                     />
                   </div>
                   <div className="col-span-2">
                     <label
-                      htmlFor="province"
+                      htmlFor="fullName"
                       className="block text-sm font-medium text-gray-700"
                     >
                       Nombre del Partido
                     </label>
                     <Field
-                      id="province"
-                      name="province"
+                      id="fullName"
+                      name="fullName"
                       type="text"
                       className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
                     />
                     <ErrorMessage
-                      name="province"
+                      name="fullName"
                       component="div"
                       className="text-red-500 text-sm mt-1"
                     />
@@ -159,6 +167,25 @@ const PartidoForm: React.FC = () => {
                     />
                     <ErrorMessage
                       name="legalRepresentative"
+                      component="div"
+                      className="text-red-500 text-sm mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="color"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Color del Partido
+                    </label>
+                    <Field
+                      id="color"
+                      name="color"
+                      type="color"
+                      className="mt-1 block w-full h-10 px-1 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
+                    />
+                    <ErrorMessage
+                      name="color"
                       component="div"
                       className="text-red-500 text-sm mt-1"
                     />
