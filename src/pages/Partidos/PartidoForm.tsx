@@ -62,17 +62,17 @@ const PartidoForm: React.FC = () => {
   };
 
   const handleSubmit = async (values: Omit<Partido, "_id">) => {
-    // try {
-    //   if (isEditMode && id) {
-    //     await updateItem({ id, partido: values }).unwrap();
-    //   } else {
-    //     await createItem(values).unwrap();
-    //   }
-    //   navigate("/partidos");
-    // } catch (err) {
-    //   console.error("Failed to save partido:", err);
-    // }
     console.log("Form submitted:", values);
+    try {
+      if (isEditMode && id) {
+        await updateItem({ id, partido: values }).unwrap();
+      } else {
+        await createItem(values).unwrap();
+      }
+      navigate("/partidos");
+    } catch (err) {
+      console.error("Failed to save partido:", err);
+    }
   };
 
   const handleImageChange = (
@@ -92,14 +92,14 @@ const PartidoForm: React.FC = () => {
 
   return (
     <>
-      <div className="p-6 bg-gray-100 min-h-screen">
-        <div className="w-full max-w-4xl p-8 bg-white rounded shadow-md">
-          <h1 className="text-2xl font-bold text-left mb-6 text-red-600">
-            {isEditMode ? "Editar" : "Registro de"} Partido Politico
+      <div className="p-6 bg-slate-50 min-h-screen">
+        <div className="w-full max-w-5xl mx-auto p-8 bg-white rounded-lg shadow-lg">
+          <h1 className="text-2xl font-bold text-left mb-8 text-gray-700 border-b pb-4 border-gray-300">
+            {isEditMode ? "Editar" : "Registro de"} Partido Político
           </h1>
           {error && (
-            <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-              Error al {isEditMode ? "actualizar" : "crear"} el recinto. Por
+            <div className="mb-6 p-4 bg-orange-100 border border-orange-400 text-orange-700 rounded-lg">
+              Error al {isEditMode ? "actualizar" : "crear"} el partido. Por
               favor intente nuevamente.
             </div>
           )}
@@ -110,221 +110,147 @@ const PartidoForm: React.FC = () => {
             enableReinitialize
           >
             {({ isSubmitting, setFieldValue, values }) => (
-              <Form>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div>
-                    <label
-                      htmlFor="partyId"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Sigla del Partido
-                    </label>
-                    <Field
-                      id="partyId"
-                      name="partyId"
-                      type="text"
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
-                    />
-                    <ErrorMessage
-                      name="partyId"
-                      component="div"
-                      className="text-red-500 text-sm mt-1"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <label
-                      htmlFor="fullName"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Nombre del Partido
-                    </label>
-                    <Field
-                      id="fullName"
-                      name="fullName"
-                      type="text"
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
-                    />
-                    <ErrorMessage
-                      name="fullName"
-                      component="div"
-                      className="text-red-500 text-sm mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div>
-                    <label
-                      htmlFor="legalRepresentative"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Representante Legal
-                    </label>
-                    <Field
-                      id="legalRepresentative"
-                      name="legalRepresentative"
-                      type="text"
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
-                    />
-                    <ErrorMessage
-                      name="legalRepresentative"
-                      component="div"
-                      className="text-red-500 text-sm mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="color"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Color del Partido
-                    </label>
-                    <Field
-                      id="color"
-                      name="color"
-                      type="color"
-                      className="mt-1 block w-full h-10 px-1 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
-                    />
-                    <ErrorMessage
-                      name="color"
-                      component="div"
-                      className="text-red-500 text-sm mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Cargar Imagen
-                    </label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleImageChange(e, setFieldValue)}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    />
-                    {previewUrl && (
-                      <div
-                        className="mt-2 relative cursor-pointer"
-                        onClick={() => setIsPreviewModalOpen(true)}
+              <Form className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-6">
+                    <div>
+                      <label
+                        htmlFor="partyId"
+                        className="block text-sm font-medium text-gray-700"
                       >
-                        <div className="absolute inset-0 flex items-center justify-center hover:bg-black/30 transition-colors duration-200 rounded-lg">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
-                            />
-                          </svg>
-                        </div>
-                        <img
-                          src={previewUrl}
-                          alt="Preview"
-                          className="w-full h-auto rounded-lg border border-gray-300"
+                        Sigla del Partido
+                      </label>
+                      <Field
+                        id="partyId"
+                        name="partyId"
+                        type="text"
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      />
+                      <ErrorMessage
+                        name="partyId"
+                        component="div"
+                        className="text-orange-600 text-sm mt-1"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="fullName"
+                        className="block text-sm font-medium text-gray-700"
+                      >
+                        Nombre del Partido
+                      </label>
+                      <Field
+                        id="fullName"
+                        name="fullName"
+                        type="text"
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      />
+                      <ErrorMessage
+                        name="fullName"
+                        component="div"
+                        className="text-orange-600 text-sm mt-1"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="legalRepresentative"
+                        className="block text-sm font-medium text-gray-700 mb-2"
+                      >
+                        Representante Legal
+                      </label>
+                      <Field
+                        id="legalRepresentative"
+                        name="legalRepresentative"
+                        type="text"
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-150 ease-in-out"
+                      />
+                      <ErrorMessage
+                        name="legalRepresentative"
+                        component="div"
+                        className="text-orange-600 text-sm mt-1"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div>
+                      <label
+                        htmlFor="color"
+                        className="block text-sm font-medium text-gray-700 mb-2"
+                      >
+                        Color del Partido
+                      </label>
+                      <div className="flex items-center space-x-4">
+                        <Field
+                          id="color"
+                          name="color"
+                          type="color"
+                          className="h-10 w-24 px-1 py-1 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                        <Field
+                          name="color"
+                          type="text"
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </div>
-                    )}
+                      <ErrorMessage
+                        name="color"
+                        component="div"
+                        className="text-orange-600 text-sm mt-1"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Logo del Partido
+                      </label>
+                      <input
+                        id="file-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleImageChange(e, setFieldValue)}
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      />
+                      {previewUrl && (
+                        <div
+                          className="mt-4 relative cursor-pointer group"
+                          onClick={() => setIsPreviewModalOpen(true)}
+                        >
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-8 w-8 text-white"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                              />
+                            </svg>
+                          </div>
+                          <img
+                            src={previewUrl}
+                            alt="Preview"
+                            className="w-full h-48 object-cover rounded-lg border border-gray-300"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <div className="mt-6">
-                  <h2 className="text-xl font-semibold mb-4">
-                    Participación Electoral
-                  </h2>
-                  <FieldArray name="electionParticipation">
-                    {({ push, remove }) => (
-                      <div>
-                        {values.electionParticipation.map((_, index) => (
-                          <div
-                            key={index}
-                            className="mb-4 p-4 border rounded-lg bg-gray-50"
-                          >
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700">
-                                  Año Electoral
-                                </label>
-                                <Field
-                                  name={`electionParticipation.${index}.electionYear`}
-                                  type="number"
-                                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
-                                />
-                                <ErrorMessage
-                                  name={`electionParticipation.${index}.electionYear`}
-                                  component="div"
-                                  className="text-red-500 text-sm mt-1"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700">
-                                  Nombre del Candidato
-                                </label>
-                                <Field
-                                  name={`electionParticipation.${index}.candidateName`}
-                                  type="text"
-                                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
-                                />
-                                <ErrorMessage
-                                  name={`electionParticipation.${index}.candidateName`}
-                                  component="div"
-                                  className="text-red-500 text-sm mt-1"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700">
-                                  Cargo
-                                </label>
-                                <Field
-                                  name={`electionParticipation.${index}.position`}
-                                  type="text"
-                                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
-                                />
-                                <ErrorMessage
-                                  name={`electionParticipation.${index}.position`}
-                                  component="div"
-                                  className="text-red-500 text-sm mt-1"
-                                />
-                              </div>
-                              <div className="flex items-center space-x-4">
-                                <div>
-                                  <label className="flex items-center space-x-2">
-                                    <Field
-                                      type="checkbox"
-                                      name={`electionParticipation.${index}.enabled`}
-                                      className="rounded border-gray-300 text-red-600 shadow-sm focus:border-red-300 focus:ring focus:ring-red-200 focus:ring-opacity-50"
-                                    />
-                                    <span className="text-sm font-medium text-gray-700">
-                                      Habilitado
-                                    </span>
-                                  </label>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => remove(index)}
-                                  className="mt-6 bg-red-100 text-red-600 hover:bg-red-200 p-2 rounded-full"
-                                >
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="h-5 w-5"
-                                    viewBox="0 0 20 20"
-                                    fill="currentColor"
-                                  >
-                                    <path
-                                      fillRule="evenodd"
-                                      d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                                      clipRule="evenodd"
-                                    />
-                                  </svg>
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-md font-semibold text-gray-800">
+                      Participantes
+                    </h3>
+                    <FieldArray name="electionParticipation">
+                      {({ push }) => (
                         <button
                           type="button"
                           onClick={() =>
@@ -335,7 +261,7 @@ const PartidoForm: React.FC = () => {
                               enabled: true,
                             })
                           }
-                          className="mt-2 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                          className="inline-flex items-center px-4 py-1 bg-transparent hover:bg-blue-600 text-blue-700 hover:text-white border border-blue-500 hover:border-transparent rounded transition-colors duration-150 ease-in-out"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -349,25 +275,124 @@ const PartidoForm: React.FC = () => {
                               clipRule="evenodd"
                             />
                           </svg>
-                          Agregar Participación Electoral
+                          Agregar Participante
                         </button>
+                      )}
+                    </FieldArray>
+                  </div>
+
+                  <FieldArray name="electionParticipation">
+                    {({ remove }) => (
+                      <div className="space-y-4">
+                        {values.electionParticipation.map((_, index) => (
+                          <div
+                            key={index}
+                            className="p-6 border rounded-lg bg-gray-50 border-gray-300 hover:bg-gray-100 transition-colors duration-200"
+                          >
+                            <div className="grid grid-cols-1 md:grid-cols-7 gap-6">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2 text-center">
+                                  Habilitado
+                                </label>
+                                <div className="flex items-center justify-center">
+                                  <Field
+                                    type="checkbox"
+                                    name={`electionParticipation.${index}.enabled`}
+                                    className="h-7 w-7 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Año Electoral
+                                </label>
+                                <Field
+                                  name={`electionParticipation.${index}.electionYear`}
+                                  type="number"
+                                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                                <ErrorMessage
+                                  name={`electionParticipation.${index}.electionYear`}
+                                  component="div"
+                                  className="text-orange-600 text-sm mt-1"
+                                />
+                              </div>
+                              <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Nombre del Candidato
+                                </label>
+                                <Field
+                                  name={`electionParticipation.${index}.candidateName`}
+                                  type="text"
+                                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                                <ErrorMessage
+                                  name={`electionParticipation.${index}.candidateName`}
+                                  component="div"
+                                  className="text-orange-600 text-sm mt-1"
+                                />
+                              </div>
+                              <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Cargo
+                                </label>
+                                <Field
+                                  name={`electionParticipation.${index}.position`}
+                                  type="text"
+                                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                />
+                                <ErrorMessage
+                                  name={`electionParticipation.${index}.position`}
+                                  component="div"
+                                  className="text-orange-500 text-sm mt-1"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 text-center">
+                                  Borrar
+                                </label>
+                                <div className="flex items-center justify-center space-x-4">
+                                  <button
+                                    type="button"
+                                    onClick={() => remove(index)}
+                                    className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-200 transition-colors duration-200"
+                                    title="Eliminar participación"
+                                  >
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      className="h-8 w-8"
+                                      viewBox="0 0 20 20"
+                                      fill="currentColor"
+                                    >
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </FieldArray>
                 </div>
 
-                <div className="flex justify-end mt-6">
+                <div className="flex justify-end space-x-4 pt-6 border-t border-gray-300">
                   <button
                     type="button"
                     onClick={() => navigate("/partidos")}
-                    className="bg-gray-500 text-white py-2 px-4 rounded-md shadow-sm hover:bg-gray-600 mr-2"
+                    className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200"
                     disabled={isLoading}
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="bg-red-600 text-white py-2 px-4 rounded-md shadow-sm hover:bg-red-700"
+                    className="bg-transparent hover:bg-blue-600 text-blue-700 font-semibold hover:text-white py-2 px-4 border border-blue-500 hover:border-transparent rounded transition-colors duration-200"
                     disabled={isLoading || isSubmitting}
                   >
                     {isLoading ? "Guardando..." : "Guardar"}
