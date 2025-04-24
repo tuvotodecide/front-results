@@ -6,16 +6,57 @@ import {
   flexRender,
   ColumnDef,
 } from "@tanstack/react-table";
+import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 
 interface TableProps<T extends object> {
   data: T[];
   columns: ColumnDef<T, any>[];
+  onEdit?: (row: T) => void;
+  onDelete?: (row: T) => void;
 }
 
-function Table<T extends object>({ data, columns }: TableProps<T>) {
+const Table = <T extends object>({
+  data,
+  columns,
+  onEdit,
+  onDelete,
+}: TableProps<T>) => {
+  const columnsWithActions = React.useMemo(() => {
+    if (!onEdit && !onDelete) return columns;
+
+    const actionsColumn: ColumnDef<T> = {
+      id: "acciones",
+      header: "Acciones",
+      cell: ({ row }) => (
+        <div className="flex gap-2">
+          {onEdit && (
+            <button
+              onClick={() => onEdit(row.original)}
+              className="p-1 text-blue-600 hover:text-blue-800"
+              title="Editar"
+            >
+              <PencilIcon className="h-5 w-5" />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={() => onDelete(row.original)}
+              className="p-1 text-red-600 hover:text-red-800"
+              title="Eliminar"
+            >
+              <TrashIcon className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+      ),
+    };
+
+    return [...columns, actionsColumn];
+  }, [columns, onEdit, onDelete]);
+
   const table = useReactTable({
     data,
-    columns,
+    columns: columnsWithActions,
     getCoreRowModel: getCoreRowModel(),
   });
 
@@ -62,6 +103,6 @@ function Table<T extends object>({ data, columns }: TableProps<T>) {
       </table>
     </div>
   );
-}
+};
 
 export default Table;
