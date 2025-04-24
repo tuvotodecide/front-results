@@ -4,7 +4,6 @@ import { Link, useNavigate } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useGetPartidosQuery } from "../../store/partidos/partidosEndpoints";
 import { Partido } from "../../types/partidos";
-import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 
 const columns: ColumnDef<Partido>[] = [
   {
@@ -56,32 +55,6 @@ const columns: ColumnDef<Partido>[] = [
         {row.original.active ? "Activo" : "Inactivo"}
       </span>
     ),
-  },
-  {
-    id: "acciones",
-    header: "Acciones",
-    cell: ({ row }) => {
-      const navigate = useNavigate();
-      return (
-        <div className="flex gap-2">
-          <button
-            onClick={() => navigate(`/partidos/editar/${row.original.partyId}`)}
-            className="p-1 text-blue-600 hover:text-blue-800"
-          >
-            <PencilIcon className="h-5 w-5" />
-          </button>
-          <button
-            onClick={() => {
-              // Add delete handler here
-              console.log("Delete", row.original.partyId);
-            }}
-            className="p-1 text-red-600 hover:text-red-800"
-          >
-            <TrashIcon className="h-5 w-5" />
-          </button>
-        </div>
-      );
-    },
   },
 ];
 
