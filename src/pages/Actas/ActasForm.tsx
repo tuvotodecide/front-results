@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
@@ -6,6 +6,7 @@ import { useSubmitBallotMutation } from "../../store/actas/actasEndpoints";
 import { CheckCircleIcon } from "@heroicons/react/24/solid";
 import LoadingButton from "../../components/LoadingButton";
 import Modal from "../../components/Modal";
+import ModalImage from "../../components/ModalImage";
 
 interface FormValues {
   file: File | null;
@@ -26,16 +27,6 @@ const ActasForm: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
-  const [isZoomed, setIsZoomed] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(1.5);
-  const previewRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef({
-    isDragging: false,
-    startX: 0,
-    startY: 0,
-    translateX: 0,
-    translateY: 0,
-  });
   const navigate = useNavigate();
 
   const initialValues: FormValues = {
@@ -63,7 +54,6 @@ const ActasForm: React.FC = () => {
       setIsModalOpen(true);
       resetForm();
       setPreviewUrl(null);
-      // Reset file input
       const fileInput = document.querySelector(
         'input[type="file"]'
       ) as HTMLInputElement;
@@ -89,76 +79,6 @@ const ActasForm: React.FC = () => {
         setPreviewUrl(reader.result as string);
       };
       reader.readAsDataURL(file);
-    }
-  };
-
-  const handleDragStart = (e: React.MouseEvent) => {
-    if (!isZoomed) return;
-    const target = e.currentTarget as HTMLDivElement;
-    dragRef.current = {
-      isDragging: true,
-      startX: e.clientX - dragRef.current.translateX,
-      startY: e.clientY - dragRef.current.translateY,
-      translateX: dragRef.current.translateX,
-      translateY: dragRef.current.translateY,
-    };
-    target.style.cursor = "grabbing";
-  };
-
-  const handleDrag = (e: React.MouseEvent) => {
-    if (!isZoomed || !dragRef.current.isDragging) return;
-    if (e.buttons === 1) {
-      const newX = e.clientX - dragRef.current.startX;
-      const newY = e.clientY - dragRef.current.startY;
-      dragRef.current.translateX = newX;
-      dragRef.current.translateY = newY;
-
-      if (previewRef.current) {
-        const img = previewRef.current.querySelector("img");
-        if (img) {
-          img.style.transition = "none";
-          img.style.transform = `translate3d(${newX}px, ${newY}px, 0) scale3d(${zoomLevel}, ${zoomLevel}, 1)`;
-        }
-      }
-    }
-  };
-
-  const handleDragEnd = (e: React.MouseEvent) => {
-    dragRef.current.isDragging = false;
-    (e.currentTarget as HTMLDivElement).style.cursor = "grab";
-    if (previewRef.current) {
-      const img = previewRef.current.querySelector("img");
-      if (img) {
-        img.style.transition = "transform 200ms";
-      }
-    }
-  };
-
-  const handleZoomIn = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setZoomLevel((prev) => Math.min(prev + 0.5, 4));
-  };
-
-  const handleZoomOut = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setZoomLevel((prev) => Math.max(prev - 0.5, 1));
-  };
-
-  const resetZoomAndPosition = () => {
-    setIsZoomed(false);
-    setZoomLevel(1.5);
-    dragRef.current = {
-      isDragging: false,
-      startX: 0,
-      startY: 0,
-      translateX: 0,
-      translateY: 0,
-    };
-    if (previewRef.current) {
-      const img = previewRef.current.querySelector("img");
-      if (img) {
-        img.style.transform = "none";
-      }
     }
   };
 
@@ -298,85 +218,11 @@ const ActasForm: React.FC = () => {
         </div>
       </Modal>
 
-      <Modal
+      <ModalImage
         isOpen={isPreviewModalOpen}
-        onClose={() => {
-          setIsPreviewModalOpen(false);
-          resetZoomAndPosition();
-        }}
-        size="xl"
-      >
-        {previewUrl && (
-          <div
-            ref={previewRef}
-            className={`cursor-${
-              isZoomed ? "grab" : "zoom-in"
-            } overflow-hidden ${isZoomed ? "h-[80vh]" : ""} relative`}
-            onClick={() => !isZoomed && setIsZoomed(true)}
-            onMouseDown={handleDragStart}
-            onMouseMove={handleDrag}
-            onMouseUp={handleDragEnd}
-            onMouseLeave={handleDragEnd}
-          >
-            <img
-              src={previewUrl}
-              alt="Preview"
-              className="w-full h-auto"
-              style={{
-                transform: isZoomed
-                  ? `translate3d(${dragRef.current.translateX}px, ${dragRef.current.translateY}px, 0) scale3d(${zoomLevel}, ${zoomLevel}, 1)`
-                  : "none",
-                transition: dragRef.current.isDragging
-                  ? "none"
-                  : "transform 200ms",
-              }}
-              draggable={false}
-            />
-            {isZoomed && (
-              <div className="absolute bottom-4 right-4 flex gap-2">
-                <button
-                  onClick={handleZoomOut}
-                  className="bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg hover:bg-gray-100"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M20 12H4"
-                    />
-                  </svg>
-                </button>
-                <button
-                  onClick={handleZoomIn}
-                  className="bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg hover:bg-gray-100"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 4v16m8-8H4"
-                    />
-                  </svg>
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      </Modal>
+        onClose={() => setIsPreviewModalOpen(false)}
+        imageUrl={previewUrl}
+      />
     </>
   );
 };
