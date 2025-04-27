@@ -164,7 +164,7 @@ const PartidoForm: React.FC = () => {
                         id="legalRepresentative"
                         name="legalRepresentative"
                         type="text"
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-150 ease-in-out"
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out"
                       />
                       <ErrorMessage
                         name="legalRepresentative"
@@ -187,12 +187,12 @@ const PartidoForm: React.FC = () => {
                           id="color"
                           name="color"
                           type="color"
-                          className="h-10 w-24 px-1 py-1 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="h-10 w-24 px-1 py-1 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         />
                         <Field
                           name="color"
                           type="text"
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         />
                       </div>
                       <ErrorMessage
@@ -210,7 +210,7 @@ const PartidoForm: React.FC = () => {
                         type="file"
                         accept="image/*"
                         onChange={(e) => handleImageChange(e, setFieldValue)}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       />
                       {previewUrl && (
                         <div
@@ -261,7 +261,7 @@ const PartidoForm: React.FC = () => {
                               enabled: true,
                             })
                           }
-                          className="inline-flex items-center px-4 py-1 bg-transparent hover:bg-blue-600 text-blue-700 hover:text-white border border-blue-500 hover:border-transparent rounded transition-colors duration-150 ease-in-out"
+                          className="inline-flex items-center px-4 py-1 bg-transparent hover:bg-blue-100 text-blue-700 border border-blue-500 rounded transition-colors duration-150 ease-in-out"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -309,7 +309,7 @@ const PartidoForm: React.FC = () => {
                                 <Field
                                   name={`electionParticipation.${index}.electionYear`}
                                   type="number"
-                                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                 />
                                 <ErrorMessage
                                   name={`electionParticipation.${index}.electionYear`}
@@ -324,7 +324,7 @@ const PartidoForm: React.FC = () => {
                                 <Field
                                   name={`electionParticipation.${index}.candidateName`}
                                   type="text"
-                                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                 />
                                 <ErrorMessage
                                   name={`electionParticipation.${index}.candidateName`}
@@ -339,7 +339,7 @@ const PartidoForm: React.FC = () => {
                                 <Field
                                   name={`electionParticipation.${index}.position`}
                                   type="text"
-                                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                 />
                                 <ErrorMessage
                                   name={`electionParticipation.${index}.position`}
@@ -385,14 +385,14 @@ const PartidoForm: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => navigate("/partidos")}
-                    className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200"
+                    className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-100 focus:outline-none focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200"
                     disabled={isLoading}
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="bg-transparent hover:bg-blue-600 text-blue-700 font-semibold hover:text-white py-2 px-4 border border-blue-500 hover:border-transparent rounded transition-colors duration-200"
+                    className="bg-transparent hover:bg-blue-100 text-blue-700 font-semibold py-2 px-4 border border-blue-500 rounded transition-colors duration-200"
                     disabled={isLoading || isSubmitting}
                   >
                     {isLoading ? "Guardando..." : "Guardar"}

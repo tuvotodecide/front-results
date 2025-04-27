@@ -16,7 +16,9 @@ nav {
   left: 0;
   height: 70px;
   width: 100%;
-  background-color: var(--nav-color);
+  /* background-color: var(--nav-color); */
+  background: linear-gradient(137deg, #d52b1e 10%, #f9e300 30%, #007934 60%);
+  box-shadow: inset 9px 8px 45px 20px #4c4c4c41;
   z-index: 100;
 }
 

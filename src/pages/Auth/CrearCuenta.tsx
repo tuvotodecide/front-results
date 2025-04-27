@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
-import { useCreateUserMutation } from "../store/auth/authEndpoints";
+import { useCreateUserMutation } from "../../store/auth/authEndpoints";
 import { useNavigate } from "react-router-dom";
 
 const CrearCuenta: React.FC = () => {
@@ -38,11 +38,9 @@ const CrearCuenta: React.FC = () => {
   });
 
   return (
-    <div className="w-full">
+    <div className="flex items-center justify-center h-full">
       <div className="w-full max-w-2xl p-8 bg-white rounded shadow-md mx-auto">
-        <h1 className="text-2xl font-bold text-center mb-6 text-red-600">
-          Registrarse
-        </h1>
+        <h1 className="text-2xl font-bold mb-6 text-gray-800">Registrarse</h1>
         {serverErrors.length > 0 && ( // Display server errors
           <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">
             <h2 className="font-bold mb-2">Errores:</h2>
@@ -68,7 +66,7 @@ const CrearCuenta: React.FC = () => {
           {() => (
             <Form>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
+                <div className="col-span-2">
                   <label
                     htmlFor="name"
                     className="block text-sm font-medium text-gray-700"
@@ -83,29 +81,6 @@ const CrearCuenta: React.FC = () => {
                   />
                   <ErrorMessage
                     name="name"
-                    component="div"
-                    className="text-red-500 text-sm mt-1"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="userRol"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Rol del usuario
-                  </label>
-                  <Field
-                    as="select"
-                    id="userRol"
-                    name="userRol"
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
-                  >
-                    <option value="">Seleccione una opción</option>
-                    <option value="recinto1">Recinto 1</option>
-                    <option value="recinto2">Recinto 2</option>
-                  </Field>
-                  <ErrorMessage
-                    name="userRol"
                     component="div"
                     className="text-red-500 text-sm mt-1"
                   />
@@ -151,6 +126,7 @@ const CrearCuenta: React.FC = () => {
                   />
                 </div>
               </div>
+
               <div className="flex justify-center mt-6">
                 <button
                   type="button"

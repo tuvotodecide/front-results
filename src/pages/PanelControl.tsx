@@ -12,31 +12,31 @@ const PanelControl: React.FC = () => {
 
   const cards = [
     {
-      icon: <FaChalkboardTeacher className="text-red-600 text-4xl" />,
+      icon: <FaChalkboardTeacher className="text-gray-600 text-4xl" />,
       title: "Partidos",
       description: "Administra los partidos electorales.",
       path: "/partidos",
     },
     {
-      icon: <FaChalkboardTeacher className="text-red-600 text-4xl" />,
+      icon: <FaChalkboardTeacher className="text-gray-600 text-4xl" />,
       title: "Recintos Electorales",
       description: "Administra los recintos electorales.",
       path: "/recintos",
     },
     {
-      icon: <FaUserEdit className="text-red-600 text-4xl" />,
+      icon: <FaUserEdit className="text-gray-600 text-4xl" />,
       title: "Registro de Jurado",
       description: "Registra nuevos jurados para el sistema.",
       path: "/registroJurado",
     },
     {
-      icon: <FaFileAlt className="text-red-600 text-4xl" />,
+      icon: <FaFileAlt className="text-gray-600 text-4xl" />,
       title: "Envio de Acta",
       description: "Envía actas de evaluación de manera rápida.",
       path: "/actas/nuevo",
     },
     {
-      icon: <FaChartBar className="text-red-600 text-4xl" />,
+      icon: <FaChartBar className="text-gray-600 text-4xl" />,
       title: "Resultados",
       description: "Consulta los resultados de las evaluaciones.",
       path: "/resultados",
@@ -46,7 +46,10 @@ const PanelControl: React.FC = () => {
   return (
     <div className="flex flex-col items-left bg-gray-100 p-8">
       <div className="w-full p-8 bg-white rounded shadow-md">
-        <h1 className="text-2xl font-bold text-left mb-6">Panel de Control</h1>
+        {/* <h1 className="text-2xl font-bold text-left mb-6">Panel de Control</h1> */}
+        <h1 className="text-2xl font-bold text-left mb-8 text-gray-600 border-b pb-4 border-gray-300">
+          Panel de Control
+        </h1>
         <div className="grid grid-cols-3 gap-6">
           {cards.map((card, index) => (
             <div

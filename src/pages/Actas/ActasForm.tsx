@@ -165,9 +165,9 @@ const ActasForm: React.FC = () => {
     <>
       <div className="flex h-full justify-center items-center">
         <div className="grow max-w-md p-8 bg-white rounded shadow-md">
-          <h2 className="text-2xl font-bold text-center mb-6 text-red-600">
+          <h1 className="text-2xl font-bold text-center mb-8 text-gray-700 border-b pb-4 border-gray-300">
             Subir Acta
-          </h2>
+          </h1>
           <Formik
             initialValues={initialValues}
             validationSchema={validationSchema}
@@ -183,7 +183,7 @@ const ActasForm: React.FC = () => {
                     type="file"
                     accept="image/*"
                     onChange={(e) => handleImageChange(e, setFieldValue)}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   />
                   {previewUrl && (
                     <div
@@ -222,7 +222,7 @@ const ActasForm: React.FC = () => {
                   <Field
                     name="tableNumber"
                     type="text"
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   />
                   <ErrorMessage
                     name="tableNumber"
@@ -238,7 +238,7 @@ const ActasForm: React.FC = () => {
                   <Field
                     name="citizenId"
                     type="text"
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   />
                   <ErrorMessage
                     name="citizenId"
@@ -254,7 +254,7 @@ const ActasForm: React.FC = () => {
                   <Field
                     name="locationCode"
                     type="text"
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   />
                   <ErrorMessage
                     name="locationCode"
@@ -262,43 +262,44 @@ const ActasForm: React.FC = () => {
                     className="text-sm text-red-500 mt-1"
                   />
                 </div>
-
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className={`w-full py-2 px-4 font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                    isSubmitting
-                      ? "bg-gray-400 cursor-not-allowed"
-                      : "bg-red-600 text-white hover:bg-red-700"
-                  }`}
-                >
-                  {isSubmitting ? (
-                    <div className="flex items-center justify-center">
-                      <svg
-                        className="animate-spin h-5 w-5 mr-3 text-white"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                          fill="none"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
-                      </svg>
-                      Enviando...
-                    </div>
-                  ) : (
-                    "Enviar"
-                  )}
-                </button>
+                <div className="mt-6 pt-6 border-t border-gray-300">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className={`w-full py-2 px-4 font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 border  ${
+                      isSubmitting
+                        ? "bg-gray-400 border-gray-700 cursor-not-allowed"
+                        : "bg-transparent text-blue-700 hover:bg-blue-100 border-blue-500 "
+                    }`}
+                  >
+                    {isSubmitting ? (
+                      <div className="flex items-center justify-center">
+                        <svg
+                          className="animate-spin h-5 w-5 mr-3 text-white"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                            fill="none"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
+                        </svg>
+                        Enviando...
+                      </div>
+                    ) : (
+                      "Enviar"
+                    )}
+                  </button>
+                </div>
               </Form>
             )}
           </Formik>

@@ -74,7 +74,7 @@ const Partidos: React.FC = () => {
   return (
     <div className="p-6 bg-gray-100">
       <div className="w-full p-8 bg-white rounded shadow-md">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-6 border-b pb-4 border-gray-400">
           <h1 className="text-2xl font-bold text-gray-700">
             Partidos Políticos
           </h1>
