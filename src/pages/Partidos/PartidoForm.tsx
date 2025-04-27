@@ -10,6 +10,7 @@ import {
 import { useNavigate, useParams } from "react-router-dom";
 import { CheckCircleIcon } from "@heroicons/react/24/solid";
 import { Partido } from "../../types/partidos";
+import LoadingButton from "../../components/LoadingButton";
 
 Modal.setAppElement("#root");
 
@@ -62,6 +63,7 @@ const PartidoForm: React.FC = () => {
   };
 
   const handleSubmit = async (values: Omit<Partido, "_id">) => {
+    const formData = new FormData();
     console.log("Form submitted:", values);
     try {
       if (isEditMode && id) {
@@ -390,13 +392,16 @@ const PartidoForm: React.FC = () => {
                   >
                     Cancelar
                   </button>
-                  <button
+                  {/* <button
                     type="submit"
                     className="bg-transparent hover:bg-blue-100 text-blue-700 font-semibold py-2 px-4 border border-blue-500 rounded transition-colors duration-200"
                     disabled={isLoading || isSubmitting}
                   >
                     {isLoading ? "Guardando..." : "Guardar"}
-                  </button>
+                  </button> */}
+                  <LoadingButton type="submit" isLoading={isSubmitting}>
+                    Guardar
+                  </LoadingButton>
                 </div>
               </Form>
             )}
