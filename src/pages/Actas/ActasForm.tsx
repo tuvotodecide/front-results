@@ -264,7 +264,7 @@ const ActasForm: React.FC = () => {
                   />
                 </div>
                 <div className=" flex justify-center mt-6 pt-6 border-t border-gray-300">
-                  <LoadingButton type="submit" isLoading={true}>
+                  <LoadingButton type="submit" isLoading={isSubmitting}>
                     Enviar
                   </LoadingButton>
                 </div>

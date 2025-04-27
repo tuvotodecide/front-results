@@ -68,8 +68,10 @@ const PartidoForm: React.FC = () => {
     try {
       if (isEditMode && id) {
         await updateItem({ id, partido: values }).unwrap();
+        setIsModalOpen(true);
       } else {
         await createItem(values).unwrap();
+        setIsModalOpen(true);
       }
       navigate("/partidos");
     } catch (err) {
@@ -248,7 +250,12 @@ const PartidoForm: React.FC = () => {
 
                 <div className="mt-4">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-md font-semibold text-gray-800">
+                    <h3
+                      className="text-md font-semibold text-gray-800"
+                      onClick={() => {
+                        setIsModalOpen(true);
+                      }}
+                    >
                       Participantes
                     </h3>
                     <FieldArray name="electionParticipation">
@@ -392,14 +399,10 @@ const PartidoForm: React.FC = () => {
                   >
                     Cancelar
                   </button>
-                  {/* <button
+                  <LoadingButton
                     type="submit"
-                    className="bg-transparent hover:bg-blue-100 text-blue-700 font-semibold py-2 px-4 border border-blue-500 rounded transition-colors duration-200"
-                    disabled={isLoading || isSubmitting}
+                    isLoading={isLoading || isSubmitting}
                   >
-                    {isLoading ? "Guardando..." : "Guardar"}
-                  </button> */}
-                  <LoadingButton type="submit" isLoading={isSubmitting}>
                     Guardar
                   </LoadingButton>
                 </div>
@@ -415,7 +418,7 @@ const PartidoForm: React.FC = () => {
         overlayClassName="modal-overlay"
         shouldCloseOnOverlayClick={true}
       >
-        <div className="bg-white p-8 rounded-lg shadow-xl max-w-md w-full mx-auto">
+        <div className="bg-white p-8 rounded-lg max-w-md w-full mx-auto shadow-[0px_0px_35px_25px_#8d8d8d70]">
           <div className="flex flex-col items-center">
             <CheckCircleIcon className="h-16 w-16 text-green-500 mb-4" />
             <h2 className="text-2xl font-bold text-center mb-4 text-green-600">
