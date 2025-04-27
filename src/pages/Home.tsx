@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import Table from "../components/Table";
+import Modal from "../components/Modal";
 import type { ColumnDef } from "@tanstack/react-table";
 
 const data = [
@@ -17,98 +18,50 @@ const columns: ColumnDef<(typeof data)[0]>[] = [
 ];
 
 const Home: React.FC = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   return (
-    <div>
-      <Link to="/resultados">Resultados</Link> |{" "}
-      <Link to="/enviarActa">Enviar acta</Link>
-      <h1>Home</h1>
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <Link
+            to="/resultados"
+            className="text-blue-600 hover:text-blue-700 mr-4"
+          >
+            Resultados
+          </Link>
+          <Link to="/enviarActa" className="text-blue-600 hover:text-blue-700">
+            Enviar acta
+          </Link>
+        </div>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+        >
+          Abrir Modal
+        </button>
+      </div>
+
       <div className="my-8">
         <Table data={data} columns={columns} />
       </div>
-      <div>
-        Lorem ipsum dolor sit amet consectetur, adipisicing elit. Amet, mollitia
-        placeat quod dolore, illum nihil aliquid rerum sit quos est tenetur
-        labore commodi eveniet laudantium quisquam pariatur, consequuntur
-        assumenda eaque? Lorem ipsum dolor sit amet consectetur adipisicing
-        elit. Voluptates, omnis, quia sequi ad id distinctio corporis quod, sint
-        hic porro possimus tenetur? Cupiditate voluptatum ullam nemo enim
-        reiciendis quia hic? Lorem ipsum dolor, sit amet consectetur adipisicing
-        elit. Velit assumenda harum explicabo ab exercitationem, facilis
-        corporis similique praesentium beatae minus vel blanditiis natus sint
-        quam. Sed deserunt cupiditate optio distinctio. Lorem ipsum dolor sit,
-        amet consectetur adipisicing elit. Similique, error, officiis at officia
-        porro quis dicta qui dolor praesentium sapiente, hic amet? Reprehenderit
-        incidunt tempore reiciendis neque, sapiente commodi optio. Lorem ipsum
-        dolor sit amet consectetur, adipisicing elit. Quo magni laudantium
-        facere nam placeat, tempora natus veniam voluptatibus corrupti. Dolores
-        reiciendis vero facilis expedita eos, nihil sequi exercitationem sint
-        eum? Lorem ipsum dolor sit amet consectetur, adipisicing elit. Amet,
-        mollitia placeat quod dolore, illum nihil aliquid rerum sit quos est
-        tenetur labore commodi eveniet laudantium quisquam pariatur,
-        consequuntur assumenda eaque? Lorem ipsum dolor sit amet consectetur
-        adipisicing elit. Voluptates, omnis, quia sequi ad id distinctio
-        corporis quod, sint hic porro possimus tenetur? Cupiditate voluptatum
-        ullam nemo enim reiciendis quia hic? Lorem ipsum dolor, sit amet
-        consectetur adipisicing elit. Velit assumenda harum explicabo ab
-        exercitationem, facilis corporis similique praesentium beatae minus vel
-        blanditiis natus sint quam. Sed deserunt cupiditate optio distinctio.
-        Lorem ipsum dolor sit, amet consectetur adipisicing elit. Similique,
-        error, officiis at officia porro quis dicta qui dolor praesentium
-        sapiente, hic amet? Reprehenderit incidunt tempore reiciendis neque,
-        sapiente commodi optio. Lorem ipsum dolor sit amet consectetur,
-        adipisicing elit. Quo magni laudantium facere nam placeat, tempora natus
-        veniam voluptatibus corrupti. Dolores reiciendis vero facilis expedita
-        eos, nihil sequi exercitationem sint eum? Lorem ipsum dolor sit amet
-        consectetur, adipisicing elit. Amet, mollitia placeat quod dolore, illum
-        nihil aliquid rerum sit quos est tenetur labore commodi eveniet
-        laudantium quisquam pariatur, consequuntur assumenda eaque? Lorem ipsum
-        dolor sit amet consectetur adipisicing elit. Voluptates, omnis, quia
-        sequi ad id distinctio corporis quod, sint hic porro possimus tenetur?
-        Cupiditate voluptatum ullam nemo enim reiciendis quia hic? Lorem ipsum
-        dolor, sit amet consectetur adipisicing elit. Velit assumenda harum
-        explicabo ab exercitationem, facilis corporis similique praesentium
-        beatae minus vel blanditiis natus sint quam. Sed deserunt cupiditate
-        optio distinctio. Lorem ipsum dolor sit, amet consectetur adipisicing
-        elit. Similique, error, officiis at officia porro quis dicta qui dolor
-        praesentium sapiente, hic amet? Reprehenderit incidunt tempore
-        reiciendis neque, sapiente commodi optio. Lorem ipsum dolor sit amet
-        consectetur, adipisicing elit. Quo magni laudantium facere nam placeat,
-        tempora natus veniam voluptatibus corrupti. Dolores reiciendis vero
-        facilis expedita eos, nihil sequi exercitationem sint eum? Lorem ipsum
-        dolor sit amet consectetur, adipisicing elit. Amet, mollitia placeat
-        quod dolore, illum nihil aliquid rerum sit quos est tenetur labore
-        commodi eveniet laudantium quisquam pariatur, consequuntur assumenda
-        eaque? Lorem ipsum dolor sit amet consectetur adipisicing elit.
-        Voluptates, omnis, quia sequi ad id distinctio corporis quod, sint hic
-        porro possimus tenetur? Cupiditate voluptatum ullam nemo enim reiciendis
-        quia hic? Lorem ipsum dolor, sit amet consectetur adipisicing elit.
-        Velit assumenda harum explicabo ab exercitationem, facilis corporis
-        similique praesentium beatae minus vel blanditiis natus sint quam. Sed
-        deserunt cupiditate optio distinctio. Lorem ipsum dolor sit, amet
-        consectetur adipisicing elit. Similique, error, officiis at officia
-        porro quis dicta qui dolor praesentium sapiente, hic amet? Reprehenderit
-        incidunt tempore reiciendis neque, sapiente commodi optio. Lorem ipsum
-        dolor sit amet consectetur, adipisicing elit. Quo magni laudantium
-        facere nam placeat, tempora natus veniam voluptatibus corrupti. Dolores
-        reiciendis vero facilis expedita eos, nihil sequi exercitationem sint
-        eum? Lorem ipsum dolor sit amet consectetur, adipisicing elit. Amet,
-        mollitia placeat quod dolore, illum nihil aliquid rerum sit quos est
-        tenetur labore commodi eveniet laudantium quisquam pariatur,
-        consequuntur assumenda eaque? Lorem ipsum dolor sit amet consectetur
-        adipisicing elit. Voluptates, omnis, quia sequi ad id distinctio
-        corporis quod, sint hic porro possimus tenetur? Cupiditate voluptatum
-        ullam nemo enim reiciendis quia hic? Lorem ipsum dolor, sit amet
-        consectetur adipisicing elit. Velit assumenda harum explicabo ab
-        exercitationem, facilis corporis similique praesentium beatae minus vel
-        blanditiis natus sint quam. Sed deserunt cupiditate optio distinctio.
-        Lorem ipsum dolor sit, amet consectetur adipisicing elit. Similique,
-        error, officiis at officia porro quis dicta qui dolor praesentium
-        sapiente, hic amet? Reprehenderit incidunt tempore reiciendis neque,
-        sapiente commodi optio. Lorem ipsum dolor sit amet consectetur,
-        adipisicing elit. Quo magni laudantium facere nam placeat, tempora natus
-        veniam voluptatibus corrupti. Dolores reiciendis vero facilis expedita
-        eos, nihil sequi exercitationem sint eum?
-      </div>
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Mi Modal"
+      >
+        <div className="text-gray-600">
+          <p className="mb-4">
+            Este es un ejemplo de modal que se puede cerrar haciendo click en el
+            botón X o en el fondo oscuro.
+          </p>
+          <p>
+            El modal utiliza el elemento nativo dialog de HTML para mejor
+            accesibilidad y comportamiento nativo.
+          </p>
+        </div>
+      </Modal>
     </div>
   );
 };

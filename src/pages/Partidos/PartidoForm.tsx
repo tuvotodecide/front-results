@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import Modal from "react-modal";
+import ReactModal from "react-modal";
 import { Formik, Form, Field, ErrorMessage, FieldArray } from "formik";
 import * as Yup from "yup";
 import {
@@ -8,11 +8,11 @@ import {
   useGetPartidoQuery,
 } from "../../store/partidos/partidosEndpoints";
 import { useNavigate, useParams } from "react-router-dom";
-import { CheckCircleIcon } from "@heroicons/react/24/solid";
 import { Partido } from "../../types/partidos";
 import LoadingButton from "../../components/LoadingButton";
+import Modal from "../../components/Modal";
 
-Modal.setAppElement("#root");
+ReactModal.setAppElement("#root");
 
 const PartidoForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -63,7 +63,6 @@ const PartidoForm: React.FC = () => {
   };
 
   const handleSubmit = async (values: Omit<Partido, "_id">) => {
-    const formData = new FormData();
     console.log("Form submitted:", values);
     try {
       if (isEditMode && id) {
@@ -413,33 +412,11 @@ const PartidoForm: React.FC = () => {
       </div>
       <Modal
         isOpen={isModalOpen}
-        onRequestClose={() => setIsModalOpen(false)}
-        className="modal-content"
-        overlayClassName="modal-overlay"
-        shouldCloseOnOverlayClick={true}
-      >
-        <div className="bg-white p-8 rounded-lg max-w-md w-full mx-auto shadow-[0px_0px_35px_25px_#8d8d8d70]">
-          <div className="flex flex-col items-center">
-            <CheckCircleIcon className="h-16 w-16 text-green-500 mb-4" />
-            <h2 className="text-2xl font-bold text-center mb-4 text-green-600">
-              ¡Éxito!
-            </h2>
-            <p className="text-center mb-6">
-              El acta se ha subido correctamente.
-            </p>
-            <div className="flex justify-center space-x-4">
-              <button
-                onClick={() => navigate("/resultados")}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-              >
-                Ver Resultados
-              </button>
-            </div>
-          </div>
-        </div>
-      </Modal>
+        onClose={() => setIsModalOpen(false)}
+        title="Exito"
+      />
 
-      <Modal
+      <ReactModal
         isOpen={isPreviewModalOpen}
         onRequestClose={() => {
           setIsPreviewModalOpen(false);
@@ -454,7 +431,7 @@ const PartidoForm: React.FC = () => {
           },
         }}
       >
-        <div className="bg-white p-4 rounded-lg shadow-xl max-w-4xl w-full mx-auto relative max-h-[90vh] overflow-y-auto">
+        <div className="bg-white p-4 rounded-lg shadow-xl max-w-4xl mx-auto relative max-h-[90vh] overflow-y-auto">
           <button
             onClick={() => {
               setIsPreviewModalOpen(false);
@@ -488,7 +465,7 @@ const PartidoForm: React.FC = () => {
             </div>
           )}
         </div>
-      </Modal>
+      </ReactModal>
       <style>
         {`
           .modal-overlay {
@@ -498,11 +475,12 @@ const PartidoForm: React.FC = () => {
             align-items: center;
             justify-content: center;
             padding: 1rem;
+            background-color: rgba(0, 0, 0, 0.75);
           }
           .modal-content {
             position: relative;
             outline: none;
-            width: 100%;
+            margin: auto;
           }
         `}
       </style>

@@ -1,11 +1,11 @@
 import React, { useState, useRef } from "react";
-import Modal from "react-modal";
 import { useNavigate } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { useSubmitBallotMutation } from "../../store/actas/actasEndpoints";
 import { CheckCircleIcon } from "@heroicons/react/24/solid";
 import LoadingButton from "../../components/LoadingButton";
+import Modal from "../../components/Modal";
 
 interface FormValues {
   file: File | null;
@@ -276,156 +276,107 @@ const ActasForm: React.FC = () => {
 
       <Modal
         isOpen={isModalOpen}
-        onRequestClose={() => setIsModalOpen(false)}
-        className="modal-content"
-        overlayClassName="modal-overlay"
-        shouldCloseOnOverlayClick={true}
+        onClose={() => setIsModalOpen(false)}
+        size="md"
       >
-        <div className="bg-white p-8 rounded-lg shadow-xl max-w-md w-full mx-auto">
-          <div className="flex flex-col items-center">
-            <CheckCircleIcon className="h-16 w-16 text-green-500 mb-4" />
-            <h2 className="text-2xl font-bold text-center mb-4 text-green-600">
-              ¡Éxito!
-            </h2>
-            <p className="text-center mb-6">
-              El acta se ha subido correctamente.
-            </p>
-            <div className="flex justify-center space-x-4">
-              <button
-                onClick={() => navigate("/resultados")}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-              >
-                Ver Resultados
-              </button>
-            </div>
+        <div className="flex flex-col items-center">
+          <CheckCircleIcon className="h-16 w-16 text-green-500 mb-4" />
+          <h2 className="text-2xl font-bold text-center mb-4 text-green-600">
+            ¡Éxito!
+          </h2>
+          <p className="text-center mb-6">
+            El acta se ha subido correctamente.
+          </p>
+          <div className="flex justify-center space-x-4">
+            <button
+              onClick={() => navigate("/resultados")}
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+            >
+              Ver Resultados
+            </button>
           </div>
         </div>
       </Modal>
 
       <Modal
         isOpen={isPreviewModalOpen}
-        onRequestClose={() => {
+        onClose={() => {
           setIsPreviewModalOpen(false);
           resetZoomAndPosition();
         }}
-        className="modal-content"
-        overlayClassName="modal-overlay"
-        shouldCloseOnOverlayClick={true}
+        size="xl"
       >
-        <div className="bg-white p-4 rounded-lg shadow-xl max-w-4xl w-full mx-auto relative">
-          <button
-            onClick={() => {
-              setIsPreviewModalOpen(false);
-              resetZoomAndPosition();
-            }}
-            className="absolute top-2 right-2 z-50 text-gray-500 hover:text-gray-700 bg-white rounded-full p-1"
+        {previewUrl && (
+          <div
+            ref={previewRef}
+            className={`cursor-${
+              isZoomed ? "grab" : "zoom-in"
+            } overflow-hidden ${isZoomed ? "h-[80vh]" : ""} relative`}
+            onClick={() => !isZoomed && setIsZoomed(true)}
+            onMouseDown={handleDragStart}
+            onMouseMove={handleDrag}
+            onMouseUp={handleDragEnd}
+            onMouseLeave={handleDragEnd}
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-          {previewUrl && (
-            <div
-              ref={previewRef}
-              className={`cursor-${
-                isZoomed ? "grab" : "zoom-in"
-              } overflow-hidden ${isZoomed ? "h-[80vh]" : ""} relative`}
-              onClick={() => !isZoomed && setIsZoomed(true)}
-              onMouseDown={handleDragStart}
-              onMouseMove={handleDrag}
-              onMouseUp={handleDragEnd}
-              onMouseLeave={handleDragEnd}
-            >
-              <img
-                src={previewUrl}
-                alt="Preview"
-                className="w-full h-auto"
-                style={{
-                  transform: isZoomed
-                    ? `translate3d(${dragRef.current.translateX}px, ${dragRef.current.translateY}px, 0) scale3d(${zoomLevel}, ${zoomLevel}, 1)`
-                    : "none",
-                  transition: dragRef.current.isDragging
-                    ? "none"
-                    : "transform 200ms",
-                }}
-                draggable={false}
-              />
-              {isZoomed && (
-                <div className="absolute bottom-4 right-4 flex gap-2">
-                  <button
-                    onClick={handleZoomOut}
-                    className="bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg hover:bg-gray-100"
+            <img
+              src={previewUrl}
+              alt="Preview"
+              className="w-full h-auto"
+              style={{
+                transform: isZoomed
+                  ? `translate3d(${dragRef.current.translateX}px, ${dragRef.current.translateY}px, 0) scale3d(${zoomLevel}, ${zoomLevel}, 1)`
+                  : "none",
+                transition: dragRef.current.isDragging
+                  ? "none"
+                  : "transform 200ms",
+              }}
+              draggable={false}
+            />
+            {isZoomed && (
+              <div className="absolute bottom-4 right-4 flex gap-2">
+                <button
+                  onClick={handleZoomOut}
+                  className="bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg hover:bg-gray-100"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-6 w-6"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M20 12H4"
-                      />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={handleZoomIn}
-                    className="bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg hover:bg-gray-100"
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M20 12H4"
+                    />
+                  </svg>
+                </button>
+                <button
+                  onClick={handleZoomIn}
+                  className="bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg hover:bg-gray-100"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-6 w-6"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 4v16m8-8H4"
-                      />
-                    </svg>
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4v16m8-8H4"
+                    />
+                  </svg>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </Modal>
-
-      <style>
-        {`
-          .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-          }
-          .modal-content {
-            position: relative;
-            outline: none;
-            width: 100%;
-          }
-        `}
-      </style>
     </>
   );
 };
