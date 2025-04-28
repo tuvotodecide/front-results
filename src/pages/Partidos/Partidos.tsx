@@ -1,8 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import Table from "../../components/Table";
+import Modal from "../../components/Modal";
 import { Link, useNavigate } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
-import { useGetPartidosQuery } from "../../store/partidos/partidosEndpoints";
+import {
+  useDeletePartidoMutation,
+  useGetPartidosQuery,
+} from "../../store/partidos/partidosEndpoints";
 import { Partido } from "../../types/partidos";
 
 const columns: ColumnDef<Partido>[] = [
@@ -60,15 +64,33 @@ const columns: ColumnDef<Partido>[] = [
 
 const Partidos: React.FC = () => {
   const { data: items = [] } = useGetPartidosQuery();
+  const [deleteItem] = useDeletePartidoMutation();
   const navigate = useNavigate();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [partidoToDelete, setPartidoToDelete] = useState<Partido | null>(null);
 
   const handleEdit = (partido: Partido) => {
-    navigate(`/partidos/editar/${partido.partyId}`);
+    navigate(`/partidos/editar/${partido._id}`);
   };
 
   const handleDelete = (partido: Partido) => {
-    // TODO: Implement delete functionality
-    console.log("Delete partido:", partido.partyId);
+    setPartidoToDelete(partido);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (!partidoToDelete) return;
+
+    deleteItem(partidoToDelete._id)
+      .unwrap()
+      .then(() => {
+        console.log("Partido deleted successfully");
+        setIsDeleteModalOpen(false);
+        setPartidoToDelete(null);
+      })
+      .catch((error) => {
+        console.error("Failed to delete partido:", error);
+      });
   };
 
   return (
@@ -94,6 +116,39 @@ const Partidos: React.FC = () => {
           />
         </div>
       </div>
+
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setPartidoToDelete(null);
+        }}
+        title="Confirmar eliminación"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600">
+            ¿Estás seguro que deseas eliminar el partido{" "}
+            {partidoToDelete?.fullName}?
+          </p>
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={() => {
+                setIsDeleteModalOpen(false);
+                setPartidoToDelete(null);
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={confirmDelete}
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+            >
+              Confirmar
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

@@ -194,9 +194,7 @@ const PartidoForm: React.FC = () => {
                         className="text-orange-600 text-sm mt-1"
                       />
                     </div>
-                  </div>
 
-                  <div className="space-y-6">
                     <div>
                       <label
                         htmlFor="logoUrl"
@@ -219,6 +217,11 @@ const PartidoForm: React.FC = () => {
                         component="div"
                         className="text-orange-600 text-sm mt-1"
                       />
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="">
                       {previewUrl && (
                         <div
                           className="mt-4 relative cursor-pointer group"
@@ -243,7 +246,7 @@ const PartidoForm: React.FC = () => {
                           <img
                             src={previewUrl}
                             alt="Preview"
-                            className="w-full h-48 object-cover rounded-lg border border-gray-300"
+                            className="w-full max-h-72 object-contain rounded-lg border border-gray-300"
                           />
                         </div>
                       )}

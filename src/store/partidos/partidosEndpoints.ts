@@ -6,10 +6,14 @@ export const partidosApiSlice = apiSlice.injectEndpoints({
     getPartidos: builder.query<Partido[], void>({
       query: () => "/admin/parties",
       keepUnusedDataFor: 60,
+      providesTags: () => [{ type: "Partidos" as const, id: "LIST" }],
     }),
     getPartido: builder.query<Partido, string>({
       query: (id) => `/admin/parties/${id}`,
       keepUnusedDataFor: 60,
+      providesTags: (_result, _error, id) => [
+        { type: "Partidos" as const, id },
+      ],
     }),
     createPartido: builder.mutation<Partido, Omit<Partido, "_id">>({
       query: (recinto) => ({
@@ -17,6 +21,7 @@ export const partidosApiSlice = apiSlice.injectEndpoints({
         method: "POST",
         body: recinto,
       }),
+      invalidatesTags: [{ type: "Partidos" as const, id: "LIST" }],
     }),
     updatePartido: builder.mutation<
       Partido,
@@ -27,12 +32,20 @@ export const partidosApiSlice = apiSlice.injectEndpoints({
         method: "PUT",
         body: partido,
       }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "Partidos" as const, id: "LIST" },
+        { type: "Partidos" as const, id },
+      ],
     }),
     deletePartido: builder.mutation<void, string>({
       query: (id) => ({
         url: `/admin/parties/${id}`,
         method: "DELETE",
       }),
+      invalidatesTags: (_result, _error, id) => [
+        { type: "Partidos" as const, id: "LIST" },
+        { type: "Partidos" as const, id },
+      ],
     }),
   }),
 });
