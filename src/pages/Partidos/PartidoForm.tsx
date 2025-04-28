@@ -76,20 +76,20 @@ const PartidoForm: React.FC = () => {
     }
   };
 
-  const handleImageChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
-    setFieldValue: (field: string, value: any) => void
-  ) => {
-    const file = event.currentTarget.files?.[0];
-    if (file) {
-      setFieldValue("file", file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  // const handleImageChange = (
+  //   event: React.ChangeEvent<HTMLInputElement>,
+  //   setFieldValue: (field: string, value: any) => void
+  // ) => {
+  //   const file = event.currentTarget.files?.[0];
+  //   if (file) {
+  //     setFieldValue("file", file);
+  //     const reader = new FileReader();
+  //     reader.onloadend = () => {
+  //       setPreviewUrl(reader.result as string);
+  //     };
+  //     reader.readAsDataURL(file);
+  //   }
+  // };
 
   return (
     <>
@@ -114,24 +114,45 @@ const PartidoForm: React.FC = () => {
               <Form className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-6">
-                    <div>
-                      <label
-                        htmlFor="partyId"
-                        className="block text-sm font-medium text-gray-700"
-                      >
-                        Sigla del Partido
-                      </label>
-                      <Field
-                        id="partyId"
-                        name="partyId"
-                        type="text"
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                      />
-                      <ErrorMessage
-                        name="partyId"
-                        component="div"
-                        className="text-orange-600 text-sm mt-1"
-                      />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label
+                          htmlFor="partyId"
+                          className="block text-sm font-medium text-gray-700"
+                        >
+                          Sigla del Partido
+                        </label>
+                        <Field
+                          id="partyId"
+                          name="partyId"
+                          type="text"
+                          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        />
+                        <ErrorMessage
+                          name="partyId"
+                          component="div"
+                          className="text-orange-600 text-sm mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="color"
+                          className="block text-sm font-medium text-gray-700"
+                        >
+                          Color del Partido
+                        </label>
+                        <Field
+                          id="color"
+                          name="color"
+                          type="color"
+                          className="mt-1 h-10 w-full px-1 py-1 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        <ErrorMessage
+                          name="color"
+                          component="div"
+                          className="text-orange-600 text-sm mt-1"
+                        />
+                      </div>
                     </div>
 
                     <div>
@@ -178,40 +199,25 @@ const PartidoForm: React.FC = () => {
                   <div className="space-y-6">
                     <div>
                       <label
-                        htmlFor="color"
-                        className="block text-sm font-medium text-gray-700 mb-2"
+                        htmlFor="logoUrl"
+                        className="block text-sm font-medium text-gray-700"
                       >
-                        Color del Partido
+                        URL del Logo
                       </label>
-                      <div className="flex items-center space-x-4">
-                        <Field
-                          id="color"
-                          name="color"
-                          type="color"
-                          className="h-10 w-24 px-1 py-1 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                        />
-                        <Field
-                          name="color"
-                          type="text"
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                        />
-                      </div>
+                      <Field
+                        id="logoUrl"
+                        name="logoUrl"
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          setFieldValue("logoUrl", e.target.value);
+                          setPreviewUrl(e.target.value);
+                        }}
+                        type="text"
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out"
+                      />
                       <ErrorMessage
-                        name="color"
+                        name="logoUrl"
                         component="div"
                         className="text-orange-600 text-sm mt-1"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Logo del Partido
-                      </label>
-                      <input
-                        id="file-upload"
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleImageChange(e, setFieldValue)}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       />
                       {previewUrl && (
                         <div

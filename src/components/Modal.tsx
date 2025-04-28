@@ -70,7 +70,7 @@ const Modal: React.FC<PropsWithChildren<ModalProps>> = ({
           {showClose && (
             <button
               onClick={handleClose}
-              className="absolute right-4 top-4 text-gray-500 hover:text-gray-700 transition-colors"
+              className="absolute right-4 top-4 text-gray-500 hover:text-gray-700 transition-colors z-10"
             >
               <XMarkIcon className="w-5 h-5" />
             </button>
@@ -82,7 +82,13 @@ const Modal: React.FC<PropsWithChildren<ModalProps>> = ({
             </div>
           )}
 
-          <div className={`p-6 ${!title ? "pt-4" : ""}`}>{children}</div>
+          <div
+            className={`p-6 ${
+              !title && showClose ? "pt-12" : !title ? "pt-4" : ""
+            }`}
+          >
+            {children}
+          </div>
         </div>
       </div>
     </dialog>

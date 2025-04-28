@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import ReactModal from "react-modal";
+import Modal from "./Modal";
 
 interface ModalImageProps {
   isOpen: boolean;
@@ -99,46 +99,20 @@ const ModalImage: React.FC<ModalImageProps> = ({
   };
 
   return (
-    <ReactModal
+    <Modal
       isOpen={isOpen}
-      onRequestClose={handleCloseModal}
-      className="modal-content"
-      overlayClassName="modal-overlay"
-      shouldCloseOnOverlayClick={true}
-      style={{
-        overlay: {
-          zIndex: 1000,
-          backgroundColor: "rgba(0, 0, 0, 0.75)",
-        },
-      }}
+      onClose={handleCloseModal}
+      size="xl"
+      showClose={true}
+      className="!p-0 min-w-[680px] w-full"
     >
-      <div className="bg-white p-4 rounded-lg shadow-xl max-w-4xl mx-auto relative max-h-[90vh] overflow-y-auto">
-        <button
-          onClick={handleCloseModal}
-          className="absolute top-2 right-2 z-50 text-gray-500 hover:text-gray-700 bg-white rounded-full p-2"
-          aria-label="Close modal"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
+      <div className="relative max-h-[90vh]">
         {imageUrl && (
           <div
             ref={previewRef}
             className={`cursor-${
               isZoomed ? "grab" : "zoom-in"
-            } overflow-hidden ${isZoomed ? "h-[80vh]" : ""} relative mt-8`}
+            } overflow-hidden ${isZoomed ? "h-[80vh]" : ""} relative`}
             onClick={() => !isZoomed && setIsZoomed(true)}
             onMouseDown={handleDragStart}
             onMouseMove={handleDrag}
@@ -188,7 +162,7 @@ const ModalImage: React.FC<ModalImageProps> = ({
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-6 w-6"
                     fill="none"
-                    viewBox="0 0 24 24"
+                    viewBox="0 24 24"
                     stroke="currentColor"
                   >
                     <path
@@ -204,25 +178,7 @@ const ModalImage: React.FC<ModalImageProps> = ({
           </div>
         )}
       </div>
-      <style>
-        {`
-          .modal-overlay {
-            position: fixed;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-            background-color: rgba(0, 0, 0, 0.75);
-          }
-          .modal-content {
-            position: relative;
-            outline: none;
-            margin: auto;
-          }
-        `}
-      </style>
-    </ReactModal>
+    </Modal>
   );
 };
 

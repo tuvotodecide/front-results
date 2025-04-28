@@ -108,13 +108,13 @@ const ActasForm: React.FC = () => {
                   />
                   {previewUrl && (
                     <div
-                      className="mt-2 relative cursor-pointer"
+                      className="mt-4 relative cursor-pointer group"
                       onClick={() => setIsPreviewModalOpen(true)}
                     >
-                      <div className="absolute inset-0 flex items-center justify-center hover:bg-black/30 transition-colors duration-200 rounded-lg">
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
-                          className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                          className="h-8 w-8 text-white"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -130,7 +130,7 @@ const ActasForm: React.FC = () => {
                       <img
                         src={previewUrl}
                         alt="Preview"
-                        className="w-full h-auto rounded-lg border border-gray-300"
+                        className="w-full h-48 object-cover rounded-lg border border-gray-300"
                       />
                     </div>
                   )}
