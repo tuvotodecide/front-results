@@ -5,6 +5,7 @@ import * as Yup from "yup";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useLoginUserMutation } from "../../store/auth/authEndpoints";
 import { setAuth } from "../../store/auth/authSlice";
+import LoadingButton from "../../components/LoadingButton";
 
 const Login: React.FC = () => {
   const dispatch = useDispatch();
@@ -54,8 +55,8 @@ const Login: React.FC = () => {
   return (
     <div className="flex items-center justify-center w-full h-full">
       <div className="w-full max-w-md p-8 bg-white rounded shadow-md">
-        <h1 className="text-2xl font-bold text-center mb-6 text-red-600">
-          YO PARTICIPO
+        <h1 className="text-2xl font-bold text-center mb-6 text-gray-700">
+          Yo Participo
         </h1>
         <Formik
           initialValues={initialValues}
@@ -74,7 +75,7 @@ const Login: React.FC = () => {
                 type="email"
                 id="email"
                 name="email"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-800 focus:border-red-800 sm:text-sm"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
               />
               <ErrorMessage
                 name="email"
@@ -93,7 +94,7 @@ const Login: React.FC = () => {
                 type="password"
                 id="password"
                 name="password"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-800 focus:border-red-800 sm:text-sm"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
               />
               <ErrorMessage
                 name="password"
@@ -101,20 +102,22 @@ const Login: React.FC = () => {
                 className="text-sm text-red-500 mt-1"
               />
             </div>
-            <button
-              type="submit"
-              className="w-full py-2 px-4 bg-red-600 text-white font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-            >
-              Login
-            </button>
-            <div className="text-center text-sm">
-              <a href="#" className="text-red-600 hover:underline">
-                Olvidaste tu password?
-              </a>
-              <p className="text-gray-600">¿No tienes una cuenta?</p>
-              <Link className="text-red-600 hover:underline" to="/crearCuenta">
-                Crear cuenta
-              </Link>
+            <div className="mt-6">
+              <LoadingButton type="submit" className="w-full">
+                Login
+              </LoadingButton>
+              <div className="text-center text-sm mt-4">
+                <a href="#" className="text-blue-600 hover:underline">
+                  Olvidaste tu password?
+                </a>
+                <p className="text-gray-600">¿No tienes una cuenta?</p>
+                <Link
+                  className="text-blue-600 hover:underline"
+                  to="/crearCuenta"
+                >
+                  Crear cuenta
+                </Link>
+              </div>
             </div>
           </Form>
         </Formik>

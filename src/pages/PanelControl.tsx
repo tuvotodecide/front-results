@@ -50,7 +50,7 @@ const PanelControl: React.FC = () => {
         <h1 className="text-2xl font-bold text-left mb-8 text-gray-600 border-b pb-4 border-gray-300">
           Panel de Control
         </h1>
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {cards.map((card, index) => (
             <div
               key={index}

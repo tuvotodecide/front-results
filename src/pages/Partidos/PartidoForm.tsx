@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Formik, Form, Field, ErrorMessage, FieldArray } from "formik";
 import * as Yup from "yup";
 import {
@@ -16,18 +16,24 @@ const PartidoForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const isEditMode = Boolean(id);
   const navigate = useNavigate();
+  const { data: currentItem, isLoading: isLoadingItem } = useGetPartidoQuery(
+    id!,
+    { skip: !id }
+  );
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (currentItem?.logoUrl) {
+      setPreviewUrl(currentItem.logoUrl);
+    }
+  }, [currentItem]);
 
   const [createItem, { isLoading: isCreating, error: createError }] =
     useCreatePartidoMutation();
   const [updateItem, { isLoading: isUpdating, error: updateError }] =
     useUpdatePartidoMutation();
-  const { data: currentItem, isLoading: isLoadingItem } = useGetPartidoQuery(
-    id!,
-    { skip: !id }
-  );
 
   const error = createError || updateError;
   const isLoading = isCreating || isUpdating || isLoadingItem;

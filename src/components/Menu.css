@@ -3,8 +3,8 @@
 nav {
   /* Colors */
   --body-color: #e4e9f7;
-  --nav-color: #be3b3b;
-  --side-nav: #ad3b3b;
+  --nav-color: #787878;
+  --side-nav: #787878;
   --text-color: #fff;
   --search-bar: #f2f2f2;
   --search-text: #010718;
@@ -17,7 +17,11 @@ nav {
   height: 70px;
   width: 100%;
   /* background-color: var(--nav-color); */
-  background: linear-gradient(137deg, #d52b1e 10%, #f9e300 30%, #007934 60%);
+  background: linear-gradient(
+      rgba(112, 112, 112, 0.366) 0%,
+      rgba(138, 138, 138, 0.245) 100%
+    ),
+    linear-gradient(140deg, #d52b1d 0% 29%, #f9e300 35% 65%, #007934 71% 100%);
   box-shadow: inset 9px 8px 45px 20px #4c4c4c41;
   z-index: 100;
 }
@@ -266,6 +270,7 @@ nav.dark .search-field i {
 
 .subitems-panel li {
   padding: 8px 15px;
+  cursor: pointer;
 }
 
 .subitems-panel li a {
