@@ -11,6 +11,7 @@ import { Partido } from "../../types/partidos";
 import LoadingButton from "../../components/LoadingButton";
 import Modal from "../../components/Modal";
 import ModalImage from "../../components/ModalImage";
+import BackButton from "../../components/BackButton";
 
 const PartidoForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -101,9 +102,12 @@ const PartidoForm: React.FC = () => {
     <>
       <div className="p-6 bg-slate-50 min-h-screen">
         <div className="w-full max-w-5xl mx-auto p-8 bg-white rounded-lg shadow-lg">
-          <h1 className="text-2xl font-bold text-left mb-8 text-gray-700 border-b pb-4 border-gray-300">
-            {isEditMode ? "Editar" : "Registro de"} Partido Político
-          </h1>
+          <div className="flex items-center mb-8 border-b pb-4 border-gray-300">
+            <BackButton className="mr-4" />
+            <h1 className="text-2xl font-bold text-gray-700">
+              {isEditMode ? "Editar" : "Registro de"} Partido Político
+            </h1>
+          </div>
           {error && (
             <div className="mb-6 p-4 bg-orange-100 border border-orange-400 text-orange-700 rounded-lg">
               Error al {isEditMode ? "actualizar" : "crear"} el partido. Por
