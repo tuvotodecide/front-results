@@ -1,67 +1,106 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
-import Table from "../components/Table";
-import Modal from "../components/Modal";
-import type { ColumnDef } from "@tanstack/react-table";
-
-const data = [
-  { id: 1, name: "Juan", age: 28, email: "juan@email.com" },
-  { id: 2, name: "Ana", age: 34, email: "ana@email.com" },
-  { id: 3, name: "Luis", age: 22, email: "luis@email.com" },
-];
-
-const columns: ColumnDef<(typeof data)[0]>[] = [
-  { accessorKey: "id", header: "ID" },
-  { accessorKey: "name", header: "Nombre" },
-  { accessorKey: "age", header: "Edad" },
-  { accessorKey: "email", header: "Email" },
-];
+import {
+  ChartPieIcon,
+  ClipboardDocumentCheckIcon,
+  UserGroupIcon,
+} from "@heroicons/react/24/outline";
 
 const Home: React.FC = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Hero Section */}
+      <div className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl">
+              Sistema de Conteo Rápido Electoral
+            </h1>
+            <p className="mt-4 text-xl text-gray-500">
+              Plataforma segura y eficiente para el registro y seguimiento de
+              resultados electorales
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Access Section */}
+      <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+          {/* Resultados Card */}
           <Link
             to="/resultados"
-            className="text-blue-600 hover:text-blue-700 mr-4"
+            className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
           >
-            Resultados
+            <ChartPieIcon className="h-12 w-12 text-blue-600 mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Resultados en Vivo
+            </h2>
+            <p className="text-gray-500">
+              Visualiza los resultados actualizados del conteo de votos en
+              tiempo real
+            </p>
           </Link>
-          <Link to="/enviarActa" className="text-blue-600 hover:text-blue-700">
-            Enviar acta
+
+          {/* Enviar Acta Card */}
+          <Link
+            to="/enviarActa"
+            className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
+          >
+            <ClipboardDocumentCheckIcon className="h-12 w-12 text-green-600 mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Enviar Acta
+            </h2>
+            <p className="text-gray-500">
+              Registra y envía actas de escrutinio de manera segura y eficiente
+            </p>
           </Link>
+
+          {/* Registro Jurado Card */}
+          {/* <Link
+            to="/jurados/registro"
+            className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
+          >
+            <UserGroupIcon className="h-12 w-12 text-purple-600 mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Registro de Jurados
+            </h2>
+            <p className="text-gray-500">
+              Portal para el registro y gestión de jurados electorales
+            </p>
+          </Link> */}
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-        >
-          Abrir Modal
-        </button>
       </div>
 
-      <div className="my-8">
-        <Table data={data} columns={columns} />
-      </div>
-
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Mi Modal"
-      >
-        <div className="text-gray-600">
-          <p className="mb-4">
-            Este es un ejemplo de modal que se puede cerrar haciendo click en el
-            botón X o en el fondo oscuro.
-          </p>
-          <p>
-            El modal utiliza el elemento nativo dialog de HTML para mejor
-            accesibilidad y comportamiento nativo.
-          </p>
+      {/* Info Section */}
+      <div className="bg-white mt-12">
+        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                Sobre el Sistema
+              </h2>
+              <p className="text-gray-600">
+                Nuestro sistema de conteo rápido permite la transmisión segura y
+                eficiente de resultados electorales. Diseñado para garantizar la
+                transparencia y precisión en el proceso de conteo de votos,
+                facilitando el trabajo de jurados y personal electoral.
+              </p>
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                Información Importante
+              </h2>
+              <ul className="list-disc list-inside text-gray-600 space-y-2">
+                <li>Actualización de resultados en tiempo real</li>
+                <li>Sistema seguro de verificación de actas</li>
+                <li>Interfaz intuitiva para el registro de datos</li>
+                <li>Reportes detallados por recinto electoral</li>
+              </ul>
+            </div>
+          </div>
         </div>
-      </Modal>
+      </div>
     </div>
   );
 };

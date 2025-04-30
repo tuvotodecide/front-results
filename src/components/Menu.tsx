@@ -75,12 +75,13 @@ const Menu: React.FC<MenuProps> = () => {
       { title: "Subir acta", path: "/enviarActa" },
     ];
     if (isLoggedIn) {
+      items.push({ title: "Panel", path: "/panel" });
       items.push({
         title: user?.name || "Usuario",
-        path: "/panel",
         subItems: [{ title: "Cerrar sesión", method: logout }],
       });
     } else {
+      items.unshift({ title: "Inicio", path: "/" });
       items.push({ title: "Login", path: "/login" });
     }
     return items;
