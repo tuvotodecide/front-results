@@ -8,6 +8,7 @@ import {
   useGetPartidosQuery,
 } from "../../store/partidos/partidosEndpoints";
 import { Partido } from "../../types/partidos";
+import BackButton from "../../components/BackButton";
 
 const columns: ColumnDef<Partido>[] = [
   {
@@ -97,9 +98,13 @@ const Partidos: React.FC = () => {
     <div className="p-6 bg-gray-100">
       <div className="w-full p-8 bg-white rounded shadow-md">
         <div className="flex justify-between items-center mb-6 border-b pb-4 border-gray-400">
-          <h1 className="text-2xl font-bold text-gray-700">
-            Partidos Políticos
-          </h1>
+          <div className="flex items-center">
+            <BackButton className="mr-4" />
+            <h1 className="text-2xl font-bold text-gray-700">
+              Partidos Políticos
+            </h1>
+          </div>
+
           <Link
             to="/partidos/nuevo"
             className="bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-400 rounded shadow"

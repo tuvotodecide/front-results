@@ -1,8 +1,13 @@
 import React from "react";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
+import { useNavigate } from "react-router-dom";
+import LoadingButton from "../../components/LoadingButton";
+import BackButton from "../../components/BackButton";
 
 const RegistroJurado: React.FC = () => {
+  const navigate = useNavigate();
+
   const validationSchema = Yup.object({
     nombres: Yup.string().required("Este campo es obligatorio"),
     apellidos: Yup.string().required("Este campo es obligatorio"),
@@ -13,11 +18,15 @@ const RegistroJurado: React.FC = () => {
   });
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <div className="w-full max-w-4xl p-8 bg-white rounded shadow-md">
-        <h1 className="text-2xl font-bold text-left mb-6 text-red-600">
-          Registro de Jurados Electorales
-        </h1>
+    <div className="p-6 bg-slate-50 min-h-screen">
+      <div className="w-full max-w-5xl mx-auto p-8 bg-white rounded-lg shadow-lg">
+        <div className="flex items-center mb-8 border-b pb-4 border-gray-300">
+          <BackButton className="mr-4" />
+          <h1 className="text-2xl font-bold text-gray-700">
+            Registro de Jurado Electoral
+          </h1>
+        </div>
+
         <Formik
           initialValues={{
             nombres: "",
@@ -26,17 +35,18 @@ const RegistroJurado: React.FC = () => {
             recintoElectoral: "",
           }}
           validationSchema={validationSchema}
-          onSubmit={(values) => {
+          onSubmit={(values, { setSubmitting }) => {
             console.log(values);
+            setSubmitting(false);
           }}
         >
-          {() => (
-            <Form>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          {({ isSubmitting }) => (
+            <Form className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label
                     htmlFor="nombres"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium text-gray-700 mb-2"
                   >
                     Nombres
                   </label>
@@ -44,18 +54,19 @@ const RegistroJurado: React.FC = () => {
                     id="nombres"
                     name="nombres"
                     type="text"
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out"
                   />
                   <ErrorMessage
                     name="nombres"
                     component="div"
-                    className="text-red-500 text-sm mt-1"
+                    className="text-orange-600 text-sm mt-1"
                   />
                 </div>
+
                 <div>
                   <label
                     htmlFor="apellidos"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium text-gray-700 mb-2"
                   >
                     Apellidos
                   </label>
@@ -63,20 +74,19 @@ const RegistroJurado: React.FC = () => {
                     id="apellidos"
                     name="apellidos"
                     type="text"
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out"
                   />
                   <ErrorMessage
                     name="apellidos"
                     component="div"
-                    className="text-red-500 text-sm mt-1"
+                    className="text-orange-600 text-sm mt-1"
                   />
                 </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+
                 <div>
                   <label
                     htmlFor="ci"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium text-gray-700 mb-2"
                   >
                     CI
                   </label>
@@ -84,18 +94,19 @@ const RegistroJurado: React.FC = () => {
                     id="ci"
                     name="ci"
                     type="text"
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out"
                   />
                   <ErrorMessage
                     name="ci"
                     component="div"
-                    className="text-red-500 text-sm mt-1"
+                    className="text-orange-600 text-sm mt-1"
                   />
                 </div>
+
                 <div>
                   <label
                     htmlFor="recintoElectoral"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium text-gray-700 mb-2"
                   >
                     Recinto Electoral
                   </label>
@@ -103,7 +114,7 @@ const RegistroJurado: React.FC = () => {
                     as="select"
                     id="recintoElectoral"
                     name="recintoElectoral"
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out"
                   >
                     <option value="">Seleccione una opción</option>
                     <option value="recinto1">Recinto 1</option>
@@ -112,31 +123,27 @@ const RegistroJurado: React.FC = () => {
                   <ErrorMessage
                     name="recintoElectoral"
                     component="div"
-                    className="text-red-500 text-sm mt-1"
+                    className="text-orange-600 text-sm mt-1"
                   />
                 </div>
               </div>
-              <div className="flex justify-end mt-6">
+
+              <div className="flex justify-end space-x-4 pt-6 border-t border-gray-300">
                 <button
                   type="button"
-                  className="bg-gray-500 text-white py-2 px-4 rounded-md shadow-sm hover:bg-gray-600 mr-2"
+                  onClick={() => navigate("/jurados")}
+                  className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-100 focus:outline-none focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200"
                 >
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  className="bg-red-600 text-white py-2 px-4 rounded-md shadow-sm hover:bg-indigo-700"
-                >
+                <LoadingButton type="submit" isLoading={isSubmitting}>
                   Guardar
-                </button>
+                </LoadingButton>
               </div>
             </Form>
           )}
         </Formik>
       </div>
-      {/* <div className="max-w-6xl bg-white shadow-md rounded-lg p-6">
-        
-      </div> */}
     </div>
   );
 };

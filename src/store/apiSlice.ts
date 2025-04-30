@@ -38,6 +38,6 @@ const baseQueryWrapper = async (
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWrapper,
-  tagTypes: ["Partidos", "Recintos", "Actas", "Resultados"],
+  tagTypes: ["Partidos", "Recintos", "Ballots", "Resultados"],
   endpoints: () => ({}),
 });

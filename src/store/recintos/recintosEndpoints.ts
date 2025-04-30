@@ -6,10 +6,14 @@ export const recintosApiSlice = apiSlice.injectEndpoints({
     getRecintos: builder.query<RecintoElectoral[], void>({
       query: () => "/admin/locations",
       keepUnusedDataFor: 60,
+      providesTags: () => [{ type: "Recintos" as const, id: "LIST" }],
     }),
     getRecinto: builder.query<RecintoElectoral, string>({
       query: (id) => `/admin/locations/${id}`,
       keepUnusedDataFor: 60,
+      providesTags: (_result, _error, id) => [
+        { type: "Recintos" as const, id },
+      ],
     }),
     createRecinto: builder.mutation<
       RecintoElectoral,

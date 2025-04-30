@@ -31,9 +31,9 @@ const PanelControl: React.FC = () => {
     },
     {
       icon: <FaFileAlt className="text-gray-600 text-4xl" />,
-      title: "Envio de Acta",
+      title: "Actas",
       description: "Envía actas de evaluación de manera rápida.",
-      path: "/actas/nuevo",
+      path: "/actas",
     },
     {
       icon: <FaChartBar className="text-gray-600 text-4xl" />,
