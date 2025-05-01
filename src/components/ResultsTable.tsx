@@ -18,18 +18,18 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ resultsData }) => {
   );
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
+    <div className="w-full">
+      <table className="w-full table-fixed divide-y divide-gray-200 border border-gray-200">
         <thead className="bg-gray-50">
           <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-x border-gray-200">
+            <th className="w-[45%] px-2 sm:px-4 py-2 text-left text-[11px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider border-x border-gray-200">
               Partido
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-x border-gray-200">
+            <th className="w-[25%] px-2 sm:px-4 py-2 text-left text-[11px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider border-x border-gray-200">
               Votos
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-x border-gray-200">
-              Porcentaje
+            <th className="w-[30%] px-2 sm:px-4 py-2 text-left text-[11px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider border-x border-gray-200">
+              %
             </th>
           </tr>
         </thead>
@@ -38,20 +38,22 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ resultsData }) => {
             .sort((a, b) => b.totalVotes - a.totalVotes)
             .map((party) => (
               <tr key={party.partyId}>
-                <td className="px-6 py-4 whitespace-nowrap border-x border-gray-200">
-                  <div className="flex items-center">
+                <td className="px-2 sm:px-4 py-2 border-x border-gray-200 truncate">
+                  <div className="flex items-center space-x-1 sm:space-x-2">
                     <div
-                      className="h-4 w-4 mr-2"
+                      className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0"
                       style={{ backgroundColor: party.color }}
                     ></div>
-                    {party.partyId}
+                    <span className="text-xs sm:text-sm truncate">
+                      {party.partyId}
+                    </span>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap border-x border-gray-200">
+                <td className="px-2 sm:px-4 py-2 border-x border-gray-200 text-xs sm:text-sm">
                   {party.totalVotes}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap border-x border-gray-200">
-                  {((party.totalVotes / totalVotes) * 100).toFixed(2)}%
+                <td className="px-2 sm:px-4 py-2 border-x border-gray-200 text-xs sm:text-sm">
+                  {((party.totalVotes / totalVotes) * 100).toFixed(1)}%
                 </td>
               </tr>
             ))}
