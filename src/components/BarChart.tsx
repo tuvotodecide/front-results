@@ -52,9 +52,6 @@ const BarChart: React.FC<BarChartProps> = ({ resultsData }) => {
     };
 
     handleResize(); // Initial size
-    window.addEventListener("resize", handleResize);
-
-    return () => window.removeEventListener("resize", handleResize);
   }, [resultsData]); // Add resultsData as dependency since we use it for calculation
 
   useEffect(() => {
@@ -92,8 +89,24 @@ const BarChart: React.FC<BarChartProps> = ({ resultsData }) => {
     const y = d3
       .scaleBand()
       .domain(sortedData.map((d) => d.partyId))
-      .range([margin.top, height]) // Changed from [0, height] to use more vertical space
-      .padding(0.25); // Slightly reduced from 0.3 to make bars thicker while keeping good spacing
+      .range([margin.top, height])
+      .padding(0.25);
+
+    // Add gridlines with increased visibility
+    g.append("g")
+      .attr("class", "grid")
+      .attr("transform", `translate(0,${height})`)
+      .call(
+        d3
+          .axisBottom(x)
+          .tickSize(-(height - margin.top))
+          .tickFormat(() => "")
+      )
+      .attr("color", "gray") // Using a Tailwind gray-200 color
+      .attr("stroke-opacity", 0.3) // Increased opacity
+      .style("stroke-dasharray", "2,2") // Adding a dashed pattern
+      .selectAll("line")
+      .attr("stroke", "gray"); // Matching stroke color
 
     // Add x-axis with responsive font size
     g.append("g")
@@ -160,7 +173,7 @@ const BarChart: React.FC<BarChartProps> = ({ resultsData }) => {
   }, [resultsDataWithPercentage, dimensions]);
 
   return (
-    <div ref={containerRef} className="w-full">
+    <div ref={containerRef} className="w-ful overflow-auto">
       <svg
         ref={chartRef}
         width={dimensions.width}

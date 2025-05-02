@@ -46,12 +46,12 @@ const D3PieChart: React.FC<PieChartProps> = ({ resultsData }) => {
     const arc = d3
       .arc<d3.PieArcDatum<DataItem>>()
       .innerRadius(radius * 0.4)
-      .outerRadius(radius * 0.8);
+      .outerRadius(radius);
 
     const outerArc = d3
       .arc<d3.PieArcDatum<DataItem>>()
-      .innerRadius(radius * 0.9)
-      .outerRadius(radius * 0.9);
+      .innerRadius(radius)
+      .outerRadius(radius);
 
     const arcs = pie(resultsData);
 
@@ -76,10 +76,12 @@ const D3PieChart: React.FC<PieChartProps> = ({ resultsData }) => {
 
     smallSegments.forEach((d, i) => {
       const midAngle = (d.startAngle + d.endAngle) / 2;
-      const baseOffset = Math.sin(midAngle) * 20;
-      // Increase vertical spacing between labels
-      const spreadFactor = (i - (smallSegments.length - 1) / 2) * 40;
-      verticalOffsets.set(d, baseOffset + spreadFactor);
+      const offset = radius - Math.cos(midAngle) * radius;
+      const invertedIndex = smallSegmentsCount - 1 - i; // Inverted index for bottom-up placement
+      verticalOffsets.set(d, {
+        offset,
+        invertedIndex,
+      });
     });
 
     // Add polylines for small segments
@@ -90,16 +92,20 @@ const D3PieChart: React.FC<PieChartProps> = ({ resultsData }) => {
       .filter(isSmallSegment)
       .style("fill", "none")
       .style("stroke", "gray")
+      .style("stroke-dasharray", "2,2") // Adding a dashed pattern
       .attr("stroke-width", 1)
+      .attr("stroke-opacity", 0.9)
       .attr("points", (d) => {
-        const pos = outerArc.centroid(d);
-        const midAngle = (d.startAngle + d.endAngle) / 2;
-        const verticalOffset = verticalOffsets.get(d);
-        pos[0] = radius * 1.1 * (midAngle < Math.PI ? 1 : -1);
-        pos[1] = pos[1] + verticalOffset;
-        const mid = outerArc.centroid(d);
-        mid[1] = mid[1] + verticalOffset * 0.5;
-        return [arc.centroid(d), mid, pos];
+        const outerArcCentroid = outerArc.centroid(d);
+        const { offset, invertedIndex } = verticalOffsets.get(d);
+        const secondPointY =
+          outerArcCentroid[1] - offset - 20 - invertedIndex * 30;
+        const thirdPoint = [60, secondPointY];
+        return [
+          outerArcCentroid,
+          [outerArcCentroid[0], secondPointY],
+          thirdPoint,
+        ];
       });
 
     // Add labels with dynamic positioning
@@ -110,12 +116,9 @@ const D3PieChart: React.FC<PieChartProps> = ({ resultsData }) => {
       .attr("transform", (d) => {
         if (isSmallSegment(d)) {
           const pos = outerArc.centroid(d);
-          const midAngle = (d.startAngle + d.endAngle) / 2;
-          const verticalOffset = verticalOffsets.get(d);
-          // Increase horizontal offset and adjust vertical position
-          pos[0] = radius * 1.1 * (midAngle < Math.PI ? 1 : -1);
-          pos[1] = pos[1] + verticalOffset;
-          return `translate(${pos})`;
+          const { offset, invertedIndex } = verticalOffsets.get(d);
+          const pos2 = [100, pos[1] - offset - 20 - invertedIndex * 30];
+          return `translate(${pos2})`;
         }
         return `translate(${arc.centroid(d)})`;
       })
@@ -145,18 +148,18 @@ const D3PieChart: React.FC<PieChartProps> = ({ resultsData }) => {
           })` // Moved to the bottom of the graph
       );
 
-    legend
-      .append("rect")
-      .attr("width", 20)
-      .attr("height", 20)
-      .style("fill", (d) => d.color);
+    // legend
+    //   .append("rect")
+    //   .attr("width", 20)
+    //   .attr("height", 20)
+    //   .style("fill", (d) => d.color);
 
-    legend
-      .append("text")
-      .attr("x", 30)
-      .attr("y", 15)
-      .text((d) => `${d.partyId} (${d.totalVotes})`)
-      .style("font-size", "14px"); // Increased font size
+    // legend
+    //   .append("text")
+    //   .attr("x", 30)
+    //   .attr("y", 15)
+    //   .text((d) => `${d.partyId} (${d.totalVotes})`)
+    //   .style("font-size", "14px"); // Increased font size
 
     // Adjust SVG size to fit the g tag
     const gElement = svg.node();
