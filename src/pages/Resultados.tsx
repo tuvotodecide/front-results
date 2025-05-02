@@ -114,8 +114,8 @@ const Resultados: React.FC = () => {
                 </button>
               </div>
             </div>
-            {/* {activeTab === "bars" && <BarChart resultsData={resultsData} />} */}
-            {<D3PieChart resultsData={resultsData} />}
+            {activeTab === "bars" && <BarChart resultsData={resultsData} />}
+            {activeTab === "pie" && <D3PieChart resultsData={resultsData} />}
           </div>
         </section>
       </div>
