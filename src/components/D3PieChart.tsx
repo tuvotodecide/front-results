@@ -18,9 +18,20 @@ const D3PieChart: React.FC<PieChartProps> = ({ resultsData }) => {
   const baseHeight = 500;
   const heightPerLabel = 50;
 
-  const pie = d3.pie<DataItem>().value((d) => d.totalVotes);
+  // Sort data by votes in descending order
+  const sortedData = [...resultsData].sort(
+    (a, b) => b.totalVotes - a.totalVotes
+  );
+
+  // Configure pie layout to start from 180 degrees (left) so largest segments start from there
+  const pie = d3
+    .pie<DataItem>()
+    .value((d) => d.totalVotes)
+    .startAngle(Math.PI) // Start from left (180 degrees)
+    .endAngle(Math.PI * 3); // Complete the circle (540 degrees)
+
   const smallSegmentsCount = resultsData.length
-    ? pie(resultsData).filter((d) => d.endAngle - d.startAngle < 0.4).length
+    ? pie(sortedData).filter((d) => d.endAngle - d.startAngle < 0.4).length
     : 0;
   const height = Math.max(
     baseHeight,
@@ -53,7 +64,7 @@ const D3PieChart: React.FC<PieChartProps> = ({ resultsData }) => {
       .innerRadius(radius)
       .outerRadius(radius);
 
-    const arcs = pie(resultsData);
+    const arcs = pie(sortedData);
 
     // Add the arcs
     svg
@@ -70,17 +81,18 @@ const D3PieChart: React.FC<PieChartProps> = ({ resultsData }) => {
       return d.endAngle - d.startAngle < 0.4;
     };
 
-    // Calculate vertical offsets for small segments
+    // Calculate positions for small segments' labels
     const smallSegments = arcs.filter(isSmallSegment);
     const verticalOffsets = new Map();
 
     smallSegments.forEach((d, i) => {
       const midAngle = (d.startAngle + d.endAngle) / 2;
-      const offset = radius - Math.cos(midAngle) * radius;
-      const invertedIndex = smallSegmentsCount - 1 - i; // Inverted index for bottom-up placement
+      const invertedIndex = smallSegments.length - i;
+      const yOffset = radius - Math.abs(Math.cos(midAngle)) * radius;
+      const offset = yOffset + invertedIndex * 25;
       verticalOffsets.set(d, {
-        offset,
-        invertedIndex,
+        offset: offset,
+        index: smallSegments.length - i - 1,
       });
     });
 
@@ -92,20 +104,15 @@ const D3PieChart: React.FC<PieChartProps> = ({ resultsData }) => {
       .filter(isSmallSegment)
       .style("fill", "none")
       .style("stroke", "gray")
-      .style("stroke-dasharray", "2,2") // Adding a dashed pattern
+      .style("stroke-dasharray", "2,2")
       .attr("stroke-width", 1)
       .attr("stroke-opacity", 0.9)
       .attr("points", (d) => {
-        const outerArcCentroid = outerArc.centroid(d);
-        const { offset, invertedIndex } = verticalOffsets.get(d);
-        const secondPointY =
-          outerArcCentroid[1] - offset - 20 - invertedIndex * 30;
-        const thirdPoint = [60, secondPointY];
-        return [
-          outerArcCentroid,
-          [outerArcCentroid[0], secondPointY],
-          thirdPoint,
-        ];
+        const pos = outerArc.centroid(d);
+        const { offset } = verticalOffsets.get(d);
+        const second = [pos[0], pos[1] + offset];
+        const third = [-80, second[1]];
+        return [pos, second, third];
       });
 
     // Add labels with dynamic positioning
@@ -116,63 +123,35 @@ const D3PieChart: React.FC<PieChartProps> = ({ resultsData }) => {
       .attr("transform", (d) => {
         if (isSmallSegment(d)) {
           const pos = outerArc.centroid(d);
-          const { offset, invertedIndex } = verticalOffsets.get(d);
-          const pos2 = [100, pos[1] - offset - 20 - invertedIndex * 30];
-          return `translate(${pos2})`;
+          const { offset } = verticalOffsets.get(d);
+          return `translate(-95,${pos[1] + offset})`;
         }
         return `translate(${arc.centroid(d)})`;
       })
       .attr("text-anchor", (d) => {
         if (isSmallSegment(d)) {
-          const midAngle = (d.startAngle + d.endAngle) / 2;
-          return midAngle < Math.PI ? "start" : "end";
+          return "middle";
         }
-        return "middle";
+        const midAngle = (d.startAngle + d.endAngle) / 2;
+        return midAngle < Math.PI ? "start" : "end";
       })
       .attr("dy", "0.35em")
       .text((d) => d.data.partyId)
       .style("font-size", "12px")
       .style("fill", (d) => (isSmallSegment(d) ? "black" : "white"));
 
-    // Add legends
-    const legend = svg
-      .selectAll(".legend")
-      .data(resultsData)
-      .join("g")
-      .attr("class", "legend")
-      .attr(
-        "transform",
-        (d, i) =>
-          `translate(${(i % 2) * 150 - radius}, ${
-            radius + 50 + Math.floor(i / 2) * 30
-          })` // Moved to the bottom of the graph
-      );
-
-    // legend
-    //   .append("rect")
-    //   .attr("width", 20)
-    //   .attr("height", 20)
-    //   .style("fill", (d) => d.color);
-
-    // legend
-    //   .append("text")
-    //   .attr("x", 30)
-    //   .attr("y", 15)
-    //   .text((d) => `${d.partyId} (${d.totalVotes})`)
-    //   .style("font-size", "14px"); // Increased font size
-
     // Adjust SVG size to fit the g tag
     const gElement = svg.node();
     if (gElement) {
       const bbox = gElement.getBBox();
       d3.select(svgRef.current)
-        .attr("width", "100%") // Ensure full responsiveness
+        .attr("width", "100%")
         .attr("height", "100%")
         .attr(
           "viewBox",
           `${bbox.x - 20} ${bbox.y - 20} ${bbox.width + 40} ${bbox.height + 40}`
-        ) // Add padding to prevent cut-off
-        .attr("preserveAspectRatio", "xMidYMid meet"); // Maintain aspect ratio
+        )
+        .attr("preserveAspectRatio", "xMidYMid meet");
     }
   }, [resultsData]);
 
