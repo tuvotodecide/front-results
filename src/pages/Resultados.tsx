@@ -81,7 +81,7 @@ const Resultados: React.FC = () => {
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-lg cursor-pointer transition">
           <div className="flex items-center">
             <UserGroupIcon className="h-8 w-8 text-blue-500" />
             <h3 className="ml-3 text-lg font-semibold text-gray-700">
@@ -89,7 +89,7 @@ const Resultados: React.FC = () => {
             </h3>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-lg cursor-pointer transition">
           <div className="flex items-center">
             <ChartBarIcon className="h-8 w-8 text-blue-500" />
             <h3 className="ml-3 text-lg font-semibold text-gray-700">
@@ -97,7 +97,7 @@ const Resultados: React.FC = () => {
             </h3>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-lg cursor-pointer transition">
           <div className="flex items-center">
             <MapPinIcon className="h-8 w-8 text-blue-500" />
             <h3 className="ml-3 text-lg font-semibold text-gray-700">
