@@ -71,51 +71,59 @@ const Resultados: React.FC = () => {
 
   return (
     <div className="w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-gray-900">
-        Resultados
+      <h1 className="text-2xl sm:text-3xl font-bold mb-8 text-gray-600 border-b border-gray-600 pb-4">
+        Resultados Electorales
       </h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <section className="lg:col-span-1 mb-6 lg:mb-0 flex flex-col">
-          <h2 className="text-xl sm:text-2xl font-semibold mb-4 text-gray-800">
-            Tabla de Resultados
-          </h2>
-          <div className="bg-white p-6 rounded-lg shadow-sm flex-1">
-            <ResultsTable resultsData={resultsData} />
+        <section className="lg:col-span-1 lg:mb-0">
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div className="border-b border-gray-300 bg-gray-50 px-6 py-4">
+              <h2 className="text-xl font-semibold text-gray-600 ">
+                Tabla de Resultados
+              </h2>
+            </div>
+            <div className="p-6">
+              <ResultsTable resultsData={resultsData} />
+            </div>
           </div>
         </section>
 
-        <section className="lg:col-span-2 flex flex-col">
-          <h2 className="text-xl sm:text-2xl font-semibold mb-4 text-gray-800">
-            Gráficos
-          </h2>
-          <div className="bg-white p-6 rounded-lg shadow-sm flex-1">
-            <div className="mb-4 border-b border-gray-200">
-              <div className="flex gap-4">
-                <button
-                  onClick={() => setActiveTab("bars")}
-                  className={`pb-2 px-4 ${
-                    activeTab === "bars"
-                      ? "border-b-2 border-blue-500 text-blue-600"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  Gráfico de Barras
-                </button>
-                <button
-                  onClick={() => setActiveTab("pie")}
-                  className={`pb-2 px-4 ${
-                    activeTab === "pie"
-                      ? "border-b-2 border-blue-500 text-blue-600"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  Gráfico Circular
-                </button>
-              </div>
+        <section className="lg:col-span-2">
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div className="border-b border-gray-300 bg-gray-50 px-6 py-4">
+              <h2 className="text-xl font-semibold text-gray-600 ">
+                Visualización de Resultados
+              </h2>
             </div>
-            {activeTab === "bars" && <BarChart resultsData={resultsData} />}
-            {activeTab === "pie" && <D3PieChart resultsData={resultsData} />}
+            <div className="p-6">
+              <div className="mb-4 border-b border-gray-200">
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => setActiveTab("bars")}
+                    className={`pb-2 px-4 font-medium ${
+                      activeTab === "bars"
+                        ? "border-b-2 border-blue-500 text-blue-600"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    Gráfico de Barras
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("pie")}
+                    className={`pb-2 px-4 font-medium ${
+                      activeTab === "pie"
+                        ? "border-b-2 border-blue-500 text-blue-600"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    Gráfico Circular
+                  </button>
+                </div>
+              </div>
+              {activeTab === "bars" && <BarChart resultsData={resultsData} />}
+              {activeTab === "pie" && <D3PieChart resultsData={resultsData} />}
+            </div>
           </div>
         </section>
       </div>
