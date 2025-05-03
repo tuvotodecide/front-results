@@ -173,7 +173,7 @@ const BarChart: React.FC<BarChartProps> = ({ resultsData }) => {
   }, [resultsDataWithPercentage, dimensions]);
 
   return (
-    <div ref={containerRef} className="w-ful overflow-auto">
+    <div ref={containerRef} className="w-ful overflow-auto min-h-[700px]">
       <svg
         ref={chartRef}
         width={dimensions.width}

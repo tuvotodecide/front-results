@@ -2,6 +2,11 @@ import React from "react";
 import BarChart from "../components/BarChart";
 import D3PieChart from "../components/D3PieChart";
 import ResultsTable from "../components/ResultsTable";
+import {
+  ChartBarIcon,
+  UserGroupIcon,
+  MapPinIcon,
+} from "@heroicons/react/24/outline";
 
 const resultsData = [
   {
@@ -75,6 +80,33 @@ const Resultados: React.FC = () => {
         Resultados Electorales
       </h1>
 
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <div className="flex items-center">
+            <UserGroupIcon className="h-8 w-8 text-blue-500" />
+            <h3 className="ml-3 text-lg font-semibold text-gray-700">
+              Participación
+            </h3>
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <div className="flex items-center">
+            <ChartBarIcon className="h-8 w-8 text-blue-500" />
+            <h3 className="ml-3 text-lg font-semibold text-gray-700">
+              Resultados Generales
+            </h3>
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <div className="flex items-center">
+            <MapPinIcon className="h-8 w-8 text-blue-500" />
+            <h3 className="ml-3 text-lg font-semibold text-gray-700">
+              Resultados por Localidad
+            </h3>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <section className="lg:col-span-1 lg:mb-0">
           <div className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -100,6 +132,7 @@ const Resultados: React.FC = () => {
               <div className="mb-4 border-b border-gray-200">
                 <div className="flex gap-4">
                   <button
+                    type="button"
                     onClick={() => setActiveTab("bars")}
                     className={`pb-2 px-4 font-medium ${
                       activeTab === "bars"
@@ -110,6 +143,7 @@ const Resultados: React.FC = () => {
                     Gráfico de Barras
                   </button>
                   <button
+                    type="button"
                     onClick={() => setActiveTab("pie")}
                     className={`pb-2 px-4 font-medium ${
                       activeTab === "pie"

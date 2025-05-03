@@ -124,21 +124,21 @@ const D3PieChart: React.FC<PieChartProps> = ({ resultsData }) => {
         if (isSmallSegment(d)) {
           const pos = outerArc.centroid(d);
           const { offset } = verticalOffsets.get(d);
-          return `translate(-95,${pos[1] + offset})`;
+          return `translate(-100,${pos[1] + offset})`;
         }
         return `translate(${arc.centroid(d)})`;
       })
-      .attr("text-anchor", (d) => {
-        if (isSmallSegment(d)) {
-          return "middle";
-        }
-        const midAngle = (d.startAngle + d.endAngle) / 2;
-        return midAngle < Math.PI ? "start" : "end";
-      })
+      .attr("text-anchor", "middle")
       .attr("dy", "0.35em")
       .text((d) => d.data.partyId)
-      .style("font-size", "12px")
-      .style("fill", (d) => (isSmallSegment(d) ? "black" : "white"));
+      .style("font-size", "16px")
+      .style("fill", "black")
+      .style("font-weight", "bold")
+      .style("paint-order", "stroke fill")
+      .style("stroke", "white")
+      .style("stroke-width", "10px")
+      .style("stroke-linecap", "round")
+      .style("stroke-linejoin", "round");
 
     // Adjust SVG size to fit the g tag
     const gElement = svg.node();
@@ -156,12 +156,11 @@ const D3PieChart: React.FC<PieChartProps> = ({ resultsData }) => {
   }, [resultsData]);
 
   return (
-    <div className="flex justify-center items-center w-full h-full min-h-[500px]">
+    <div className="flex justify-center items-center w-full h-full">
       <div
+        className="p-0 w-full h-full"
         style={{
-          width: "100%",
-          height: "100%",
-          maxWidth: "1200px",
+          maxWidth: "600px",
           position: "relative",
         }}
       >
