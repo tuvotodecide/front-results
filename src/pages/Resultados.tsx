@@ -76,20 +76,20 @@ const Resultados: React.FC = () => {
       </h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <section className="lg:col-span-1">
+        <section className="lg:col-span-1 mb-6 lg:mb-0 flex flex-col">
           <h2 className="text-xl sm:text-2xl font-semibold mb-4 text-gray-800">
             Tabla de Resultados
           </h2>
-          <div className="bg-white p-6 rounded-lg shadow-sm h-full">
+          <div className="bg-white p-6 rounded-lg shadow-sm flex-1">
             <ResultsTable resultsData={resultsData} />
           </div>
         </section>
 
-        <section className="lg:col-span-2">
+        <section className="lg:col-span-2 flex flex-col">
           <h2 className="text-xl sm:text-2xl font-semibold mb-4 text-gray-800">
             Gráficos
           </h2>
-          <div className="bg-white p-6 rounded-lg shadow-sm h-full">
+          <div className="bg-white p-6 rounded-lg shadow-sm flex-1">
             <div className="mb-4 border-b border-gray-200">
               <div className="flex gap-4">
                 <button
