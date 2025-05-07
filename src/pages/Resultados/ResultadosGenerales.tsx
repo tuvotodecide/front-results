@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BarChart from "../../components/BarChart";
 import D3PieChart from "../../components/D3PieChart";
 import ResultsTable from "../../components/ResultsTable";
+import { useGetResultsQuery } from "../../store/resultados/resultadosEndpoints";
+import { useGetPartidosQuery } from "../../store/partidos/partidosEndpoints";
 
 const resultsData = [
   {
@@ -67,7 +69,15 @@ const resultsData = [
 ];
 
 const ResultadosGenerales = () => {
+  const [resultsData, setResultsData] = useState([]);
   const [activeTab, setActiveTab] = useState("bars");
+  const { data: { results = [] } = {} } = useGetResultsQuery();
+  const { data: items = [] } = useGetPartidosQuery();
+
+  useEffect(() => {
+    console.log("data", results);
+    console.log("items", items);
+  }, [results, items]);
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <section className="lg:col-span-1 lg:mb-0">

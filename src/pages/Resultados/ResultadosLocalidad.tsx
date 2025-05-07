@@ -1,5 +1,7 @@
 import { useState } from "react";
 import Mapa from "../../components/Mapa";
+import BarChart from "../../components/BarChart";
+import D3PieChart from "../../components/D3PieChart";
 import ResultsTable from "../../components/ResultsTable";
 
 interface Department {
@@ -22,11 +24,11 @@ const resultsData = [
 
 const ResultadosLocalidad = () => {
   const [selectedDept, setSelectedDept] = useState<Department | null>(null);
+  const [activeTab, setActiveTab] = useState("bars");
 
   const handleDepartmentClick = (department: Department) => {
-    console.log("Selected Department:", department);
+    // console.log("Selected Department:", department);
     setSelectedDept(department);
-    // You can add additional logic here if needed
   };
 
   return (
@@ -36,11 +38,53 @@ const ResultadosLocalidad = () => {
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="border-b border-gray-300 bg-gray-50 px-6 py-4">
             <h2 className="text-xl font-semibold text-gray-600">
-              Tabla de Resultados {selectedDept ? `- ${selectedDept.name}` : ""}
+              Visualización de Resultados{" "}
+              {selectedDept ? `- ${selectedDept.name}` : ""}
             </h2>
           </div>
           <div className="p-6">
-            <ResultsTable resultsData={resultsData} />
+            <div className="mb-4 border-b border-gray-200">
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("bars")}
+                  className={`pb-2 px-4 font-medium ${
+                    activeTab === "bars"
+                      ? "border-b-2 border-blue-500 text-blue-600"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  Gráfico de Barras
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("pie")}
+                  className={`pb-2 px-4 font-medium ${
+                    activeTab === "pie"
+                      ? "border-b-2 border-blue-500 text-blue-600"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  Gráfico Circular
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("table")}
+                  className={`pb-2 px-4 font-medium ${
+                    activeTab === "table"
+                      ? "border-b-2 border-blue-500 text-blue-600"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  Tabla
+                </button>
+              </div>
+            </div>
+            {activeTab === "bars" && <BarChart resultsData={resultsData} />}
+            {activeTab === "pie" && <D3PieChart resultsData={resultsData} />}
+            {activeTab === "table" && (
+              <ResultsTable resultsData={resultsData} />
+            )}
           </div>
         </div>
       </div>
