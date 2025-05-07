@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BarChart from "../../components/BarChart";
 import D3PieChart from "../../components/D3PieChart";
 import ResultsTable from "../../components/ResultsTable";
+import { useGetStatisticsQuery } from "../../store/resultados/resultadosEndpoints";
 
 const resultsData = [
   {
@@ -25,7 +26,15 @@ const resultsData = [
 ];
 
 const Participacion = () => {
+  const { data: { votingStatistics = [] } = {} } = useGetStatisticsQuery();
   const [activeTab, setActiveTab] = useState("bars");
+  //const [resultsData, setResultsData] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (votingStatistics) {
+      console.log("votingStatistics", votingStatistics);
+    }
+  }, [votingStatistics]);
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <section className="lg:col-span-1 lg:mb-0">

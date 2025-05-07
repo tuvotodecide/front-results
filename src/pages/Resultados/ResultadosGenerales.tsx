@@ -78,6 +78,22 @@ const ResultadosGenerales = () => {
     console.log("data", results);
     console.log("items", items);
   }, [results, items]);
+
+  useEffect(() => {
+    if (results.length && items.length) {
+      const combinedData = results.map((result) => {
+        const matchingParty = items.find(
+          (item) => item.partyId === result.partyId
+        );
+        return {
+          ...result,
+          color: matchingParty?.color || "#000000", // fallback color if no match found
+        };
+      });
+      setResultsData(combinedData);
+    }
+  }, [results, items]);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <section className="lg:col-span-1 lg:mb-0">
