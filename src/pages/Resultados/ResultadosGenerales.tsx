@@ -86,7 +86,8 @@ const ResultadosGenerales = () => {
           (item) => item.partyId === result.partyId
         );
         return {
-          ...result,
+          name: result.partyId,
+          value: result.totalVotes,
           color: matchingParty?.color || "#000000", // fallback color if no match found
         };
       });
@@ -143,8 +144,8 @@ const ResultadosGenerales = () => {
                 </button>
               </div>
             </div>
-            {activeTab === "bars" && <BarChart resultsData={resultsData} />}
-            {activeTab === "pie" && <D3PieChart resultsData={resultsData} />}
+            {activeTab === "bars" && <BarChart data={resultsData} />}
+            {activeTab === "pie" && <D3PieChart data={resultsData} />}
           </div>
         </div>
       </section>

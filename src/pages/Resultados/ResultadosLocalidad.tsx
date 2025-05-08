@@ -10,16 +10,16 @@ interface Department {
 }
 
 const resultsData = [
-  { totalVotes: 87, ballotCount: 1, partyId: "MAS-IPSP", color: "#1a53ff" },
-  { totalVotes: 33, ballotCount: 1, partyId: "C.C.", color: "#ffa300" },
-  { totalVotes: 17, ballotCount: 1, partyId: "MTS", color: "#ebdc78" },
-  { totalVotes: 3, ballotCount: 1, partyId: "FPV", color: "#b30000" },
-  { totalVotes: 1, ballotCount: 1, partyId: "UCS", color: "#7c1158" },
-  { totalVotes: 1, ballotCount: 1, partyId: "MNR", color: "#fdcce5" },
-  { totalVotes: 12, ballotCount: 1, partyId: "PDC", color: "#ffee65" },
-  { totalVotes: 23, ballotCount: 1, partyId: "PAN-BOL", color: "#87bc45" },
-  { totalVotes: 16, ballotCount: 1, partyId: "21F", color: "#9b19f5" },
-  { totalVotes: 33, ballotCount: 1, partyId: "otros", color: "#9b59f5" },
+  { value: 87, ballotCount: 1, name: "MAS-IPSP", color: "#1a53ff" },
+  { value: 33, ballotCount: 1, name: "C.C.", color: "#ffa300" },
+  { value: 17, ballotCount: 1, name: "MTS", color: "#ebdc78" },
+  { value: 3, ballotCount: 1, name: "FPV", color: "#b30000" },
+  { value: 1, ballotCount: 1, name: "UCS", color: "#7c1158" },
+  { value: 1, ballotCount: 1, name: "MNR", color: "#fdcce5" },
+  { value: 12, ballotCount: 1, name: "PDC", color: "#ffee65" },
+  { value: 23, ballotCount: 1, name: "PAN-BOL", color: "#87bc45" },
+  { value: 16, ballotCount: 1, name: "21F", color: "#9b19f5" },
+  { value: 33, ballotCount: 1, name: "otros", color: "#9b59f5" },
 ];
 
 const ResultadosLocalidad = () => {
@@ -80,8 +80,8 @@ const ResultadosLocalidad = () => {
                 </button>
               </div>
             </div>
-            {activeTab === "bars" && <BarChart resultsData={resultsData} />}
-            {activeTab === "pie" && <D3PieChart resultsData={resultsData} />}
+            {activeTab === "bars" && <BarChart data={resultsData} />}
+            {activeTab === "pie" && <D3PieChart data={resultsData} />}
             {activeTab === "table" && (
               <ResultsTable resultsData={resultsData} />
             )}

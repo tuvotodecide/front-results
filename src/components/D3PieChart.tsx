@@ -1,36 +1,33 @@
 import React, { useEffect, useRef } from "react";
 import * as d3 from "d3";
 
-interface DataItem {
-  totalVotes: number;
-  ballotCount: number;
-  partyId: string;
+interface GraphData {
+  name: string;
+  value: number;
   color: string;
 }
 
 interface PieChartProps {
-  resultsData: DataItem[];
+  data: GraphData[];
 }
 
-const D3PieChart: React.FC<PieChartProps> = ({ resultsData }) => {
+const D3PieChart: React.FC<PieChartProps> = ({ data }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const width = 900;
   const baseHeight = 500;
   const heightPerLabel = 50;
 
   // Sort data by votes in descending order
-  const sortedData = [...resultsData].sort(
-    (a, b) => b.totalVotes - a.totalVotes
-  );
+  const sortedData = [...data].sort((a, b) => b.value - a.value);
 
   // Configure pie layout to start from 180 degrees (left) so largest segments start from there
   const pie = d3
-    .pie<DataItem>()
-    .value((d) => d.totalVotes)
+    .pie<GraphData>()
+    .value((d) => d.value)
     .startAngle(Math.PI) // Start from left (180 degrees)
     .endAngle(Math.PI * 3); // Complete the circle (540 degrees)
 
-  const smallSegmentsCount = resultsData.length
+  const smallSegmentsCount = data.length
     ? pie(sortedData).filter((d) => d.endAngle - d.startAngle < 0.4).length
     : 0;
   const height = Math.max(
@@ -39,7 +36,7 @@ const D3PieChart: React.FC<PieChartProps> = ({ resultsData }) => {
   );
 
   useEffect(() => {
-    if (!svgRef.current || !resultsData.length) return;
+    if (!svgRef.current || !data.length) return;
 
     // Clear previous chart
     d3.select(svgRef.current).selectAll("*").remove();
@@ -55,12 +52,12 @@ const D3PieChart: React.FC<PieChartProps> = ({ resultsData }) => {
       .append("g");
 
     const arc = d3
-      .arc<d3.PieArcDatum<DataItem>>()
+      .arc<d3.PieArcDatum<GraphData>>()
       .innerRadius(radius * 0.4)
       .outerRadius(radius);
 
     const outerArc = d3
-      .arc<d3.PieArcDatum<DataItem>>()
+      .arc<d3.PieArcDatum<GraphData>>()
       .innerRadius(radius)
       .outerRadius(radius);
 
@@ -77,7 +74,7 @@ const D3PieChart: React.FC<PieChartProps> = ({ resultsData }) => {
       .style("stroke-width", "2px");
 
     // Function to determine if a segment is small
-    const isSmallSegment = (d: d3.PieArcDatum<DataItem>) => {
+    const isSmallSegment = (d: d3.PieArcDatum<GraphData>) => {
       return d.endAngle - d.startAngle < 0.4;
     };
 
@@ -130,7 +127,7 @@ const D3PieChart: React.FC<PieChartProps> = ({ resultsData }) => {
       })
       .attr("text-anchor", "middle")
       .attr("dy", "0.35em")
-      .text((d) => d.data.partyId)
+      .text((d) => d.data.name)
       .style("font-size", "16px")
       .style("fill", "black")
       .style("font-weight", "bold")
@@ -153,7 +150,7 @@ const D3PieChart: React.FC<PieChartProps> = ({ resultsData }) => {
         )
         .attr("preserveAspectRatio", "xMidYMid meet");
     }
-  }, [resultsData]);
+  }, [data]);
 
   return (
     <div className="flex justify-center items-center w-full h-full">

@@ -4,37 +4,37 @@ import D3PieChart from "../../components/D3PieChart";
 import ResultsTable from "../../components/ResultsTable";
 import { useGetStatisticsQuery } from "../../store/resultados/resultadosEndpoints";
 
-const resultsData = [
-  {
-    totalVotes: 87,
-    ballotCount: 1,
-    partyId: "Validos",
-    color: "#6bdf89",
-  },
-  {
-    totalVotes: 33,
-    ballotCount: 1,
-    partyId: "Blanco",
-    color: "#fff9b3",
-  },
-  {
-    totalVotes: 17,
-    ballotCount: 1,
-    partyId: "Nulos",
-    color: "#b7b7b7",
-  },
-];
-
 const Participacion = () => {
   const { data: { votingStatistics = [] } = {} } = useGetStatisticsQuery();
   const [activeTab, setActiveTab] = useState("bars");
-  //const [resultsData, setResultsData] = useState<any[]>([]);
+  const [resultsData, setResultsData] = useState<
+    { value: number; name: string; color: string }[]
+  >([]);
 
   useEffect(() => {
     if (votingStatistics) {
       console.log("votingStatistics", votingStatistics);
+      const data = [
+        {
+          value: votingStatistics.validVotes,
+          name: "Validos",
+          color: "#6bdf89",
+        },
+        {
+          value: votingStatistics.blankVotes,
+          name: "Blanco",
+          color: "#fff9b3",
+        },
+        {
+          value: votingStatistics.nullVotes,
+          name: "Nulos",
+          color: "#b7b7b7",
+        },
+      ];
+      setResultsData(data);
     }
   }, [votingStatistics]);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <section className="lg:col-span-1 lg:mb-0">
@@ -84,8 +84,8 @@ const Participacion = () => {
                 </button>
               </div>
             </div>
-            {activeTab === "bars" && <BarChart resultsData={resultsData} />}
-            {activeTab === "pie" && <D3PieChart resultsData={resultsData} />}
+            {activeTab === "bars" && <BarChart data={resultsData} />}
+            {activeTab === "pie" && <D3PieChart data={resultsData} />}
           </div>
         </div>
       </section>
