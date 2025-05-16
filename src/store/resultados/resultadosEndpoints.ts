@@ -10,12 +10,17 @@ export const resultadosApiSlice = apiSlice.injectEndpoints({
       query: () => "/public/results/statistics",
       keepUnusedDataFor: 60,
     }),
+    getResultsByTableNumber: builder.query<any, string>({
+      query: (tableNumber) => `/public/results/tables/${tableNumber}`,
+      keepUnusedDataFor: 60,
+    }),
   }),
 });
 
 export const {
   useGetResultsQuery, // Hook to get results
   useGetStatisticsQuery, // Hook to get statistics
+  useLazyGetResultsByTableNumberQuery, // Lazy query to get results by table number
 } = resultadosApiSlice;
 
 /**

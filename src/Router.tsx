@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { setAuth } from "./store/auth/authSlice";
+import { setAuth, logOut } from "./store/auth/authSlice";
 import LoadingSkeleton from "./components/LoadingSkeleton";
+import { useLazyGetProfileQuery } from "./store/auth/authEndpoints";
+import { get } from "http";
 
 const Home = React.lazy(() => import("./pages/Home"));
 const Login = React.lazy(() => import("./pages/Auth/Login"));
@@ -23,6 +25,9 @@ const Participacion = React.lazy(
 const ResultadosLocalidad = React.lazy(
   () => import("./pages/Resultados/ResultadosLocalidad")
 );
+const ResultadosMesa = React.lazy(
+  () => import("./pages/Resultados/ResultadosMesa")
+);
 
 const CrearCuenta = React.lazy(() => import("./pages/Auth/CrearCuenta"));
 const ProtectedRoutes = React.lazy(() => import("./pages/ProtectedRoutes"));
@@ -38,6 +43,7 @@ const PartidoForm = React.lazy(() => import("./pages/Partidos/PartidoForm"));
 
 const AppRouter: React.FC = () => {
   const dispatch = useDispatch();
+  const [getProfile] = useLazyGetProfileQuery();
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   useEffect(() => {
@@ -45,6 +51,19 @@ const AppRouter: React.FC = () => {
     const token = localStorage.getItem("token");
     if (user && token) {
       dispatch(setAuth({ access_token: token, user }));
+      console.log("User data:", user);
+      getProfile()
+        .unwrap()
+        .then((res) => {
+          console.log("Profile data:", res);
+        })
+        .catch((err) => {
+          if (err.status === 401) {
+            localStorage.removeItem("user");
+            localStorage.removeItem("token");
+            dispatch(logOut());
+          }
+        });
     }
     setIsAuthLoading(false);
   }, [dispatch]);
@@ -75,6 +94,7 @@ const AppRouter: React.FC = () => {
                 path="/resultados/localidad"
                 element={<ResultadosLocalidad />}
               />
+              <Route path="/resultados/mesa" element={<ResultadosMesa />} />
             </Route>
             <Route element={<ProtectedRoutes />}>
               <Route path="/panel" element={<PanelControl />} />

@@ -2,6 +2,11 @@ import { apiSlice } from "../apiSlice";
 
 export const authApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
+    getProfile: builder.query<any, void>({
+      query: () => "admin/auth/profile",
+      keepUnusedDataFor: 60,
+      providesTags: () => ["Profile"],
+    }),
     createUser: builder.mutation({
       query: (user) => ({
         url: "/admin/auth/register",
@@ -19,4 +24,9 @@ export const authApiSlice = apiSlice.injectEndpoints({
   }),
 });
 
-export const { useCreateUserMutation, useLoginUserMutation } = authApiSlice;
+export const {
+  useGetProfileQuery,
+  useLazyGetProfileQuery,
+  useCreateUserMutation,
+  useLoginUserMutation,
+} = authApiSlice;
