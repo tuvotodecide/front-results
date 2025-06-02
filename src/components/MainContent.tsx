@@ -3,16 +3,10 @@ import styles from "./MainContent.module.css";
 
 interface MainContentProps {
   children: React.ReactNode;
-  isOpen?: boolean;
 }
 
-export const MainContent: React.FC<MainContentProps> = ({
-  children,
-  isOpen,
-}) => (
-  <main
-    className={`${styles.mainContent} ${!isOpen ? styles.sidebarClosed : ""}`}
-  >
+export const MainContent: React.FC<MainContentProps> = ({ children }) => (
+  <main className={styles.mainContent}>
     {children}
     {/* Uncomment the following section to add content to the main area */}
     {/* <div className={styles.contentHeader}>

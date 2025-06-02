@@ -22,13 +22,29 @@ const BasicLayout: React.FC = () => {
 
   return (
     <div
-      style={{ display: "flex", flexDirection: "column", minHeight: "100%" }}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100vh",
+        overflow: "hidden",
+        ["--sidebar-width" as string]:
+          !isSmallScreen && isSidebarOpen ? "280px" : "0px",
+      }}
     >
       <Header toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
-      <Sidebar isOpen={isSidebarOpen} closeSidebar={closeSidebar} />
-      <MainContent isOpen={isSidebarOpen}>
-        <Outlet />
-      </MainContent>
+      <div
+        style={{
+          display: "flex",
+          flex: 1,
+          overflow: "hidden",
+          position: "relative",
+        }}
+      >
+        <Sidebar isOpen={isSidebarOpen} closeSidebar={closeSidebar} />
+        <MainContent>
+          <Outlet />
+        </MainContent>
+      </div>
     </div>
   );
 };

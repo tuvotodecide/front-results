@@ -1,21 +1,22 @@
 .sidebar {
-  position: fixed;
-  top: 64px;
-  left: 0;
   width: 280px;
-  height: calc(100vh - 64px);
   background: #fff;
   border-right: 1px solid #e5e7eb;
   padding: 24px;
   overflow-y: auto;
-  z-index: 900;
   transform: translateX(-100%);
-  transition: transform 0.3s ease;
+  transition: all 0.3s ease;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+  flex: 0 0 280px;
+  height: calc(100vh - 64px);
+  position: sticky;
+  top: 64px;
+  margin-left: -280px;
 }
 
 .sidebar.open {
   transform: translateX(0);
+  margin-left: 0;
 }
 
 .overlay {
@@ -25,7 +26,7 @@
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 800;
+  z-index: 999;
   opacity: 0;
   visibility: hidden;
   transition: all 0.3s ease;
@@ -82,10 +83,12 @@
 
   .sidebar {
     transform: translateX(0);
+    margin-left: 0;
   }
 
   .sidebar.closed {
     transform: translateX(-100%);
+    margin-left: -280px;
   }
 }
 
@@ -97,7 +100,12 @@
   }
 
   .sidebar {
+    position: fixed;
+    top: 64px;
+    left: 0;
+    height: calc(100vh - 64px);
     width: 100%;
     max-width: 320px;
+    z-index: 1000;
   }
 }
