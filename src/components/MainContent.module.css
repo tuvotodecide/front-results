@@ -1,0 +1,45 @@
+.mainContent {
+  margin-left: 0;
+  margin-top: 64px;
+  padding: 40px;
+  min-height: calc(100vh - 64px);
+  transition: margin-left 0.3s ease;
+  width: 100%;
+  overflow-x: auto;
+}
+
+.card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 24px;
+}
+
+.contentHeader {
+  margin-bottom: 32px;
+}
+
+.contentHeader h1 {
+  font-size: 32px;
+  color: #1f2937;
+  margin-bottom: 8px;
+}
+
+.contentHeader p {
+  color: #6b7280;
+  font-size: 18px;
+}
+
+@media (max-width: 768px) {
+  .mainContent {
+    margin-left: 0;
+    padding: 20px;
+  }
+}
+
+@media (min-width: 769px) {
+  .mainContent:not(.sidebarClosed) {
+    margin-left: 280px;
+  }
+}

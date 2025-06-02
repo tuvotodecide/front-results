@@ -4,7 +4,6 @@ import { useDispatch } from "react-redux";
 import { setAuth, logOut } from "./store/auth/authSlice";
 import LoadingSkeleton from "./components/LoadingSkeleton";
 import { useLazyGetProfileQuery } from "./store/auth/authEndpoints";
-import { get } from "http";
 
 const Home = React.lazy(() => import("./pages/Home"));
 const Login = React.lazy(() => import("./pages/Auth/Login"));
@@ -38,6 +37,7 @@ const RecintoForm = React.lazy(() => import("./pages/Recintos/RecintoForm"));
 const Actas = React.lazy(() => import("./pages/Actas/Actas"));
 const ActasForm = React.lazy(() => import("./pages/Actas/ActasForm"));
 const Layout = React.lazy(() => import("./components/Layout"));
+const BasicLayout = React.lazy(() => import("./components/BasicLayout"));
 const Partidos = React.lazy(() => import("./pages/Partidos/Partidos"));
 const PartidoForm = React.lazy(() => import("./pages/Partidos/PartidoForm"));
 
@@ -111,6 +111,9 @@ const AppRouter: React.FC = () => {
               <Route path="/actas/editar/:id" element={<ActasForm />} />
               {/* <Route path="/resultados" element={<Resultados />} /> */}
             </Route>
+          </Route>
+          <Route element={<BasicLayout />}>
+            <Route path="/test" element={<ActasForm />} />
           </Route>
         </Routes>
       </React.Suspense>
