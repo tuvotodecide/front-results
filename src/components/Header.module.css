@@ -54,22 +54,3 @@
   align-items: center;
   margin-left: auto;
 }
-
-.btn {
-  padding: 8px 16px;
-  border-radius: 6px;
-  text-decoration: none;
-  font-weight: 500;
-  transition: all 0.2s;
-  border: none;
-  cursor: pointer;
-}
-
-.btnPrimary {
-  background: #10b981;
-  color: white;
-}
-
-.btnPrimary:hover {
-  background: #059669;
-}

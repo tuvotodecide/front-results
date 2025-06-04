@@ -77,6 +77,42 @@ const AppRouter: React.FC = () => {
       <React.Suspense fallback={<LoadingSkeleton />}>
         <Routes>
           <Route element={<Layout />}>
+            <Route path="/old" element={<Home />} />
+            {/*<Route path="/login" element={<Login />} />
+            <Route path="/crearCuenta" element={<CrearCuenta />} />
+            <Route path="/enviarActa" element={<ActasForm />} />
+            <Route path="/resultados" element={<ResultadosLayout />}>
+              <Route
+                path="/resultados/participacion"
+                element={<Participacion />}
+              />
+              <Route
+                path="/resultados/generales"
+                element={<ResultadosGenerales />}
+              />
+              <Route
+                path="/resultados/localidad"
+                element={<ResultadosLocalidad />}
+              />
+              <Route path="/resultados/mesa" element={<ResultadosMesa />} />
+            </Route> */}
+            {/* <Route element={<ProtectedRoutes />}>
+              <Route path="/panel" element={<PanelControl />} />
+              <Route path="/partidos" element={<Partidos />} />
+              <Route path="/partidos/nuevo" element={<PartidoForm />} />
+              <Route path="/partidos/editar/:id" element={<PartidoForm />} />
+              <Route path="/recintos" element={<RecintosElectorales />} />
+              <Route path="/recintos/nuevo" element={<RecintoForm />} />
+              <Route path="/recintos/editar/:id" element={<RecintoForm />} />
+              <Route path="/registroJurado" element={<RegistroJurado />} />
+
+              <Route path="/actas" element={<Actas />} />
+              <Route path="/actas/nuevo" element={<ActasForm />} />
+              <Route path="/actas/editar/:id" element={<ActasForm />} />
+            </Route> */}
+          </Route>
+          <Route element={<BasicLayout />}>
+            <Route path="/test" element={<ActasForm />} />
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/crearCuenta" element={<CrearCuenta />} />
@@ -109,11 +145,7 @@ const AppRouter: React.FC = () => {
               <Route path="/actas" element={<Actas />} />
               <Route path="/actas/nuevo" element={<ActasForm />} />
               <Route path="/actas/editar/:id" element={<ActasForm />} />
-              {/* <Route path="/resultados" element={<Resultados />} /> */}
             </Route>
-          </Route>
-          <Route element={<BasicLayout />}>
-            <Route path="/test" element={<ActasForm />} />
           </Route>
         </Routes>
       </React.Suspense>
