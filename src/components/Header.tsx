@@ -16,9 +16,25 @@ export const Header: React.FC<HeaderProps> = ({
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const { user } = useSelector(selectAuth);
   const dispatch = useDispatch();
+  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const menuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const logout = () => {
     dispatch(logOut());
+    setIsMenuOpen(false);
   };
   return (
     <header className={styles.header}>
@@ -66,10 +82,32 @@ export const Header: React.FC<HeaderProps> = ({
       <div className={styles.headerActions}>
         {isLoggedIn ? (
           <>
-            <span>{user?.name || "User"}!</span>
+            {" "}
+            <div className={styles.userMenuContainer} ref={menuRef}>
+              <span
+                className={`${styles.userName} ${
+                  isMenuOpen ? styles.active : ""
+                }`}
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+              >
+                {user?.name}
+              </span>
+              <div
+                className={`${styles.userMenu} ${
+                  isMenuOpen ? styles.show : ""
+                }`}
+              >
+                <button onClick={logout} className={styles.menuItem}>
+                  Cerrar sesión
+                </button>
+              </div>
+            </div>
           </>
         ) : (
-          <Link to="/login">Login</Link>
+          <>
+            <Link to="/login">Login</Link>
+            <Link to="/crearCuenta">Crear Cuenta</Link>
+          </>
         )}
       </div>
     </header>

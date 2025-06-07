@@ -47,9 +47,6 @@ const CrearCuenta: React.FC = () => {
 
   return (
     <>
-      <div className="mb-4">
-        <BackButton />
-      </div>
       <div className="flex h-full justify-center items-center">
         <div className="grow max-w-md p-8 bg-white rounded shadow-md">
           <h1 className="text-2xl font-bold text-center mb-8 text-gray-700 border-b pb-4 border-gray-300">
