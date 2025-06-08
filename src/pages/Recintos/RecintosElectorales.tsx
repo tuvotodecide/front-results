@@ -98,22 +98,39 @@ const RecintosElectorales: React.FC = () => {
       key: "name",
       label: "Nombre del Recinto",
       placeholder: "Buscar por nombre...",
+      type: "input" as const,
     },
     {
       key: "department",
       label: "Departamento",
-      placeholder: "Filtrar por departamento...",
+      type: "select" as const,
+      options: [
+        { value: "La Paz", label: "La Paz" },
+        { value: "Cochabamba", label: "Cochabamba" },
+        { value: "Santa Cruz", label: "Santa Cruz" },
+        { value: "Oruro", label: "Oruro" },
+        { value: "Potosí", label: "Potosí" },
+        { value: "Tarija", label: "Tarija" },
+        { value: "Chuquisaca", label: "Chuquisaca" },
+        { value: "Beni", label: "Beni" },
+        { value: "Pando", label: "Pando" },
+      ],
     },
     {
       key: "municipality",
       label: "Municipio",
       placeholder: "Filtrar por municipio...",
+      type: "input" as const,
     },
   ];
 
   const handleSearch = (values: Record<string, string>) => {
     setSearchParams(values);
     setCurrentPage(1); // Reset to first page when searching
+  };
+
+  const handleSelectChange = (key: string, value: string) => {
+    console.log(`Select ${key} changed to:`, value);
   };
 
   return (
@@ -142,7 +159,11 @@ const RecintosElectorales: React.FC = () => {
           >
             <Table.Header>
               <div className="mb-4">
-                <SearchForm fields={searchFields} onSearch={handleSearch} />
+                <SearchForm
+                  fields={searchFields}
+                  onSearch={handleSearch}
+                  onSelectChange={handleSelectChange}
+                />
               </div>
             </Table.Header>
             <Table.Footer>
