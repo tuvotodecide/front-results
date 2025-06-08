@@ -1,10 +1,29 @@
 import { apiSlice } from "../apiSlice";
 import { RecintoElectoral } from "../../types";
 
+interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+interface GetRecintosParams {
+  page?: number;
+  limit?: number;
+}
+
 export const recintosApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    getRecintos: builder.query<RecintoElectoral[], void>({
-      query: () => "/admin/locations",
+    getRecintos: builder.query<
+      PaginatedResponse<RecintoElectoral>,
+      GetRecintosParams
+    >({
+      query: (params = {}) => ({
+        url: "/admin/locations",
+        params,
+      }),
       keepUnusedDataFor: 60,
       providesTags: () => [{ type: "Recintos" as const, id: "LIST" }],
     }),

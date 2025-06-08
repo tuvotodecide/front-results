@@ -53,7 +53,9 @@ const columns: ColumnDef<RecintoElectoral>[] = [
 ];
 
 const RecintosElectorales: React.FC = () => {
-  const { data: items = [] } = useGetRecintosQuery();
+  const [currentPage, setCurrentPage] = useState(1);
+  const limit = 10;
+  const { data, isLoading } = useGetRecintosQuery({ page: currentPage, limit });
   const [deleteItem] = useDeleteRecintoMutation();
   const navigate = useNavigate();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -103,11 +105,47 @@ const RecintosElectorales: React.FC = () => {
         </div>
         <div className="my-8">
           <Table
-            data={items}
+            data={data?.items || []}
             columns={columns}
             onEdit={handleEdit}
             onDelete={handleDelete}
           />
+          {data && (
+            <div className="mt-4 flex justify-between items-center">
+              <div className="text-sm text-gray-600">
+                Mostrando {data.items.length} de {data.total} recintos
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-1 rounded border ${
+                    currentPage === 1
+                      ? "bg-gray-100 text-gray-400 border-gray-200"
+                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  Anterior
+                </button>
+                <span className="px-3 py-1 text-gray-700">
+                  Página {currentPage} de {data.totalPages}
+                </span>
+                <button
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(data.totalPages, p + 1))
+                  }
+                  disabled={currentPage === data.totalPages}
+                  className={`px-3 py-1 rounded border ${
+                    currentPage === data.totalPages
+                      ? "bg-gray-100 text-gray-400 border-gray-200"
+                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  Siguiente
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
