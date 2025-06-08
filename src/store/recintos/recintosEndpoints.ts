@@ -63,6 +63,11 @@ export const recintosApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["Recintos"],
     }),
+    getDepartments: builder.query<string[], void>({
+      query: () => "/admin/locations/departments",
+      keepUnusedDataFor: 60,
+      providesTags: () => [{ type: "Recintos" as const, id: "DEPARTMENTS" }],
+    }),
   }),
 });
 
@@ -72,4 +77,5 @@ export const {
   useCreateRecintoMutation,
   useUpdateRecintoMutation,
   useDeleteRecintoMutation,
+  useGetDepartmentsQuery,
 } = recintosApiSlice;

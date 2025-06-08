@@ -8,6 +8,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import {
   useGetRecintosQuery,
   useDeleteRecintoMutation,
+  useGetDepartmentsQuery,
 } from "../../store/recintos/recintosEndpoints";
 import { RecintoElectoral } from "../../types/recintos";
 import BackButton from "../../components/BackButton";
@@ -63,6 +64,7 @@ const RecintosElectorales: React.FC = () => {
     limit,
     ...searchParams,
   });
+  const { data: departments } = useGetDepartmentsQuery();
   const [deleteItem] = useDeleteRecintoMutation();
   const navigate = useNavigate();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -104,17 +106,7 @@ const RecintosElectorales: React.FC = () => {
       key: "department",
       label: "Departamento",
       type: "select" as const,
-      options: [
-        { value: "La Paz", label: "La Paz" },
-        { value: "Cochabamba", label: "Cochabamba" },
-        { value: "Santa Cruz", label: "Santa Cruz" },
-        { value: "Oruro", label: "Oruro" },
-        { value: "Potosí", label: "Potosí" },
-        { value: "Tarija", label: "Tarija" },
-        { value: "Chuquisaca", label: "Chuquisaca" },
-        { value: "Beni", label: "Beni" },
-        { value: "Pando", label: "Pando" },
-      ],
+      options: departments?.map((dept) => ({ value: dept, label: dept })) || [],
     },
     {
       key: "municipality",
@@ -132,6 +124,13 @@ const RecintosElectorales: React.FC = () => {
   const handleSelectChange = (key: string, value: string) => {
     console.log(`Select ${key} changed to:`, value);
   };
+
+  // Log departments whenever they change
+  React.useEffect(() => {
+    if (departments) {
+      console.log("Departments:", departments);
+    }
+  }, [departments]);
 
   return (
     <div className="p-6 bg-gray-100">
