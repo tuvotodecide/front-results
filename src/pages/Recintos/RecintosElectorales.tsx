@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import Table from "../../components/Table";
 import Modal from "../../components/Modal";
 import Pagination from "../../components/Pagination";
+import SearchForm from "../../components/SearchForm";
 import { Link, useNavigate } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
@@ -55,8 +56,13 @@ const columns: ColumnDef<RecintoElectoral>[] = [
 
 const RecintosElectorales: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams, setSearchParams] = useState<Record<string, string>>({});
   const limit = 10;
-  const { data } = useGetRecintosQuery({ page: currentPage, limit });
+  const { data } = useGetRecintosQuery({
+    page: currentPage,
+    limit,
+    ...searchParams,
+  });
   const [deleteItem] = useDeleteRecintoMutation();
   const navigate = useNavigate();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -87,6 +93,29 @@ const RecintosElectorales: React.FC = () => {
       });
   };
 
+  const searchFields = [
+    {
+      key: "name",
+      label: "Nombre del Recinto",
+      placeholder: "Buscar por nombre...",
+    },
+    {
+      key: "department",
+      label: "Departamento",
+      placeholder: "Filtrar por departamento...",
+    },
+    {
+      key: "municipality",
+      label: "Municipio",
+      placeholder: "Filtrar por municipio...",
+    },
+  ];
+
+  const handleSearch = (values: Record<string, string>) => {
+    setSearchParams(values);
+    setCurrentPage(1); // Reset to first page when searching
+  };
+
   return (
     <div className="p-6 bg-gray-100">
       <div className="w-full p-8 bg-white rounded shadow-md">
@@ -112,12 +141,8 @@ const RecintosElectorales: React.FC = () => {
             onDelete={handleDelete}
           >
             <Table.Header>
-              <div className="flex justify-end mb-4">
-                <input
-                  type="text"
-                  placeholder="Buscar recinto..."
-                  className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+              <div className="mb-4">
+                <SearchForm fields={searchFields} onSearch={handleSearch} />
               </div>
             </Table.Header>
             <Table.Footer>
