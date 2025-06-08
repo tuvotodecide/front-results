@@ -17,9 +17,7 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
   const total = data.reduce((acc, item) => acc + item.value, 0);
-
   const maxValue = data.reduce((max, item) => Math.max(max, item.value), 0);
-
   const maxPercentage = (maxValue / total) * 100;
   const maxPercentageWithMargin =
     maxPercentage + 10 < 100 ? maxPercentage + 10 : 100;
@@ -153,6 +151,14 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
       .style("font-size", dimensions.width < 600 ? "10px" : "12px")
       .text((d) => `${d.value} votos`);
   }, [dataWithPercentage, dimensions]);
+
+  if (data.length === 0) {
+    return (
+      <div className="w-full min-h-[700px] flex items-center justify-center">
+        No hay datos
+      </div>
+    );
+  }
 
   return (
     <div ref={containerRef} className="w-ful overflow-auto min-h-[700px]">

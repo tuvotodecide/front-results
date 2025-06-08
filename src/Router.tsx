@@ -117,6 +117,10 @@ const AppRouter: React.FC = () => {
             <Route path="/login" element={<Login />} />
             <Route path="/crearCuenta" element={<CrearCuenta />} />
             <Route path="/enviarActa" element={<ActasForm />} />
+            <Route
+              path="/resultados/generales2"
+              element={<ResultadosLocalidad />}
+            />
             <Route path="/resultados" element={<ResultadosLayout />}>
               <Route
                 path="/resultados/participacion"

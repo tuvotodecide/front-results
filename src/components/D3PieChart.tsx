@@ -109,7 +109,11 @@ const D3PieChart: React.FC<PieChartProps> = ({ data }) => {
         const { offset } = verticalOffsets.get(d);
         const second = [pos[0], pos[1] + offset];
         const third = [-80, second[1]];
-        return [pos, second, third];
+        return [
+          [pos[0], pos[1]],
+          [second[0], second[1]],
+          [third[0], third[1]],
+        ].join(",");
       });
 
     // Add labels with dynamic positioning
@@ -151,6 +155,17 @@ const D3PieChart: React.FC<PieChartProps> = ({ data }) => {
         .attr("preserveAspectRatio", "xMidYMid meet");
     }
   }, [data]);
+
+  if (data.length === 0) {
+    return (
+      <div
+        className="flex justify-center items-center w-full h-full"
+        style={{ minHeight: "500px" }}
+      >
+        No hay datos
+      </div>
+    );
+  }
 
   return (
     <div className="flex justify-center items-center w-full h-full">
