@@ -13,13 +13,24 @@ interface TableProps<T extends object> {
   columns: ColumnDef<T, any>[];
   onEdit?: (row: T) => void;
   onDelete?: (row: T) => void;
+  children?: React.ReactNode;
 }
 
-const Table = <T extends object>({
+// Sub-components for slots
+const TableHeader = ({ children }: { children: React.ReactNode }) => {
+  return <div className="mb-4">{children}</div>;
+};
+
+const TableFooter = ({ children }: { children: React.ReactNode }) => {
+  return <div className="mt-4">{children}</div>;
+};
+
+const TableComponent = <T extends object>({
   data,
   columns,
   onEdit,
   onDelete,
+  children,
 }: TableProps<T>) => {
   const columnsWithActions = React.useMemo(() => {
     if (!onEdit && !onDelete) return columns;
@@ -60,49 +71,67 @@ const Table = <T extends object>({
     getCoreRowModel: getCoreRowModel(),
   });
 
+  // Find header and footer children
+  const headerChild = React.Children.toArray(children).find(
+    (child) => React.isValidElement(child) && child.type === TableHeader
+  );
+  const footerChild = React.Children.toArray(children).find(
+    (child) => React.isValidElement(child) && child.type === TableFooter
+  );
+
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full border border-gray-300">
-        <thead className="bg-gray-50">
-          {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id}>
-              {headerGroup.headers.map((header, i) => (
-                <th
-                  key={header.id}
-                  className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300 border-r last:border-r-0 ${
-                    i === 0 ? "border-l" : ""
-                  }`}
-                >
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
-                </th>
-              ))}
-            </tr>
-          ))}
-        </thead>
-        <tbody className="bg-white">
-          {table.getRowModel().rows.map((row) => (
-            <tr key={row.id} className="hover:bg-gray-100">
-              {row.getVisibleCells().map((cell, i) => (
-                <td
-                  key={cell.id}
-                  className={`px-6 py-4 whitespace-nowrap text-sm text-gray-700 border-b border-gray-300 border-r last:border-r-0 ${
-                    i === 0 ? "border-l" : ""
-                  }`}
-                >
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div>
+      {headerChild}
+      <div className="overflow-x-auto">
+        <table className="min-w-full border border-gray-300">
+          <thead className="bg-gray-50">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header, i) => (
+                  <th
+                    key={header.id}
+                    className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300 border-r last:border-r-0 ${
+                      i === 0 ? "border-l" : ""
+                    }`}
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody className="bg-white">
+            {table.getRowModel().rows.map((row) => (
+              <tr key={row.id} className="hover:bg-gray-100">
+                {row.getVisibleCells().map((cell, i) => (
+                  <td
+                    key={cell.id}
+                    className={`px-6 py-4 whitespace-nowrap text-sm text-gray-700 border-b border-gray-300 border-r last:border-r-0 ${
+                      i === 0 ? "border-l" : ""
+                    }`}
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {footerChild}
     </div>
   );
 };
+
+// Create compound component
+const Table = Object.assign(TableComponent, {
+  Header: TableHeader,
+  Footer: TableFooter,
+});
 
 export default Table;

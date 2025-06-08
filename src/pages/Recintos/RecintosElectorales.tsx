@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Table from "../../components/Table";
 import Modal from "../../components/Modal";
+import Pagination from "../../components/Pagination";
 import { Link, useNavigate } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
@@ -55,7 +56,7 @@ const columns: ColumnDef<RecintoElectoral>[] = [
 const RecintosElectorales: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const limit = 10;
-  const { data, isLoading } = useGetRecintosQuery({ page: currentPage, limit });
+  const { data } = useGetRecintosQuery({ page: currentPage, limit });
   const [deleteItem] = useDeleteRecintoMutation();
   const navigate = useNavigate();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -109,43 +110,28 @@ const RecintosElectorales: React.FC = () => {
             columns={columns}
             onEdit={handleEdit}
             onDelete={handleDelete}
-          />
-          {data && (
-            <div className="mt-4 flex justify-between items-center">
-              <div className="text-sm text-gray-600">
-                Mostrando {data.items.length} de {data.total} recintos
+          >
+            <Table.Header>
+              <div className="flex justify-end mb-4">
+                <input
+                  type="text"
+                  placeholder="Buscar recinto..."
+                  className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className={`px-3 py-1 rounded border ${
-                    currentPage === 1
-                      ? "bg-gray-100 text-gray-400 border-gray-200"
-                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                  }`}
-                >
-                  Anterior
-                </button>
-                <span className="px-3 py-1 text-gray-700">
-                  Página {currentPage} de {data.totalPages}
-                </span>
-                <button
-                  onClick={() =>
-                    setCurrentPage((p) => Math.min(data.totalPages, p + 1))
-                  }
-                  disabled={currentPage === data.totalPages}
-                  className={`px-3 py-1 rounded border ${
-                    currentPage === data.totalPages
-                      ? "bg-gray-100 text-gray-400 border-gray-200"
-                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                  }`}
-                >
-                  Siguiente
-                </button>
-              </div>
-            </div>
-          )}
+            </Table.Header>
+            <Table.Footer>
+              {data && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={data.totalPages}
+                  totalItems={data.total}
+                  pageSize={limit}
+                  onPageChange={setCurrentPage}
+                />
+              )}
+            </Table.Footer>
+          </Table>
         </div>
       </div>
 
