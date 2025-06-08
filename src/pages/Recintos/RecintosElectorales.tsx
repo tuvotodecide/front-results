@@ -9,6 +9,8 @@ import {
   useGetRecintosQuery,
   useDeleteRecintoMutation,
   useGetDepartmentsQuery,
+  useLazyGetProvincesQuery,
+  useLazyGetMunicipalitiesQuery,
 } from "../../store/recintos/recintosEndpoints";
 import { RecintoElectoral } from "../../types/recintos";
 import BackButton from "../../components/BackButton";
@@ -27,13 +29,14 @@ const columns: ColumnDef<RecintoElectoral>[] = [
     header: "Departamento",
   },
   {
-    accessorKey: "municipality",
-    header: "Municipio",
-  },
-  {
     accessorKey: "province",
     header: "Provincia",
   },
+  {
+    accessorKey: "municipality",
+    header: "Municipio",
+  },
+
   {
     accessorKey: "totalTables",
     header: "Total Mesas",
@@ -57,6 +60,10 @@ const columns: ColumnDef<RecintoElectoral>[] = [
 
 const RecintosElectorales: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
+  const [provinces, setProvinces] = useState<string[]>([]);
+  const [municipalities, setMunicipalities] = useState<string[]>([]);
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("");
+  const [selectedProvince, setSelectedProvince] = useState<string>("");
   const [searchParams, setSearchParams] = useState<Record<string, string>>({});
   const limit = 10;
   const { data } = useGetRecintosQuery({
@@ -65,6 +72,8 @@ const RecintosElectorales: React.FC = () => {
     ...searchParams,
   });
   const { data: departments } = useGetDepartmentsQuery();
+  const [getProvinces] = useLazyGetProvincesQuery();
+  const [getMunicipalities] = useLazyGetMunicipalitiesQuery();
   const [deleteItem] = useDeleteRecintoMutation();
   const navigate = useNavigate();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -96,12 +105,12 @@ const RecintosElectorales: React.FC = () => {
   };
 
   const searchFields = [
-    {
-      key: "name",
-      label: "Nombre del Recinto",
-      placeholder: "Buscar por nombre...",
-      type: "input" as const,
-    },
+    // {
+    //   key: "name",
+    //   label: "Nombre del Recinto",
+    //   placeholder: "Buscar por nombre...",
+    //   type: "input" as const,
+    // },
     {
       key: "department",
       label: "Departamento",
@@ -109,10 +118,17 @@ const RecintosElectorales: React.FC = () => {
       options: departments?.map((dept) => ({ value: dept, label: dept })) || [],
     },
     {
+      key: "province",
+      label: "Provincia",
+      type: "select" as const,
+      options: provinces.map((prov) => ({ value: prov, label: prov })) || [],
+    },
+    {
       key: "municipality",
       label: "Municipio",
-      placeholder: "Filtrar por municipio...",
-      type: "input" as const,
+      type: "select" as const,
+      options:
+        municipalities.map((muni) => ({ value: muni, label: muni })) || [],
     },
   ];
 
@@ -123,6 +139,32 @@ const RecintosElectorales: React.FC = () => {
 
   const handleSelectChange = (key: string, value: string) => {
     console.log(`Select ${key} changed to:`, value);
+    if (key === "department") {
+      setSelectedDepartment(value);
+      if (value) {
+        getProvinces(value).then((result) => {
+          setProvinces(result.data || []);
+          console.log("Provinces:", result.data);
+        });
+        // Reset province when department changes
+        setSelectedProvince("");
+      }
+    } else if (key === "province") {
+      setSelectedProvince(value);
+    }
+
+    // Fetch municipalities if we have both department and province
+    if ((key === "department" || key === "province") && selectedDepartment) {
+      const province = key === "province" ? value : selectedProvince;
+      if (province) {
+        getMunicipalities({ department: selectedDepartment, province }).then(
+          (result) => {
+            setMunicipalities(result.data || []);
+            console.log("Municipalities:", result.data);
+          }
+        );
+      }
+    }
   };
 
   // Log departments whenever they change

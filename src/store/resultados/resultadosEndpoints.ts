@@ -1,9 +1,18 @@
 import { apiSlice } from "../apiSlice";
 
+interface GetResultsParams {
+  department?: string;
+  province?: string;
+  municipality?: string;
+}
+
 export const resultadosApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    getResults: builder.query<any, void>({
-      query: () => "/public/results",
+    getResults: builder.query<any, GetResultsParams>({
+      query: (params) => ({
+        url: "/public/results",
+        params,
+      }),
       keepUnusedDataFor: 60,
     }),
     getStatistics: builder.query<any, void>({

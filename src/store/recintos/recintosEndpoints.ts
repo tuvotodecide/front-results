@@ -68,6 +68,25 @@ export const recintosApiSlice = apiSlice.injectEndpoints({
       keepUnusedDataFor: 60,
       providesTags: () => [{ type: "Recintos" as const, id: "DEPARTMENTS" }],
     }),
+    getProvinces: builder.query<string[], string>({
+      query: (department) => ({
+        url: "/admin/locations/provinces",
+        params: { department },
+      }),
+      keepUnusedDataFor: 60,
+      providesTags: () => [{ type: "Recintos" as const, id: "PROVINCES" }],
+    }),
+    getMunicipalities: builder.query<
+      string[],
+      { department: string; province: string }
+    >({
+      query: ({ department, province }) => ({
+        url: "/admin/locations/municipalities",
+        params: { department, province },
+      }),
+      keepUnusedDataFor: 60,
+      providesTags: () => [{ type: "Recintos" as const, id: "MUNICIPALITIES" }],
+    }),
   }),
 });
 
@@ -78,4 +97,8 @@ export const {
   useUpdateRecintoMutation,
   useDeleteRecintoMutation,
   useGetDepartmentsQuery,
+  useGetProvincesQuery,
+  useLazyGetProvincesQuery,
+  useGetMunicipalitiesQuery,
+  useLazyGetMunicipalitiesQuery,
 } = recintosApiSlice;
