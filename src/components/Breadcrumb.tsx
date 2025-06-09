@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import styles from "./Breadcrumb.module.css";
+import { MdChevronRight, MdExpandMore, MdClose } from "react-icons/md";
 
 // Types
 interface LocationItem {
@@ -163,7 +164,6 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
     return (
       <>
         <div className={styles["breadcrumb-item"]}>
-          {" "}
           <a
             href="#"
             className={`${styles["breadcrumb-link"]} ${
@@ -184,6 +184,9 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
             </span>
             <span className={styles["breadcrumb-value"]}>
               <span className="text">{getValue(level)}</span>
+              {!isDisabled && (
+                <MdExpandMore className={styles["dropdown-icon"]} />
+              )}
             </span>
           </a>
           {getValue(level) !== "Seleccionar" && (
@@ -192,7 +195,9 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
               onClick={(e) => handleDeselect(level, e)}
               role="button"
               aria-label={`Deselect ${level}`}
-            />
+            >
+              <MdClose />
+            </div>
           )}
           {!isDisabled && (
             <div
@@ -212,7 +217,11 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
             </div>
           )}
         </div>
-        {showSeparator && <span className={styles.separator}>{">"}</span>}
+        {showSeparator && (
+          <span className={styles.separator} aria-hidden="true">
+            <MdChevronRight />
+          </span>
+        )}
       </>
     );
   };
@@ -224,7 +233,6 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
         role="navigation"
         aria-label="Location breadcrumb"
       >
-        {" "}
         <div className={styles["breadcrumb-item"]}>
           <a
             href="#"
@@ -245,7 +253,7 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
           </a>
         </div>
         <span className={styles.separator} aria-hidden="true">
-          {">"}
+          <MdChevronRight />
         </span>
         {renderBreadcrumbItem("departamento", true)}
         {renderBreadcrumbItem("provincia", true)}

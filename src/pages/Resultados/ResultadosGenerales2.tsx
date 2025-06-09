@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import Mapa from "../../components/Mapa";
 import BarChart from "../../components/BarChart";
 import D3PieChart from "../../components/D3PieChart";
@@ -7,6 +7,11 @@ import { useGetResultsQuery } from "../../store/resultados/resultadosEndpoints";
 import { useGetPartidosQuery } from "../../store/partidos/partidosEndpoints";
 import { departamentos, provincias, municipios } from "./datos";
 import { Breadcrumb } from "../../components/Breadcrumb";
+import {
+  useGetDepartmentsQuery,
+  useLazyGetMunicipalitiesQuery,
+  useLazyGetProvincesQuery,
+} from "../../store/recintos/recintosEndpoints";
 
 interface Department {
   code: string;
@@ -17,16 +22,30 @@ const ResultadosLocalidad = () => {
   const [resultsData, setResultsData] = useState([]);
   const [selectedDept, setSelectedDept] = useState<Department | null>(null);
   const [activeTab, setActiveTab] = useState("bars");
+  const [provinces, setProvinces] = useState<string[]>([]);
+  const [municipalities, setMunicipalities] = useState<string[]>([]);
   const { data: { results = [] } = {} } = useGetResultsQuery({
     department: selectedDept ? selectedDept.name : undefined,
   });
   const { data: items = [] } = useGetPartidosQuery();
+  const { data: departments } = useGetDepartmentsQuery();
+  const [getProvinces] = useLazyGetProvincesQuery();
+  const [getMunicipalities] = useLazyGetMunicipalitiesQuery();
+  const formatedDepartments = useMemo(() => {
+    return (departments ?? []).map((dept) => ({
+      value: dept,
+      name: dept,
+    }));
+  }, [departments]);
 
   const handleDepartmentClick = (department: Department) => {
     // console.log("Selected Department:", department);
     setSelectedDept(department);
     console.log("Selected Department:", department);
   };
+  useEffect(() => {
+    console.log("Selected Department:", departments);
+  }, [departments]);
 
   useEffect(() => {
     if (results.length && items.length) {
@@ -54,7 +73,7 @@ const ResultadosLocalidad = () => {
         <div className="bg-white rounded-xl shadow-lg p-6">
           <div>
             <Breadcrumb
-              departamentos={departamentos}
+              departamentos={formatedDepartments}
               provincias={provincias}
               municipios={municipios}
               onSelectionChange={(selection) => {
