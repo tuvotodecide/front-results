@@ -11,19 +11,6 @@ interface Department {
   name: string;
 }
 
-// const resultsData = [
-//   { value: 87, ballotCount: 1, name: "MAS-IPSP", color: "#1a53ff" },
-//   { value: 33, ballotCount: 1, name: "C.C.", color: "#ffa300" },
-//   { value: 17, ballotCount: 1, name: "MTS", color: "#ebdc78" },
-//   { value: 3, ballotCount: 1, name: "FPV", color: "#b30000" },
-//   { value: 1, ballotCount: 1, name: "UCS", color: "#7c1158" },
-//   { value: 1, ballotCount: 1, name: "MNR", color: "#fdcce5" },
-//   { value: 12, ballotCount: 1, name: "PDC", color: "#ffee65" },
-//   { value: 23, ballotCount: 1, name: "PAN-BOL", color: "#87bc45" },
-//   { value: 16, ballotCount: 1, name: "21F", color: "#9b19f5" },
-//   { value: 33, ballotCount: 1, name: "otros", color: "#9b59f5" },
-// ];
-
 const ResultadosLocalidad = () => {
   const [resultsData, setResultsData] = useState([]);
   const [selectedDept, setSelectedDept] = useState<Department | null>(null);
@@ -56,61 +43,69 @@ const ResultadosLocalidad = () => {
       setResultsData([]);
     }
   }, [results, items]);
-
   return (
-    <div className="map-container">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Mapa onDepartmentClick={handleDepartmentClick} />
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="border-b border-gray-300 bg-gray-50 px-6 py-4">
-            <h2 className="text-xl font-semibold text-gray-600">
-              Visualización de Resultados{" "}
-              {selectedDept ? `- ${selectedDept.name}` : ""}
-            </h2>
-          </div>
-          <div className="p-6">
-            <div className="mb-4 border-b border-gray-200">
-              <div className="flex gap-4">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("bars")}
-                  className={`pb-2 px-4 font-medium ${
-                    activeTab === "bars"
-                      ? "border-b-2 border-blue-500 text-blue-600"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  Gráfico de Barras
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("pie")}
-                  className={`pb-2 px-4 font-medium ${
-                    activeTab === "pie"
-                      ? "border-b-2 border-blue-500 text-blue-600"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  Gráfico Circular
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("table")}
-                  className={`pb-2 px-4 font-medium ${
-                    activeTab === "table"
-                      ? "border-b-2 border-blue-500 text-blue-600"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  Tabla
-                </button>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="container mx-auto px-4 max-w-7xl">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-8">
+          Resultados Generales
+        </h1>
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-gray-50 rounded-lg shadow-sm p-4">
+              <Mapa onDepartmentClick={handleDepartmentClick} />
+            </div>
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+              <div className="border-b border-gray-300 bg-gray-50 px-6 py-4">
+                <h2 className="text-xl font-semibold text-gray-600">
+                  Visualización de Resultados{" "}
+                  {selectedDept ? `- ${selectedDept.name}` : ""}
+                </h2>
+              </div>
+              <div className="p-6">
+                <div className="mb-4 border-b border-gray-200">
+                  <div className="flex gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("bars")}
+                      className={`pb-2 px-4 font-medium ${
+                        activeTab === "bars"
+                          ? "border-b-2 border-blue-500 text-blue-600"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      Gráfico de Barras
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("pie")}
+                      className={`pb-2 px-4 font-medium ${
+                        activeTab === "pie"
+                          ? "border-b-2 border-blue-500 text-blue-600"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      Gráfico Circular
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("table")}
+                      className={`pb-2 px-4 font-medium ${
+                        activeTab === "table"
+                          ? "border-b-2 border-blue-500 text-blue-600"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      Tabla
+                    </button>
+                  </div>
+                </div>
+                {activeTab === "bars" && <BarChart data={resultsData} />}
+                {activeTab === "pie" && <D3PieChart data={resultsData} />}
+                {activeTab === "table" && (
+                  <ResultsTable resultsData={resultsData} />
+                )}
               </div>
             </div>
-            {activeTab === "bars" && <BarChart data={resultsData} />}
-            {activeTab === "pie" && <D3PieChart data={resultsData} />}
-            {activeTab === "table" && (
-              <ResultsTable resultsData={resultsData} />
-            )}
           </div>
         </div>
       </div>

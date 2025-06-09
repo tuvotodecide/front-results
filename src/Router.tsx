@@ -18,6 +18,9 @@ const ResultadosLayout = React.lazy(
 const ResultadosGenerales = React.lazy(
   () => import("./pages/Resultados/ResultadosGenerales")
 );
+const ResultadosGenerales2 = React.lazy(
+  () => import("./pages/Resultados/ResultadosGenerales2")
+);
 const Participacion = React.lazy(
   () => import("./pages/Resultados/Participacion")
 );
@@ -119,7 +122,7 @@ const AppRouter: React.FC = () => {
             <Route path="/enviarActa" element={<ActasForm />} />
             <Route
               path="/resultados/generales2"
-              element={<ResultadosLocalidad />}
+              element={<ResultadosGenerales2 />}
             />
             <Route path="/resultados" element={<ResultadosLayout />}>
               <Route
