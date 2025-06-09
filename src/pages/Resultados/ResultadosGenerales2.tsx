@@ -5,6 +5,8 @@ import D3PieChart from "../../components/D3PieChart";
 import ResultsTable from "../../components/ResultsTable";
 import { useGetResultsQuery } from "../../store/resultados/resultadosEndpoints";
 import { useGetPartidosQuery } from "../../store/partidos/partidosEndpoints";
+import { departamentos, provincias, municipios } from "./datos";
+import { Breadcrumb } from "../../components/Breadcrumb";
 
 interface Department {
   code: string;
@@ -50,6 +52,16 @@ const ResultadosLocalidad = () => {
           Resultados Generales
         </h1>
         <div className="bg-white rounded-xl shadow-lg p-6">
+          <div>
+            <Breadcrumb
+              departamentos={departamentos}
+              provincias={provincias}
+              municipios={municipios}
+              onSelectionChange={(selection) => {
+                console.log("Parent received selection:", selection);
+              }}
+            />
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-gray-50 rounded-lg shadow-sm p-4">
               <Mapa onDepartmentClick={handleDepartmentClick} />
