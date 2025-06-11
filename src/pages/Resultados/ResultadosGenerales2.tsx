@@ -19,7 +19,7 @@ interface Department {
 }
 
 const ResultadosLocalidad = () => {
-  const [resultsData, setResultsData] = useState([]);
+  // const [resultsData, setResultsData] = useState([]);
   const [selectedDept, setSelectedDept] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<{
     department: string | null;
@@ -34,7 +34,7 @@ const ResultadosLocalidad = () => {
   const [provinces, setProvinces] = useState<string[]>([]);
   const [municipalities, setMunicipalities] = useState<string[]>([]);
   const { data: { results = [] } = {} } = useGetResultsQuery({
-    department: undefined,
+    department: selectedLocation.department || undefined,
   });
   const { data: items = [] } = useGetPartidosQuery();
   const { data: departments = [] } = useGetDepartmentsQuery();
@@ -45,22 +45,37 @@ const ResultadosLocalidad = () => {
     console.log("Selected Department:", departments);
   }, [departments]);
 
-  useEffect(() => {
-    if (results.length && items.length) {
-      const combinedData = results.map((result) => {
-        const matchingParty = items.find(
-          (item) => item.partyId === result.partyId
-        );
-        return {
-          name: result.partyId,
-          value: result.totalVotes,
-          color: matchingParty?.color || "#000000", // fallback color if no match found
-        };
-      });
-      setResultsData(combinedData);
-    } else {
-      setResultsData([]);
-    }
+  // useEffect(() => {
+  //   if (results.length && items.length) {
+  //     const combinedData = results.map((result) => {
+  //       const matchingParty = items.find(
+  //         (item) => item.partyId === result.partyId
+  //       );
+  //       return {
+  //         name: result.partyId,
+  //         value: result.totalVotes,
+  //         color: matchingParty?.color || "#000000", // fallback color if no match found
+  //       };
+  //     });
+  //     setResultsData(combinedData);
+  //   } else {
+  //     setResultsData([]);
+  //   }
+  // }, [results, items]);
+
+  const combinedData = useMemo(() => {
+    if (!results?.length || !items?.length) return [];
+
+    return results.map((result) => {
+      const matchingParty = items.find(
+        (item) => item.partyId === result.partyId
+      );
+      return {
+        name: result.partyId,
+        value: result.totalVotes,
+        color: matchingParty?.color || "#000000",
+      };
+    });
   }, [results, items]);
 
   const handleDepartmentClick = (department: Department) => {
@@ -111,6 +126,12 @@ const ResultadosLocalidad = () => {
       setSelectedLocation({
         department: selection.department,
         province: selection.province,
+        municipality: null,
+      });
+    } else if (selection.department === null) {
+      setSelectedLocation({
+        department: null,
+        province: null,
         municipality: null,
       });
     }
@@ -198,10 +219,10 @@ const ResultadosLocalidad = () => {
                     </button>
                   </div>
                 </div>
-                {activeTab === "bars" && <BarChart data={resultsData} />}
-                {activeTab === "pie" && <D3PieChart data={resultsData} />}
+                {activeTab === "bars" && <BarChart data={combinedData} />}
+                {activeTab === "pie" && <D3PieChart data={combinedData} />}
                 {activeTab === "table" && (
-                  <ResultsTable resultsData={resultsData} />
+                  <ResultsTable resultsData={combinedData} />
                 )}
               </div>
             </div>
