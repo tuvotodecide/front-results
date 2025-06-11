@@ -20,29 +20,27 @@ interface Department {
 
 const ResultadosLocalidad = () => {
   const [resultsData, setResultsData] = useState([]);
-  const [selectedDept, setSelectedDept] = useState<Department | null>(null);
+  const [selectedDept, setSelectedDept] = useState<string | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<{
+    department: string | null;
+    province: string | null;
+    municipality: string | null;
+  }>({
+    department: null,
+    province: null,
+    municipality: null,
+  });
   const [activeTab, setActiveTab] = useState("bars");
   const [provinces, setProvinces] = useState<string[]>([]);
   const [municipalities, setMunicipalities] = useState<string[]>([]);
   const { data: { results = [] } = {} } = useGetResultsQuery({
-    department: selectedDept ? selectedDept.name : undefined,
+    department: undefined,
   });
   const { data: items = [] } = useGetPartidosQuery();
-  const { data: departments } = useGetDepartmentsQuery();
+  const { data: departments = [] } = useGetDepartmentsQuery();
   const [getProvinces] = useLazyGetProvincesQuery();
   const [getMunicipalities] = useLazyGetMunicipalitiesQuery();
-  const formatedDepartments = useMemo(() => {
-    return (departments ?? []).map((dept) => ({
-      value: dept,
-      name: dept,
-    }));
-  }, [departments]);
 
-  const handleDepartmentClick = (department: Department) => {
-    // console.log("Selected Department:", department);
-    setSelectedDept(department);
-    console.log("Selected Department:", department);
-  };
   useEffect(() => {
     console.log("Selected Department:", departments);
   }, [departments]);
@@ -64,6 +62,75 @@ const ResultadosLocalidad = () => {
       setResultsData([]);
     }
   }, [results, items]);
+
+  const handleDepartmentClick = (department: Department) => {
+    // console.log("Selected Department:", department);
+    //setSelectedDept(department);
+    console.log("Selected Department:", department);
+  };
+
+  const handleSelectionChange = (selection: {
+    department: string | null;
+    province: string | null;
+    municipality: string | null;
+  }) => {
+    console.log("Selection changed:", selection);
+    // setSelectedLocation({
+    //   department: selection.departamento,
+    //   province: selection.provincia,
+    //   municipality: selection.municipio,
+    // });
+    if (
+      selection.department &&
+      selection.department !== selectedLocation.department
+    ) {
+      console.log("calling getProvinces with:", selection.department);
+      getProvinces(selection.department).then((response) => {
+        setProvinces(response.data ?? []);
+      });
+      setSelectedLocation({
+        department: selection.department,
+        province: null,
+        municipality: null,
+      });
+    } else if (
+      selection.department &&
+      selection.province &&
+      selection.province !== selectedLocation.province
+    ) {
+      console.log("calling getMunicipalities with:", {
+        department: selection.department,
+        province: selection.province,
+      });
+      getMunicipalities({
+        department: selection.department,
+        province: selection.province,
+      }).then((response) => {
+        setMunicipalities(response.data ?? []);
+      });
+      setSelectedLocation({
+        department: selection.department,
+        province: selection.province,
+        municipality: null,
+      });
+    }
+
+    // if (selection.departamento) {
+    //   setSelectedDept(selection.departamento);
+    //   getProvinces(selection.departamento).then((response) => {
+    //     const formatedProvinces = (response.data ?? []).map((prov) => ({
+    //       value: prov,
+    //       name: prov,
+    //     }));
+    //     setProvinces(formatedProvinces);
+    //   });
+    // }
+    // if (selection.province) {
+    //   getMunicipalities(selection.province).then((response) => {
+    //     setMunicipalities(response.data || []);
+    //   });
+    // }
+  };
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 max-w-7xl">
@@ -73,11 +140,12 @@ const ResultadosLocalidad = () => {
         <div className="bg-white rounded-xl shadow-lg p-6">
           <div>
             <Breadcrumb
-              departamentos={formatedDepartments}
-              provincias={provincias}
-              municipios={municipios}
+              departments={departments}
+              provinces={provinces}
+              municipalities={municipalities}
               onSelectionChange={(selection) => {
                 console.log("Parent received selection:", selection);
+                handleSelectionChange(selection);
               }}
             />
           </div>
@@ -89,7 +157,7 @@ const ResultadosLocalidad = () => {
               <div className="border-b border-gray-300 bg-gray-50 px-6 py-4">
                 <h2 className="text-xl font-semibold text-gray-600">
                   Visualización de Resultados{" "}
-                  {selectedDept ? `- ${selectedDept.name}` : ""}
+                  {/* {selectedDept ? `- ${selectedDept.name}` : ""} */}
                 </h2>
               </div>
               <div className="p-6">

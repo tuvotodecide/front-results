@@ -2,45 +2,40 @@ import React, { useState, useRef, useEffect } from "react";
 import styles from "./Breadcrumb.module.css";
 import { MdChevronRight, MdExpandMore, MdClose } from "react-icons/md";
 
-// Types
-interface LocationItem {
-  name: string;
-  value: string;
-  parentId?: string;
-}
-
 interface BreadcrumbProps {
-  departamentos: LocationItem[];
-  provincias: LocationItem[];
-  municipios: LocationItem[];
+  departments: string[];
+  provinces: string[];
+  municipalities: string[];
   onSelectionChange?: (selection: Selection) => void;
 }
 
 interface Selection {
-  departamento: string | null;
-  provincia: string | null;
-  municipio: string | null;
+  department: string | null;
+  province: string | null;
+  municipality: string | null;
 }
 
 export const Breadcrumb: React.FC<BreadcrumbProps> = ({
-  departamentos,
-  provincias,
-  municipios,
+  departments,
+  provinces,
+  municipalities,
   onSelectionChange,
 }) => {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [selection, setSelection] = useState<Selection>({
-    departamento: null,
-    provincia: null,
-    municipio: null,
+    department: null,
+    province: null,
+    municipality: null,
   });
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Notify parent component when selection changes
   useEffect(() => {
-    onSelectionChange?.(selection);
-    console.log("Selection changed:", selection);
-  }, [selection, onSelectionChange]);
+    if (onSelectionChange) {
+      console.log("Selection changed breadcrumb:", selection);
+      onSelectionChange(selection);
+    }
+  }, [selection]);
 
   // Handle clicks outside of dropdown
   useEffect(() => {
@@ -57,7 +52,6 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Handle keyboard accessibility
   const handleKeyDown = (e: React.KeyboardEvent, level: string) => {
     if (e.key === "Enter" || e.key === "Space" || e.key === "Escape") {
       e.preventDefault();
@@ -71,86 +65,99 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
     e.preventDefault();
     setOpenDropdown(openDropdown === level ? null : level);
   };
+
   const handleItemSelect = (level: string, value: string) => {
     setOpenDropdown(null);
 
-    if (level === "departamento") {
-      setSelection({
-        departamento: value,
-        provincia: null,
-        municipio: null,
-      });
-    } else if (level === "provincia") {
-      setSelection((prev) => ({
-        ...prev,
-        provincia: value,
-        municipio: null,
-      }));
-    } else if (level === "municipio") {
-      setSelection((prev) => ({
-        ...prev,
-        municipio: value,
-      }));
+    let newSelection: Selection;
+    if (level === "department") {
+      newSelection = {
+        department: value,
+        province: null,
+        municipality: null,
+      };
+    } else if (level === "province") {
+      newSelection = {
+        ...selection,
+        province: value,
+        municipality: null,
+      };
+    } else {
+      newSelection = {
+        ...selection,
+        municipality: value,
+      };
+    }
+
+    // Only update if there's an actual change
+    if (
+      newSelection.department !== selection.department ||
+      newSelection.province !== selection.province ||
+      newSelection.municipality !== selection.municipality
+    ) {
+      setSelection(newSelection);
     }
   };
 
   const handleDeselect = (level: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent triggering the breadcrumb click
-    if (level === "departamento") {
-      setSelection({
-        departamento: null,
-        provincia: null,
-        municipio: null,
-      });
-    } else if (level === "provincia") {
-      setSelection((prev) => ({
-        ...prev,
-        provincia: null,
-        municipio: null,
-      }));
-    } else if (level === "municipio") {
-      setSelection((prev) => ({
-        ...prev,
-        municipio: null,
-      }));
+    e.stopPropagation();
+
+    let newSelection: Selection;
+    if (level === "department") {
+      newSelection = {
+        department: null,
+        province: null,
+        municipality: null,
+      };
+    } else if (level === "province") {
+      newSelection = {
+        ...selection,
+        province: null,
+        municipality: null,
+      };
+    } else {
+      newSelection = {
+        ...selection,
+        municipality: null,
+      };
+    }
+
+    // Only update if there's an actual change
+    if (
+      newSelection.department !== selection.department ||
+      newSelection.province !== selection.province ||
+      newSelection.municipality !== selection.municipality
+    ) {
+      setSelection(newSelection);
     }
     setOpenDropdown(null);
   };
 
-  const getDropdownItems = (level: string): LocationItem[] => {
-    if (level === "departamento") {
-      return departamentos;
+  const getDropdownItems = (level: string): string[] => {
+    if (level === "department") {
+      return departments;
     }
 
-    if (level === "provincia" && selection.departamento) {
-      return provincias.filter(
-        (provincia) => provincia.parentId === selection.departamento
-      );
+    if (level === "province" && selection.department) {
+      return provinces;
     }
 
-    if (level === "municipio" && selection.provincia) {
-      return municipios.filter(
-        (municipio) => municipio.parentId === selection.provincia
-      );
+    if (level === "municipality" && selection.province) {
+      return municipalities;
     }
 
     return [];
   };
 
   const getValue = (level: string): string => {
-    if (level === "departamento" && selection.departamento) {
-      const dept = departamentos.find(
-        (d) => d.value === selection.departamento
-      );
-      return dept?.name || "Seleccionar";
+    if (level === "department" && selection.department) {
+      return selection.department || "Seleccionar";
     }
-    if (level === "provincia" && selection.provincia) {
-      const prov = provincias.find((p) => p.value === selection.provincia);
-      return prov?.name || "Seleccionar";
+    if (level === "province" && selection.province) {
+      return selection.province || "Seleccionar";
     }
-    if (level === "municipio" && selection.municipio) {
-      const mun = municipios.find((m) => m.value === selection.municipio);
-      return mun?.name || "Seleccionar";
+    if (level === "municipality" && selection.municipality) {
+      return selection.municipality || "Seleccionar";
     }
     return "Seleccionar";
   };
@@ -158,8 +165,8 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
   // Helper function to create breadcrumb item
   const renderBreadcrumbItem = (level: string, showSeparator: boolean) => {
     const isDisabled =
-      (level === "provincia" && !selection.departamento) ||
-      (level === "municipio" && !selection.provincia);
+      (level === "province" && !selection.department) ||
+      (level === "municipality" && !selection.province);
 
     return (
       <>
@@ -207,11 +214,11 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
             >
               {getDropdownItems(level).map((item) => (
                 <div
-                  key={item.value}
+                  key={level + item}
                   className={styles["dropdown-item"]}
-                  onClick={() => handleItemSelect(level, item.value)}
+                  onClick={() => handleItemSelect(level, item)}
                 >
-                  {item.name}
+                  {item}
                 </div>
               ))}
             </div>
@@ -241,9 +248,9 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
             onClick={(e) => {
               e.preventDefault();
               setSelection({
-                departamento: null,
-                provincia: null,
-                municipio: null,
+                department: null,
+                province: null,
+                municipality: null,
               });
               setOpenDropdown(null);
             }}
@@ -255,9 +262,9 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
         <span className={styles.separator} aria-hidden="true">
           <MdChevronRight />
         </span>
-        {renderBreadcrumbItem("departamento", true)}
-        {renderBreadcrumbItem("provincia", true)}
-        {renderBreadcrumbItem("municipio", false)}
+        {renderBreadcrumbItem("department", true)}
+        {renderBreadcrumbItem("province", true)}
+        {renderBreadcrumbItem("municipality", false)}
       </nav>
     </div>
   );
