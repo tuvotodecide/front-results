@@ -44,24 +44,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
           <div className={styles.section}>
             <h3 className={styles.title}>Admin</h3>
             <ul className={styles.menu}>
+              {" "}
               <li className={styles.menuItem}>
                 <Link to="/panel" className={styles.menuLink}>
-                  <span className={styles.icon}>🔧</span>Panel
+                  <span className={styles.icon}>⚙️</span>Panel
                 </Link>
               </li>
               <li className={styles.menuItem}>
                 <Link to="/partidos" className={styles.menuLink}>
-                  <span className={styles.icon}>🔧</span>Partidos
+                  <span className={styles.icon}>🏛️</span>Partidos
                 </Link>
               </li>
               <li className={styles.menuItem}>
                 <Link to="/recintos" className={styles.menuLink}>
-                  <span className={styles.icon}>🔧</span>Recintos
+                  <span className={styles.icon}>🏫</span>Recintos
                 </Link>
               </li>
               <li className={styles.menuItem}>
                 <Link to="/actas" className={styles.menuLink}>
-                  <span className={styles.icon}>🔧</span>Actas
+                  <span className={styles.icon}>📋</span>Actas
                 </Link>
               </li>
             </ul>
@@ -77,13 +78,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
               </Link>
             </li> */}
             <li className={styles.menuItem}>
-              <Link to="/resultados/generales2" className={styles.menuLink}>
-                <span className={styles.icon}>🔧</span>Resultados generales
+              {" "}
+              <Link to="/resultados" className={styles.menuLink}>
+                <span className={styles.icon}>📊</span>Resultados generales
               </Link>
             </li>
             <li className={styles.menuItem}>
               <Link to="/resultados/mesa" className={styles.menuLink}>
-                <span className={styles.icon}>🔧</span>Resultados por mesa
+                <span className={styles.icon}>🗳️</span>Resultados por mesa
               </Link>
             </li>
           </ul>

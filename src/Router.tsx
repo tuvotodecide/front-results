@@ -120,10 +120,7 @@ const AppRouter: React.FC = () => {
             <Route path="/login" element={<Login />} />
             <Route path="/crearCuenta" element={<CrearCuenta />} />
             <Route path="/enviarActa" element={<ActasForm />} />
-            <Route
-              path="/resultados/generales2"
-              element={<ResultadosGenerales2 />}
-            />
+            <Route path="/resultados" element={<ResultadosGenerales2 />} />
             <Route path="/resultados/mesa" element={<ResultadosMesa />} />
             {/* <Route path="/resultados" element={<ResultadosLayout />}>
               <Route

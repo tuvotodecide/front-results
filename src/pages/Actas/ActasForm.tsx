@@ -267,7 +267,7 @@ const ActasForm: React.FC = () => {
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Link
-                to="/resultados/generales2"
+                to="/resultados"
                 className="py-2 px-4 font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 border relative bg-transparent text-green-700 hover:bg-green-50 border-green-500 w-full text-center"
               >
                 Ver Resultados

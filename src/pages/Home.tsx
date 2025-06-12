@@ -5,7 +5,6 @@ import {
   ClipboardDocumentCheckIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
-import Modal2 from "../components/Modal2"; // Adjust the import path as necessary
 
 const Home: React.FC = () => {
   return (
@@ -92,14 +91,6 @@ const Home: React.FC = () => {
               <h2 className="text-2xl font-bold text-gray-900 mb-4">
                 Información Importante
               </h2>
-              <Modal2
-                isOpen={true}
-                onClose={() => {}}
-                type="success"
-                title="Éxito, "
-                size="md"
-                className="bg-white rounded-lg shadow-lg"
-              ></Modal2>
               <ul className="list-disc list-inside text-gray-600 space-y-2">
                 <li>Actualización de resultados en tiempo real</li>
                 <li>Sistema seguro de verificación de actas</li>
