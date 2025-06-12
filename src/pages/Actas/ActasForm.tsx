@@ -1,28 +1,32 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { useSubmitBallotMutation } from "../../store/actas/actasEndpoints";
 import { CheckCircleIcon } from "@heroicons/react/24/solid";
 import LoadingButton from "../../components/LoadingButton";
-import Modal from "../../components/Modal";
+import Modal2 from "../../components/Modal2";
 import ModalImage from "../../components/ModalImage";
 
 interface FormValues {
   file: File | null;
   tableNumber: string;
+  tableCode: string;
   citizenId: string;
   locationCode: string;
 }
 
 const validationSchema = Yup.object({
-  tableNumber: Yup.string().required("Table number is required"),
-  citizenId: Yup.string().required("Citizen ID is required"),
-  locationCode: Yup.string().required("Location code is required"),
+  file: Yup.mixed().required("La imagen es requerida"),
+  tableNumber: Yup.string().required("El número de mesa es requerido"),
+  tableCode: Yup.string().required("El código de mesa es requerido"),
+  citizenId: Yup.string().required("El ID del ciudadano es requerido"),
+  locationCode: Yup.string().required("El código de ubicación es requerido"),
 });
 
 const ActasForm: React.FC = () => {
   const [submitBallot] = useSubmitBallotMutation();
+  const [serverResponse, setServerResponse] = useState<any>({});
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,6 +36,7 @@ const ActasForm: React.FC = () => {
   const initialValues: FormValues = {
     file: null,
     tableNumber: "",
+    tableCode: "",
     citizenId: "",
     locationCode: "",
   };
@@ -51,8 +56,10 @@ const ActasForm: React.FC = () => {
     formData.append("tableCode", values.locationCode);
 
     try {
-      await submitBallot(formData).unwrap();
-      setIsModalOpen(true);
+      const resp = await submitBallot(formData).unwrap();
+      console.log("Form submitted successfully:", resp);
+      setServerResponse({ success: true, ...resp });
+
       resetForm();
       setPreviewUrl(null);
       const fileInput = document.querySelector(
@@ -61,9 +68,11 @@ const ActasForm: React.FC = () => {
       if (fileInput) {
         fileInput.value = "";
       }
-    } catch (error) {
-      console.error("Error submitting form:", error);
+    } catch (error: any) {
+      setServerResponse({ success: false, ...error?.data });
+      console.error("Error submitting form:", error?.data);
     } finally {
+      setIsModalOpen(true);
       setIsSubmitting(false);
     }
   };
@@ -135,6 +144,11 @@ const ActasForm: React.FC = () => {
                       />
                     </div>
                   )}
+                  <ErrorMessage
+                    name="file"
+                    component="div"
+                    className="text-sm text-red-500 mt-1"
+                  />
                 </div>
 
                 <div>
@@ -215,29 +229,59 @@ const ActasForm: React.FC = () => {
         </div>
       </div>
 
-      <Modal
+      <Modal2
         isOpen={isModalOpen}
+        type={serverResponse.success ? "success" : "error"}
+        title={serverResponse.success ? "Acta subida" : "Error al subir acta"}
         onClose={() => setIsModalOpen(false)}
         size="md"
+        className="bg-white rounded-lg shadow-lg"
       >
-        <div className="flex flex-col items-center">
-          <CheckCircleIcon className="h-16 w-16 text-green-500 mb-4" />
-          <h2 className="text-2xl font-bold text-center mb-4 text-green-600">
-            ¡Éxito!
-          </h2>
-          <p className="text-center mb-6">
-            El acta se ha subido correctamente.
-          </p>
-          <div className="flex justify-center space-x-4">
-            <button
-              onClick={() => navigate("/resultados")}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-            >
-              Ver Resultados
-            </button>
-          </div>
-        </div>
-      </Modal>
+        <p className="text-gray-700 mb-4">{serverResponse.message}</p>
+        {serverResponse.success && (
+          <>
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <h3 className="font-medium text-gray-900 mb-3">
+                Información del Acta:
+              </h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Estado:</span>
+                  <span
+                    className={`text-sm font-medium px-2 py-1 rounded ${
+                      true
+                        ? "bg-orange-100 text-orange-800"
+                        : "bg-green-100 text-green-800"
+                    }`}
+                  >
+                    {serverResponse.status}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Tracking ID:</span>
+                  <span className="text-sm font-mono bg-gray-200 px-2 py-1 rounded text-gray-800">
+                    {serverResponse.trackingId}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Link
+                to="/resultados/generales2"
+                className="py-2 px-4 font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 border relative bg-transparent text-green-700 hover:bg-green-50 border-green-500 w-full text-center"
+              >
+                Ver Resultados
+              </Link>
+              <Link
+                to={`/resultados?trackingId=${serverResponse.trackingId}`}
+                className="py-2 px-4 font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 border relative bg-transparent text-blue-700 hover:bg-blue-50 border-blue-500 w-full text-center"
+              >
+                Ver Acta
+              </Link>
+            </div>
+          </>
+        )}
+      </Modal2>
 
       <ModalImage
         isOpen={isPreviewModalOpen}

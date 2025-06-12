@@ -124,7 +124,8 @@ const AppRouter: React.FC = () => {
               path="/resultados/generales2"
               element={<ResultadosGenerales2 />}
             />
-            <Route path="/resultados" element={<ResultadosLayout />}>
+            <Route path="/resultados/mesa" element={<ResultadosMesa />} />
+            {/* <Route path="/resultados" element={<ResultadosLayout />}>
               <Route
                 path="/resultados/participacion"
                 element={<Participacion />}
@@ -138,7 +139,7 @@ const AppRouter: React.FC = () => {
                 element={<ResultadosLocalidad />}
               />
               <Route path="/resultados/mesa" element={<ResultadosMesa />} />
-            </Route>
+            </Route> */}
             <Route element={<ProtectedRoutes />}>
               <Route path="/panel" element={<PanelControl />} />
               <Route path="/partidos" element={<Partidos />} />

@@ -71,14 +71,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
         <div className={styles.section}>
           <h3 className={styles.title}>Resultados</h3>
           <ul className={styles.menu}>
-            <li className={styles.menuItem}>
+            {/* <li className={styles.menuItem}>
               <Link to="/resultados/generales" className={styles.menuLink}>
+                <span className={styles.icon}>🔧</span>Resultados generales
+              </Link>
+            </li> */}
+            <li className={styles.menuItem}>
+              <Link to="/resultados/generales2" className={styles.menuLink}>
                 <span className={styles.icon}>🔧</span>Resultados generales
               </Link>
             </li>
             <li className={styles.menuItem}>
-              <Link to="/resultados/generales2" className={styles.menuLink}>
-                <span className={styles.icon}>🔧</span>Resultados generales 2
+              <Link to="/resultados/mesa" className={styles.menuLink}>
+                <span className={styles.icon}>🔧</span>Resultados por mesa
               </Link>
             </li>
           </ul>
