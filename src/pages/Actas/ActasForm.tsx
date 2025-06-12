@@ -273,7 +273,7 @@ const ActasForm: React.FC = () => {
                 Ver Resultados
               </Link>
               <Link
-                to={`/resultados?trackingId=${serverResponse.trackingId}`}
+                to={`/verActa?trackingId=${serverResponse.trackingId}`}
                 className="py-2 px-4 font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 border relative bg-transparent text-blue-700 hover:bg-blue-50 border-blue-500 w-full text-center"
               >
                 Ver Acta

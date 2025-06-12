@@ -1,14 +1,25 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useLazyGetBallotQuery } from "../../store/actas/actasEndpoints";
 import { Ballot, VerificationHistory } from "../../types/ballot";
 
 const VerActa: React.FC = () => {
-  const [searchId, setSearchId] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchId, setSearchId] = useState(
+    searchParams.get("trackingId") || ""
+  );
   const [getBallot, { data: ballot, isLoading, error }] =
     useLazyGetBallotQuery();
 
+  useEffect(() => {
+    if (searchParams.get("trackingId")) {
+      getBallot(searchParams.get("trackingId")!);
+    }
+  }, [searchParams, getBallot]);
+
   const handleSearch = () => {
     if (searchId.trim()) {
+      setSearchParams({ trackingId: searchId });
       getBallot(searchId);
     }
   };
@@ -21,9 +32,19 @@ const VerActa: React.FC = () => {
         <input
           type="text"
           value={searchId}
-          onChange={(e) => setSearchId(e.target.value)}
+          onChange={(e) => {
+            setSearchId(e.target.value);
+            if (!e.target.value) {
+              setSearchParams({});
+            }
+          }}
           placeholder="Ingrese ID de seguimiento"
           className="flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          onKeyPress={(e) => {
+            if (e.key === "Enter") {
+              handleSearch();
+            }
+          }}
         />
         <button
           onClick={handleSearch}
