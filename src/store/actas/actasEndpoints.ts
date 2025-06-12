@@ -32,4 +32,5 @@ export const {
   useSubmitBallotMutation, // Hook to submit a ballot
   useGetBallotsQuery, // Hook to get all ballots
   useGetBallotQuery, // Hook to get a specific ballot by ID
+  useLazyGetBallotQuery, // Lazy query to get a specific ballot by ID
 } = actasApiSlice;

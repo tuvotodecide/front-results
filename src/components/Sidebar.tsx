@@ -98,6 +98,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
                 <span className={styles.icon}>📚</span>Subir acta
               </Link>
             </li>
+            <li className={styles.menuItem}>
+              <Link to="/verActa" className={styles.menuLink}>
+                <span className={styles.icon}>💬</span>Ver acta
+              </Link>
+            </li>
             {/* <li className={styles.menuItem}>
               <a href="#" className={styles.menuLink}>
                 <span className={styles.icon}>🎓</span>Tutorials

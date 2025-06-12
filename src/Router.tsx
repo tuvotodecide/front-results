@@ -38,6 +38,7 @@ const RecintosElectorales = React.lazy(
 );
 const RecintoForm = React.lazy(() => import("./pages/Recintos/RecintoForm"));
 const Actas = React.lazy(() => import("./pages/Actas/Actas"));
+const VerActa = React.lazy(() => import("./pages/Actas/VerActa"));
 const ActasForm = React.lazy(() => import("./pages/Actas/ActasForm"));
 const Layout = React.lazy(() => import("./components/Layout"));
 const BasicLayout = React.lazy(() => import("./components/BasicLayout"));
@@ -120,6 +121,7 @@ const AppRouter: React.FC = () => {
             <Route path="/login" element={<Login />} />
             <Route path="/crearCuenta" element={<CrearCuenta />} />
             <Route path="/enviarActa" element={<ActasForm />} />
+            <Route path="/verActa" element={<VerActa />} />
             <Route path="/resultados" element={<ResultadosGenerales2 />} />
             <Route path="/resultados/mesa" element={<ResultadosMesa />} />
             {/* <Route path="/resultados" element={<ResultadosLayout />}>
