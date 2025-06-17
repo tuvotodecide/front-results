@@ -77,7 +77,7 @@ export const Header: React.FC<HeaderProps> = ({
         )}
       </button>
       <a href="#" className={styles.logo}>
-        Yo Participo
+        Yo Custodio
       </a>
       <div className={styles.headerActions}>
         {isLoggedIn ? (

@@ -94,13 +94,13 @@ const Menu: React.FC<MenuProps> = () => {
     >
       <div className="nav-bar">
         <span className="logo navLogo">
-          <Link to="/">Yo Participo</Link>
+          <Link to="/">Yo Custodio</Link>
         </span>
 
         <div className="menu">
           <div className="logo-toggle">
             <span className="logo">
-              <Link to="/">Yo Participo</Link>
+              <Link to="/">Yo Custodio</Link>
             </span>
             <FaTimes className="siderbarClose" color="white" />
           </div>
