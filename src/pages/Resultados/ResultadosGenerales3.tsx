@@ -13,13 +13,14 @@ import {
   useLazyGetProvincesQuery,
 } from '../../store/recintos/recintosEndpoints';
 import SearchBar from '../../components/SearchBar';
+import Breadcrumb2 from '../../components/Breadcrumb2';
 
 interface Department {
   code: string;
   name: string;
 }
 
-const ResultadosLocalidad = () => {
+const ResultadosGenerales3 = () => {
   // const [resultsData, setResultsData] = useState([]);
   const [selectedDept, setSelectedDept] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<{
@@ -160,33 +161,18 @@ const ResultadosLocalidad = () => {
           Resultados Generales
         </h1>
         <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="flex justify-center m-8">
-            <SearchBar className="w-full" />
-          </div>
           <div>
-            <Breadcrumb
-              departments={departments}
-              provinces={provinces}
-              municipalities={municipalities}
-              onSelectionChange={(selection) => {
-                console.log('Parent received selection:', selection);
-                handleSelectionChange(selection);
-              }}
-            />
+            <Breadcrumb2 />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-gray-50 rounded-lg shadow-sm p-4">
-              <Mapa onDepartmentClick={handleDepartmentClick} />
-            </div>
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-              <div className="border-b border-gray-300 bg-gray-50 px-6 py-4">
+            <div className="bg-gray-50 rounded-lg shadow-sm overflow-hidden">
+              {/* <div className="border-b border-gray-300 bg-gray-50 px-6 py-4">
                 <h2 className="text-xl font-semibold text-gray-600">
                   Visualización de Resultados{' '}
-                  {/* {selectedDept ? `- ${selectedDept.name}` : ""} */}
                 </h2>
-              </div>
-              <div className="p-6">
-                <div className="mb-4 border-b border-gray-200">
+              </div> */}
+              <div className="border-b border-gray-300  px-6 py-4">
+                <div className="mb-4 border-b border-gray-200 bg-gray-50">
                   <div className="flex gap-4">
                     <button
                       type="button"
@@ -230,6 +216,7 @@ const ResultadosLocalidad = () => {
                 )}
               </div>
             </div>
+            <div className="bg-gray-50 rounded-lg shadow-sm p-4"></div>
           </div>
         </div>
       </div>
@@ -237,4 +224,4 @@ const ResultadosLocalidad = () => {
   );
 };
 
-export default ResultadosLocalidad;
+export default ResultadosGenerales3;

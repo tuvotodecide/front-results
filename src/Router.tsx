@@ -1,49 +1,50 @@
-import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { useDispatch } from "react-redux";
-import { setAuth, logOut } from "./store/auth/authSlice";
-import LoadingSkeleton from "./components/LoadingSkeleton";
-import { useLazyGetProfileQuery } from "./store/auth/authEndpoints";
+import React, { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { setAuth, logOut } from './store/auth/authSlice';
+import LoadingSkeleton from './components/LoadingSkeleton';
+import { useLazyGetProfileQuery } from './store/auth/authEndpoints';
+import ResultadosGenerales3 from './pages/Resultados/ResultadosGenerales3';
 
-const Home = React.lazy(() => import("./pages/Home"));
-const Login = React.lazy(() => import("./pages/Auth/Login"));
-const PanelControl = React.lazy(() => import("./pages/PanelControl"));
+const Home = React.lazy(() => import('./pages/Home'));
+const Login = React.lazy(() => import('./pages/Auth/Login'));
+const PanelControl = React.lazy(() => import('./pages/PanelControl'));
 const RegistroJurado = React.lazy(
-  () => import("./pages/Jurados/RegistroJurado")
+  () => import('./pages/Jurados/RegistroJurado')
 );
 // const EnvioActa = React.lazy(() => import("./pages/EnvioActa"));
 const ResultadosLayout = React.lazy(
-  () => import("./pages/Resultados/ResultadosLayout")
+  () => import('./pages/Resultados/ResultadosLayout')
 );
 const ResultadosGenerales = React.lazy(
-  () => import("./pages/Resultados/ResultadosGenerales")
+  () => import('./pages/Resultados/ResultadosGenerales')
 );
 const ResultadosGenerales2 = React.lazy(
-  () => import("./pages/Resultados/ResultadosGenerales2")
+  () => import('./pages/Resultados/ResultadosGenerales2')
 );
 const Participacion = React.lazy(
-  () => import("./pages/Resultados/Participacion")
+  () => import('./pages/Resultados/Participacion')
 );
 const ResultadosLocalidad = React.lazy(
-  () => import("./pages/Resultados/ResultadosLocalidad")
+  () => import('./pages/Resultados/ResultadosLocalidad')
 );
 const ResultadosMesa = React.lazy(
-  () => import("./pages/Resultados/ResultadosMesa")
+  () => import('./pages/Resultados/ResultadosMesa')
 );
 
-const CrearCuenta = React.lazy(() => import("./pages/Auth/CrearCuenta"));
-const ProtectedRoutes = React.lazy(() => import("./pages/ProtectedRoutes"));
+const CrearCuenta = React.lazy(() => import('./pages/Auth/CrearCuenta'));
+const ProtectedRoutes = React.lazy(() => import('./pages/ProtectedRoutes'));
 const RecintosElectorales = React.lazy(
-  () => import("./pages/Recintos/RecintosElectorales")
+  () => import('./pages/Recintos/RecintosElectorales')
 );
-const RecintoForm = React.lazy(() => import("./pages/Recintos/RecintoForm"));
-const Actas = React.lazy(() => import("./pages/Actas/Actas"));
-const VerActa = React.lazy(() => import("./pages/Actas/VerActa"));
-const ActasForm = React.lazy(() => import("./pages/Actas/ActasForm"));
-const Layout = React.lazy(() => import("./components/Layout"));
-const BasicLayout = React.lazy(() => import("./components/BasicLayout"));
-const Partidos = React.lazy(() => import("./pages/Partidos/Partidos"));
-const PartidoForm = React.lazy(() => import("./pages/Partidos/PartidoForm"));
+const RecintoForm = React.lazy(() => import('./pages/Recintos/RecintoForm'));
+const Actas = React.lazy(() => import('./pages/Actas/Actas'));
+const VerActa = React.lazy(() => import('./pages/Actas/VerActa'));
+const ActasForm = React.lazy(() => import('./pages/Actas/ActasForm'));
+const Layout = React.lazy(() => import('./components/Layout'));
+const BasicLayout = React.lazy(() => import('./components/BasicLayout'));
+const Partidos = React.lazy(() => import('./pages/Partidos/Partidos'));
+const PartidoForm = React.lazy(() => import('./pages/Partidos/PartidoForm'));
 
 const AppRouter: React.FC = () => {
   const dispatch = useDispatch();
@@ -51,20 +52,20 @@ const AppRouter: React.FC = () => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user") ?? "null");
-    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem('user') ?? 'null');
+    const token = localStorage.getItem('token');
     if (user && token) {
       dispatch(setAuth({ access_token: token, user }));
-      console.log("User data:", user);
+      console.log('User data:', user);
       getProfile()
         .unwrap()
         .then((res) => {
-          console.log("Profile data:", res);
+          console.log('Profile data:', res);
         })
         .catch((err) => {
           if (err.status === 401) {
-            localStorage.removeItem("user");
-            localStorage.removeItem("token");
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
             dispatch(logOut());
           }
         });
@@ -123,6 +124,7 @@ const AppRouter: React.FC = () => {
             <Route path="/enviarActa" element={<ActasForm />} />
             <Route path="/verActa" element={<VerActa />} />
             <Route path="/resultados" element={<ResultadosGenerales2 />} />
+            <Route path="/resultados3" element={<ResultadosGenerales3 />} />
             <Route path="/resultados/mesa" element={<ResultadosMesa />} />
             {/* <Route path="/resultados" element={<ResultadosLayout />}>
               <Route
