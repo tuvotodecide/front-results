@@ -5,6 +5,7 @@ import { setAuth, logOut } from './store/auth/authSlice';
 import LoadingSkeleton from './components/LoadingSkeleton';
 import { useLazyGetProfileQuery } from './store/auth/authEndpoints';
 import ResultadosGenerales3 from './pages/Resultados/ResultadosGenerales3';
+import ResultadosMesa2 from './pages/Resultados/ResultadosMesa2';
 
 const Home = React.lazy(() => import('./pages/Home'));
 const Login = React.lazy(() => import('./pages/Auth/Login'));
@@ -123,9 +124,10 @@ const AppRouter: React.FC = () => {
             <Route path="/crearCuenta" element={<CrearCuenta />} />
             <Route path="/enviarActa" element={<ActasForm />} />
             <Route path="/verActa" element={<VerActa />} />
-            <Route path="/resultados" element={<ResultadosGenerales2 />} />
-            <Route path="/resultados3" element={<ResultadosGenerales3 />} />
-            <Route path="/resultados/mesa" element={<ResultadosMesa />} />
+            <Route path="/resultados3" element={<ResultadosGenerales2 />} />
+            <Route path="/resultados" element={<ResultadosGenerales3 />} />
+            <Route path="/resultados/mesa2" element={<ResultadosMesa />} />
+            <Route path="/resultados/mesa" element={<ResultadosMesa2 />} />
             {/* <Route path="/resultados" element={<ResultadosLayout />}>
               <Route
                 path="/resultados/participacion"

@@ -1,8 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronRight, Home } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import SearchBar from './SearchBar';
+
+interface PathItem {
+  level: {
+    id: string;
+    title: string;
+    options: string[];
+  };
+  value: string;
+  index: number;
+}
 
 const Breadcrumb = () => {
-  const [selectedPath, setSelectedPath] = useState([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedPath, setSelectedPath] = useState<PathItem[]>([]);
 
   const levels = [
     {
@@ -37,75 +50,152 @@ const Breadcrumb = () => {
     },
   ];
 
-  const handleLevelClick = (levelIndex, option) => {
-    const newPath = selectedPath.slice(0, levelIndex);
+  // Helper: Build query params from selectedPath
+  const buildQueryParams = (pathArr: PathItem[]) => {
+    const params: Record<string, string> = {};
+    pathArr.forEach((item) => {
+      params[item.level.id] = item.value;
+    });
+    return params;
+  };
+
+  // When a level is clicked, update state and URL
+  const handleLevelClick = (levelIndex: number, option: string) => {
+    const newPath: PathItem[] = selectedPath.slice(0, levelIndex);
     newPath.push({
       level: levels[levelIndex],
       value: option,
       index: levelIndex,
     });
     setSelectedPath(newPath);
+    setSearchParams(buildQueryParams(newPath));
   };
 
-  const handleBreadcrumbClick = (index) => {
-    setSelectedPath(selectedPath.slice(0, index + 1));
+  const handleBreadcrumbClick = (index: number) => {
+    const newPath = selectedPath.slice(0, index + 1);
+    setSelectedPath(newPath);
+    setSearchParams(buildQueryParams(newPath));
   };
 
   const resetPath = () => {
     setSelectedPath([]);
+    setSearchParams({});
   };
 
   const currentLevel =
     selectedPath.length < levels.length ? levels[selectedPath.length] : null;
 
+  // State to control visibility of the current level selection section
+  const [showCurrentLevel, setShowCurrentLevel] = useState(true);
+
+  // Show the next breadcrumb level form when "ver más" is clicked
+  const handleShowNextLevel = () => {
+    setShowCurrentLevel(true);
+  };
+
+  // On mount and when searchParams change, sync selectedPath with URL
+  useEffect(() => {
+    // Build selectedPath from searchParams
+    const newPath = [];
+    for (let i = 0; i < levels.length; i++) {
+      const paramValue = searchParams.get(levels[i].id);
+      if (paramValue) {
+        newPath.push({
+          level: levels[i],
+          value: paramValue,
+          index: i,
+        });
+      } else {
+        break;
+      }
+    }
+    setSelectedPath(newPath);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   return (
-    <div className="mx-auto p-6 bg-white">
+    <div className="mx-auto py-6 bg-white">
       {/* Breadcrumb Navigation */}
-      <div className="bg-gray-50 rounded-lg p-4 mb-6">
-        <nav className="flex items-center space-x-2 text-sm">
+      <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+        <nav className="flex items-center gap-x-1.5 gap-y-3 text-sm flex-wrap w-full">
           <button
             onClick={resetPath}
-            className="flex flex-col items-center text-blue-600 hover:text-blue-800 group"
+            className="flex flex-col items-start text-black group min-w-[120px] border border-gray-300 p-2 rounded hover:bg-blue-100"
           >
             <div className="text-xs text-gray-500 font-medium mb-1">País</div>
             <div className="flex items-center">
               <span className="font-medium">Bolivia</span>
             </div>
           </button>
+          <ChevronRight className="w-4 h-4 text-gray-400 mt-1" />
 
           {selectedPath.map((pathItem, index) => (
             <React.Fragment key={index}>
-              <ChevronRight className="w-4 h-4 text-gray-400 mt-1" />
               <button
                 onClick={() => handleBreadcrumbClick(index)}
-                className="flex flex-col items-center text-blue-600 hover:text-blue-800 hover:underline group"
+                className="flex flex-col items-start text-black group min-w-[120px] border border-gray-300 p-2 rounded hover:bg-blue-100 "
               >
                 <div className="text-xs text-gray-500 font-medium mb-1">
                   {pathItem.level.title}
                 </div>
                 <div className="font-medium">{pathItem.value}</div>
               </button>
+              {index < selectedPath.length - 1 && (
+                <ChevronRight className="w-4 h-4 text-gray-400 mt-1" />
+              )}
             </React.Fragment>
           ))}
 
-          {currentLevel && (
+          {/* {currentLevel && (
             <>
               <ChevronRight className="w-4 h-4 text-gray-400 mt-1" />
               <div className="flex flex-col items-center text-gray-500">
                 <div className="text-xs font-medium">{currentLevel.title}</div>
-                {/* <div className="font-medium">.</div> */}
               </div>
             </>
-          )}
+          )} */}
+          <button
+            className="ml-auto px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500 transition-colors duration-200 shrink-0"
+            onClick={handleShowNextLevel}
+            disabled={selectedPath.length >= levels.length}
+          >
+            Ver más
+          </button>
         </nav>
+        {/* Ver más button */}
       </div>
 
-      {/* Current Level Selection */}
-      {currentLevel ? (
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">
-            Seleccione {currentLevel.title}
-          </h2>
+      {/* Current Level Selection (Closable) */}
+      {currentLevel && showCurrentLevel && (
+        <div className="bg-white border border-gray-200 rounded-lg p-6 relative mt-6">
+          {/* Close button, floating on top right */}
+          <button
+            className="absolute -top-3 -right-3 p-2 rounded-full bg-gray-50 hover:bg-gray-200 text-gray-400 hover:text-gray-600 shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-200 hover:border-gray-300"
+            style={{ zIndex: 20 }}
+            aria-label="Cerrar"
+            onClick={() => setShowCurrentLevel(false)}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={3}
+                d="M4 20L20 4M4 4L20 20"
+              />
+            </svg>
+          </button>
+          <div className="flex items-center mb-4 justify-between">
+            <h2 className="text-lg font-semibold text-gray-800">
+              Seleccione {currentLevel.title}
+            </h2>
+            <SearchBar className="shrink mx-auto" />
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {currentLevel.options.map((option, index) => (
               <button
@@ -118,40 +208,6 @@ const Breadcrumb = () => {
                   {currentLevel.title}
                 </div>
               </button>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
-          <div className="text-green-800 font-semibold text-lg mb-2">
-            ¡Navegación Completa!
-          </div>
-          <p className="text-green-700 mb-4">
-            Ha completado la selección de todos los niveles administrativos.
-          </p>
-          <button
-            onClick={resetPath}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200"
-          >
-            Comenzar de Nuevo
-          </button>
-        </div>
-      )}
-
-      {/* Selected Path Summary */}
-      {selectedPath.length > 0 && (
-        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="font-semibold text-blue-800 mb-2">
-            Ruta Seleccionada:
-          </h3>
-          <div className="space-y-1">
-            {selectedPath.map((pathItem, index) => (
-              <div key={index} className="flex justify-between text-sm">
-                <span className="text-blue-700 font-medium">
-                  {pathItem.level.title}:
-                </span>
-                <span className="text-blue-600">{pathItem.value}</span>
-              </div>
             ))}
           </div>
         </div>

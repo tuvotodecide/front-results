@@ -32,7 +32,6 @@
 @media (max-width: 768px) {
   .mainContent {
     margin-left: 0;
-    padding: 20px;
     width: 100% !important;
   }
 }

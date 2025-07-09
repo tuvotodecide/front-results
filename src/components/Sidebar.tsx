@@ -1,9 +1,9 @@
-import React from "react";
-import { useScreenSize } from "../hooks/useScreenSize";
-import styles from "./Sidebar.module.css";
-import { Link } from "react-router-dom";
-import { useSelector, useDispatch } from "react-redux";
-import { selectIsLoggedIn, selectAuth, logOut } from "../store/auth/authSlice";
+import React from 'react';
+import { useScreenSize } from '../hooks/useScreenSize';
+import styles from './Sidebar.module.css';
+import { Link } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
+import { selectIsLoggedIn, selectAuth, logOut } from '../store/auth/authSlice';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -25,12 +25,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
 
     const menuLinks = document.querySelectorAll(`.${styles.menuLink}`);
     menuLinks.forEach((link) => {
-      link.addEventListener("click", handleMenuClick);
+      link.addEventListener('click', handleMenuClick);
     });
 
     return () => {
       menuLinks.forEach((link) => {
-        link.removeEventListener("click", handleMenuClick);
+        link.removeEventListener('click', handleMenuClick);
       });
     };
   }, [closeSidebar, isSmallScreen]);
@@ -44,7 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
           <div className={styles.section}>
             <h3 className={styles.title}>Admin</h3>
             <ul className={styles.menu}>
-              {" "}
+              {' '}
               <li className={styles.menuItem}>
                 <Link to="/panel" className={styles.menuLink}>
                   <span className={styles.icon}>⚙️</span>Panel
@@ -78,7 +78,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
               </Link>
             </li> */}
             <li className={styles.menuItem}>
-              {" "}
+              {' '}
               <Link to="/resultados" className={styles.menuLink}>
                 <span className={styles.icon}>📊</span>Resultados generales
               </Link>
@@ -88,9 +88,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
                 <span className={styles.icon}>🗳️</span>Resultados por mesa
               </Link>
             </li>
+            <li className={styles.menuItem}>
+              <Link to="/resultados/mesa" className={styles.menuLink}>
+                <span className={styles.icon}>🗳️</span>Resultados por
+                atestiguamiento
+              </Link>
+            </li>
           </ul>
         </div>
-        <div className={styles.section}>
+        {/* <div className={styles.section}>
           <h3 className={styles.title}>Actas</h3>
           <ul className={styles.menu}>
             <li className={styles.menuItem}>
@@ -103,27 +109,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
                 <span className={styles.icon}>💬</span>Ver acta
               </Link>
             </li>
-            {/* <li className={styles.menuItem}>
-              <a href="#" className={styles.menuLink}>
-                <span className={styles.icon}>🎓</span>Tutorials
-              </a>
-            </li>
-            <li className={styles.menuItem}>
-              <a href="#" className={styles.menuLink}>
-                <span className={styles.icon}>💬</span>Community
-              </a>
-            </li>
-            <li className={styles.menuItem}>
-              <a href="#" className={styles.menuLink}>
-                <span className={styles.icon}>📝</span>Blog
-              </a>
-            </li> */}
           </ul>
-        </div>
+        </div> */}
       </aside>
       {isSmallScreen && (
         <div
-          className={`${styles.overlay} ${isOpen ? styles.active : ""}`}
+          className={`${styles.overlay} ${isOpen ? styles.active : ''}`}
           onClick={closeSidebar}
         ></div>
       )}
