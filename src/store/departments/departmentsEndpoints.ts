@@ -1,0 +1,40 @@
+import { apiSlice } from '../apiSlice';
+import { PaginatedResponse, DepartmentType } from '../../types';
+
+interface QueryDepartmentsParams {
+  page?: number;
+  limit?: number;
+  sort?: string;
+  order?: Record<string, any>;
+  search?: string;
+  active?: boolean;
+}
+
+export const departmentsApiSlice = apiSlice.injectEndpoints({
+  endpoints: (builder) => ({
+    getDepartments: builder.query<
+      PaginatedResponse<DepartmentType>,
+      QueryDepartmentsParams
+    >({
+      query: (params) => ({
+        url: '/geographic/departments',
+        params,
+      }),
+      keepUnusedDataFor: 60,
+      providesTags: () => [{ type: 'Departments' as const, id: 'LIST' }],
+    }),
+    getDepartment: builder.query<DepartmentType, string>({
+      query: (id) => `/geographic/departments/${id}`,
+      keepUnusedDataFor: 60,
+      providesTags: (_result, _error, id) => [
+        { type: 'Departments' as const, id },
+      ],
+    }),
+  }),
+});
+
+export const {
+  useGetDepartmentsQuery,
+  useLazyGetDepartmentsQuery,
+  useGetDepartmentQuery,
+} = departmentsApiSlice;

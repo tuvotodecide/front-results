@@ -1,11 +1,6 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  FaUserEdit,
-  FaFileAlt,
-  FaChartBar,
-  FaChalkboardTeacher,
-} from "react-icons/fa";
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { FaFileAlt, FaChartBar, FaChalkboardTeacher } from 'react-icons/fa';
 
 const PanelControl: React.FC = () => {
   const navigate = useNavigate();
@@ -13,33 +8,27 @@ const PanelControl: React.FC = () => {
   const cards = [
     {
       icon: <FaChalkboardTeacher className="text-gray-600 text-4xl" />,
-      title: "Partidos",
-      description: "Administra los partidos electorales.",
-      path: "/partidos",
+      title: 'Partidos',
+      description: 'Administra los partidos electorales.',
+      path: '/partidos',
     },
     {
       icon: <FaChalkboardTeacher className="text-gray-600 text-4xl" />,
-      title: "Recintos Electorales",
-      description: "Administra los recintos electorales.",
-      path: "/recintos",
-    },
-    {
-      icon: <FaUserEdit className="text-gray-600 text-4xl" />,
-      title: "Registro de Jurado",
-      description: "Registra nuevos jurados para el sistema.",
-      path: "/registroJurado",
+      title: 'Recintos Electorales',
+      description: 'Administra los recintos electorales.',
+      path: '/recintos',
     },
     {
       icon: <FaFileAlt className="text-gray-600 text-4xl" />,
-      title: "Actas",
-      description: "Envía actas de evaluación de manera rápida.",
-      path: "/actas",
+      title: 'Actas',
+      description: 'Envía actas de evaluación de manera rápida.',
+      path: '/actas',
     },
     {
       icon: <FaChartBar className="text-gray-600 text-4xl" />,
-      title: "Resultados",
-      description: "Consulta los resultados de las evaluaciones.",
-      path: "/resultados",
+      title: 'Resultados',
+      description: 'Consulta los resultados de las evaluaciones.',
+      path: '/resultados',
     },
   ];
 

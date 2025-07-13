@@ -89,9 +89,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
               </Link>
             </li>
             <li className={styles.menuItem}>
-              <Link to="/resultados/mesa" className={styles.menuLink}>
-                <span className={styles.icon}>🗳️</span>Resultados por
-                atestiguamiento
+              <Link to="/resultados/imagen" className={styles.menuLink}>
+                <span className={styles.icon}>🖼️</span>Resultados por imagen
               </Link>
             </li>
           </ul>

@@ -44,16 +44,16 @@ const ResultadosGenerales3 = () => {
     province: null,
     municipality: null,
   });
-  const [activeTab, setActiveTab] = useState('bars');
+  const [activeTab, setActiveTab] = useState('table');
   const [provinces, setProvinces] = useState<string[]>([]);
   const [municipalities, setMunicipalities] = useState<string[]>([]);
-  const { data: { results = [] } = {} } = useGetResultsQuery({
-    department: selectedLocation.department || undefined,
-  });
-  const { data: items = [] } = useGetPartidosQuery();
-  const { data: departments = [] } = useGetDepartmentsQuery();
-  const [getProvinces] = useLazyGetProvincesQuery();
-  const [getMunicipalities] = useLazyGetMunicipalitiesQuery();
+  // const { data: { results = [] } = {} } = useGetResultsQuery({
+  //   department: selectedLocation.department || undefined,
+  // });
+  // const { data: items = [] } = useGetPartidosQuery();
+  // const { data: departments = [] } = useGetDepartmentsQuery();
+  // const [getProvinces] = useLazyGetProvincesQuery();
+  // const [getMunicipalities] = useLazyGetMunicipalitiesQuery();
 
   const mesas: any[] = [
     { id: 123, person: 'JANE DRINKS', date: '13 June 2023' },
@@ -66,9 +66,9 @@ const ResultadosGenerales3 = () => {
     { id: 78, person: 'MIKE SILVA', date: '13 June 2023' },
   ];
 
-  useEffect(() => {
-    console.log('Selected Department:', departments);
-  }, [departments]);
+  // useEffect(() => {
+  //   console.log('Selected Department:', departments);
+  // }, [departments]);
 
   // useEffect(() => {
   //   if (results.length && items.length) {
@@ -103,80 +103,80 @@ const ResultadosGenerales3 = () => {
   //   });
   // }, [results, items]);
 
-  const handleDepartmentClick = (department: Department) => {
-    // console.log("Selected Department:", department);
-    //setSelectedDept(department);
-    console.log('Selected Department:', department);
-  };
+  // const handleDepartmentClick = (department: Department) => {
+  //   // console.log("Selected Department:", department);
+  //   //setSelectedDept(department);
+  //   console.log('Selected Department:', department);
+  // };
 
-  const handleSelectionChange = (selection: {
-    department: string | null;
-    province: string | null;
-    municipality: string | null;
-  }) => {
-    console.log('Selection changed:', selection);
-    // setSelectedLocation({
-    //   department: selection.departamento,
-    //   province: selection.provincia,
-    //   municipality: selection.municipio,
-    // });
-    if (
-      selection.department &&
-      selection.department !== selectedLocation.department
-    ) {
-      console.log('calling getProvinces with:', selection.department);
-      getProvinces(selection.department).then((response) => {
-        setProvinces(response.data ?? []);
-      });
-      setSelectedLocation({
-        department: selection.department,
-        province: null,
-        municipality: null,
-      });
-    } else if (
-      selection.department &&
-      selection.province &&
-      selection.province !== selectedLocation.province
-    ) {
-      console.log('calling getMunicipalities with:', {
-        department: selection.department,
-        province: selection.province,
-      });
-      getMunicipalities({
-        department: selection.department,
-        province: selection.province,
-      }).then((response) => {
-        setMunicipalities(response.data ?? []);
-      });
-      setSelectedLocation({
-        department: selection.department,
-        province: selection.province,
-        municipality: null,
-      });
-    } else if (selection.department === null) {
-      setSelectedLocation({
-        department: null,
-        province: null,
-        municipality: null,
-      });
-    }
+  // const handleSelectionChange = (selection: {
+  //   department: string | null;
+  //   province: string | null;
+  //   municipality: string | null;
+  // }) => {
+  //   console.log('Selection changed:', selection);
+  //   // setSelectedLocation({
+  //   //   department: selection.departamento,
+  //   //   province: selection.provincia,
+  //   //   municipality: selection.municipio,
+  //   // });
+  //   if (
+  //     selection.department &&
+  //     selection.department !== selectedLocation.department
+  //   ) {
+  //     console.log('calling getProvinces with:', selection.department);
+  //     getProvinces(selection.department).then((response) => {
+  //       setProvinces(response.data ?? []);
+  //     });
+  //     setSelectedLocation({
+  //       department: selection.department,
+  //       province: null,
+  //       municipality: null,
+  //     });
+  //   } else if (
+  //     selection.department &&
+  //     selection.province &&
+  //     selection.province !== selectedLocation.province
+  //   ) {
+  //     console.log('calling getMunicipalities with:', {
+  //       department: selection.department,
+  //       province: selection.province,
+  //     });
+  //     getMunicipalities({
+  //       department: selection.department,
+  //       province: selection.province,
+  //     }).then((response) => {
+  //       setMunicipalities(response.data ?? []);
+  //     });
+  //     setSelectedLocation({
+  //       department: selection.department,
+  //       province: selection.province,
+  //       municipality: null,
+  //     });
+  //   } else if (selection.department === null) {
+  //     setSelectedLocation({
+  //       department: null,
+  //       province: null,
+  //       municipality: null,
+  //     });
+  //   }
 
-    // if (selection.departamento) {
-    //   setSelectedDept(selection.departamento);
-    //   getProvinces(selection.departamento).then((response) => {
-    //     const formatedProvinces = (response.data ?? []).map((prov) => ({
-    //       value: prov,
-    //       name: prov,
-    //     }));
-    //     setProvinces(formatedProvinces);
-    //   });
-    // }
-    // if (selection.province) {
-    //   getMunicipalities(selection.province).then((response) => {
-    //     setMunicipalities(response.data || []);
-    //   });
-    // }
-  };
+  //   // if (selection.departamento) {
+  //   //   setSelectedDept(selection.departamento);
+  //   //   getProvinces(selection.departamento).then((response) => {
+  //   //     const formatedProvinces = (response.data ?? []).map((prov) => ({
+  //   //       value: prov,
+  //   //       name: prov,
+  //   //     }));
+  //   //     setProvinces(formatedProvinces);
+  //   //   });
+  //   // }
+  //   // if (selection.province) {
+  //   //   getMunicipalities(selection.province).then((response) => {
+  //   //     setMunicipalities(response.data || []);
+  //   //   });
+  //   // }
+  // };
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="container mx-auto max-w-7xl">
@@ -199,6 +199,17 @@ const ResultadosGenerales3 = () => {
                   <div className="flex gap-4">
                     <button
                       type="button"
+                      onClick={() => setActiveTab('table')}
+                      className={`pb-2 px-4 font-medium ${
+                        activeTab === 'table'
+                          ? 'border-b-2 border-blue-500 text-blue-600'
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      Tabla
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setActiveTab('bars')}
                       className={`pb-2 px-4 font-medium ${
                         activeTab === 'bars'
@@ -219,24 +230,13 @@ const ResultadosGenerales3 = () => {
                     >
                       Gráfico Circular
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('table')}
-                      className={`pb-2 px-4 font-medium ${
-                        activeTab === 'table'
-                          ? 'border-b-2 border-blue-500 text-blue-600'
-                          : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      Tabla
-                    </button>
                   </div>
                 </div>
-                {activeTab === 'bars' && <BarChart data={combinedData} />}
-                {activeTab === 'pie' && <D3PieChart data={combinedData} />}
                 {activeTab === 'table' && (
                   <ResultsTable resultsData={combinedData} />
                 )}
+                {activeTab === 'bars' && <BarChart data={combinedData} />}
+                {activeTab === 'pie' && <D3PieChart data={combinedData} />}
               </div>
             </div>
             <div className="bg-gray-50 rounded-lg shadow-sm p-4">

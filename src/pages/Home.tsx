@@ -1,10 +1,10 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React from 'react';
+import { Link } from 'react-router-dom';
 import {
   ChartPieIcon,
   ClipboardDocumentCheckIcon,
   UserGroupIcon,
-} from "@heroicons/react/24/outline";
+} from '@heroicons/react/24/outline';
 
 const Home: React.FC = () => {
   return (
@@ -55,20 +55,6 @@ const Home: React.FC = () => {
               Registra y envía actas de escrutinio de manera segura y eficiente
             </p>
           </Link>
-
-          {/* Registro Jurado Card */}
-          {/* <Link
-            to="/jurados/registro"
-            className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
-          >
-            <UserGroupIcon className="h-12 w-12 text-purple-600 mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              Registro de Jurados
-            </h2>
-            <p className="text-gray-500">
-              Portal para el registro y gestión de jurados electorales
-            </p>
-          </Link> */}
         </div>
       </div>
 

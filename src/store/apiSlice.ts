@@ -3,21 +3,21 @@ import {
   FetchArgs,
   createApi,
   fetchBaseQuery,
-} from "@reduxjs/toolkit/query/react";
-import { RootState } from "./index";
+} from '@reduxjs/toolkit/query/react';
+import { RootState } from './index';
 
 // const baseApiUrl = import.meta.env.VITE_BASE_API_URL;
 // const baseApiUrl = "http://192.168.1.12:3000/api/v1";
-const baseApiUrl = "http://localhost:3000/api/v1";
+const baseApiUrl = 'http://localhost:3000/api/v1';
 
 const baseQuery = fetchBaseQuery({
   baseUrl: baseApiUrl,
   prepareHeaders: (headers, { getState }) => {
     const state: RootState = getState() as RootState;
     const token = state.auth.token;
-    headers.set("Accept", "application/json");
+    headers.set('Accept', 'application/json');
     if (token) {
-      headers.set("Authorization", `Bearer ${token}`);
+      headers.set('Authorization', `Bearer ${token}`);
     }
     return headers;
   },
@@ -31,14 +31,25 @@ const baseQueryWrapper = async (
   const result = await baseQuery(args, api, extraOptions);
   if (result.error?.status === 401) {
     // api.dispatch(logOut());
-    console.log("Unauthorized, logout");
+    console.log('Unauthorized, logout');
   }
   return result;
 };
 
 export const apiSlice = createApi({
-  reducerPath: "api",
+  reducerPath: 'api',
   baseQuery: baseQueryWrapper,
-  tagTypes: ["Partidos", "Recintos", "Ballots", "Resultados", "Profile"],
+  tagTypes: [
+    'Partidos',
+    'Recintos',
+    'Ballots',
+    'Resultados',
+    'Profile',
+    'Departments',
+    'Provinces',
+    'Municipalities',
+    'ElectoralSeats',
+    'ElectoralLocations',
+  ],
   endpoints: () => ({}),
 });
