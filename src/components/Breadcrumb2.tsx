@@ -416,7 +416,6 @@ const Breadcrumb = () => {
             <h2 className="text-lg font-semibold text-gray-800">
               Seleccione {selectedLevel?.title}
             </h2>
-            <SearchBar className="shrink mx-auto" />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {selectedLevel?.options.map((option, index) => (

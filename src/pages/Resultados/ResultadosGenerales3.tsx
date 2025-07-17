@@ -298,53 +298,6 @@ const ResultadosGenerales3 = () => {
             </div>
           </div>
           {/* Mesas */}
-
-          <div className="bg-gray-50 rounded-lg shadow-sm overflow-hidden mt-6">
-            {/* Header */}
-            <div className="bg-gray-50 px-6 py-4 border-b border-gray-300">
-              <h2 className="text-xl font-semibold text-gray-800">Mesas</h2>
-            </div>
-
-            {/* Grid Content */}
-            <div className="p-6">
-              <div
-                className="grid gap-4"
-                style={{
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                }}
-              >
-                {mesas.map((mesa) => (
-                  <div key={mesa.id} className="relative min-w-[200px]">
-                    {/* Card */}
-                    <div className="bg-gray-200 rounded-lg overflow-hidden shadow-sm">
-                      {/* Background area instead of image */}
-                      <div className="h-32 bg-gradient-to-br from-gray-300 to-gray-400"></div>
-
-                      {/* Content */}
-                      <div className="p-4">
-                        <h3 className="font-semibold text-gray-800 text-lg mb-3">
-                          Mesa {mesa.id}
-                        </h3>
-
-                        {/* Footer Info */}
-                        <div className="flex justify-between items-center text-xs text-gray-500">
-                          <span className="truncate mr-2">{mesa.person}</span>
-                          <span className="whitespace-nowrap">{mesa.date}</span>
-                        </div>
-                      </div>
-
-                      {/* Load Notes Overlay */}
-                      {mesa.hasNote && (
-                        <div className="absolute top-2 right-2 bg-gray-700 text-white px-2 py-1 rounded text-xs">
-                          Load Notes
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

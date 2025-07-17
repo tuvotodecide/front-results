@@ -46,8 +46,8 @@ export const Header: React.FC<HeaderProps> = ({
         {isSidebarOpen ? (
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
+            width="26"
+            height="26"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -55,8 +55,19 @@ export const Header: React.FC<HeaderProps> = ({
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
+            <rect
+              x="2"
+              y="2"
+              width="20"
+              height="20"
+              rx="4"
+              ry="4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              opacity="0.3"
+            />
+            <path d="M13 16l-4-4 4-4" strokeWidth="2.5" />
           </svg>
         ) : (
           <svg
