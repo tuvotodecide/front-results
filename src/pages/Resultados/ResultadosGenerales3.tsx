@@ -8,10 +8,11 @@ import { useGetPartidosQuery } from '../../store/partidos/partidosEndpoints';
 import { departamentos, provincias, municipios } from './datos';
 import { Breadcrumb } from '../../components/Breadcrumb';
 import {
-  useGetDepartmentsQuery,
+  //useGetDepartmentsQuery,
   useLazyGetMunicipalitiesQuery,
   useLazyGetProvincesQuery,
 } from '../../store/recintos/recintosEndpoints';
+import { useGetDepartmentsQuery } from '../../store/departments/departmentsEndpoints';
 import SearchBar from '../../components/SearchBar';
 import Breadcrumb2 from '../../components/Breadcrumb2';
 import { Eye, FileText, Users } from 'lucide-react';
@@ -34,6 +35,7 @@ const combinedData = [
 
 const ResultadosGenerales3 = () => {
   // const [resultsData, setResultsData] = useState([]);
+  useGetDepartmentsQuery({});
   const [selectedDept, setSelectedDept] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<{
     department: string | null;

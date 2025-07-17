@@ -2,7 +2,18 @@ import React, { useState, useEffect, use } from 'react';
 import { ChevronRight, Home } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import SearchBar from './SearchBar';
-import { useLazyGetDepartmentsQuery } from '../store/departments/departmentsEndpoints';
+import {
+  useGetDepartmentQuery,
+  useGetDepartmentsQuery,
+  useLazyGetDepartmentsQuery,
+} from '../store/departments/departmentsEndpoints';
+import { useSelector } from 'react-redux';
+import { selectDepartments } from '../store/departments/departmentsSlice';
+import { index } from 'd3';
+import { useLazyGetProvincesByDepartmentIdQuery } from '../store/provinces/provincesEndpoints';
+import { useLazyGetMunicipalitiesByProvinceIdQuery } from '../store/municipalities/municipalitiesEndpoints';
+import { useLazyGetElectoralSeatsByMunicipalityIdQuery } from '../store/electoralSeats/electoralSeatsEndpoints';
+import { useLazyGetElectoralLocationsByElectoralSeatIdQuery } from '../store/electoralLocations/electoralLocationsEndpoints';
 
 interface LevelOption {
   _id: string;
@@ -67,11 +78,74 @@ const levels2: Level[] = [
   },
 ];
 
+interface breadcrumbOptions {
+  departments: LevelOption[];
+  provinces: LevelOption[];
+  municipalities: LevelOption[];
+  electoralSeats: LevelOption[];
+  electoralLocations: LevelOption[];
+}
+
+interface PathItem2 {
+  id: string;
+  title: string;
+  selectedOption?: LevelOption | null;
+}
+
+interface SelectedLevel extends PathItem2 {
+  options: LevelOption[];
+  index: number;
+}
+
+const breadcrumbLevels = [
+  {
+    id: 'departments',
+    title: 'Departamento',
+  },
+  {
+    id: 'provinces',
+    title: 'Provincia',
+  },
+  {
+    id: 'municipalities',
+    title: 'Municipio',
+  },
+  {
+    id: 'electoralSeats',
+    title: 'Asiento Electoral',
+  },
+  {
+    id: 'electoralLocations',
+    title: 'Recinto Electoral',
+  },
+];
 const Breadcrumb = () => {
   const [getDepartments] = useLazyGetDepartmentsQuery();
+  const [getProvincesByDepartmentId] = useLazyGetProvincesByDepartmentIdQuery();
+  const [getMunicipalitiesByProvinceId] =
+    useLazyGetMunicipalitiesByProvinceIdQuery();
+  const [getElectoralSeatsByMunicipalityId] =
+    useLazyGetElectoralSeatsByMunicipalityIdQuery();
+  const [getElectoralLocationsByElectoralSeatId] =
+    useLazyGetElectoralLocationsByElectoralSeatIdQuery();
+
+  const departments = useSelector(selectDepartments);
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedPath, setSelectedPath] = useState<PathItem[]>([]);
   const [levels, setLevels] = useState(levels2);
+  const [options, setOptions] = useState<breadcrumbOptions>({
+    departments: [],
+    provinces: [],
+    municipalities: [],
+    electoralSeats: [],
+    electoralLocations: [],
+  });
+  const [selectedPath2, setSelectedPath2] = useState<PathItem2[]>([]);
+  const [selectedLevel, setSelectedLevel] = useState<SelectedLevel | null>(
+    null
+  );
+  // State to control visibility of the current level selection section
+  const [showCurrentLevel, setShowCurrentLevel] = useState(false);
 
   // Helper: Build query params from selectedPath
   const buildQueryParams = (pathArr: PathItem[]) => {
@@ -82,97 +156,188 @@ const Breadcrumb = () => {
     // return params;
   };
 
-  // When a level is clicked, update state and URL
-  const handleLevelClick = (levelIndex: number, option: LevelOption) => {
+  useEffect(() => {
+    if (departments && departments.length > 0) {
+      console.log(
+        '%cDepartments fetched:',
+        'color: green; font-size: 16px; font-weight: bold;',
+        departments
+      );
+      setOptions((prev) => ({
+        ...prev,
+        departments: departments.map((dept) => ({
+          _id: dept._id,
+          name: dept.name,
+        })),
+      }));
+    }
+  }, [departments]);
+
+  const handleOptionClick = (
+    optionIndex: number,
+    optionClicked: LevelOption
+  ) => {
+    // Then update any item that matches the optionId with the clicked option
+    const newPath: PathItem2[] = selectedPath2.slice(0, optionIndex);
+    const baseNewItem = breadcrumbLevels[optionIndex];
     console.log(
-      '%cLevel selectedPath:',
-      'color: green; font-size: 16px; font-weight: bold;',
-      selectedPath
+      '%cBase new item:',
+      'color: orange; font-size: 16px; font-weight: bold;',
+      baseNewItem
     );
-    const newPath: PathItem[] = selectedPath.slice(0, levelIndex);
-    newPath.push({
-      level: levels[levelIndex],
-      value: option,
-      index: levelIndex,
-    });
-    console.log(
-      '%cOption:',
-      'color: blue; font-size: 16px; font-weight: bold;',
-      levels[levelIndex]
-    );
-    const idLevel = levels[levelIndex].id;
-    if (idLevel === 'departamento') {
+
+    const newItem = {
+      ...baseNewItem,
+      selectedOption: optionClicked,
+    };
+    newPath.push(newItem);
+
+    setSelectedPath2(newPath);
+
+    const reachedEnd = optionIndex >= breadcrumbLevels.length - 1;
+    if (!reachedEnd) {
+      selectLevel(optionIndex + 1, newPath);
+    } else {
+      setShowCurrentLevel(false);
     }
 
-    setSelectedPath(newPath);
     // setSearchParams(buildQueryParams(newPath));
   };
 
-  const handleBreadcrumbClick = (index: number) => {
-    setShowCurrentLevel(!showCurrentLevel);
-    const newPath = selectedPath.slice(0, index + 1);
-    setSelectedPath(newPath);
-    // setSearchParams(buildQueryParams(newPath));
+  const selectLevel = async (
+    levelIndex: number,
+    pathOverride?: PathItem2[]
+  ) => {
+    const item = breadcrumbLevels[levelIndex];
+
+    const levelOptions = await getOptionsForLevel(levelIndex, pathOverride);
+    const newSelectedLevel: SelectedLevel = {
+      ...item,
+      selectedOption: null, // Reset selected option for the new level
+      options: levelOptions,
+      index: levelIndex,
+    };
+    console.log(
+      '%cNew selected level:',
+      'color: orange; font-size: 16px; font-weight: bold;',
+      newSelectedLevel
+    );
+    setSelectedLevel(newSelectedLevel);
+    //setShowCurrentLevel(true);
+  };
+
+  const getOptionsForLevel = async (
+    levelIndex: number,
+    pathOverride?: PathItem2[]
+  ): Promise<LevelOption[]> => {
+    console.log(
+      '%cGetting options for level:',
+      'color: blue; font-size: 16px; font-weight: bold;',
+      levelIndex
+    );
+    if (levelIndex === 0) {
+      return options.departments;
+    }
+    const currentPath = pathOverride || selectedPath2;
+    console.log(
+      '%ccurrentPath:',
+      'color: blue; font-size: 16px; font-weight: bold;',
+      currentPath
+    );
+    const idParentOption = currentPath[levelIndex - 1]?.selectedOption?._id;
+    console.log(
+      '%cParent option ID:',
+      'color: purple; font-size: 16px; font-weight: bold;',
+      idParentOption
+    );
+    if (!idParentOption) {
+      return [];
+    }
+    switch (levelIndex) {
+      case 0:
+        // GET departments
+        console.log(
+          '%cDepartments fetched:',
+          'color: green; font-size: 16px; font-weight: bold;',
+          options.departments
+        );
+        return options.departments;
+      case 1:
+        const resp = await getProvincesByDepartmentId(idParentOption).unwrap();
+        console.log(
+          '%cProvinces fetched for department222222:',
+          'color: green; font-size: 16px; font-weight: bold;',
+          resp
+        );
+        // GET provinces based on selected department
+        return resp;
+      case 2:
+        const municipalitiesResp = await getMunicipalitiesByProvinceId(
+          idParentOption
+        ).unwrap();
+        console.log(
+          '%cMunicipalities fetched for province:',
+          'color: green; font-size: 16px; font-weight: bold;',
+          municipalitiesResp
+        );
+        return municipalitiesResp;
+        return options.municipalities;
+      case 3:
+        const electoralSeatsResp = await getElectoralSeatsByMunicipalityId(
+          idParentOption
+        ).unwrap();
+        console.log(
+          '%cElectoral seats fetched for municipality:',
+          'color: green; font-size: 16px; font-weight: bold;',
+          electoralSeatsResp
+        );
+        return electoralSeatsResp;
+        return options.electoralSeats;
+      case 4:
+        const electoralLocationsResp =
+          await getElectoralLocationsByElectoralSeatId(idParentOption).unwrap();
+        console.log(
+          '%cElectoral locations fetched for electoral seat:',
+          'color: green; font-size: 16px; font-weight: bold;',
+          electoralLocationsResp
+        );
+        return electoralLocationsResp;
+      default:
+        return [];
+    }
+  };
+
+  const handleBreadcrumbClick = async (pathItem: PathItem2, index: number) => {
+    if (selectedLevel?.id !== pathItem.id && !showCurrentLevel) {
+      setShowCurrentLevel(true);
+    } else if (selectedLevel?.id === pathItem.id) {
+      setShowCurrentLevel(!showCurrentLevel);
+    }
+    console.log(
+      '%cBreadcrumb clicked:',
+      'color: purple; font-size: 16px; font-weight: bold;',
+      pathItem
+    );
+
+    //select level function
+    const levelOptions = await getOptionsForLevel(index);
+    setSelectedLevel({
+      ...pathItem,
+      options: levelOptions,
+      index: index,
+    });
   };
 
   const resetPath = () => {
-    setSelectedPath([]);
+    setSelectedPath2([]);
+    selectLevel(0);
+    setShowCurrentLevel((prev) => !prev);
     // setSearchParams({});
   };
-
-  const currentLevel =
-    selectedPath.length < levels.length ? levels[selectedPath.length] : null;
-
-  // State to control visibility of the current level selection section
-  const [showCurrentLevel, setShowCurrentLevel] = useState(false);
-
   // Show the next breadcrumb level form when "ver más" is clicked
   const handleShowNextLevel = () => {
     setShowCurrentLevel(true);
   };
-
-  // // On mount and when searchParams change, sync selectedPath with URL
-  // useEffect(() => {
-  //   // Build selectedPath from searchParams
-  //   const newPath = [];
-  //   for (let i = 0; i < levels.length; i++) {
-  //     const paramValue = searchParams.get(levels[i].id);
-  //     if (paramValue) {
-  //       newPath.push({
-  //         level: levels[i],
-  //         value: paramValue,
-  //         index: i,
-  //       });
-  //     } else {
-  //       break;
-  //     }
-  //   }
-  //   setSelectedPath(newPath);
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [searchParams]);
-
-  useEffect(() => {
-    getDepartments({})
-      .unwrap()
-      .then((resp) => {
-        const departmentOptions = resp.data.map((dept) => {
-          return { _id: dept._id, name: dept.name };
-        });
-        setLevels((prevLevels) => {
-          const updatedLevels = prevLevels.map((level) => {
-            if (level.id === 'departamento') {
-              return {
-                ...level,
-                options: departmentOptions,
-              };
-            }
-            return level;
-          });
-          return updatedLevels;
-        });
-        console.log('Fetched departments:', departmentOptions);
-      });
-  }, [getDepartments]);
 
   return (
     <div className="mx-auto py-6 bg-white">
@@ -180,7 +345,7 @@ const Breadcrumb = () => {
       <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
         <nav className="flex items-center gap-x-1.5 gap-y-3 text-sm flex-wrap w-full">
           <button
-            onClick={resetPath}
+            onClick={() => resetPath()}
             className="flex flex-col items-start text-black group min-w-[120px] border border-gray-300 p-2 rounded hover:bg-blue-100"
           >
             <div className="text-xs text-gray-500 font-medium mb-1">País</div>
@@ -188,20 +353,24 @@ const Breadcrumb = () => {
               <span className="font-medium">Bolivia</span>
             </div>
           </button>
-          <ChevronRight className="w-4 h-4 text-gray-400 mt-1" />
+          {selectedPath2.length > 0 && (
+            <ChevronRight className="w-4 h-4 text-gray-400 mt-1" />
+          )}
 
-          {selectedPath.map((pathItem, index) => (
+          {selectedPath2.map((pathItem, index) => (
             <React.Fragment key={index}>
               <button
-                onClick={() => handleBreadcrumbClick(index)}
+                onClick={() => handleBreadcrumbClick(pathItem, index)}
                 className="flex flex-col items-start text-black group min-w-[120px] border border-gray-300 p-2 rounded hover:bg-blue-100 "
               >
                 <div className="text-xs text-gray-500 font-medium mb-1">
-                  {pathItem.level.title}
+                  {pathItem.title}
                 </div>
-                <div className="font-medium">{pathItem.value.name}</div>
+                <div className="font-medium">
+                  {pathItem?.selectedOption?.name}
+                </div>
               </button>
-              {index < selectedPath.length - 1 && (
+              {index < selectedPath2.length - 1 && (
                 <ChevronRight className="w-4 h-4 text-gray-400 mt-1" />
               )}
             </React.Fragment>
@@ -219,7 +388,7 @@ const Breadcrumb = () => {
       </div>
 
       {/* Current Level Selection (Closable) */}
-      {currentLevel && showCurrentLevel && (
+      {selectedLevel && showCurrentLevel && (
         <div className="bg-white border border-gray-200 rounded-lg p-6 relative mt-6">
           {/* Close button, floating on top right */}
           <button
@@ -245,20 +414,20 @@ const Breadcrumb = () => {
           </button>
           <div className="flex items-center mb-4 justify-between">
             <h2 className="text-lg font-semibold text-gray-800">
-              Seleccione {currentLevel.title}
+              Seleccione {selectedLevel?.title}
             </h2>
             <SearchBar className="shrink mx-auto" />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {currentLevel.options.map((option, index) => (
+            {selectedLevel?.options.map((option, index) => (
               <button
                 key={index}
-                onClick={() => handleLevelClick(selectedPath.length, option)}
+                onClick={() => handleOptionClick(selectedLevel.index, option)}
                 className="p-3 text-left border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <div className="font-medium text-gray-800">{option.name}</div>
                 <div className="text-sm text-gray-500 mt-1">
-                  {currentLevel.title}
+                  {selectedLevel.title}
                 </div>
               </button>
             ))}

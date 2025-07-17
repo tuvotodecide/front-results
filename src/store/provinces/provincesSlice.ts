@@ -1,23 +1,23 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-export interface departmentsState {
-  departments: any[];
-  department: any | null;
+export interface provincesState {
+  provinces: any[];
+  province: any | null;
 }
 
-const initialState: departmentsState = {
-  departments: [],
-  department: null,
+const initialState: provincesState = {
+  provinces: [],
+  province: null,
 };
 
-export const departmentsSlice = createSlice({
-  name: 'departments',
+export const provincesSlice = createSlice({
+  name: 'provinces',
   initialState,
   reducers: {
-    setDepartments: (state, action) => {
-      state.departments = action.payload;
+    setProvinces: (state, action) => {
+      state.provinces = action.payload;
     },
   },
 });
 
-export const { setDepartments } = departmentsSlice.actions;
+export const { setProvinces } = provincesSlice.actions;

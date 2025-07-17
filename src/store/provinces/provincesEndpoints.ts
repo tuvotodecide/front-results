@@ -23,6 +23,15 @@ export const provincesApiSlice = apiSlice.injectEndpoints({
       keepUnusedDataFor: 60,
       providesTags: () => [{ type: 'Provinces' as const, id: 'LIST' }],
     }),
+    getProvincesByDepartmentId: builder.query<ProvincesType[], string>({
+      query: (departmentId) => ({
+        url: '/geographic/provinces/by-department/' + departmentId,
+      }),
+      keepUnusedDataFor: 300,
+      providesTags: (_result, _error, departmentId) => [
+        { type: 'Provinces' as const, id: departmentId },
+      ],
+    }),
     getProvince: builder.query<ProvincesType, string>({
       query: (id) => `/geographic/provinces/${id}`,
       keepUnusedDataFor: 60,
@@ -36,5 +45,7 @@ export const provincesApiSlice = apiSlice.injectEndpoints({
 export const {
   useGetProvincesQuery,
   useLazyGetProvincesQuery,
+  useGetProvincesByDepartmentIdQuery,
+  useLazyGetProvincesByDepartmentIdQuery,
   useGetProvinceQuery,
 } = provincesApiSlice;

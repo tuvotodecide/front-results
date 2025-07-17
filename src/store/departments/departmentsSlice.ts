@@ -21,3 +21,5 @@ export const departmentsSlice = createSlice({
 });
 
 export const { setDepartments } = departmentsSlice.actions;
+export const selectDepartments = (state: { departments: departmentsState }) =>
+  state.departments.departments;

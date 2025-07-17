@@ -1,8 +1,8 @@
-import React from "react";
-import styles from "./Header.module.css";
-import { useSelector, useDispatch } from "react-redux";
-import { selectIsLoggedIn, selectAuth, logOut } from "../store/auth/authSlice";
-import { Link } from "react-router-dom";
+import React from 'react';
+import styles from './Header.module.css';
+import { useSelector, useDispatch } from 'react-redux';
+import { selectIsLoggedIn, selectAuth, logOut } from '../store/auth/authSlice';
+import { Link } from 'react-router-dom';
 
 interface HeaderProps {
   toggleSidebar: () => void;
@@ -26,9 +26,9 @@ export const Header: React.FC<HeaderProps> = ({
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
 
@@ -41,7 +41,7 @@ export const Header: React.FC<HeaderProps> = ({
       <button
         className={styles.menuToggle}
         onClick={toggleSidebar}
-        aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
+        aria-label={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
       >
         {isSidebarOpen ? (
           <svg
@@ -82,11 +82,11 @@ export const Header: React.FC<HeaderProps> = ({
       <div className={styles.headerActions}>
         {isLoggedIn ? (
           <>
-            {" "}
+            {' '}
             <div className={styles.userMenuContainer} ref={menuRef}>
               <span
                 className={`${styles.userName} ${
-                  isMenuOpen ? styles.active : ""
+                  isMenuOpen ? styles.active : ''
                 }`}
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
               >
@@ -94,7 +94,7 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
               <div
                 className={`${styles.userMenu} ${
-                  isMenuOpen ? styles.show : ""
+                  isMenuOpen ? styles.show : ''
                 }`}
               >
                 <button onClick={logout} className={styles.menuItem}>
@@ -106,7 +106,7 @@ export const Header: React.FC<HeaderProps> = ({
         ) : (
           <>
             <Link to="/login">Login</Link>
-            <Link to="/crearCuenta">Crear Cuenta</Link>
+            {/* <Link to="/crearCuenta">Crear Cuenta</Link> */}
           </>
         )}
       </div>

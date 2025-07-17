@@ -1,5 +1,6 @@
 import { apiSlice } from '../apiSlice';
 import { PaginatedResponse, DepartmentType } from '../../types';
+import { setDepartments } from './departmentsSlice';
 
 interface QueryDepartmentsParams {
   page?: number;
@@ -12,16 +13,25 @@ interface QueryDepartmentsParams {
 
 export const departmentsApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    getDepartments: builder.query<
-      PaginatedResponse<DepartmentType>,
-      QueryDepartmentsParams
-    >({
+    getDepartments: builder.query<DepartmentType[], QueryDepartmentsParams>({
       query: (params) => ({
         url: '/geographic/departments',
         params,
       }),
-      keepUnusedDataFor: 60,
+      keepUnusedDataFor: 300,
       providesTags: () => [{ type: 'Departments' as const, id: 'LIST' }],
+      transformResponse: (response: PaginatedResponse<DepartmentType>) => {
+        return response.data;
+      },
+      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
+        try {
+          const { data } = await queryFulfilled;
+          console.log('Fetched departments:', data);
+          dispatch(setDepartments(data));
+        } catch (error) {
+          console.error('Failed to fetch departments:', error);
+        }
+      },
     }),
     getDepartment: builder.query<DepartmentType, string>({
       query: (id) => `/geographic/departments/${id}`,

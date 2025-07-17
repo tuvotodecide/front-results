@@ -4,3 +4,6 @@ export * from './ballot';
 export * from './rtk';
 export * from './departments';
 export * from './provinces';
+export * from './municipalities';
+export * from './electoralSeats';
+export * from './electoralLocations';
