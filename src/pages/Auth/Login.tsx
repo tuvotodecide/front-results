@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useLoginUserMutation } from '../../store/auth/authEndpoints';
 import { setAuth } from '../../store/auth/authSlice';
 import LoadingButton from '../../components/LoadingButton';

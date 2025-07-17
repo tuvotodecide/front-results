@@ -1,15 +1,7 @@
-import React, { useState, useEffect, use } from 'react';
-import { ChevronRight, Home } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
-import SearchBar from './SearchBar';
-import {
-  useGetDepartmentQuery,
-  useGetDepartmentsQuery,
-  useLazyGetDepartmentsQuery,
-} from '../store/departments/departmentsEndpoints';
+import React, { useState, useEffect } from 'react';
+import { ChevronRight } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { selectDepartments } from '../store/departments/departmentsSlice';
-import { index } from 'd3';
 import { useLazyGetProvincesByDepartmentIdQuery } from '../store/provinces/provincesEndpoints';
 import { useLazyGetMunicipalitiesByProvinceIdQuery } from '../store/municipalities/municipalitiesEndpoints';
 import { useLazyGetElectoralSeatsByMunicipalityIdQuery } from '../store/electoralSeats/electoralSeatsEndpoints';
@@ -19,64 +11,6 @@ interface LevelOption {
   _id: string;
   name: string;
 }
-
-interface Level {
-  id: string;
-  title: string;
-  options: LevelOption[];
-}
-
-interface PathItem {
-  level: Level;
-  value: LevelOption;
-  index: number;
-}
-
-const levels2: Level[] = [
-  {
-    id: 'departamento',
-    title: 'Departamento',
-    options: [],
-  },
-  {
-    id: 'provincia',
-    title: 'Provincia',
-    options: [
-      { _id: 'murillo', name: 'Murillo' },
-      { _id: 'omasuyos', name: 'Omasuyos' },
-      { _id: 'pacajes', name: 'Pacajes' },
-      { _id: 'los-andes', name: 'Los Andes' },
-    ],
-  },
-  {
-    id: 'municipio',
-    title: 'Municipio',
-    options: [
-      { _id: 'la-paz', name: 'La Paz' },
-      { _id: 'el-alto', name: 'El Alto' },
-      { _id: 'achocalla', name: 'Achocalla' },
-      { _id: 'palca', name: 'Palca' },
-    ],
-  },
-  {
-    id: 'asiento',
-    title: 'Asiento Electoral',
-    options: [
-      { _id: 'asiento-001', name: 'Asiento 001' },
-      { _id: 'asiento-002', name: 'Asiento 002' },
-      { _id: 'asiento-003', name: 'Asiento 003' },
-    ],
-  },
-  {
-    id: 'recinto',
-    title: 'Recinto Electoral',
-    options: [
-      { _id: 'recinto-a', name: 'Recinto A' },
-      { _id: 'recinto-b', name: 'Recinto B' },
-      { _id: 'recinto-c', name: 'Recinto C' },
-    ],
-  },
-];
 
 interface breadcrumbOptions {
   departments: LevelOption[];
@@ -120,7 +54,6 @@ const breadcrumbLevels = [
   },
 ];
 const Breadcrumb = () => {
-  const [getDepartments] = useLazyGetDepartmentsQuery();
   const [getProvincesByDepartmentId] = useLazyGetProvincesByDepartmentIdQuery();
   const [getMunicipalitiesByProvinceId] =
     useLazyGetMunicipalitiesByProvinceIdQuery();
@@ -130,9 +63,6 @@ const Breadcrumb = () => {
     useLazyGetElectoralLocationsByElectoralSeatIdQuery();
 
   const departments = useSelector(selectDepartments);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedPath, setSelectedPath] = useState<PathItem[]>([]);
-  const [levels, setLevels] = useState(levels2);
   const [options, setOptions] = useState<breadcrumbOptions>({
     departments: [],
     provinces: [],
@@ -146,15 +76,6 @@ const Breadcrumb = () => {
   );
   // State to control visibility of the current level selection section
   const [showCurrentLevel, setShowCurrentLevel] = useState(false);
-
-  // Helper: Build query params from selectedPath
-  const buildQueryParams = (pathArr: PathItem[]) => {
-    // const params: Record<string, string> = {};
-    // pathArr.forEach((item) => {
-    //   params[item.level.id] = item.value;
-    // });
-    // return params;
-  };
 
   useEffect(() => {
     if (departments && departments.length > 0) {
@@ -281,7 +202,6 @@ const Breadcrumb = () => {
           municipalitiesResp
         );
         return municipalitiesResp;
-        return options.municipalities;
       case 3:
         const electoralSeatsResp = await getElectoralSeatsByMunicipalityId(
           idParentOption
@@ -292,7 +212,6 @@ const Breadcrumb = () => {
           electoralSeatsResp
         );
         return electoralSeatsResp;
-        return options.electoralSeats;
       case 4:
         const electoralLocationsResp =
           await getElectoralLocationsByElectoralSeatId(idParentOption).unwrap();
@@ -379,7 +298,7 @@ const Breadcrumb = () => {
           <button
             className="ml-auto px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500 transition-colors duration-200 shrink-0"
             onClick={handleShowNextLevel}
-            disabled={selectedPath.length >= levels.length}
+            disabled={selectedPath2.length >= breadcrumbLevels.length}
           >
             Ver más
           </button>

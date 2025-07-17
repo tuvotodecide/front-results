@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
-import Mapa from "../../components/Mapa";
-import BarChart from "../../components/BarChart";
-import D3PieChart from "../../components/D3PieChart";
-import ResultsTable from "../../components/ResultsTable";
-import { useGetResultsQuery } from "../../store/resultados/resultadosEndpoints";
-import { useGetPartidosQuery } from "../../store/partidos/partidosEndpoints";
+import { useEffect, useState } from 'react';
+import Mapa from '../../components/Mapa';
+import BarChart from '../../components/BarChart';
+import D3PieChart from '../../components/D3PieChart';
+import ResultsTable from '../../components/ResultsTable';
+import { useGetResultsQuery } from '../../store/resultados/resultadosEndpoints';
+import { useGetPartidosQuery } from '../../store/partidos/partidosEndpoints';
 
 interface Department {
   code: string;
@@ -27,7 +27,7 @@ interface Department {
 const ResultadosLocalidad = () => {
   const [resultsData, setResultsData] = useState([]);
   const [selectedDept, setSelectedDept] = useState<Department | null>(null);
-  const [activeTab, setActiveTab] = useState("bars");
+  const [activeTab, setActiveTab] = useState('bars');
   const { data: { results = [] } = {} } = useGetResultsQuery({
     department: selectedDept ? selectedDept.name : undefined,
   });
@@ -36,19 +36,19 @@ const ResultadosLocalidad = () => {
   const handleDepartmentClick = (department: Department) => {
     // console.log("Selected Department:", department);
     setSelectedDept(department);
-    console.log("Selected Department:", department);
+    console.log('Selected Department:', department);
   };
 
   useEffect(() => {
     if (results.length && items.length) {
-      const combinedData = results.map((result) => {
+      const combinedData = results.map((result: any) => {
         const matchingParty = items.find(
           (item) => item.partyId === result.partyId
         );
         return {
           name: result.partyId,
           value: result.totalVotes,
-          color: matchingParty?.color || "#000000", // fallback color if no match found
+          color: matchingParty?.color || '#000000', // fallback color if no match found
         };
       });
       setResultsData(combinedData);
@@ -64,8 +64,8 @@ const ResultadosLocalidad = () => {
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="border-b border-gray-300 bg-gray-50 px-6 py-4">
             <h2 className="text-xl font-semibold text-gray-600">
-              Visualización de Resultados{" "}
-              {selectedDept ? `- ${selectedDept.name}` : ""}
+              Visualización de Resultados{' '}
+              {selectedDept ? `- ${selectedDept.name}` : ''}
             </h2>
           </div>
           <div className="p-6">
@@ -73,42 +73,42 @@ const ResultadosLocalidad = () => {
               <div className="flex gap-4">
                 <button
                   type="button"
-                  onClick={() => setActiveTab("bars")}
+                  onClick={() => setActiveTab('bars')}
                   className={`pb-2 px-4 font-medium ${
-                    activeTab === "bars"
-                      ? "border-b-2 border-blue-500 text-blue-600"
-                      : "text-gray-500 hover:text-gray-700"
+                    activeTab === 'bars'
+                      ? 'border-b-2 border-blue-500 text-blue-600'
+                      : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   Gráfico de Barras
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveTab("pie")}
+                  onClick={() => setActiveTab('pie')}
                   className={`pb-2 px-4 font-medium ${
-                    activeTab === "pie"
-                      ? "border-b-2 border-blue-500 text-blue-600"
-                      : "text-gray-500 hover:text-gray-700"
+                    activeTab === 'pie'
+                      ? 'border-b-2 border-blue-500 text-blue-600'
+                      : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   Gráfico Circular
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveTab("table")}
+                  onClick={() => setActiveTab('table')}
                   className={`pb-2 px-4 font-medium ${
-                    activeTab === "table"
-                      ? "border-b-2 border-blue-500 text-blue-600"
-                      : "text-gray-500 hover:text-gray-700"
+                    activeTab === 'table'
+                      ? 'border-b-2 border-blue-500 text-blue-600'
+                      : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   Tabla
                 </button>
               </div>
             </div>
-            {activeTab === "bars" && <BarChart data={resultsData} />}
-            {activeTab === "pie" && <D3PieChart data={resultsData} />}
-            {activeTab === "table" && (
+            {activeTab === 'bars' && <BarChart data={resultsData} />}
+            {activeTab === 'pie' && <D3PieChart data={resultsData} />}
+            {activeTab === 'table' && (
               <ResultsTable resultsData={resultsData} />
             )}
           </div>

@@ -1,17 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import BarChart from '../../components/BarChart';
 import D3PieChart from '../../components/D3PieChart';
 import ResultsTable from '../../components/ResultsTable';
 import SearchBar from '../../components/SearchBar';
-import {
-  Check,
-  FileText,
-  Users,
-  X,
-  Trophy,
-  BarChart3,
-  Vote,
-} from 'lucide-react';
+import { Check, X, Trophy, BarChart3, Vote } from 'lucide-react';
 import ModalImage from '../../components/ModalImage';
 
 const combinedData = [

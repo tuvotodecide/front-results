@@ -1,5 +1,4 @@
-import { createSlice } from "@reduxjs/toolkit";
-import { RootState } from "../index";
+import { createSlice } from '@reduxjs/toolkit';
 
 export interface RecintosState {
   recintos: any[];
@@ -12,7 +11,7 @@ const initialState: RecintosState = {
 };
 
 export const recintosSlice = createSlice({
-  name: "recintos",
+  name: 'recintos',
   initialState,
   reducers: {
     setRecintos: (state, action) => {

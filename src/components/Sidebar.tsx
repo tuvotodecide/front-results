@@ -2,8 +2,8 @@ import React from 'react';
 import { useScreenSize } from '../hooks/useScreenSize';
 import styles from './Sidebar.module.css';
 import { Link } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
-import { selectIsLoggedIn, selectAuth, logOut } from '../store/auth/authSlice';
+import { useSelector } from 'react-redux';
+import { selectIsLoggedIn } from '../store/auth/authSlice';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -13,8 +13,6 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
   const { isSmallScreen } = useScreenSize();
   const isLoggedIn = useSelector(selectIsLoggedIn);
-  const { user } = useSelector(selectAuth);
-  const dispatch = useDispatch();
 
   React.useEffect(() => {
     const handleMenuClick = () => {

@@ -1,10 +1,9 @@
-import React, { useState } from "react";
-import { Formik, Form, Field, ErrorMessage } from "formik";
-import * as Yup from "yup";
-import { useCreateUserMutation } from "../../store/auth/authEndpoints";
-import { useNavigate } from "react-router-dom";
-import LoadingButton from "../../components/LoadingButton";
-import BackButton from "../../components/BackButton";
+import React, { useState } from 'react';
+import { Formik, Form, Field, ErrorMessage } from 'formik';
+import * as Yup from 'yup';
+import { useCreateUserMutation } from '../../store/auth/authEndpoints';
+import { useNavigate } from 'react-router-dom';
+import LoadingButton from '../../components/LoadingButton';
 
 interface FormValues {
   name: string;
@@ -25,7 +24,7 @@ const CrearCuenta: React.FC = () => {
     createUser(user)
       .unwrap()
       .then(() => {
-        navigate("/login");
+        navigate('/login');
       })
       .catch((error) => {
         if (error?.data?.message) {
@@ -38,11 +37,11 @@ const CrearCuenta: React.FC = () => {
   };
 
   const validationSchema = Yup.object({
-    name: Yup.string().required("Este campo es obligatorio"),
-    password: Yup.string().required("Este campo es obligatorio"),
+    name: Yup.string().required('Este campo es obligatorio'),
+    password: Yup.string().required('Este campo es obligatorio'),
     email: Yup.string()
-      .email("Invalid email address")
-      .required("Este campo es obligatorio"),
+      .email('Invalid email address')
+      .required('Este campo es obligatorio'),
   });
 
   return (
@@ -64,10 +63,10 @@ const CrearCuenta: React.FC = () => {
           )}
           <Formik
             initialValues={{
-              name: "",
-              password: "",
-              email: "",
-              userRol: "",
+              name: '',
+              password: '',
+              email: '',
+              userRol: '',
             }}
             validationSchema={validationSchema}
             onSubmit={(values: FormValues) => {
@@ -127,7 +126,7 @@ const CrearCuenta: React.FC = () => {
                 <div className="flex justify-center gap-4 mt-6 pt-6 border-t border-gray-300">
                   <button
                     type="button"
-                    onClick={() => navigate("/login")}
+                    onClick={() => navigate('/login')}
                     className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     Cancelar

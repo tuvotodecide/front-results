@@ -1,12 +1,11 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Formik, Form, Field, ErrorMessage } from "formik";
-import * as Yup from "yup";
-import { useSubmitBallotMutation } from "../../store/actas/actasEndpoints";
-import { CheckCircleIcon } from "@heroicons/react/24/solid";
-import LoadingButton from "../../components/LoadingButton";
-import Modal2 from "../../components/Modal2";
-import ModalImage from "../../components/ModalImage";
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Formik, Form, Field, ErrorMessage } from 'formik';
+import * as Yup from 'yup';
+import { useSubmitBallotMutation } from '../../store/actas/actasEndpoints';
+import LoadingButton from '../../components/LoadingButton';
+import Modal2 from '../../components/Modal2';
+import ModalImage from '../../components/ModalImage';
 
 interface FormValues {
   file: File | null;
@@ -17,11 +16,11 @@ interface FormValues {
 }
 
 const validationSchema = Yup.object({
-  file: Yup.mixed().required("La imagen es requerida"),
-  tableNumber: Yup.string().required("El número de mesa es requerido"),
-  tableCode: Yup.string().required("El código de mesa es requerido"),
-  citizenId: Yup.string().required("El ID del ciudadano es requerido"),
-  locationCode: Yup.string().required("El código de ubicación es requerido"),
+  file: Yup.mixed().required('La imagen es requerida'),
+  tableNumber: Yup.string().required('El número de mesa es requerido'),
+  tableCode: Yup.string().required('El código de mesa es requerido'),
+  citizenId: Yup.string().required('El ID del ciudadano es requerido'),
+  locationCode: Yup.string().required('El código de ubicación es requerido'),
 });
 
 const ActasForm: React.FC = () => {
@@ -31,14 +30,13 @@ const ActasForm: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
-  const navigate = useNavigate();
 
   const initialValues: FormValues = {
     file: null,
-    tableNumber: "",
-    tableCode: "",
-    citizenId: "",
-    locationCode: "",
+    tableNumber: '',
+    tableCode: '',
+    citizenId: '',
+    locationCode: '',
   };
 
   const handleSubmit = async (
@@ -48,16 +46,16 @@ const ActasForm: React.FC = () => {
     setIsSubmitting(true);
     const formData = new FormData();
     if (values.file) {
-      formData.append("file", values.file);
+      formData.append('file', values.file);
     }
-    formData.append("tableNumber", values.tableNumber);
-    formData.append("citizenId", values.citizenId);
-    formData.append("locationCode", values.locationCode);
-    formData.append("tableCode", values.locationCode);
+    formData.append('tableNumber', values.tableNumber);
+    formData.append('citizenId', values.citizenId);
+    formData.append('locationCode', values.locationCode);
+    formData.append('tableCode', values.locationCode);
 
     try {
       const resp = await submitBallot(formData).unwrap();
-      console.log("Form submitted successfully:", resp);
+      console.log('Form submitted successfully:', resp);
       setServerResponse({ success: true, ...resp });
 
       resetForm();
@@ -66,11 +64,11 @@ const ActasForm: React.FC = () => {
         'input[type="file"]'
       ) as HTMLInputElement;
       if (fileInput) {
-        fileInput.value = "";
+        fileInput.value = '';
       }
     } catch (error: any) {
       setServerResponse({ success: false, ...error?.data });
-      console.error("Error submitting form:", error?.data);
+      console.error('Error submitting form:', error?.data);
     } finally {
       setIsModalOpen(true);
       setIsSubmitting(false);
@@ -83,7 +81,7 @@ const ActasForm: React.FC = () => {
   ) => {
     const file = event.currentTarget.files?.[0];
     if (file) {
-      setFieldValue("file", file);
+      setFieldValue('file', file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewUrl(reader.result as string);
@@ -231,8 +229,8 @@ const ActasForm: React.FC = () => {
 
       <Modal2
         isOpen={isModalOpen}
-        type={serverResponse.success ? "success" : "error"}
-        title={serverResponse.success ? "Acta subida" : "Error al subir acta"}
+        type={serverResponse.success ? 'success' : 'error'}
+        title={serverResponse.success ? 'Acta subida' : 'Error al subir acta'}
         onClose={() => setIsModalOpen(false)}
         size="md"
         className="bg-white rounded-lg shadow-lg"
@@ -250,8 +248,8 @@ const ActasForm: React.FC = () => {
                   <span
                     className={`text-sm font-medium px-2 py-1 rounded ${
                       true
-                        ? "bg-orange-100 text-orange-800"
-                        : "bg-green-100 text-green-800"
+                        ? 'bg-orange-100 text-orange-800'
+                        : 'bg-green-100 text-green-800'
                     }`}
                   >
                     {serverResponse.status}

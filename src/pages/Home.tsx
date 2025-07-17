@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import {
   ChartPieIcon,
   ClipboardDocumentCheckIcon,
-  UserGroupIcon,
 } from '@heroicons/react/24/outline';
 
 const Home: React.FC = () => {

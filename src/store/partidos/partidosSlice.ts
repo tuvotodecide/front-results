@@ -1,5 +1,4 @@
-import { createSlice } from "@reduxjs/toolkit";
-import { RootState } from "../index";
+import { createSlice } from '@reduxjs/toolkit';
 
 export interface PartidosState {
   partidos: any[];
@@ -12,7 +11,7 @@ const initialState: PartidosState = {
 };
 
 export const partidosSlice = createSlice({
-  name: "partidos",
+  name: 'partidos',
   initialState,
   reducers: {
     setPartidos: (state, action) => {

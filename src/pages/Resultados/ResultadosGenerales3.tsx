@@ -1,26 +1,10 @@
-import { use, useEffect, useMemo, useState } from 'react';
-import Mapa from '../../components/Mapa';
+import { useState } from 'react';
 import BarChart from '../../components/BarChart';
 import D3PieChart from '../../components/D3PieChart';
 import ResultsTable from '../../components/ResultsTable';
-import { useGetResultsQuery } from '../../store/resultados/resultadosEndpoints';
-import { useGetPartidosQuery } from '../../store/partidos/partidosEndpoints';
-import { departamentos, provincias, municipios } from './datos';
-import { Breadcrumb } from '../../components/Breadcrumb';
-import {
-  //useGetDepartmentsQuery,
-  useLazyGetMunicipalitiesQuery,
-  useLazyGetProvincesQuery,
-} from '../../store/recintos/recintosEndpoints';
 import { useGetDepartmentsQuery } from '../../store/departments/departmentsEndpoints';
-import SearchBar from '../../components/SearchBar';
 import Breadcrumb2 from '../../components/Breadcrumb2';
 import { Eye, FileText, Users } from 'lucide-react';
-
-interface Department {
-  code: string;
-  name: string;
-}
 
 const combinedData = [
   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -36,19 +20,7 @@ const combinedData = [
 const ResultadosGenerales3 = () => {
   // const [resultsData, setResultsData] = useState([]);
   useGetDepartmentsQuery({});
-  const [selectedDept, setSelectedDept] = useState<string | null>(null);
-  const [selectedLocation, setSelectedLocation] = useState<{
-    department: string | null;
-    province: string | null;
-    municipality: string | null;
-  }>({
-    department: null,
-    province: null,
-    municipality: null,
-  });
   const [activeTab, setActiveTab] = useState('table');
-  const [provinces, setProvinces] = useState<string[]>([]);
-  const [municipalities, setMunicipalities] = useState<string[]>([]);
   // const { data: { results = [] } = {} } = useGetResultsQuery({
   //   department: selectedLocation.department || undefined,
   // });
@@ -56,18 +28,6 @@ const ResultadosGenerales3 = () => {
   // const { data: departments = [] } = useGetDepartmentsQuery();
   // const [getProvinces] = useLazyGetProvincesQuery();
   // const [getMunicipalities] = useLazyGetMunicipalitiesQuery();
-
-  const mesas: any[] = [
-    { id: 123, person: 'JANE DRINKS', date: '13 June 2023' },
-    { id: 24, person: 'TONY HUNGRY', date: '13 June 2023' },
-    { id: 32, person: 'TONY HUNGRY', date: '13 June 2023' },
-    { id: 15, person: 'JANE DRINKS', date: '13 June 2023' },
-    { id: 44, person: 'JANE DRINKS', date: '13 June 2023' },
-    { id: 23, person: 'TONY HUNGRY', date: '13 June 2023', hasNote: true },
-    { id: 1255, person: 'JANE DRINKS', date: '13 June 2023' },
-    { id: 78, person: 'MIKE SILVA', date: '13 June 2023' },
-  ];
-
   // useEffect(() => {
   //   console.log('Selected Department:', departments);
   // }, [departments]);

@@ -1,19 +1,19 @@
-import React, { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
-import { useLazyGetBallotQuery } from "../../store/actas/actasEndpoints";
-import { Ballot, VerificationHistory } from "../../types/ballot";
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useLazyGetBallotQuery } from '../../store/actas/actasEndpoints';
+import { VerificationHistory } from '../../types/ballot';
 
 const VerActa: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchId, setSearchId] = useState(
-    searchParams.get("trackingId") || ""
+    searchParams.get('trackingId') || ''
   );
   const [getBallot, { data: ballot, isLoading, error }] =
     useLazyGetBallotQuery();
 
   useEffect(() => {
-    if (searchParams.get("trackingId")) {
-      getBallot(searchParams.get("trackingId")!);
+    if (searchParams.get('trackingId')) {
+      getBallot(searchParams.get('trackingId')!);
     }
   }, [searchParams, getBallot]);
 
@@ -41,7 +41,7 @@ const VerActa: React.FC = () => {
           placeholder="Ingrese ID de seguimiento"
           className="flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           onKeyPress={(e) => {
-            if (e.key === "Enter") {
+            if (e.key === 'Enter') {
               handleSearch();
             }
           }}
@@ -51,7 +51,7 @@ const VerActa: React.FC = () => {
           disabled={isLoading}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-blue-400"
         >
-          {isLoading ? "Buscando..." : "Buscar"}
+          {isLoading ? 'Buscando...' : 'Buscar'}
         </button>
       </div>
 

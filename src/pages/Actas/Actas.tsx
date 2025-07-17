@@ -1,10 +1,10 @@
-import React, { useEffect } from "react";
-import Table from "../../components/Table";
-import { Link, useNavigate } from "react-router-dom";
-import type { ColumnDef } from "@tanstack/react-table";
-import { useGetBallotsQuery } from "../../store/actas/actasEndpoints";
-import { Ballot } from "../../types/ballot";
-import BackButton from "../../components/BackButton";
+import React, { useEffect } from 'react';
+import Table from '../../components/Table';
+import { Link } from 'react-router-dom';
+import type { ColumnDef } from '@tanstack/react-table';
+import { useGetBallotsQuery } from '../../store/actas/actasEndpoints';
+import { Ballot } from '../../types/ballot';
+import BackButton from '../../components/BackButton';
 
 const columns: ColumnDef<Ballot>[] = [
   // {
@@ -12,27 +12,27 @@ const columns: ColumnDef<Ballot>[] = [
   //   header: "Código de Ubicación",
   // },
   {
-    accessorKey: "trackingId",
-    header: "ID de Seguimiento",
+    accessorKey: 'trackingId',
+    header: 'ID de Seguimiento',
   },
   {
-    accessorKey: "tableNumber",
-    header: "Número de Mesa",
+    accessorKey: 'tableNumber',
+    header: 'Número de Mesa',
   },
   // {
   //   accessorKey: "citizenId",
   //   header: "ID Ciudadano",
   // },
   {
-    accessorKey: "status",
-    header: "Estatus",
+    accessorKey: 'status',
+    header: 'Estatus',
   },
   {
-    accessorKey: "file",
-    header: "Archivo",
+    accessorKey: 'file',
+    header: 'Archivo',
     cell: ({ row }) => (
       <span className="text-blue-600 hover:text-blue-800">
-        {row.original.file ? "Ver archivo" : "No disponible"}
+        {row.original.file ? 'Ver archivo' : 'No disponible'}
       </span>
     ),
   },
@@ -41,10 +41,9 @@ const columns: ColumnDef<Ballot>[] = [
 const Actas: React.FC = () => {
   const { data } = useGetBallotsQuery();
   const items = data?.ballots || [];
-  const navigate = useNavigate();
 
   useEffect(() => {
-    console.log("Items:", items);
+    console.log('Items:', items);
   }, [items]);
 
   return (

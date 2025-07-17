@@ -23,7 +23,7 @@ export const departmentsApiSlice = apiSlice.injectEndpoints({
       transformResponse: (response: PaginatedResponse<DepartmentType>) => {
         return response.data;
       },
-      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
+      onQueryStarted: async (_arg, { dispatch, queryFulfilled }) => {
         try {
           const { data } = await queryFulfilled;
           console.log('Fetched departments:', data);

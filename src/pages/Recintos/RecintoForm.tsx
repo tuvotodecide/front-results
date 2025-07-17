@@ -1,17 +1,17 @@
-import React from "react";
-import { Formik, Form, Field, ErrorMessage } from "formik";
-import * as Yup from "yup";
-import { RecintoElectoral } from "../../types/recintos";
+import React from 'react';
+import { Formik, Form, Field, ErrorMessage } from 'formik';
+import * as Yup from 'yup';
+import { RecintoElectoral } from '../../types/recintos';
 import {
   useCreateRecintoMutation,
   useUpdateRecintoMutation,
   useGetRecintoQuery,
-} from "../../store/recintos/recintosEndpoints";
-import { useNavigate, useParams } from "react-router-dom";
-import LoadingButton from "../../components/LoadingButton";
-import Modal from "../../components/Modal";
-import BackButton from "../../components/BackButton";
-import { useState } from "react";
+} from '../../store/recintos/recintosEndpoints';
+import { useNavigate, useParams } from 'react-router-dom';
+import LoadingButton from '../../components/LoadingButton';
+import Modal from '../../components/Modal';
+import BackButton from '../../components/BackButton';
+import { useState } from 'react';
 
 const RecintoForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -30,45 +30,46 @@ const RecintoForm: React.FC = () => {
   const isLoading = isCreating || isUpdating || isLoadingRecinto;
 
   const validationSchema = Yup.object({
-    name: Yup.string().required("Este campo es obligatorio"),
-    address: Yup.string().required("Este campo es obligatorio"),
-    code: Yup.string().required("Este campo es obligatorio"),
-    department: Yup.string().required("Este campo es obligatorio"),
-    municipality: Yup.string().required("Este campo es obligatorio"),
-    province: Yup.string().required("Este campo es obligatorio"),
+    name: Yup.string().required('Este campo es obligatorio'),
+    address: Yup.string().required('Este campo es obligatorio'),
+    code: Yup.string().required('Este campo es obligatorio'),
+    department: Yup.string().required('Este campo es obligatorio'),
+    municipality: Yup.string().required('Este campo es obligatorio'),
+    province: Yup.string().required('Este campo es obligatorio'),
     totalTables: Yup.number()
-      .required("Este campo es obligatorio")
-      .min(1, "Debe ser mayor a 0"),
+      .required('Este campo es obligatorio')
+      .min(1, 'Debe ser mayor a 0'),
     coordinates: Yup.object({
       latitude: Yup.number()
-        .required("Latitud es obligatoria")
+        .required('Latitud es obligatoria')
         .min(-90)
         .max(90),
       longitude: Yup.number()
-        .required("Longitud es obligatoria")
+        .required('Longitud es obligatoria')
         .min(-180)
         .max(180),
     }),
   });
 
   const initialValues = {
-    name: currentRecinto?.name || "",
-    address: currentRecinto?.address || "",
-    code: currentRecinto?.code || "",
-    department: currentRecinto?.department || "",
-    municipality: currentRecinto?.municipality || "",
-    province: currentRecinto?.province || "",
+    name: currentRecinto?.name || '',
+    address: currentRecinto?.address || '',
+    code: currentRecinto?.code || '',
+    department: currentRecinto?.department || '',
+    municipality: currentRecinto?.municipality || '',
+    province: currentRecinto?.province || '',
     totalTables: currentRecinto?.totalTables || 0,
     coordinates: {
       latitude: currentRecinto?.coordinates.latitude || 0,
       longitude: currentRecinto?.coordinates.longitude || 0,
+      _id: currentRecinto?.coordinates._id || '',
     },
     active: currentRecinto?.active ?? true,
+    createdAt: currentRecinto?.createdAt || new Date().toISOString(),
+    updatedAt: currentRecinto?.updatedAt || new Date().toISOString(),
   };
 
-  const handleSubmit = async (
-    values: Omit<RecintoElectoral, "_id" | "createdAt" | "updatedAt">
-  ) => {
+  const handleSubmit = async (values: Omit<RecintoElectoral, '_id'>) => {
     try {
       if (isEditMode && id) {
         await updateRecinto({ id, recinto: values }).unwrap();
@@ -76,9 +77,9 @@ const RecintoForm: React.FC = () => {
         await createRecinto(values).unwrap();
       }
       setIsModalOpen(true);
-      navigate("/recintos");
+      navigate('/recintos');
     } catch (err) {
-      console.error("Failed to save recinto:", err);
+      console.error('Failed to save recinto:', err);
     }
   };
 
@@ -89,13 +90,13 @@ const RecintoForm: React.FC = () => {
           <div className="flex items-center mb-8 border-b pb-4 border-gray-300">
             <BackButton className="mr-4" />
             <h1 className="text-2xl font-bold text-gray-700">
-              {isEditMode ? "Editar" : "Registro de"} Recinto Electoral
+              {isEditMode ? 'Editar' : 'Registro de'} Recinto Electoral
             </h1>
           </div>
 
           {error && (
             <div className="mb-6 p-4 bg-orange-100 border border-orange-400 text-orange-700 rounded-lg">
-              Error al {isEditMode ? "actualizar" : "crear"} el recinto. Por
+              Error al {isEditMode ? 'actualizar' : 'crear'} el recinto. Por
               favor intente nuevamente.
             </div>
           )}
@@ -302,7 +303,7 @@ const RecintoForm: React.FC = () => {
                 <div className="flex justify-end space-x-4 pt-6 border-t border-gray-300">
                   <button
                     type="button"
-                    onClick={() => navigate("/recintos")}
+                    onClick={() => navigate('/recintos')}
                     className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-100 focus:outline-none focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200"
                     disabled={isLoading}
                   >
