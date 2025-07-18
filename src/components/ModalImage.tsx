@@ -65,12 +65,58 @@ const ModalImage: React.FC<ModalImageProps> = ({
     }
   };
 
-  const handleZoomIn = (e: React.MouseEvent) => {
+  // Touch event handlers for mobile devices
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!isZoomed) return;
+    // Only prevent default when zoomed to allow click events when not zoomed
+    e.preventDefault();
+    const touch = e.touches[0];
+    dragRef.current = {
+      isDragging: true,
+      startX: touch.clientX - dragRef.current.translateX,
+      startY: touch.clientY - dragRef.current.translateY,
+      translateX: dragRef.current.translateX,
+      translateY: dragRef.current.translateY,
+    };
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isZoomed || !dragRef.current.isDragging) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const newX = touch.clientX - dragRef.current.startX;
+    const newY = touch.clientY - dragRef.current.startY;
+    dragRef.current.translateX = newX;
+    dragRef.current.translateY = newY;
+
+    if (previewRef.current) {
+      const img = previewRef.current.querySelector('img');
+      if (img) {
+        img.style.transition = 'none';
+        img.style.transform = `translate3d(${newX}px, ${newY}px, 0) scale3d(${zoomLevel}, ${zoomLevel}, 1)`;
+      }
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!isZoomed) return;
+    // Only prevent default when zoomed
+    e.preventDefault();
+    dragRef.current.isDragging = false;
+    if (previewRef.current) {
+      const img = previewRef.current.querySelector('img');
+      if (img) {
+        img.style.transition = 'transform 200ms';
+      }
+    }
+  };
+
+  const handleZoomIn = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
     setZoomLevel((prev) => Math.min(prev + 0.5, 4));
   };
 
-  const handleZoomOut = (e: React.MouseEvent) => {
+  const handleZoomOut = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
     setZoomLevel((prev) => Math.max(prev - 0.5, 1));
   };
@@ -106,7 +152,7 @@ const ModalImage: React.FC<ModalImageProps> = ({
       showClose={true}
       className="!p-0 min-w-[min(680px,100%)] w-full min-h-[max(400px,100%)] h-full"
     >
-      <div className="relative max-h-[90vh]">
+      <div id="container-modal" className="relative max-h-[90vh]">
         {imageUrl && (
           <div
             ref={previewRef}
@@ -118,11 +164,14 @@ const ModalImage: React.FC<ModalImageProps> = ({
             onMouseMove={handleDrag}
             onMouseUp={handleDragEnd}
             onMouseLeave={handleDragEnd}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
           >
             <img
               src={imageUrl}
               alt="Preview"
-              className="w-full h-auto object-contain"
+              className="h-full w-auto object-contain"
               style={{
                 transform: isZoomed
                   ? `translate3d(${dragRef.current.translateX}px, ${dragRef.current.translateY}px, 0) scale3d(${zoomLevel}, ${zoomLevel}, 1)`
@@ -137,6 +186,7 @@ const ModalImage: React.FC<ModalImageProps> = ({
               <div className="absolute bottom-4 right-4 flex gap-2">
                 <button
                   onClick={handleZoomOut}
+                  onTouchEnd={handleZoomOut}
                   className="bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg hover:bg-gray-100"
                 >
                   <svg
@@ -156,6 +206,7 @@ const ModalImage: React.FC<ModalImageProps> = ({
                 </button>
                 <button
                   onClick={handleZoomIn}
+                  onTouchEnd={handleZoomIn}
                   className="bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg hover:bg-gray-100"
                 >
                   <svg
