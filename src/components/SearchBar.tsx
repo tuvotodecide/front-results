@@ -63,7 +63,7 @@ export default function SearchBar(props: SearchBarProps) {
   };
 
   return (
-    <div className={`px-4 ${props.className ?? ''}`}>
+    <div className={`${props.className ?? ''}`}>
       {/* Unified Search Block */}
       <div className="relative w-full box-border">
         {/* Search Bar */}
@@ -103,7 +103,7 @@ export default function SearchBar(props: SearchBarProps) {
               }}
               onKeyPress={handleKeyPress}
               placeholder=""
-              className="flex-1 py-3 px-1 text-gray-700 text-lg outline-none bg-transparent"
+              className="flex-1 py-3 px-1 text-gray-700 text-lg outline-none bg-transparent w-full"
             />
 
             {/* Clear Button */}

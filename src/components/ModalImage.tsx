@@ -1,5 +1,5 @@
-import React, { useState, useRef } from "react";
-import Modal from "./Modal";
+import React, { useState, useRef } from 'react';
+import Modal from './Modal';
 
 interface ModalImageProps {
   isOpen: boolean;
@@ -33,7 +33,7 @@ const ModalImage: React.FC<ModalImageProps> = ({
       translateX: dragRef.current.translateX,
       translateY: dragRef.current.translateY,
     };
-    target.style.cursor = "grabbing";
+    target.style.cursor = 'grabbing';
   };
 
   const handleDrag = (e: React.MouseEvent) => {
@@ -45,9 +45,9 @@ const ModalImage: React.FC<ModalImageProps> = ({
       dragRef.current.translateY = newY;
 
       if (previewRef.current) {
-        const img = previewRef.current.querySelector("img");
+        const img = previewRef.current.querySelector('img');
         if (img) {
-          img.style.transition = "none";
+          img.style.transition = 'none';
           img.style.transform = `translate3d(${newX}px, ${newY}px, 0) scale3d(${zoomLevel}, ${zoomLevel}, 1)`;
         }
       }
@@ -56,11 +56,11 @@ const ModalImage: React.FC<ModalImageProps> = ({
 
   const handleDragEnd = (e: React.MouseEvent) => {
     dragRef.current.isDragging = false;
-    (e.currentTarget as HTMLDivElement).style.cursor = "grab";
+    (e.currentTarget as HTMLDivElement).style.cursor = 'grab';
     if (previewRef.current) {
-      const img = previewRef.current.querySelector("img");
+      const img = previewRef.current.querySelector('img');
       if (img) {
-        img.style.transition = "transform 200ms";
+        img.style.transition = 'transform 200ms';
       }
     }
   };
@@ -86,9 +86,9 @@ const ModalImage: React.FC<ModalImageProps> = ({
       translateY: 0,
     };
     if (previewRef.current) {
-      const img = previewRef.current.querySelector("img");
+      const img = previewRef.current.querySelector('img');
       if (img) {
-        img.style.transform = "none";
+        img.style.transform = 'none';
       }
     }
   };
@@ -104,15 +104,15 @@ const ModalImage: React.FC<ModalImageProps> = ({
       onClose={handleCloseModal}
       size="xl"
       showClose={true}
-      className="!p-0 min-w-[680px] w-full"
+      className="!p-0 min-w-[min(680px,100%)] w-full min-h-[max(400px,100%)] h-full"
     >
       <div className="relative max-h-[90vh]">
         {imageUrl && (
           <div
             ref={previewRef}
             className={`cursor-${
-              isZoomed ? "grab" : "zoom-in"
-            } overflow-hidden ${isZoomed ? "h-[80vh]" : ""} relative`}
+              isZoomed ? 'grab' : 'zoom-in'
+            } overflow-hidden ${isZoomed ? 'h-[80vh]' : ''} relative`}
             onClick={() => !isZoomed && setIsZoomed(true)}
             onMouseDown={handleDragStart}
             onMouseMove={handleDrag}
@@ -126,10 +126,10 @@ const ModalImage: React.FC<ModalImageProps> = ({
               style={{
                 transform: isZoomed
                   ? `translate3d(${dragRef.current.translateX}px, ${dragRef.current.translateY}px, 0) scale3d(${zoomLevel}, ${zoomLevel}, 1)`
-                  : "none",
+                  : 'none',
                 transition: dragRef.current.isDragging
-                  ? "none"
-                  : "transform 200ms",
+                  ? 'none'
+                  : 'transform 200ms',
               }}
               draggable={false}
             />

@@ -3,7 +3,15 @@ import BarChart from '../../components/BarChart';
 import D3PieChart from '../../components/D3PieChart';
 import ResultsTable from '../../components/ResultsTable';
 import SearchBar from '../../components/SearchBar';
-import { Check, X, Trophy, BarChart3, Vote } from 'lucide-react';
+import {
+  Check,
+  X,
+  Trophy,
+  BarChart3,
+  Vote,
+  PieChart,
+  Table,
+} from 'lucide-react';
 import ModalImage from '../../components/ModalImage';
 
 const combinedData = [
@@ -34,11 +42,11 @@ const ResultadosImagen = () => {
           Resultados por Imagen
         </h1>
         <div className="bg-white rounded-xl shadow-lg py-6 px-6">
-          <div className="flex items-center mb-4">
+          <div className="flex items-center mb-4 flex-wrap">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-600">
               Mesa #25548 &gt; Imagen #34566
             </h1>
-            <SearchBar className="shrink ml-auto" />
+            {/* <SearchBar className="ml-auto w-full" /> */}
           </div>
           <div className="relative bg-white rounded-xl overflow-hidden shadow-md transition-transform duration-300 border border-gray-100 mb-8">
             {ballotData.imageUrl ? (
@@ -64,42 +72,45 @@ const ResultadosImagen = () => {
             )}
           </div>
           <div className="w-full flex flex-wrap gap-4">
-            <div className="bg-gray-50 rounded-lg shadow-sm overflow-hidden md:min-w-[400px] sm:min-w-[400px] flex-grow">
+            <div className="bg-gray-50 rounded-lg shadow-sm overflow-hidden basis-[min(400px,100%)] grow-3 shrink-0">
               <div className="border-b border-gray-300  px-6 py-4">
                 <div className="mb-4 border-b border-gray-200 bg-gray-50">
                   <div className="flex gap-4">
                     <button
                       type="button"
-                      onClick={() => setActiveTab('bars')}
-                      className={`pb-2 px-4 font-medium ${
-                        activeTab === 'bars'
-                          ? 'border-b-2 border-blue-500 text-blue-600'
-                          : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      Gráfico de Barras
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('pie')}
-                      className={`pb-2 px-4 font-medium ${
-                        activeTab === 'pie'
-                          ? 'border-b-2 border-blue-500 text-blue-600'
-                          : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      Gráfico Circular
-                    </button>
-                    <button
-                      type="button"
                       onClick={() => setActiveTab('table')}
-                      className={`pb-2 px-4 font-medium ${
+                      className={`pb-2 px-4 font-medium flex items-center gap-2 ${
                         activeTab === 'table'
                           ? 'border-b-2 border-blue-500 text-blue-600'
                           : 'text-gray-500 hover:text-gray-700'
                       }`}
                     >
-                      Tabla
+                      <Table className="w-5 h-5 flex-shrink-0" />
+                      <span className="max-md:hidden">Tabla</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('bars')}
+                      className={`pb-2 px-4 font-medium flex items-center gap-2 ${
+                        activeTab === 'bars'
+                          ? 'border-b-2 border-blue-500 text-blue-600'
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      <BarChart3 className="w-5 h-5 flex-shrink-0" />
+                      <span className="max-md:hidden">Gráfico de Barras</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('pie')}
+                      className={`pb-2 px-4 font-medium flex items-center gap-2 ${
+                        activeTab === 'pie'
+                          ? 'border-b-2 border-blue-500 text-blue-600'
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      <PieChart className="w-5 h-5 flex-shrink-0" />
+                      <span className="max-md:hidden">Gráfico Circular</span>
                     </button>
                   </div>
                 </div>
@@ -110,7 +121,7 @@ const ResultadosImagen = () => {
                 )}
               </div>
             </div>
-            <div className="bg-gray-50 rounded-lg shadow-sm p-4 min-w-3xs flex-grow">
+            <div className="bg-gray-50 rounded-lg shadow-sm p-4 basis-[250px] grow-1 shrink-0">
               <h3 className="text-xl font-bold text-gray-800 mb-6 pb-3 border-b border-gray-200">
                 Atestiguamientos
               </h3>

@@ -4,7 +4,7 @@ import D3PieChart from '../../components/D3PieChart';
 import ResultsTable from '../../components/ResultsTable';
 import { useGetDepartmentsQuery } from '../../store/departments/departmentsEndpoints';
 import Breadcrumb2 from '../../components/Breadcrumb2';
-import { Eye, FileText, Users } from 'lucide-react';
+import { Eye, FileText, Users, Table, BarChart3, PieChart } from 'lucide-react';
 
 const combinedData = [
   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -149,8 +149,8 @@ const ResultadosGenerales3 = () => {
           <div>
             <Breadcrumb2 />
           </div>
-          <div className="w-full grid gap-6 grid-cols-1 sm:grid-cols-[minmax(300px,1fr)_250px] md:grid-cols-[minmax(300px,1fr)_300px]">
-            <div className="bg-gray-50 rounded-lg shadow-sm overflow-hidden">
+          <div className="w-full flex flex-wrap gap-4">
+            <div className="bg-gray-50 rounded-lg shadow-sm overflow-hidden basis-[min(400px,100%)] grow-3 shrink-0">
               {/* <div className="border-b border-gray-300 bg-gray-50 px-6 py-4">
                 <h2 className="text-xl font-semibold text-gray-600">
                   Visualización de Resultados{' '}
@@ -162,35 +162,38 @@ const ResultadosGenerales3 = () => {
                     <button
                       type="button"
                       onClick={() => setActiveTab('table')}
-                      className={`pb-2 px-4 font-medium ${
+                      className={`pb-2 px-3 md:px-4 font-medium flex items-center gap-2 ${
                         activeTab === 'table'
                           ? 'border-b-2 border-blue-500 text-blue-600'
                           : 'text-gray-500 hover:text-gray-700'
                       }`}
                     >
-                      Tabla
+                      <Table className="w-5 h-5 flex-shrink-0" />
+                      <span className="max-md:hidden">Tabla</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setActiveTab('bars')}
-                      className={`pb-2 px-4 font-medium ${
+                      className={`pb-2 px-3 md:px-4 font-medium flex items-center gap-2 ${
                         activeTab === 'bars'
                           ? 'border-b-2 border-blue-500 text-blue-600'
                           : 'text-gray-500 hover:text-gray-700'
                       }`}
                     >
-                      Gráfico de Barras
+                      <BarChart3 className="w-5 h-5 flex-shrink-0" />
+                      <span className="max-md:hidden">Gráfico de Barras</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setActiveTab('pie')}
-                      className={`pb-2 px-4 font-medium ${
+                      className={`pb-2 px-3 md:px-4 font-medium flex items-center gap-2 ${
                         activeTab === 'pie'
                           ? 'border-b-2 border-blue-500 text-blue-600'
                           : 'text-gray-500 hover:text-gray-700'
                       }`}
                     >
-                      Gráfico Circular
+                      <PieChart className="w-5 h-5 flex-shrink-0" />
+                      <span className="max-md:hidden">Gráfico Circular</span>
                     </button>
                   </div>
                 </div>
@@ -201,13 +204,13 @@ const ResultadosGenerales3 = () => {
                 {activeTab === 'pie' && <D3PieChart data={combinedData} />}
               </div>
             </div>
-            <div className="bg-gray-50 rounded-lg shadow-sm p-4">
+            <div className="bg-gray-50 rounded-lg shadow-sm p-4 basis-[250px] grow-1 shrink-0">
               <h3 className="text-xl font-bold text-gray-800 mb-6 pb-3 border-b border-gray-200">
                 Datos estadísticos
               </h3>
 
-              <div className="space-y-4">
-                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow">
+              <div className="flex flex-wrap gap-4">
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow basis-[min(200px,100%)] grow-1">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600 mb-1">
@@ -221,7 +224,7 @@ const ResultadosGenerales3 = () => {
                   </div>
                 </div>
 
-                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow">
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow basis-[min(200px,100%)] grow-1">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600 mb-1">
@@ -235,7 +238,7 @@ const ResultadosGenerales3 = () => {
                   </div>
                 </div>
 
-                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow">
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow basis-[min(200px,100%)] grow-1">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600 mb-1">
