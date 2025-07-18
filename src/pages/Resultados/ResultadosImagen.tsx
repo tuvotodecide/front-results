@@ -73,7 +73,7 @@ const ResultadosImagen = () => {
           </div>
           <div className="w-full flex flex-wrap gap-4">
             <div className="bg-gray-50 rounded-lg shadow-sm overflow-hidden basis-[min(400px,100%)] grow-3 shrink-0">
-              <div className="border-b border-gray-300  px-6 py-4">
+              <div className="border-b border-gray-300 px-1 md:px-6 py-4">
                 <div className="mb-4 border-b border-gray-200 bg-gray-50">
                   <div className="flex gap-4">
                     <button

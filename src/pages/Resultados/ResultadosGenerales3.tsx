@@ -156,7 +156,7 @@ const ResultadosGenerales3 = () => {
                   Visualización de Resultados{' '}
                 </h2>
               </div> */}
-              <div className="border-b border-gray-300  px-6 py-4">
+              <div className="border-b border-gray-300 px-0 md:px-6 py-4">
                 <div className="mb-4 border-b border-gray-200 bg-gray-50">
                   <div className="flex gap-4">
                     <button

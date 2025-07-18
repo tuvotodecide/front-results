@@ -1,5 +1,5 @@
-import * as d3 from "d3";
-import React, { useEffect, useRef, useState } from "react";
+import * as d3 from 'd3';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface GraphData {
   name: string;
@@ -31,18 +31,22 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
     const handleResize = () => {
       if (containerRef.current) {
         const containerWidth = containerRef.current.clientWidth;
+        const minWidth = 350;
+        const chartWidth = Math.max(containerWidth, minWidth);
         const barHeight = 60;
         const totalBars = data.filter((d) => d.value > 0).length;
         const minHeight = Math.max(totalBars * barHeight, 200);
 
         setDimensions({
-          width: containerWidth,
+          width: chartWidth,
           height: minHeight + 100,
         });
       }
     };
 
     handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, [data]);
 
   useEffect(() => {
@@ -59,11 +63,11 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
     const width = dimensions.width - margin.left - margin.right;
     const height = dimensions.height - margin.top - margin.bottom;
 
-    svg.selectAll("*").remove();
+    svg.selectAll('*').remove();
 
     const g = svg
-      .append("g")
-      .attr("transform", `translate(${margin.left},${margin.top})`);
+      .append('g')
+      .attr('transform', `translate(${margin.left},${margin.top})`);
 
     const sortedData = [...dataWithPercentage]
       .sort((a, b) => b.value - a.value)
@@ -80,75 +84,75 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
       .range([margin.top, height])
       .padding(0.25);
 
-    g.append("g")
-      .attr("class", "grid")
-      .attr("transform", `translate(0,${height})`)
+    g.append('g')
+      .attr('class', 'grid')
+      .attr('transform', `translate(0,${height})`)
       .call(
         d3
           .axisBottom(x)
           .tickSize(-(height - margin.top))
-          .tickFormat(() => "")
+          .tickFormat(() => '')
       )
-      .attr("color", "gray")
-      .attr("stroke-opacity", 0.3)
-      .style("stroke-dasharray", "2,2")
-      .selectAll("line")
-      .attr("stroke", "gray");
+      .attr('color', 'gray')
+      .attr('stroke-opacity', 0.3)
+      .style('stroke-dasharray', '2,2')
+      .selectAll('line')
+      .attr('stroke', 'gray');
 
-    g.append("g")
-      .attr("transform", `translate(0,${height})`)
+    g.append('g')
+      .attr('transform', `translate(0,${height})`)
       .call(d3.axisBottom(x))
-      .selectAll("text")
-      .style("font-size", dimensions.width < 600 ? "12px" : "14px")
-      .attr("dy", "1.5em");
+      .selectAll('text')
+      .style('font-size', dimensions.width < 600 ? '12px' : '14px')
+      .attr('dy', '1.5em');
 
-    g.append("text")
-      .attr("class", "x-axis-label")
-      .attr("text-anchor", "middle")
-      .attr("x", width / 2)
-      .attr("y", height + 50)
-      .style("font-size", dimensions.width < 600 ? "14px" : "16px")
-      .text("Porcentaje");
+    g.append('text')
+      .attr('class', 'x-axis-label')
+      .attr('text-anchor', 'middle')
+      .attr('x', width / 2)
+      .attr('y', height + 50)
+      .style('font-size', dimensions.width < 600 ? '14px' : '16px')
+      .text('Porcentaje');
 
-    g.append("g")
+    g.append('g')
       .call(d3.axisLeft(y))
-      .selectAll("text")
-      .style("font-size", dimensions.width < 600 ? "12px" : "14px");
+      .selectAll('text')
+      .style('font-size', dimensions.width < 600 ? '12px' : '14px');
 
-    g.selectAll(".bar")
+    g.selectAll('.bar')
       .data(sortedData)
       .enter()
-      .append("rect")
-      .attr("class", "bar")
-      .attr("y", (d) => y(d.name) || 0)
-      .attr("height", y.bandwidth())
-      .attr("fill", (d) => d.color)
-      .attr("x", 0)
-      .attr("width", 0)
+      .append('rect')
+      .attr('class', 'bar')
+      .attr('y', (d) => y(d.name) || 0)
+      .attr('height', y.bandwidth())
+      .attr('fill', (d) => d.color)
+      .attr('x', 0)
+      .attr('width', 0)
       .transition()
       .duration(1000)
-      .attr("width", (d) => x(parseFloat(d.percentage)));
+      .attr('width', (d) => x(parseFloat(d.percentage)));
 
-    g.selectAll(".percentage-label")
+    g.selectAll('.percentage-label')
       .data(sortedData)
       .enter()
-      .append("text")
-      .attr("class", "percentage-label")
-      .attr("y", (d) => (y(d.name) || 0) + y.bandwidth() / 3)
-      .attr("x", (d) => x(parseFloat(d.percentage)) + 5)
-      .attr("dy", ".35em")
-      .style("font-size", dimensions.width < 600 ? "14px" : "16px")
+      .append('text')
+      .attr('class', 'percentage-label')
+      .attr('y', (d) => (y(d.name) || 0) + y.bandwidth() / 3)
+      .attr('x', (d) => x(parseFloat(d.percentage)) + 5)
+      .attr('dy', '.35em')
+      .style('font-size', dimensions.width < 600 ? '14px' : '16px')
       .text((d) => `${d.percentage} %`);
 
-    g.selectAll(".values-label")
+    g.selectAll('.values-label')
       .data(sortedData)
       .enter()
-      .append("text")
-      .attr("class", "values-label")
-      .attr("y", (d) => (y(d.name) || 0) + (y.bandwidth() * 2) / 3)
-      .attr("x", (d) => x(parseFloat(d.percentage)) + 5)
-      .attr("dy", ".35em")
-      .style("font-size", dimensions.width < 600 ? "10px" : "12px")
+      .append('text')
+      .attr('class', 'values-label')
+      .attr('y', (d) => (y(d.name) || 0) + (y.bandwidth() * 2) / 3)
+      .attr('x', (d) => x(parseFloat(d.percentage)) + 5)
+      .attr('dy', '.35em')
+      .style('font-size', dimensions.width < 600 ? '10px' : '12px')
       .text((d) => `${d.value} votos`);
   }, [dataWithPercentage, dimensions]);
 
@@ -161,12 +165,12 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
   }
 
   return (
-    <div ref={containerRef} className="w-ful overflow-auto min-h-[700px]">
+    <div ref={containerRef} className="w-full overflow-x-auto min-h-[700px]">
       <svg
         ref={chartRef}
         width={dimensions.width}
         height={dimensions.height}
-        className="w-full"
+        style={{ minWidth: '350px' }}
       />
     </div>
   );
