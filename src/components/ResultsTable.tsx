@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 interface GraphData {
   name: string;
@@ -18,39 +18,53 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ resultsData }) => {
       <table className="w-full table-fixed divide-y divide-gray-200 border border-gray-200">
         <thead className="bg-gray-50">
           <tr>
-            <th className="w-[45%] px-2 sm:px-4 py-2 text-left text-[11px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider border-x border-gray-200">
-              Nombre
+            <th className="w-[45%] px-4 sm:px-6 py-4 text-left text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wider border-x border-gray-200">
+              Candidato / Partido
             </th>
-            <th className="w-[25%] px-2 sm:px-4 py-2 text-left text-[11px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider border-x border-gray-200">
-              Cant
+            <th className="w-[25%] px-4 sm:px-6 py-4 text-right text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wider border-x border-gray-200">
+              Votos
             </th>
-            <th className="w-[30%] px-2 sm:px-4 py-2 text-left text-[11px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider border-x border-gray-200">
-              %
+            <th className="w-[30%] px-4 sm:px-6 py-4 text-right text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wider border-x border-gray-200">
+              Porcentaje
             </th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {resultsData.map((result) => (
             <tr key={result.name}>
-              <td className="px-2 sm:px-4 py-2 border-x border-gray-200 truncate">
-                <div className="flex items-center space-x-1 sm:space-x-2">
+              <td className="px-4 sm:px-6 py-4 border-x border-gray-200 truncate">
+                <div className="flex items-center space-x-2 sm:space-x-3">
                   <div
-                    className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0"
+                    className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0"
                     style={{ backgroundColor: result.color }}
                   ></div>
-                  <span className="text-xs sm:text-sm truncate">
+                  <span className="text-sm sm:text-base truncate">
                     {result.name}
                   </span>
                 </div>
               </td>
-              <td className="px-2 sm:px-4 py-2 border-x border-gray-200 text-xs sm:text-sm">
-                {result.value}
+              <td className="px-4 sm:px-6 py-4 border-x border-gray-200 text-sm sm:text-base text-right tabular-nums">
+                {result.value.toLocaleString()}
               </td>
-              <td className="px-2 sm:px-4 py-2 border-x border-gray-200 text-xs sm:text-sm">
-                {((result.value / total) * 100).toFixed(2)}%
+              <td className="px-4 sm:px-6 py-4 border-x border-gray-200 text-sm sm:text-base text-right tabular-nums">
+                <span className="inline-block min-w-[60px]">
+                  {((result.value / total) * 100).toFixed(2)} %
+                </span>
               </td>
             </tr>
           ))}
+          {/* Total row */}
+          <tr className="bg-gray-100 font-semibold">
+            <td className="px-4 sm:px-6 py-4 border-x border-gray-200 text-sm sm:text-base">
+              TOTAL
+            </td>
+            <td className="px-4 sm:px-6 py-4 border-x border-gray-200 text-sm sm:text-base text-right tabular-nums">
+              {total.toLocaleString()}
+            </td>
+            <td className="px-4 sm:px-6 py-4 border-x border-gray-200 text-sm sm:text-base text-right tabular-nums">
+              <span className="inline-block min-w-[60px]">100 %</span>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>

@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from "react";
-import * as d3 from "d3";
+import React, { useEffect, useRef } from 'react';
+import * as d3 from 'd3';
 
 interface GraphData {
   name: string;
@@ -39,17 +39,20 @@ const D3PieChart: React.FC<PieChartProps> = ({ data }) => {
     if (!svgRef.current || !data.length) return;
 
     // Clear previous chart
-    d3.select(svgRef.current).selectAll("*").remove();
+    d3.select(svgRef.current).selectAll('*').remove();
+
+    // Calculate total for percentage calculation
+    const total = sortedData.reduce((sum, d) => sum + d.value, 0);
 
     const radius = Math.min(width, height) / 2;
 
     const svg = d3
       .select(svgRef.current)
-      .attr("width", "100%")
-      .attr("height", "100%")
-      .attr("viewBox", `0 0 ${width} ${height}`)
-      .attr("preserveAspectRatio", "xMidYMid meet")
-      .append("g");
+      .attr('width', '100%')
+      .attr('height', '100%')
+      .attr('viewBox', `0 0 ${width} ${height}`)
+      .attr('preserveAspectRatio', 'xMidYMid meet')
+      .append('g');
 
     const arc = d3
       .arc<d3.PieArcDatum<GraphData>>()
@@ -65,13 +68,13 @@ const D3PieChart: React.FC<PieChartProps> = ({ data }) => {
 
     // Add the arcs
     svg
-      .selectAll("path")
+      .selectAll('path')
       .data(arcs)
-      .join("path")
-      .attr("d", arc)
-      .attr("fill", (d) => d.data.color)
-      .attr("stroke", "white")
-      .style("stroke-width", "2px");
+      .join('path')
+      .attr('d', arc)
+      .attr('fill', (d) => d.data.color)
+      .attr('stroke', 'white')
+      .style('stroke-width', '2px');
 
     // Function to determine if a segment is small
     const isSmallSegment = (d: d3.PieArcDatum<GraphData>) => {
@@ -95,16 +98,16 @@ const D3PieChart: React.FC<PieChartProps> = ({ data }) => {
 
     // Add polylines for small segments
     svg
-      .selectAll("polyline")
+      .selectAll('polyline')
       .data(arcs)
-      .join("polyline")
+      .join('polyline')
       .filter(isSmallSegment)
-      .style("fill", "none")
-      .style("stroke", "gray")
-      .style("stroke-dasharray", "2,2")
-      .attr("stroke-width", 1)
-      .attr("stroke-opacity", 0.9)
-      .attr("points", (d) => {
+      .style('fill', 'none')
+      .style('stroke', 'gray')
+      .style('stroke-dasharray', '2,2')
+      .attr('stroke-width', 1)
+      .attr('stroke-opacity', 0.9)
+      .attr('points', (d) => {
         const pos = outerArc.centroid(d);
         const { offset } = verticalOffsets.get(d);
         const second = [pos[0], pos[1] + offset];
@@ -113,15 +116,15 @@ const D3PieChart: React.FC<PieChartProps> = ({ data }) => {
           [pos[0], pos[1]],
           [second[0], second[1]],
           [third[0], third[1]],
-        ].join(",");
+        ].join(',');
       });
 
     // Add labels with dynamic positioning
-    svg
-      .selectAll("text")
+    const textElements = svg
+      .selectAll('text')
       .data(arcs)
-      .join("text")
-      .attr("transform", (d) => {
+      .join('text')
+      .attr('transform', (d) => {
         if (isSmallSegment(d)) {
           const pos = outerArc.centroid(d);
           const { offset } = verticalOffsets.get(d);
@@ -129,30 +132,75 @@ const D3PieChart: React.FC<PieChartProps> = ({ data }) => {
         }
         return `translate(${arc.centroid(d)})`;
       })
-      .attr("text-anchor", "middle")
-      .attr("dy", "0.35em")
-      .text((d) => d.data.name)
-      .style("font-size", "16px")
-      .style("fill", "black")
-      .style("font-weight", "bold")
-      .style("paint-order", "stroke fill")
-      .style("stroke", "white")
-      .style("stroke-width", "10px")
-      .style("stroke-linecap", "round")
-      .style("stroke-linejoin", "round");
+      .attr('text-anchor', 'middle')
+      .style('font-size', '16px')
+      .style('fill', 'black')
+      .style('font-weight', 'bold')
+      .style('paint-order', 'stroke fill')
+      .style('stroke', 'white')
+      .style('stroke-width', '10px')
+      .style('stroke-linecap', 'round')
+      .style('stroke-linejoin', 'round');
+
+    // Function to wrap text for long names
+    const wrapText = (text: string, maxLength: number = 15) => {
+      if (text.length <= maxLength) return [text];
+
+      const words = text.split(' ');
+      const lines = [];
+      let currentLine = '';
+
+      for (const word of words) {
+        if ((currentLine + word).length <= maxLength) {
+          currentLine += (currentLine ? ' ' : '') + word;
+        } else {
+          if (currentLine) lines.push(currentLine);
+          currentLine = word;
+        }
+      }
+      if (currentLine) lines.push(currentLine);
+
+      return lines;
+    };
+
+    // Add name as first line(s) with text wrapping
+    textElements.each(function (d) {
+      const element = d3.select(this);
+      const lines = wrapText(d.data.name);
+
+      lines.forEach((line, i) => {
+        element
+          .append('tspan')
+          .attr('x', 0)
+          .attr('dy', i === 0 ? '-0.8em' : '1.1em')
+          .text(line);
+      });
+
+      // Add percentage as last line with more spacing
+      element
+        .append('tspan')
+        .attr('x', 0)
+        .attr('dy', '1.8em')
+        .text(() => {
+          const percentage = ((d.data.value / total) * 100).toFixed(1);
+          return `${percentage}%`;
+        })
+        .style('font-size', '14px')
+        .style('font-weight', 'normal');
+    });
 
     // Adjust SVG size to fit the g tag
     const gElement = svg.node();
     if (gElement) {
       const bbox = gElement.getBBox();
       d3.select(svgRef.current)
-        .attr("width", "100%")
-        .attr("height", "100%")
+        .attr('width', '100%')
+        .attr('height', '100%')
         .attr(
-          "viewBox",
+          'viewBox',
           `${bbox.x - 20} ${bbox.y - 20} ${bbox.width + 40} ${bbox.height + 40}`
         )
-        .attr("preserveAspectRatio", "xMidYMid meet");
+        .attr('preserveAspectRatio', 'xMidYMid meet');
     }
   }, [data]);
 
@@ -160,7 +208,7 @@ const D3PieChart: React.FC<PieChartProps> = ({ data }) => {
     return (
       <div
         className="flex justify-center items-center w-full h-full"
-        style={{ minHeight: "500px" }}
+        style={{ minHeight: '500px' }}
       >
         No hay datos
       </div>
@@ -172,11 +220,11 @@ const D3PieChart: React.FC<PieChartProps> = ({ data }) => {
       <div
         className="p-0 w-full h-full"
         style={{
-          maxWidth: "600px",
-          position: "relative",
+          maxWidth: '600px',
+          position: 'relative',
         }}
       >
-        <svg ref={svgRef} style={{ width: "100%", height: "100%" }}></svg>
+        <svg ref={svgRef} style={{ width: '100%', height: '100%' }}></svg>
       </div>
     </div>
   );

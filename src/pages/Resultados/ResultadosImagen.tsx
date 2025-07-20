@@ -2,7 +2,6 @@ import { useState } from 'react';
 import BarChart from '../../components/BarChart';
 import D3PieChart from '../../components/D3PieChart';
 import ResultsTable from '../../components/ResultsTable';
-import SearchBar from '../../components/SearchBar';
 import {
   Check,
   X,

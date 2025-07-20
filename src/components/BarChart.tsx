@@ -57,7 +57,7 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
       top: 10,
       right: dimensions.width < 600 ? 40 : 60,
       bottom: 60,
-      left: dimensions.width < 600 ? 60 : 100,
+      left: dimensions.width < 600 ? 80 : 140,
     };
 
     const width = dimensions.width - margin.left - margin.right;
@@ -114,10 +114,23 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
       .style('font-size', dimensions.width < 600 ? '14px' : '16px')
       .text('Porcentaje');
 
-    g.append('g')
-      .call(d3.axisLeft(y))
+    const yAxisGroup = g.append('g').call(d3.axisLeft(y));
+
+    yAxisGroup
       .selectAll('text')
-      .style('font-size', dimensions.width < 600 ? '12px' : '14px');
+      .style('font-size', dimensions.width < 600 ? '14px' : '16px')
+      .style('font-weight', '500')
+      .each(function () {
+        const text = d3.select(this);
+        const textContent = text.text();
+        const maxLength = dimensions.width < 600 ? 12 : 18;
+
+        if (textContent.length > maxLength) {
+          text.text(textContent.substring(0, maxLength - 3) + '...');
+          // Add title attribute for tooltip
+          text.append('title').text(textContent);
+        }
+      });
 
     g.selectAll('.bar')
       .data(sortedData)
@@ -139,10 +152,13 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
       .append('text')
       .attr('class', 'percentage-label')
       .attr('y', (d) => (y(d.name) || 0) + y.bandwidth() / 3)
-      .attr('x', (d) => x(parseFloat(d.percentage)) + 5)
+      .attr('x', (d) => Math.max(x(parseFloat(d.percentage)) + 8, 30))
       .attr('dy', '.35em')
       .style('font-size', dimensions.width < 600 ? '14px' : '16px')
-      .text((d) => `${d.percentage} %`);
+      .style('font-weight', '600')
+      .style('fill', 'black')
+      .style('letter-spacing', '0.5px')
+      .text((d) => `${d.percentage}%`);
 
     g.selectAll('.values-label')
       .data(sortedData)
@@ -150,10 +166,13 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
       .append('text')
       .attr('class', 'values-label')
       .attr('y', (d) => (y(d.name) || 0) + (y.bandwidth() * 2) / 3)
-      .attr('x', (d) => x(parseFloat(d.percentage)) + 5)
+      .attr('x', (d) => Math.max(x(parseFloat(d.percentage)) + 8, 30))
       .attr('dy', '.35em')
-      .style('font-size', dimensions.width < 600 ? '10px' : '12px')
-      .text((d) => `${d.value} votos`);
+      .style('font-size', dimensions.width < 600 ? '12px' : '14px')
+      .style('font-weight', '500')
+      .style('fill', 'black')
+      .style('letter-spacing', '0.3px')
+      .text((d) => `${d.value.toLocaleString()} votos`);
   }, [dataWithPercentage, dimensions]);
 
   if (data.length === 0) {
