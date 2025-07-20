@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styles from './Breadcrumb.module.css';
 import { ChevronRight } from 'lucide-react';
 import { useSelector } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import { selectDepartments } from '../store/departments/departmentsSlice';
 import { useLazyGetProvincesByDepartmentIdQuery } from '../store/provinces/provincesEndpoints';
 import { useLazyGetMunicipalitiesByProvinceIdQuery } from '../store/municipalities/municipalitiesEndpoints';
@@ -55,6 +56,7 @@ const breadcrumbLevels = [
   },
 ];
 const Breadcrumb = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [getProvincesByDepartmentId] = useLazyGetProvincesByDepartmentIdQuery();
   const [getMunicipalitiesByProvinceId] =
     useLazyGetMunicipalitiesByProvinceIdQuery();
@@ -78,6 +80,31 @@ const Breadcrumb = () => {
   // State to control visibility of the current level selection section
   const [showCurrentLevel, setShowCurrentLevel] = useState(false);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
+
+  // Function to build query parameters from selectedPath2
+  const buildQueryParams = (path: PathItem2[]) => {
+    const params = new URLSearchParams();
+    path.forEach((item) => {
+      if (item.selectedOption?._id) {
+        params.set(item.id, item.selectedOption._id);
+      }
+    });
+    return params;
+  };
+
+  // Update URL whenever selectedPath2 changes
+  useEffect(() => {
+    const params = buildQueryParams(selectedPath2);
+    setSearchParams(params);
+  }, [selectedPath2, setSearchParams]);
+
+  useEffect(() => {
+    console.log(
+      '%cSearch params changed:',
+      'color: blue; font-size: 16px; font-weight: bold;',
+      Object.fromEntries(searchParams.entries())
+    );
+  }, [searchParams]);
 
   useEffect(() => {
     if (departments && departments.length > 0) {
