@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import styles from './Breadcrumb.module.css';
 import { ChevronRight } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { selectDepartments } from '../store/departments/departmentsSlice';
@@ -76,6 +77,7 @@ const Breadcrumb = () => {
   );
   // State to control visibility of the current level selection section
   const [showCurrentLevel, setShowCurrentLevel] = useState(false);
+  const [isLoadingOptions, setIsLoadingOptions] = useState(false);
 
   useEffect(() => {
     if (departments && departments.length > 0) {
@@ -130,23 +132,21 @@ const Breadcrumb = () => {
     pathOverride?: PathItem2[]
   ) => {
     const item = breadcrumbLevels[levelIndex];
+    setIsLoadingOptions(true);
 
-    const levelOptions = await getOptionsForLevel(levelIndex, pathOverride);
-    const newSelectedLevel: SelectedLevel = {
-      ...item,
-      selectedOption: null, // Reset selected option for the new level
-      options: levelOptions,
-      index: levelIndex,
-    };
-    console.log(
-      '%cNew selected level:',
-      'color: orange; font-size: 16px; font-weight: bold;',
-      newSelectedLevel
-    );
-    setSelectedLevel(newSelectedLevel);
-    //setShowCurrentLevel(true);
+    try {
+      const levelOptions = await getOptionsForLevel(levelIndex, pathOverride);
+      const newSelectedLevel: SelectedLevel = {
+        ...item,
+        selectedOption: null, // Reset selected option for the new level
+        options: levelOptions,
+        index: levelIndex,
+      };
+      setSelectedLevel(newSelectedLevel);
+    } finally {
+      setIsLoadingOptions(false);
+    }
   };
-
   const getOptionsForLevel = async (
     levelIndex: number,
     pathOverride?: PathItem2[]
@@ -238,19 +238,27 @@ const Breadcrumb = () => {
       pathItem
     );
 
-    //select level function
-    const levelOptions = await getOptionsForLevel(index);
-    setSelectedLevel({
-      ...pathItem,
-      options: levelOptions,
-      index: index,
-    });
-  };
+    setIsLoadingOptions(true);
 
+    try {
+      const levelOptions = await getOptionsForLevel(index);
+      setSelectedLevel({
+        ...pathItem,
+        options: levelOptions,
+        index: index,
+      });
+    } finally {
+      setIsLoadingOptions(false);
+    }
+  };
   const resetPath = () => {
-    setSelectedPath2([]);
+    //setSelectedPath2([]);
     selectLevel(0);
-    setShowCurrentLevel((prev) => !prev);
+    if (selectedLevel?.index === 0) {
+      setShowCurrentLevel((prev) => !prev);
+    } else {
+      setShowCurrentLevel(true);
+    }
     // setSearchParams({});
   };
   // Show the next breadcrumb level form when "ver más" is clicked
@@ -336,19 +344,43 @@ const Breadcrumb = () => {
               Seleccione {selectedLevel?.title}
             </h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {selectedLevel?.options.map((option, index) => (
-              <button
-                key={index}
-                onClick={() => handleOptionClick(selectedLevel.index, option)}
-                className="p-3 text-left border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          <div className="relative">
+            {isLoadingOptions && (
+              <div
+                className={`flex items-center justify-center py-12 ${styles['animate-fadeIn']}`}
               >
-                <div className="font-medium text-gray-800">{option.name}</div>
-                <div className="text-sm text-gray-500 mt-1">
-                  {selectedLevel.title}
+                <div className="flex items-center space-x-2">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="text-gray-600 font-medium">
+                    Cargando opciones...
+                  </span>
                 </div>
-              </button>
-            ))}
+              </div>
+            )}
+
+            {!isLoadingOptions && selectedLevel?.options && (
+              <div className={styles['animate-fadeInUp']}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {selectedLevel.options.map((option, index) => (
+                    <button
+                      key={index}
+                      onClick={() =>
+                        handleOptionClick(selectedLevel.index, option)
+                      }
+                      className={`p-3 text-left border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${styles['animate-fadeInStagger']}`}
+                      style={{ animationDelay: `${index * 50}ms` }}
+                    >
+                      <div className="font-medium text-gray-800">
+                        {option.name}
+                      </div>
+                      {/* <div className="text-sm text-gray-500 mt-1">
+                        {selectedLevel.title}
+                      </div> */}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
