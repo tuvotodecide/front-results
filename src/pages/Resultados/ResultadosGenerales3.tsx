@@ -150,7 +150,7 @@ const ResultadosGenerales3 = () => {
             <Breadcrumb2 />
           </div>
           <div className="w-full flex flex-wrap gap-4">
-            <div className="bg-gray-50 rounded-lg shadow-sm overflow-hidden basis-[min(400px,100%)] grow-3 shrink-0">
+            <div className="bg-gray-50 rounded-lg shadow-sm overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
               {/* <div className="border-b border-gray-300 bg-gray-50 px-6 py-4">
                 <h2 className="text-xl font-semibold text-gray-600">
                   Visualización de Resultados{' '}
@@ -168,7 +168,9 @@ const ResultadosGenerales3 = () => {
                           : 'text-gray-500 hover:text-gray-700'
                       }`}
                     >
-                      <Table className="w-5 h-5 flex-shrink-0" />
+                      {activeTab === 'table' && (
+                        <Table className="w-5 h-5 flex-shrink-0" />
+                      )}
                       <span className="max-md:hidden">Tabla</span>
                     </button>
                     <button
@@ -180,7 +182,9 @@ const ResultadosGenerales3 = () => {
                           : 'text-gray-500 hover:text-gray-700'
                       }`}
                     >
-                      <BarChart3 className="w-5 h-5 flex-shrink-0" />
+                      {activeTab === 'bars' && (
+                        <BarChart3 className="w-5 h-5 flex-shrink-0" />
+                      )}
                       <span className="max-md:hidden">Gráfico de Barras</span>
                     </button>
                     <button
@@ -192,7 +196,9 @@ const ResultadosGenerales3 = () => {
                           : 'text-gray-500 hover:text-gray-700'
                       }`}
                     >
-                      <PieChart className="w-5 h-5 flex-shrink-0" />
+                      {activeTab === 'pie' && (
+                        <PieChart className="w-5 h-5 flex-shrink-0" />
+                      )}
                       <span className="max-md:hidden">Gráfico Circular</span>
                     </button>
                   </div>
@@ -204,7 +210,7 @@ const ResultadosGenerales3 = () => {
                 {activeTab === 'pie' && <D3PieChart data={combinedData} />}
               </div>
             </div>
-            <div className="bg-gray-50 rounded-lg shadow-sm p-4 basis-[250px] grow-1 shrink-0">
+            <div className="bg-gray-50 rounded-lg shadow-sm p-4 basis-[200px] grow-1 shrink-0">
               <h3 className="text-xl font-bold text-gray-800 mb-6 pb-3 border-b border-gray-200">
                 Datos estadísticos
               </h3>

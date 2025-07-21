@@ -15,10 +15,18 @@ export const electoralSeatsApiSlice = apiSlice.injectEndpoints({
         { type: 'ElectoralSeats' as const, id: municipalityId },
       ],
     }),
+    getElectoralSeat: builder.query<ElectoralSeatsType, string>({
+      query: (id) => `/geographic/electoral-seats/${id}`,
+      keepUnusedDataFor: 60,
+      providesTags: (_result, _error, id) => [
+        { type: 'ElectoralSeats' as const, id },
+      ],
+    }),
   }),
 });
 
 export const {
   useGetElectoralSeatsByMunicipalityIdQuery,
   useLazyGetElectoralSeatsByMunicipalityIdQuery,
+  useLazyGetElectoralSeatQuery,
 } = electoralSeatsApiSlice;

@@ -12,10 +12,18 @@ export const municipalitiesApiSlice = apiSlice.injectEndpoints({
         { type: 'Municipalities' as const, id: provinceId },
       ],
     }),
+    getMunicipality: builder.query<MunicipalitiesType, string>({
+      query: (id) => `/geographic/municipalities/${id}`,
+      keepUnusedDataFor: 60,
+      providesTags: (_result, _error, id) => [
+        { type: 'Municipalities' as const, id },
+      ],
+    }),
   }),
 });
 
 export const {
   useGetMunicipalitiesByProvinceIdQuery,
   useLazyGetMunicipalitiesByProvinceIdQuery,
+  useLazyGetMunicipalityQuery,
 } = municipalitiesApiSlice;

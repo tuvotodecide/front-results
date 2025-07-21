@@ -47,4 +47,5 @@ export const {
   useGetDepartmentsQuery,
   useLazyGetDepartmentsQuery,
   useGetDepartmentQuery,
+  useLazyGetDepartmentQuery,
 } = departmentsApiSlice;

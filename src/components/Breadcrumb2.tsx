@@ -4,10 +4,24 @@ import { ChevronRight } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { useSearchParams } from 'react-router-dom';
 import { selectDepartments } from '../store/departments/departmentsSlice';
-import { useLazyGetProvincesByDepartmentIdQuery } from '../store/provinces/provincesEndpoints';
-import { useLazyGetMunicipalitiesByProvinceIdQuery } from '../store/municipalities/municipalitiesEndpoints';
-import { useLazyGetElectoralSeatsByMunicipalityIdQuery } from '../store/electoralSeats/electoralSeatsEndpoints';
-import { useLazyGetElectoralLocationsByElectoralSeatIdQuery } from '../store/electoralLocations/electoralLocationsEndpoints';
+import { useLazyGetDepartmentQuery } from '../store/departments/departmentsEndpoints';
+import {
+  useLazyGetProvincesByDepartmentIdQuery,
+  useLazyGetProvinceQuery,
+} from '../store/provinces/provincesEndpoints';
+import {
+  useLazyGetMunicipalitiesByProvinceIdQuery,
+  useLazyGetMunicipalityQuery,
+} from '../store/municipalities/municipalitiesEndpoints';
+import {
+  useLazyGetElectoralSeatsByMunicipalityIdQuery,
+  useLazyGetElectoralSeatQuery,
+} from '../store/electoralSeats/electoralSeatsEndpoints';
+import {
+  useLazyGetElectoralLocationsByElectoralSeatIdQuery,
+  useLazyGetElectoralLocationQuery,
+} from '../store/electoralLocations/electoralLocationsEndpoints';
+import SimpleSearchBar from './SimpleSearchBar';
 
 interface LevelOption {
   _id: string;
@@ -57,6 +71,11 @@ const breadcrumbLevels = [
 ];
 const Breadcrumb = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [getDepartment] = useLazyGetDepartmentQuery();
+  const [getProvince] = useLazyGetProvinceQuery();
+  const [getMunicipality] = useLazyGetMunicipalityQuery();
+  const [getElectoralSeat] = useLazyGetElectoralSeatQuery();
+  const [getElectoralLocation] = useLazyGetElectoralLocationQuery();
   const [getProvincesByDepartmentId] = useLazyGetProvincesByDepartmentIdQuery();
   const [getMunicipalitiesByProvinceId] =
     useLazyGetMunicipalitiesByProvinceIdQuery();
@@ -99,20 +118,65 @@ const Breadcrumb = () => {
   }, [selectedPath2, setSearchParams]);
 
   useEffect(() => {
-    console.log(
-      '%cSearch params changed:',
-      'color: blue; font-size: 16px; font-weight: bold;',
-      Object.fromEntries(searchParams.entries())
-    );
-  }, [searchParams]);
+    if (selectedPath2.length === 0 && searchParams.size > 0) {
+      console.log(
+        '%cSearch params changed:',
+        'color: blue; font-size: 16px; font-weight: bold;',
+        Object.fromEntries(searchParams.entries())
+      );
+      const {
+        departments: departmentId,
+        provinces: provinceId,
+        municipalities: municipalityId,
+        electoralSeats: electoralSeatId,
+        electoralLocations: electoralLocationId,
+      } = Object.fromEntries(searchParams.entries());
+
+      const promises = [];
+      if (departmentId) {
+        // Fetch the department based on the search param
+        promises.push(getDepartment(departmentId));
+        if (provinceId) {
+          promises.push(getProvince(provinceId));
+          if (municipalityId) {
+            promises.push(getMunicipality(municipalityId));
+            if (electoralSeatId) {
+              promises.push(getElectoralSeat(electoralSeatId));
+              if (electoralLocationId) {
+                promises.push(getElectoralLocation(electoralLocationId));
+              }
+            }
+          }
+        }
+      }
+      if (promises.length > 0) {
+        Promise.allSettled(promises).then((results) => {
+          const newPath: PathItem2[] = [];
+          for (let index = 0; index < results.length; index++) {
+            const result = results[index];
+            if (result.status === 'fulfilled' && result.value.data) {
+              const level = breadcrumbLevels[index];
+              const { _id, name } = result.value.data;
+              newPath.push({
+                ...level,
+                selectedOption: {
+                  _id: _id,
+                  name: name,
+                },
+              });
+            } else {
+              break;
+            }
+          }
+          setSelectedPath2(newPath);
+          // setShowCurrentLevel(true);
+        });
+      }
+    }
+  }, [searchParams, selectedPath2]);
 
   useEffect(() => {
     if (departments && departments.length > 0) {
-      console.log(
-        '%cDepartments fetched:',
-        'color: green; font-size: 16px; font-weight: bold;',
-        departments
-      );
       setOptions((prev) => ({
         ...prev,
         departments: departments.map((dept) => ({
@@ -130,11 +194,6 @@ const Breadcrumb = () => {
     // Then update any item that matches the optionId with the clicked option
     const newPath: PathItem2[] = selectedPath2.slice(0, optionIndex);
     const baseNewItem = breadcrumbLevels[optionIndex];
-    console.log(
-      '%cBase new item:',
-      'color: orange; font-size: 16px; font-weight: bold;',
-      baseNewItem
-    );
 
     const newItem = {
       ...baseNewItem,
@@ -178,11 +237,6 @@ const Breadcrumb = () => {
     levelIndex: number,
     pathOverride?: PathItem2[]
   ): Promise<LevelOption[]> => {
-    console.log(
-      '%cGetting options for level:',
-      'color: blue; font-size: 16px; font-weight: bold;',
-      levelIndex
-    );
     if (levelIndex === 0) {
       return options.departments;
     }
@@ -259,11 +313,6 @@ const Breadcrumb = () => {
     } else if (selectedLevel?.id === pathItem.id) {
       setShowCurrentLevel(!showCurrentLevel);
     }
-    console.log(
-      '%cBreadcrumb clicked:',
-      'color: purple; font-size: 16px; font-weight: bold;',
-      pathItem
-    );
 
     setIsLoadingOptions(true);
 
@@ -291,6 +340,11 @@ const Breadcrumb = () => {
   // Show the next breadcrumb level form when "ver más" is clicked
   const handleShowNextLevel = () => {
     setShowCurrentLevel(true);
+  };
+
+  const handleSearch = (query: string) => {
+    console.log('Searching for:', query);
+    // Implement search logic here
   };
 
   return (
@@ -366,8 +420,16 @@ const Breadcrumb = () => {
               />
             </svg>
           </button>
-          <div className="flex items-center mb-4 justify-between">
-            <h2 className="text-lg font-semibold text-gray-800">
+          <div
+            className={`flex items-center mb-4 justify-between flex-wrap ${styles['suggestions-title-container']}`}
+          >
+            <SimpleSearchBar
+              className={styles['search-bar']}
+              onSearch={handleSearch}
+            />
+            <h2
+              className={`text-lg font-semibold text-gray-800 ${styles['suggestions-title-text']}`}
+            >
               Seleccione {selectedLevel?.title}
             </h2>
           </div>

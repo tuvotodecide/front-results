@@ -48,4 +48,5 @@ export const {
   useGetProvincesByDepartmentIdQuery,
   useLazyGetProvincesByDepartmentIdQuery,
   useGetProvinceQuery,
+  useLazyGetProvinceQuery,
 } = provincesApiSlice;

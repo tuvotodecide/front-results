@@ -1,5 +1,6 @@
 import { apiSlice } from '../apiSlice';
 import { ElectoralLocationsType } from '../../types';
+import { get } from 'http';
 
 export const electoralLocationsApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -17,10 +18,18 @@ export const electoralLocationsApiSlice = apiSlice.injectEndpoints({
         { type: 'ElectoralLocations' as const, id: electoralSeatId },
       ],
     }),
+    getElectoralLocation: builder.query<ElectoralLocationsType, string>({
+      query: (id) => `/geographic/electoral-locations/${id}`,
+      keepUnusedDataFor: 60,
+      providesTags: (_result, _error, id) => [
+        { type: 'ElectoralLocations' as const, id },
+      ],
+    }),
   }),
 });
 
 export const {
   useGetElectoralLocationsByElectoralSeatIdQuery,
   useLazyGetElectoralLocationsByElectoralSeatIdQuery,
+  useLazyGetElectoralLocationQuery,
 } = electoralLocationsApiSlice;
