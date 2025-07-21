@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, use, useMemo } from 'react';
 import styles from './Breadcrumb.module.css';
 import { ChevronRight } from 'lucide-react';
 import { useSelector } from 'react-redux';
@@ -99,6 +99,14 @@ const Breadcrumb = () => {
   // State to control visibility of the current level selection section
   const [showCurrentLevel, setShowCurrentLevel] = useState(false);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
+  const [query, setQuery] = useState('');
+  const filteredOptions = useMemo(() => {
+    if (query === '') return selectedLevel?.options || [];
+    // Add filtering logic here if needed
+    return selectedLevel?.options.filter((option) =>
+      option.name.toLowerCase().includes(query.toLowerCase())
+    );
+  }, [selectedLevel, query]);
 
   // Function to build query parameters from selectedPath2
   const buildQueryParams = (path: PathItem2[]) => {
@@ -344,7 +352,7 @@ const Breadcrumb = () => {
 
   const handleSearch = (query: string) => {
     console.log('Searching for:', query);
-    // Implement search logic here
+    setQuery(query);
   };
 
   return (
@@ -450,7 +458,7 @@ const Breadcrumb = () => {
             {!isLoadingOptions && selectedLevel?.options && (
               <div className={styles['animate-fadeInUp']}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {selectedLevel.options.map((option, index) => (
+                  {filteredOptions.map((option, index) => (
                     <button
                       key={index}
                       onClick={() =>

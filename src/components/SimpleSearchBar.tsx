@@ -20,10 +20,8 @@ export default function SimpleSearchBar({
   }, [query]);
 
   const handleSearch = (searchQuery = query) => {
-    if (searchQuery.trim()) {
-      onSearch?.(searchQuery);
-      console.log('Searching for:', searchQuery);
-    }
+    onSearch?.(searchQuery);
+    console.log('Searching for:', searchQuery);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -39,6 +37,7 @@ export default function SimpleSearchBar({
 
   const clearQuery = () => {
     setQuery('');
+    handleSearch('');
     inputRef.current?.focus();
   };
 
