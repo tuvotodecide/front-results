@@ -8,7 +8,7 @@ on:
       - "package.json"
       - "src/**"
       - "public/**"
-      - "vite.config.ts" # Ajusta según tus archivos clave
+      - "vite.config.ts"
       - ".github/workflows/**"
 
 env:
