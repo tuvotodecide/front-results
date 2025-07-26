@@ -19,14 +19,15 @@ export default function SimpleSearchBar({
     }
   }, [query]);
 
-  const handleSearch = (searchQuery = query) => {
-    onSearch?.(searchQuery);
-    console.log('Searching for:', searchQuery);
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && onSearch) {
+      onSearch(query);
+    }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSearch();
+  const handleSearchClick = () => {
+    if (onSearch) {
+      onSearch(query);
     }
   };
 
@@ -37,8 +38,6 @@ export default function SimpleSearchBar({
 
   const clearQuery = () => {
     setQuery('');
-    handleSearch('');
-    inputRef.current?.focus();
   };
 
   return (
@@ -49,12 +48,12 @@ export default function SimpleSearchBar({
         <div className={`relative bg-gray-100 rounded-[26px]`}>
           <div className="flex items-center">
             {/* Search Icon */}
-            <div className="pl-4 pr-3">
-              <Search
-                className="w-5 h-5 text-gray-400 cursor-pointer"
-                onClick={() => handleSearch()}
-              />
-            </div>
+            <button
+              onClick={handleSearchClick}
+              className="pl-4 pr-3 hover:bg-gray-200 rounded-l-[26px] transition-colors"
+            >
+              <Search className="w-5 h-5 text-gray-400" />
+            </button>
 
             {/* Input Field */}
             <input

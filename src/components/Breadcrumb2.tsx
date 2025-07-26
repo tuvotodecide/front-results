@@ -1,8 +1,9 @@
-import React, { useState, useEffect, use, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import styles from './Breadcrumb.module.css';
 import { ChevronRight } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { useSearchParams } from 'react-router-dom';
+import Fuse from 'fuse.js';
 import { selectDepartments } from '../store/departments/departmentsSlice';
 import { useLazyGetDepartmentQuery } from '../store/departments/departmentsEndpoints';
 import {
@@ -99,14 +100,38 @@ const Breadcrumb = () => {
   // State to control visibility of the current level selection section
   const [showCurrentLevel, setShowCurrentLevel] = useState(false);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
-  const [query, setQuery] = useState('');
-  const filteredOptions = useMemo(() => {
-    if (query === '') return selectedLevel?.options || [];
-    // Add filtering logic here if needed
-    return selectedLevel?.options.filter((option) =>
-      option.name.toLowerCase().includes(query.toLowerCase())
-    );
-  }, [selectedLevel, query]);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [filteredOptions, setFilteredOptions] = useState<LevelOption[]>([]);
+
+  // update to useMemo to be a function that returns filtered options
+  const filterOptions = (options: LevelOption[], searchTerm: string) => {
+    if (searchTerm === '') return options;
+    // Configure Fuse.js for fuzzy search
+    const fuse = new Fuse(options, {
+      keys: ['name'],
+      threshold: 0.4, // Lower threshold = more strict matching (0.0 = exact match, 1.0 = match anything)
+      includeScore: true,
+      minMatchCharLength: 1,
+    });
+    // Perform fuzzy search and return the items (not the Fuse result objects)
+    return fuse.search(searchTerm).map((result) => result.item);
+  };
+  // const filteredOptions = useMemo(() => {
+  //   const options = selectedLevel?.options || [];
+
+  //   if (searchTerm === '') return options;
+
+  //   // Configure Fuse.js for fuzzy search
+  //   const fuse = new Fuse(options, {
+  //     keys: ['name'],
+  //     threshold: 0.4, // Lower threshold = more strict matching (0.0 = exact match, 1.0 = match anything)
+  //     includeScore: true,
+  //     minMatchCharLength: 1,
+  //   });
+
+  //   // Perform fuzzy search and return the items (not the Fuse result objects)
+  //   return fuse.search(searchTerm).map((result) => result.item);
+  // }, [selectedLevel, searchTerm]);
 
   // Function to build query parameters from selectedPath2
   const buildQueryParams = (path: PathItem2[]) => {
@@ -125,10 +150,11 @@ const Breadcrumb = () => {
     setSearchParams(params);
   }, [selectedPath2, setSearchParams]);
 
+  // Initialize from URL parameters only once on mount
   useEffect(() => {
-    if (selectedPath2.length === 0 && searchParams.size > 0) {
+    if (!isInitialized && searchParams.size > 0 && selectedPath2.length === 0) {
       console.log(
-        '%cSearch params changed:',
+        '%cInitializing from URL params:',
         'color: blue; font-size: 16px; font-weight: bold;',
         Object.fromEntries(searchParams.entries())
       );
@@ -142,7 +168,6 @@ const Breadcrumb = () => {
 
       const promises = [];
       if (departmentId) {
-        // Fetch the department based on the search param
         promises.push(getDepartment(departmentId));
         if (provinceId) {
           promises.push(getProvince(provinceId));
@@ -157,6 +182,7 @@ const Breadcrumb = () => {
           }
         }
       }
+
       if (promises.length > 0) {
         Promise.allSettled(promises).then((results) => {
           const newPath: PathItem2[] = [];
@@ -177,11 +203,13 @@ const Breadcrumb = () => {
             }
           }
           setSelectedPath2(newPath);
-          // setShowCurrentLevel(true);
         });
       }
+      setIsInitialized(true);
+    } else if (!isInitialized) {
+      setIsInitialized(true);
     }
-  }, [searchParams, selectedPath2]);
+  }, [searchParams, isInitialized]);
 
   useEffect(() => {
     if (departments && departments.length > 0) {
@@ -237,6 +265,7 @@ const Breadcrumb = () => {
         index: levelIndex,
       };
       setSelectedLevel(newSelectedLevel);
+      setFilteredOptions(levelOptions);
     } finally {
       setIsLoadingOptions(false);
     }
@@ -331,6 +360,7 @@ const Breadcrumb = () => {
         options: levelOptions,
         index: index,
       });
+      setFilteredOptions(levelOptions);
     } finally {
       setIsLoadingOptions(false);
     }
@@ -345,18 +375,29 @@ const Breadcrumb = () => {
     }
     // setSearchParams({});
   };
+
+  const clearSelectedPath = () => {
+    setSelectedPath2([]);
+    setShowCurrentLevel(false);
+    setSelectedLevel(null);
+    setFilteredOptions([]);
+  };
   // Show the next breadcrumb level form when "ver más" is clicked
-  const handleShowNextLevel = () => {
+  const handleShowNextLevel = async () => {
     setShowCurrentLevel(true);
   };
 
   const handleSearch = (query: string) => {
-    console.log('Searching for:', query);
-    setQuery(query);
+    console.log('Search initiated for query:', query);
+    const internalFilteredOptions = filterOptions(
+      selectedLevel?.options || [],
+      query
+    );
+    setFilteredOptions(internalFilteredOptions);
   };
 
   return (
-    <div className="mx-auto py-6 bg-white">
+    <div className="mx-auto pb-6 bg-white">
       {/* Breadcrumb Navigation */}
       <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
         <nav className="flex items-center gap-x-1.5 gap-y-3 text-sm flex-wrap w-full">
@@ -391,14 +432,21 @@ const Breadcrumb = () => {
               )}
             </React.Fragment>
           ))}
-
-          <button
-            className="ml-auto px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500 transition-colors duration-200 shrink-0"
-            onClick={handleShowNextLevel}
-            disabled={selectedPath2.length >= breadcrumbLevels.length}
-          >
-            Ver más
-          </button>
+          <div className="ml-auto">
+            <button
+              className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500 transition-colors duration-200 shrink-0"
+              onClick={handleShowNextLevel}
+              disabled={selectedPath2.length >= breadcrumbLevels.length}
+            >
+              Ver más
+            </button>
+            <button
+              className="ml-2 px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+              onClick={clearSelectedPath}
+            >
+              Resetear
+            </button>
+          </div>
         </nav>
         {/* Ver más button */}
       </div>

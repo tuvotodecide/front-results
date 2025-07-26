@@ -6,10 +6,8 @@ import {
 } from '@reduxjs/toolkit/query/react';
 import { RootState } from './index';
 
-// const baseApiUrl = import.meta.env.VITE_BASE_API_URL;
-// const baseApiUrl = "http://192.168.1.12:3000/api/v1";
-const baseApiUrl = 'http://localhost:3000/api/v1';
-// const baseApiUrl = 'https://yo-custodio-backend.onrender.com/api/v1';
+const { VITE_BASE_API_URL } = import.meta.env;
+const baseApiUrl = VITE_BASE_API_URL || 'http://localhost:3000/api/v1';
 
 const baseQuery = fetchBaseQuery({
   baseUrl: baseApiUrl,

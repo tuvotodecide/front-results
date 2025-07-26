@@ -168,9 +168,7 @@ const ResultadosGenerales3 = () => {
                           : 'text-gray-500 hover:text-gray-700'
                       }`}
                     >
-                      {activeTab === 'table' && (
-                        <Table className="w-5 h-5 flex-shrink-0" />
-                      )}
+                      <Table className="w-5 h-5 flex-shrink-0" />
                       <span className="max-md:hidden">Tabla</span>
                     </button>
                     <button
@@ -182,9 +180,7 @@ const ResultadosGenerales3 = () => {
                           : 'text-gray-500 hover:text-gray-700'
                       }`}
                     >
-                      {activeTab === 'bars' && (
-                        <BarChart3 className="w-5 h-5 flex-shrink-0" />
-                      )}
+                      <BarChart3 className="w-5 h-5 flex-shrink-0" />
                       <span className="max-md:hidden">Gráfico de Barras</span>
                     </button>
                     <button
@@ -196,9 +192,7 @@ const ResultadosGenerales3 = () => {
                           : 'text-gray-500 hover:text-gray-700'
                       }`}
                     >
-                      {activeTab === 'pie' && (
-                        <PieChart className="w-5 h-5 flex-shrink-0" />
-                      )}
+                      <PieChart className="w-5 h-5 flex-shrink-0" />
                       <span className="max-md:hidden">Gráfico Circular</span>
                     </button>
                   </div>
