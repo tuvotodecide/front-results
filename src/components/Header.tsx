@@ -87,9 +87,7 @@ export const Header: React.FC<HeaderProps> = ({
           </svg>
         )}
       </button>
-      <a href="#" className={styles.logo}>
-        Yo Custodio
-      </a>
+      <a className={styles.logo}>Yo Custodio</a>
       <div className={styles.headerActions}>
         {isLoggedIn ? (
           <>

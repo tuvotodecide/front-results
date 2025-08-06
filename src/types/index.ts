@@ -7,3 +7,4 @@ export * from './provinces';
 export * from './municipalities';
 export * from './electoralSeats';
 export * from './electoralLocations';
+export * from './electoralTable';

@@ -1,28 +1,29 @@
-import React, { useState, useEffect } from "react";
-import styles from "./Breadcrumb.module.css";
-import { ChevronRight } from "lucide-react";
-import { useSelector } from "react-redux";
-import { useSearchParams } from "react-router-dom";
-import Fuse from "fuse.js";
-import { selectDepartments } from "../store/departments/departmentsSlice";
-import { useLazyGetDepartmentQuery } from "../store/departments/departmentsEndpoints";
+import React, { useState, useEffect } from 'react';
+import styles from './Breadcrumb.module.css';
+import { ChevronRight } from 'lucide-react';
+import { useSelector, useDispatch } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
+import Fuse from 'fuse.js';
+import { selectDepartments } from '../store/departments/departmentsSlice';
+import { useLazyGetDepartmentQuery } from '../store/departments/departmentsEndpoints';
 import {
   useLazyGetProvincesByDepartmentIdQuery,
   useLazyGetProvinceQuery,
-} from "../store/provinces/provincesEndpoints";
+} from '../store/provinces/provincesEndpoints';
 import {
   useLazyGetMunicipalitiesByProvinceIdQuery,
   useLazyGetMunicipalityQuery,
-} from "../store/municipalities/municipalitiesEndpoints";
+} from '../store/municipalities/municipalitiesEndpoints';
 import {
   useLazyGetElectoralSeatsByMunicipalityIdQuery,
   useLazyGetElectoralSeatQuery,
-} from "../store/electoralSeats/electoralSeatsEndpoints";
+} from '../store/electoralSeats/electoralSeatsEndpoints';
 import {
   useLazyGetElectoralLocationsByElectoralSeatIdQuery,
   useLazyGetElectoralLocationQuery,
-} from "../store/electoralLocations/electoralLocationsEndpoints";
-import SimpleSearchBar from "./SimpleSearchBar";
+} from '../store/electoralLocations/electoralLocationsEndpoints';
+import SimpleSearchBar from './SimpleSearchBar';
+import { setFilters } from '../store/resultados/resultadosSlice';
 
 interface LevelOption {
   _id: string;
@@ -50,27 +51,28 @@ interface SelectedLevel extends PathItem2 {
 
 const breadcrumbLevels = [
   {
-    id: "departments",
-    title: "Departamento",
+    id: 'department',
+    title: 'Departamento',
   },
   {
-    id: "provinces",
-    title: "Provincia",
+    id: 'province',
+    title: 'Provincia',
   },
   {
-    id: "municipalities",
-    title: "Municipio",
+    id: 'municipality',
+    title: 'Municipio',
   },
   {
-    id: "electoralSeats",
-    title: "Asiento Electoral",
+    id: 'electoralSeat',
+    title: 'Asiento Electoral',
   },
   {
-    id: "electoralLocations",
-    title: "Recinto Electoral",
+    id: 'electoralLocation',
+    title: 'Recinto Electoral',
   },
 ];
 const Breadcrumb = () => {
+  const dispatch = useDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
   const [getDepartment] = useLazyGetDepartmentQuery();
   const [getProvince] = useLazyGetProvinceQuery();
@@ -105,10 +107,10 @@ const Breadcrumb = () => {
 
   // update to useMemo to be a function that returns filtered options
   const filterOptions = (options: LevelOption[], searchTerm: string) => {
-    if (searchTerm === "") return options;
+    if (searchTerm === '') return options;
     // Configure Fuse.js for fuzzy search
     const fuse = new Fuse(options, {
-      keys: ["name"],
+      keys: ['name'],
       threshold: 0.4, // Lower threshold = more strict matching (0.0 = exact match, 1.0 = match anything)
       includeScore: true,
       minMatchCharLength: 1,
@@ -154,16 +156,16 @@ const Breadcrumb = () => {
   useEffect(() => {
     if (!isInitialized && searchParams.size > 0 && selectedPath2.length === 0) {
       console.log(
-        "%cInitializing from URL params:",
-        "color: blue; font-size: 16px; font-weight: bold;",
+        '%cInitializing from URL params:',
+        'color: blue; font-size: 16px; font-weight: bold;',
         Object.fromEntries(searchParams.entries())
       );
       const {
-        departments: departmentId,
-        provinces: provinceId,
-        municipalities: municipalityId,
-        electoralSeats: electoralSeatId,
-        electoralLocations: electoralLocationId,
+        department: departmentId,
+        province: provinceId,
+        municipality: municipalityId,
+        electoralSeat: electoralSeatId,
+        electoralLocation: electoralLocationId,
       } = Object.fromEntries(searchParams.entries());
 
       const promises = [];
@@ -188,7 +190,7 @@ const Breadcrumb = () => {
           const newPath: PathItem2[] = [];
           for (let index = 0; index < results.length; index++) {
             const result = results[index];
-            if (result.status === "fulfilled" && result.value.data) {
+            if (result.status === 'fulfilled' && result.value.data) {
               const level = breadcrumbLevels[index];
               const { _id, name } = result.value.data;
               newPath.push({
@@ -203,6 +205,11 @@ const Breadcrumb = () => {
             }
           }
           setSelectedPath2(newPath);
+          const filters = newPath.reduce((acc, item) => {
+            acc[item.id] = item.selectedOption?.name || '';
+            return acc;
+          }, {} as Record<string, string>);
+          dispatch(setFilters(filters));
         });
       }
       setIsInitialized(true);
@@ -236,6 +243,11 @@ const Breadcrumb = () => {
       selectedOption: optionClicked,
     };
     newPath.push(newItem);
+    const filters = newPath.reduce((acc, item) => {
+      acc[item.id] = item.selectedOption?.name || '';
+      return acc;
+    }, {} as Record<string, string>);
+    dispatch(setFilters(filters));
 
     setSelectedPath2(newPath);
 
@@ -279,14 +291,14 @@ const Breadcrumb = () => {
     }
     const currentPath = pathOverride || selectedPath2;
     console.log(
-      "%ccurrentPath:",
-      "color: blue; font-size: 16px; font-weight: bold;",
+      '%ccurrentPath:',
+      'color: blue; font-size: 16px; font-weight: bold;',
       currentPath
     );
     const idParentOption = currentPath[levelIndex - 1]?.selectedOption?._id;
     console.log(
-      "%cParent option ID:",
-      "color: purple; font-size: 16px; font-weight: bold;",
+      '%cParent option ID:',
+      'color: purple; font-size: 16px; font-weight: bold;',
       idParentOption
     );
     if (!idParentOption) {
@@ -296,53 +308,49 @@ const Breadcrumb = () => {
       case 0:
         // GET departments
         console.log(
-          "%cDepartments fetched:",
-          "color: green; font-size: 16px; font-weight: bold;",
+          '%cDepartments fetched:',
+          'color: green; font-size: 16px; font-weight: bold;',
           options.departments
         );
         return options.departments;
-      case 1: {
+      case 1:
         const resp = await getProvincesByDepartmentId(idParentOption).unwrap();
         console.log(
-          "%cProvinces fetched for department222222:",
-          "color: green; font-size: 16px; font-weight: bold;",
+          '%cProvinces fetched for department222222:',
+          'color: green; font-size: 16px; font-weight: bold;',
           resp
         );
         // GET provinces based on selected department
         return resp;
-      }
-      case 2: {
+      case 2:
         const municipalitiesResp = await getMunicipalitiesByProvinceId(
           idParentOption
         ).unwrap();
         console.log(
-          "%cMunicipalities fetched for province:",
-          "color: green; font-size: 16px; font-weight: bold;",
+          '%cMunicipalities fetched for province:',
+          'color: green; font-size: 16px; font-weight: bold;',
           municipalitiesResp
         );
         return municipalitiesResp;
-      }
-      case 3: {
+      case 3:
         const electoralSeatsResp = await getElectoralSeatsByMunicipalityId(
           idParentOption
         ).unwrap();
         console.log(
-          "%cElectoral seats fetched for municipality:",
-          "color: green; font-size: 16px; font-weight: bold;",
+          '%cElectoral seats fetched for municipality:',
+          'color: green; font-size: 16px; font-weight: bold;',
           electoralSeatsResp
         );
         return electoralSeatsResp;
-      }
-      case 4: {
+      case 4:
         const electoralLocationsResp =
           await getElectoralLocationsByElectoralSeatId(idParentOption).unwrap();
         console.log(
-          "%cElectoral locations fetched for electoral seat:",
-          "color: green; font-size: 16px; font-weight: bold;",
+          '%cElectoral locations fetched for electoral seat:',
+          'color: green; font-size: 16px; font-weight: bold;',
           electoralLocationsResp
         );
         return electoralLocationsResp;
-      }
       default:
         return [];
     }
@@ -392,7 +400,7 @@ const Breadcrumb = () => {
   };
 
   const handleSearch = (query: string) => {
-    console.log("Search initiated for query:", query);
+    console.log('Search initiated for query:', query);
     const internalFilteredOptions = filterOptions(
       selectedLevel?.options || [],
       query
@@ -481,14 +489,14 @@ const Breadcrumb = () => {
             </svg>
           </button>
           <div
-            className={`flex items-center mb-4 justify-between flex-wrap ${styles["suggestions-title-container"]}`}
+            className={`flex items-center mb-4 justify-between flex-wrap ${styles['suggestions-title-container']}`}
           >
             <SimpleSearchBar
-              className={styles["search-bar"]}
+              className={styles['search-bar']}
               onSearch={handleSearch}
             />
             <h2
-              className={`text-lg font-semibold text-gray-800 ${styles["suggestions-title-text"]}`}
+              className={`text-lg font-semibold text-gray-800 ${styles['suggestions-title-text']}`}
             >
               Seleccione {selectedLevel?.title}
             </h2>
@@ -496,7 +504,7 @@ const Breadcrumb = () => {
           <div className="relative">
             {isLoadingOptions && (
               <div
-                className={`flex items-center justify-center py-12 ${styles["animate-fadeIn"]}`}
+                className={`flex items-center justify-center py-12 ${styles['animate-fadeIn']}`}
               >
                 <div className="flex items-center space-x-2">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -508,7 +516,7 @@ const Breadcrumb = () => {
             )}
 
             {!isLoadingOptions && selectedLevel?.options && (
-              <div className={styles["animate-fadeInUp"]}>
+              <div className={styles['animate-fadeInUp']}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                   {filteredOptions.map((option, index) => (
                     <button
@@ -516,7 +524,7 @@ const Breadcrumb = () => {
                       onClick={() =>
                         handleOptionClick(selectedLevel.index, option)
                       }
-                      className={`p-3 text-left border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${styles["animate-fadeInStagger"]}`}
+                      className={`p-3 text-left border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${styles['animate-fadeInStagger']}`}
                       style={{ animationDelay: `${index * 50}ms` }}
                     >
                       <div className="font-medium text-gray-800">

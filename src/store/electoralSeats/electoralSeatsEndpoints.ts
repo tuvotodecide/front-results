@@ -1,10 +1,36 @@
 import { apiSlice } from '../apiSlice';
-import { ElectoralSeatsType } from '../../types';
+import {
+  PaginatedResponse,
+  ElectoralSeatsType,
+  ElectoralSeatByMunicipalityType,
+  CreateElectoralSeatType,
+  UpdateElectoralSeatType,
+} from '../../types';
+
+interface QueryElectoralSeatsParams {
+  page?: number;
+  limit?: number;
+  sort?: string;
+  order?: Record<string, any>;
+  search?: string;
+  active?: boolean;
+}
 
 export const electoralSeatsApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
+    getElectoralSeats: builder.query<
+      PaginatedResponse<ElectoralSeatsType>,
+      QueryElectoralSeatsParams
+    >({
+      query: (params) => ({
+        url: '/geographic/electoral-seats',
+        params,
+      }),
+      keepUnusedDataFor: 60,
+      providesTags: () => [{ type: 'ElectoralSeats' as const, id: 'LIST' }],
+    }),
     getElectoralSeatsByMunicipalityId: builder.query<
-      ElectoralSeatsType[],
+      ElectoralSeatByMunicipalityType[],
       string
     >({
       query: (municipalityId) => ({
@@ -22,11 +48,49 @@ export const electoralSeatsApiSlice = apiSlice.injectEndpoints({
         { type: 'ElectoralSeats' as const, id },
       ],
     }),
+    createElectoralSeat: builder.mutation<
+      ElectoralSeatsType,
+      CreateElectoralSeatType
+    >({
+      query: (body) => ({
+        url: '/geographic/electoral-seats',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [{ type: 'ElectoralSeats', id: 'LIST' }],
+    }),
+    updateElectoralSeat: builder.mutation<
+      ElectoralSeatsType,
+      { id: string; item: UpdateElectoralSeatType }
+    >({
+      query: ({ id, item }) => ({
+        url: `/geographic/electoral-seats/${id}`,
+        method: 'PATCH',
+        body: item,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'ElectoralSeats', id: 'LIST' },
+        { type: 'ElectoralSeats', id },
+      ],
+    }),
+    deleteElectoralSeat: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/geographic/electoral-seats/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: [{ type: 'ElectoralSeats', id: 'LIST' }],
+    }),
   }),
 });
 
 export const {
+  useGetElectoralSeatsQuery,
+  useLazyGetElectoralSeatsQuery,
   useGetElectoralSeatsByMunicipalityIdQuery,
   useLazyGetElectoralSeatsByMunicipalityIdQuery,
+  useGetElectoralSeatQuery,
   useLazyGetElectoralSeatQuery,
+  useCreateElectoralSeatMutation,
+  useUpdateElectoralSeatMutation,
+  useDeleteElectoralSeatMutation,
 } = electoralSeatsApiSlice;

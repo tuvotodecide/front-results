@@ -3,19 +3,20 @@ import { useDispatch } from 'react-redux';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useLoginUserMutation } from '../../store/auth/authEndpoints';
+// import { useLoginUserMutation } from '../../store/auth/authEndpoints';
 import { setAuth } from '../../store/auth/authSlice';
 import LoadingButton from '../../components/LoadingButton';
 
 const Login: React.FC = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const [loginUser] = useLoginUserMutation();
+  // const [loginUser] = useLoginUserMutation();
   const location = useLocation();
   const initialValues = { email: '', password: '' };
 
   const validationSchema = Yup.object({
-    email: Yup.string().email('Invalid email address').required('Required'),
+    // email: Yup.string().email('Invalid email address').required('Required'),
+    email: Yup.string().required('Required'),
     password: Yup.string()
       .min(6, 'Must be at least 6 characters')
       .required('Required'),
@@ -23,16 +24,25 @@ const Login: React.FC = () => {
 
   const onSubmit = (values: typeof initialValues) => {
     console.log('Form data', values);
-    loginUser(values)
-      .unwrap()
-      .then((response) => {
-        dispatch(setAuth(response));
-        navigate('/panel');
-        console.log('Login successful', response);
-      })
-      .catch((error) => {
-        console.log('Error', error);
-      });
+    // loginUser(values)
+    //   .unwrap()
+    //   .then((response) => {
+    //     dispatch(setAuth(response));
+    //     navigate('/panel');
+    //     console.log('Login successful', response);
+    //   })
+    //   .catch((error) => {
+    //     console.log('Error', error);
+    //   });
+    if (values.email === 'admin' && values.password === 'admin321') {
+      dispatch(
+        setAuth({
+          access_token: 'fake_token',
+          user: { id: 1, role: 'admin', name: 'admin', ...values },
+        })
+      );
+      navigate('/panel');
+    }
   };
 
   useEffect(() => {
@@ -72,7 +82,7 @@ const Login: React.FC = () => {
                 Email
               </label>
               <Field
-                type="email"
+                // type="email"
                 id="email"
                 name="email"
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"

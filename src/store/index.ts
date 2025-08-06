@@ -7,6 +7,7 @@ import {
   departmentsSlice,
   departmentsState,
 } from './departments/departmentsSlice';
+import { resultsSlice } from './resultados/resultadosSlice';
 
 export interface RootState {
   [apiSlice.reducerPath]: ReturnType<typeof apiSlice.reducer>;
@@ -21,6 +22,7 @@ const store = configureStore({
     auth: authSlice.reducer,
     recintos: recintosSlice.reducer,
     departments: departmentsSlice.reducer,
+    results: resultsSlice.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(apiSlice.middleware),

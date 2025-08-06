@@ -1,34 +1,40 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaFileAlt, FaChartBar, FaChalkboardTeacher } from 'react-icons/fa';
+import { FaFileAlt } from 'react-icons/fa';
 
 const PanelControl: React.FC = () => {
   const navigate = useNavigate();
 
   const cards = [
     {
-      icon: <FaChalkboardTeacher className="text-gray-600 text-4xl" />,
-      title: 'Partidos',
-      description: 'Administra los partidos electorales.',
-      path: '/partidos',
-    },
-    {
-      icon: <FaChalkboardTeacher className="text-gray-600 text-4xl" />,
-      title: 'Recintos Electorales',
-      description: 'Administra los recintos electorales.',
-      path: '/recintos',
+      icon: <FaFileAlt className="text-gray-600 text-4xl" />,
+      title: 'Departamentos',
+      description: 'Administra los departamentos.',
+      path: '/departamentos',
     },
     {
       icon: <FaFileAlt className="text-gray-600 text-4xl" />,
-      title: 'Actas',
-      description: 'Envía actas de evaluación de manera rápida.',
-      path: '/actas',
+      title: 'Provincias',
+      description: 'Administra las provincias.',
+      path: '/provincias',
     },
     {
-      icon: <FaChartBar className="text-gray-600 text-4xl" />,
-      title: 'Resultados',
-      description: 'Consulta los resultados de las evaluaciones.',
-      path: '/resultados',
+      icon: <FaFileAlt className="text-gray-600 text-4xl" />,
+      title: 'Municipios',
+      description: 'Administra los municipios.',
+      path: '/municipios',
+    },
+    {
+      icon: <FaFileAlt className="text-gray-600 text-4xl" />,
+      title: 'Asientos Electorales',
+      description: 'Administrar los Asientos Electorales.',
+      path: '/asientos-electorales',
+    },
+    {
+      icon: <FaFileAlt className="text-gray-600 text-4xl" />,
+      title: 'Recintos Electorales',
+      description: 'Administrar los Recintos Electorales.',
+      path: '/recintos-electorales',
     },
   ];
 

@@ -1,5 +1,10 @@
 import { apiSlice } from '../apiSlice';
-import { PaginatedResponse, ProvincesType } from '../../types';
+import {
+  PaginatedResponse,
+  ProvincesType,
+  CreateProvinceType,
+  UpdateProvinceType,
+} from '../../types';
 
 interface QueryProvincesParams {
   page?: number;
@@ -39,6 +44,35 @@ export const provincesApiSlice = apiSlice.injectEndpoints({
         { type: 'Provinces' as const, id },
       ],
     }),
+    createProvince: builder.mutation<ProvincesType, CreateProvinceType>({
+      query: (body) => ({
+        url: '/geographic/provinces',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [{ type: 'Provinces', id: 'LIST' }],
+    }),
+    updateProvince: builder.mutation<
+      ProvincesType,
+      { id: string; item: UpdateProvinceType }
+    >({
+      query: ({ id, item }) => ({
+        url: `/geographic/provinces/${id}`,
+        method: 'PATCH',
+        body: item,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Provinces', id: 'LIST' },
+        { type: 'Provinces', id },
+      ],
+    }),
+    deleteProvince: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/geographic/provinces/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: [{ type: 'Provinces', id: 'LIST' }],
+    }),
   }),
 });
 
@@ -49,4 +83,7 @@ export const {
   useLazyGetProvincesByDepartmentIdQuery,
   useGetProvinceQuery,
   useLazyGetProvinceQuery,
+  useCreateProvinceMutation,
+  useUpdateProvinceMutation,
+  useDeleteProvinceMutation,
 } = provincesApiSlice;

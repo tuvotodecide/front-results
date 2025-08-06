@@ -64,9 +64,9 @@ const Modal: React.FC<PropsWithChildren<ModalProps>> = ({
       className="backdrop:bg-gray-900/20 backdrop:backdrop-blur-[2px] p-0 bg-transparent m-auto rounded-lg overflow-hidden w-[95vw] sm:w-full"
     >
       <div
-        className={`bg-white ${sizeClasses[size]} w-full h-[90vh] max-h-[90vh] overflow-y-auto overscroll-contain mx-auto ${className}`}
+        className={`bg-white ${sizeClasses[size]} w-full max-h-[90vh] overflow-y-auto overscroll-contain mx-auto ${className}`}
       >
-        <div className="relative h-full">
+        <div className="relative">
           {showClose && (
             <button
               onClick={handleClose}
