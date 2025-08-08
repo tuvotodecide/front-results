@@ -16,6 +16,9 @@ import ElectoralSeats from './pages/ElectoralSeats/ElectoralSeats';
 import ElectoralSeatForm from './pages/ElectoralSeats/ElectoralSeatForm';
 import ElectoralLocations from './pages/ElectoralLocations/ElectoralLocations';
 import ElectoralLocationForm from './pages/ElectoralLocations/ElectoralLocationForm';
+import ElectoralTables from './pages/ElectoralTables/ElectoralTables';
+import ElectoralTableForm from './pages/ElectoralTables/ElectoralTableForm';
+import Configurations from './pages/Configurations/Configurations';
 
 const Home = React.lazy(() => import('./pages/Home'));
 const Login = React.lazy(() => import('./pages/Auth/Login'));
@@ -121,6 +124,13 @@ const AppRouter: React.FC = () => {
                 path="/recintos-electorales/editar/:id"
                 element={<ElectoralLocationForm />}
               />
+              <Route path="/mesas" element={<ElectoralTables />} />
+              <Route path="/mesas/nuevo" element={<ElectoralTableForm />} />
+              <Route
+                path="/mesas/editar/:id"
+                element={<ElectoralTableForm />}
+              />
+              <Route path="/configuraciones" element={<Configurations />} />
             </Route>
           </Route>
         </Routes>

@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { ElectoralTableType } from '../../types';
 
 interface Mesa {
   number: number;
@@ -7,7 +8,11 @@ interface Mesa {
   photoCount?: number; // Number of photos of the electoral sheet
 }
 
-const TablesSection = () => {
+interface TablesSectionProps {
+  tables?: ElectoralTableType[];
+}
+
+const TablesSection = ({ tables = [] }: TablesSectionProps) => {
   const navigate = useNavigate();
 
   // Sample data - you can replace this with your actual data source
@@ -96,12 +101,12 @@ const TablesSection = () => {
     }
   };
 
-  const handleCardClick = (mesa: Mesa) => {
-    if (mesa.status === 'unprocessed') {
-      return; // Do nothing for unprocessed mesas
-    }
+  const handleCardClick = (table: ElectoralTableType) => {
+    // if (mesa.status === 'unprocessed') {
+    //   return; // Do nothing for unprocessed mesas
+    // }
     // Navigate to the mesa details page with the mesa number as ID
-    navigate(`/resultados/mesa/${mesa.code}`);
+    navigate(`/resultados/mesa/${table.tableCode}`);
   };
 
   return (
@@ -114,11 +119,11 @@ const TablesSection = () => {
           maxWidth: '100%',
         }}
       >
-        {mesas.map((mesa) => (
+        {tables.map((table) => (
           <div
-            key={mesa.number}
-            style={getCardStyle(mesa.status)}
-            onClick={() => handleCardClick(mesa)}
+            key={table._id}
+            style={getCardStyle('processed')}
+            onClick={() => handleCardClick(table)}
           >
             <div
               style={{
@@ -141,7 +146,7 @@ const TablesSection = () => {
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  Mesa {mesa.number}
+                  Mesa {table.tableNumber}
                 </div>
                 <div
                   style={{
@@ -153,7 +158,7 @@ const TablesSection = () => {
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {mesa.code}
+                  {table.tableCode}
                 </div>
               </div>
 
@@ -165,7 +170,8 @@ const TablesSection = () => {
                   flexShrink: 0,
                 }}
               >
-                {mesa.photoCount !== undefined && (
+                {/* {mesa.photoCount !== undefined && ( */}
+                {1 !== undefined && (
                   <div
                     style={{
                       fontSize: '12px',
@@ -185,7 +191,8 @@ const TablesSection = () => {
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {mesa.photoCount} foto{mesa.photoCount !== 1 ? 's' : ''}
+                      {/* {mesa.photoCount} foto{mesa.photoCount !== 1 ? 's' : ''} */}
+                      {1} foto{1 !== 1 ? 's' : ''}
                     </span>
                   </div>
                 )}
@@ -200,7 +207,8 @@ const TablesSection = () => {
                     overflow: 'hidden',
                   }}
                 >
-                  <div style={getStatusIndicatorStyle(mesa.status)}></div>
+                  {/* <div style={getStatusIndicatorStyle(mesa.status)}></div> */}
+                  <div style={getStatusIndicatorStyle('processed')}></div>
                   <span
                     style={{
                       overflow: 'hidden',
@@ -208,7 +216,8 @@ const TablesSection = () => {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {getStatusText(mesa.status)}
+                    {/* {getStatusText(mesa.status)} */}
+                    {getStatusText('processed')}
                   </span>
                 </div>
               </div>

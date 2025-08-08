@@ -76,37 +76,54 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
           </ul>
         </div>
         {isLoggedIn && (
-          <div className={styles.section}>
-            <h3 className={styles.title}>Ubicaciones geográficas</h3>
-            <ul className={styles.menu}>
-              {' '}
-              <li className={styles.menuItem}>
-                <Link to="/departamentos" className={styles.menuLink}>
-                  <span className={styles.icon}>⚙️</span>Departamentos
-                </Link>
-              </li>
-              <li className={styles.menuItem}>
-                <Link to="/provincias" className={styles.menuLink}>
-                  <span className={styles.icon}>🏛️</span>Provincias
-                </Link>
-              </li>
-              <li className={styles.menuItem}>
-                <Link to="/municipios" className={styles.menuLink}>
-                  <span className={styles.icon}>🏫</span>Municipios
-                </Link>
-              </li>
-              <li className={styles.menuItem}>
-                <Link to="/asientos-electorales" className={styles.menuLink}>
-                  <span className={styles.icon}>📋</span>Asientos Electorales
-                </Link>
-              </li>
-              <li className={styles.menuItem}>
-                <Link to="/recintos-electorales" className={styles.menuLink}>
-                  <span className={styles.icon}>📋</span>Recintos Electorales
-                </Link>
-              </li>
-            </ul>
-          </div>
+          <>
+            <div className={styles.section}>
+              <h3 className={styles.title}>Ubicaciones geográficas</h3>
+              <ul className={styles.menu}>
+                {' '}
+                <li className={styles.menuItem}>
+                  <Link to="/departamentos" className={styles.menuLink}>
+                    <span className={styles.icon}>⚙️</span>Departamentos
+                  </Link>
+                </li>
+                <li className={styles.menuItem}>
+                  <Link to="/provincias" className={styles.menuLink}>
+                    <span className={styles.icon}>🏛️</span>Provincias
+                  </Link>
+                </li>
+                <li className={styles.menuItem}>
+                  <Link to="/municipios" className={styles.menuLink}>
+                    <span className={styles.icon}>🏫</span>Municipios
+                  </Link>
+                </li>
+                <li className={styles.menuItem}>
+                  <Link to="/asientos-electorales" className={styles.menuLink}>
+                    <span className={styles.icon}>📋</span>Asientos Electorales
+                  </Link>
+                </li>
+                <li className={styles.menuItem}>
+                  <Link to="/recintos-electorales" className={styles.menuLink}>
+                    <span className={styles.icon}>📋</span>Recintos Electorales
+                  </Link>
+                </li>
+                <li className={styles.menuItem}>
+                  <Link to="/mesas" className={styles.menuLink}>
+                    <span className={styles.icon}>📋</span>Mesas
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div className={styles.section}>
+              <h3 className={styles.title}>Configuraciones</h3>
+              <ul className={styles.menu}>
+                <li className={styles.menuItem}>
+                  <Link to="/configuraciones" className={styles.menuLink}>
+                    <span className={styles.icon}>⚙️</span>Configuraciones
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </>
         )}
       </aside>
       {isSmallScreen && (

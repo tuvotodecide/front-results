@@ -57,9 +57,9 @@ const LocationSection = ({
   return (
     <div className="w-full flex flex-col gap-2 justify-center items-start sm:flex-row sm:flex-wrap sm:justify-start sm:gap-x-6 ">
       {location.map(
-        (item) =>
+        (item, index) =>
           item.value && (
-            <div className="flex flex-col gap-2 px-3 py-2">
+            <div className="flex flex-col gap-2 px-3 py-2" key={index}>
               <div className="text-md font-bold text-slate-900 flex items-center gap-2 lg:text-lg">
                 <item.icon className="w-5 h-5" />
                 <h3 className="text-md font-bold lg:text-lg text-gray-600">

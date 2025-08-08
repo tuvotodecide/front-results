@@ -2,10 +2,11 @@ import { apiSlice } from '../apiSlice';
 import {
   PaginatedResponse,
   ElectoralTablesType,
-  ElectoralTableByLocationType,
+  ElectoralTableType,
   ElectoralTableByCodeType,
   CreateElectoralTableType,
   UpdateElectoralTableType,
+  ElectoralTableTransformedType,
 } from '../../types';
 
 interface QueryElectoralTablesParams {
@@ -31,7 +32,7 @@ export const electoralTablesApiSlice = apiSlice.injectEndpoints({
       providesTags: () => [{ type: 'ElectoralTables' as const, id: 'LIST' }],
     }),
     getElectoralTablesByElectoralLocationId: builder.query<
-      ElectoralTableByLocationType[],
+      ElectoralTableType[],
       string
     >({
       query: (electoralLocationId) => ({
@@ -50,7 +51,7 @@ export const electoralTablesApiSlice = apiSlice.injectEndpoints({
       ],
     }),
     getElectoralTableByTableCode: builder.query<
-      ElectoralTableByCodeType,
+      ElectoralTableTransformedType,
       string
     >({
       query: (tableCode) =>

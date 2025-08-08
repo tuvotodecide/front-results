@@ -8,6 +8,9 @@ import { useLazyGetResultsByLocationQuery } from '../../store/resultados/resulta
 import Graphs from './Graphs';
 import StatisticsBars from './StatisticsBars';
 import TablesSection from './TablesSection';
+import { useLazyGetElectoralTablesByElectoralLocationIdQuery } from '../../store/electoralTables/electoralTablesEndpoints';
+import { useSearchParams } from 'react-router-dom';
+import { ElectoralTableType } from '../../types';
 
 // const combinedData = [
 //   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -51,6 +54,7 @@ const menuOptions = [
 ];
 
 const ResultadosGenerales3 = () => {
+  const [searchParams] = useSearchParams();
   // const [resultsData, setResultsData] = useState([]);
   const [presidentialData, setPresidentialData] = useState<
     Array<{ name: string; value: number; color: string }>
@@ -61,21 +65,24 @@ const ResultadosGenerales3 = () => {
   const [participation, setParticipation] = useState<
     Array<{ name: string; value: any; color: string }>
   >([]);
+  const [tablesData, setTablesData] = useState<ElectoralTableType[]>([]);
   const [selectedOption, setSelectedOption] = useState(menuOptions[0]);
   useGetDepartmentsQuery({});
   const [getResultsByLocation] = useLazyGetResultsByLocationQuery({});
+  const [getTablesByLocationId] =
+    useLazyGetElectoralTablesByElectoralLocationIdQuery({});
   const filters = useSelector(selectFilters);
 
   useEffect(() => {
     if (filters) {
       console.log('Current filters:', filters);
-      const cleanedFilters = Object.fromEntries(
-        Object.entries(filters).filter(
-          ([key, value]) => value !== '' && key !== 'electoralLocation'
-        )
-      );
-      console.log('Cleaned filters:', cleanedFilters);
-      getResultsByLocation({ ...cleanedFilters, electionType: 'presidential' })
+      // const cleanedFilters = Object.fromEntries(
+      //   Object.entries(filters).filter(
+      //     ([key, value]) => value !== '' && key !== 'electoralLocation'
+      //   )
+      // );
+      // console.log('Cleaned filters:', cleanedFilters);
+      getResultsByLocation({ ...filters, electionType: 'presidential' })
         .unwrap()
         .then((data) => {
           console.log('Fetched presidential data:', data);
@@ -113,7 +120,7 @@ const ResultadosGenerales3 = () => {
           ];
           setParticipation(participationData);
         });
-      getResultsByLocation({ ...cleanedFilters, electionType: 'deputies' })
+      getResultsByLocation({ ...filters, electionType: 'deputies' })
         .unwrap()
         .then((data) => {
           console.log('Fetched deputies data:', data);
@@ -131,6 +138,19 @@ const ResultadosGenerales3 = () => {
         });
     }
   }, [filters]);
+
+  useEffect(() => {
+    const electoralLocationId = searchParams.get('electoralLocation');
+    console.log('Electoral Location ID:', electoralLocationId);
+    if (electoralLocationId) {
+      getTablesByLocationId(electoralLocationId)
+        .unwrap()
+        .then((data) => {
+          setTablesData(data);
+          // Process tables data if needed
+        });
+    }
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -221,7 +241,9 @@ const ResultadosGenerales3 = () => {
                   // <Graphs data={deputiesData} />
                   <Graphs data={deputiesData} />
                 )}
-                {selectedOption.id === 'tables' && <TablesSection />}
+                {selectedOption.id === 'tables' && (
+                  <TablesSection tables={tablesData} />
+                )}
               </div>
             </div>
           </div>

@@ -32,7 +32,7 @@ export interface ElectoralTablesType {
 }
 
 // Interface for electoral table data with unpopulated electoralLocationId (used by getElectoralTablesByElectoralLocationId)
-export interface ElectoralTableByLocationType {
+export interface ElectoralTableType {
   _id: string;
   tableNumber: string;
   tableCode: string;
@@ -52,6 +52,38 @@ export interface ElectoralTableByCodeType {
     _id: string;
     address: string;
     code: string;
+    name: string;
+  };
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
+}
+
+export interface ElectoralTableTransformedType {
+  _id: string;
+  tableNumber: string;
+  tableCode: string;
+  department: {
+    _id: string;
+    name: string;
+  };
+  province: {
+    _id: string;
+    name: string;
+  };
+  municipality: {
+    _id: string;
+    name: string;
+  };
+  electoralLocation: {
+    _id: string;
+    address: string;
+    code: string;
+    name: string;
+  };
+  electoralSeat: {
+    _id: string;
     name: string;
   };
   active: boolean;

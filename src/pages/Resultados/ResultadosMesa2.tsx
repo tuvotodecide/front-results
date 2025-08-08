@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Eye, FileText, Users } from 'lucide-react';
 import SearchBar from '../../components/SearchBar';
 import LocationSection from './LocationSection';
 import Graphs from './Graphs';
 import ImagesSection from './ImagesSection';
 import { useParams } from 'react-router-dom';
+import { useGetElectoralTableByTableCodeQuery } from '../../store/electoralTables/electoralTablesEndpoints';
 
 const combinedData = [
   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -50,6 +51,19 @@ const menuOptions = [
 const ResultadosMesa2 = () => {
   const { id } = useParams();
   const [selectedOption, setSelectedOption] = useState(menuOptions[0]);
+  const { data: electoralTableData } = useGetElectoralTableByTableCodeQuery(
+    id || '',
+    {
+      skip: !id, // Skip the query if id is falsy
+    }
+  );
+
+  useEffect(() => {
+    if (electoralTableData) {
+      console.log('Fetched electoral table data:', electoralTableData);
+      // Process the electoral table data as needed
+    }
+  }, [electoralTableData]);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -60,22 +74,61 @@ const ResultadosMesa2 = () => {
         <div className="bg-white rounded-xl shadow-lg py-6 px-6">
           <div className="flex items-center mb-4 flex-wrap">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-600">
-              {id ? `Mesa #${id}` : 'Mesa #25548'}
+              {electoralTableData
+                ? `Mesa #${electoralTableData?.tableNumber} - ${electoralTableData?.tableCode}`
+                : 'No se encontró la mesa'}
             </h1>
             <SearchBar className="shrink-1 ml-auto" />
           </div>
-          <div className="bg-gray-50 rounded-lg shadow-sm p-4 mb-4">
-            <h3 className="text-xl font-bold text-gray-800 mb-6 pb-3 border-b border-gray-200">
-              Ubicacion
-            </h3>
-            <LocationSection
-              department="Cochabamba"
-              province="Esteban Arze"
-              municipality="Anzaldo"
-              electoralLocation="U.E. Arturo Sarmiento de Quiriria"
-              electoralSeat="Quiriria"
-            />
-          </div>
+          {electoralTableData && (
+            <div className="bg-gray-50 rounded-lg shadow-sm p-4 mb-4 flex flex-row flex-wrap gap-8">
+              <div className="basis-[300px] grow-2 shrink-0">
+                <h3 className="text-xl font-bold text-gray-800 mb-6 pb-3 border-b border-gray-200">
+                  Ubicacion
+                </h3>
+                <LocationSection
+                  department={electoralTableData?.department?.name}
+                  province={electoralTableData?.province?.name}
+                  municipality={electoralTableData?.municipality?.name}
+                  electoralLocation={
+                    electoralTableData?.electoralLocation?.name
+                  }
+                  electoralSeat={electoralTableData?.electoralSeat?.name}
+                />
+              </div>
+              <div className="basis-[300px] grow-1 shrink-0">
+                <h3 className="text-xl font-bold text-gray-800 mb-6 pb-3 border-b border-gray-200">
+                  Datos Mesa
+                </h3>
+                <div className="flex flex-wrap gap-6">
+                  <div>
+                    <h3 className="text-md font-bold lg:text-lg text-gray-600">
+                      Numero de mesa
+                    </h3>
+                    <h3 className="text-md font-bold lg:text-lg">
+                      {electoralTableData?.tableNumber}
+                    </h3>
+                  </div>
+                  <div>
+                    <h3 className="text-md font-bold lg:text-lg text-gray-600">
+                      Codigo de mesa
+                    </h3>
+                    <h3 className="text-md font-bold lg:text-lg">
+                      {electoralTableData?.tableCode}
+                    </h3>
+                  </div>
+                  <div className="w-full">
+                    <h3 className="text-md font-bold lg:text-lg text-gray-600">
+                      Direccion
+                    </h3>
+                    <h3 className="text-md font-bold lg:text-lg">
+                      {electoralTableData?.electoralLocation?.address}
+                    </h3>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="w-full flex flex-wrap gap-4">
             <div className="bg-gray-50 rounded-lg shadow-sm p-4 basis-[200px] grow-1 shrink-0">
               <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
