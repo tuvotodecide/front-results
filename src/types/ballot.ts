@@ -1,18 +1,51 @@
-export interface VerificationHistory {
-  status: string;
-  verifiedAt: string;
-  notes: string;
-  _id: string;
+interface PartyVote {
+  partyId: string;
+  votes: number;
 }
 
-export interface Ballot {
+interface VoteCategory {
+  validVotes: number;
+  nullVotes: number;
+  blankVotes: number;
+  partyVotes: PartyVote[];
+  totalVotes: number;
+}
+
+interface Circunscripcion {
+  number: number;
+  type: string;
+  name: string;
+}
+
+interface Location {
+  department: string;
+  province: string;
+  municipality: string;
+  electoralSeat: string;
+  electoralLocationName: string;
+  district: string;
+  zone: string;
+  circunscripcion: Circunscripcion;
+}
+
+interface Votes {
+  parties: VoteCategory;
+  deputies: VoteCategory;
+}
+
+export interface BallotType {
   _id: string;
-  status: string;
-  trackingId: string;
   tableNumber: string;
   tableCode: string;
-  citizenId?: string;
-  locationCode?: string;
-  file?: string;
-  verificationHistory: VerificationHistory[];
+  electoralLocationId: string;
+  location: Location;
+  votes: Votes;
+  ipfsUri: string;
+  ipfsCid: string;
+  recordId: string;
+  tableIdIpfs: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
 }

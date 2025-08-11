@@ -27,9 +27,6 @@ const PanelControl = React.lazy(() => import('./pages/PanelControl'));
 
 const CrearCuenta = React.lazy(() => import('./pages/Auth/CrearCuenta'));
 const ProtectedRoutes = React.lazy(() => import('./pages/ProtectedRoutes'));
-const Actas = React.lazy(() => import('./pages/Actas/Actas'));
-const VerActa = React.lazy(() => import('./pages/Actas/VerActa'));
-const ActasForm = React.lazy(() => import('./pages/Actas/ActasForm'));
 const BasicLayout = React.lazy(() => import('./components/BasicLayout'));
 const Partidos = React.lazy(() => import('./pages/Partidos/Partidos'));
 const PartidoForm = React.lazy(() => import('./pages/Partidos/PartidoForm'));
@@ -60,8 +57,6 @@ const AppRouter: React.FC = () => {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/crearCuenta" element={<CrearCuenta />} />
-            <Route path="/enviarActa" element={<ActasForm />} />
-            <Route path="/verActa" element={<VerActa />} />
             <Route path="/resultados" element={<ResultadosGenerales3 />} />
             <Route path="/resultados/mesa" element={<ResultadosMesa2 />} />
             <Route
@@ -78,10 +73,6 @@ const AppRouter: React.FC = () => {
               <Route path="/partidos" element={<Partidos />} />
               <Route path="/partidos/nuevo" element={<PartidoForm />} />
               <Route path="/partidos/editar/:id" element={<PartidoForm />} />
-
-              <Route path="/actas" element={<Actas />} />
-              <Route path="/actas/nuevo" element={<ActasForm />} />
-              <Route path="/actas/editar/:id" element={<ActasForm />} />
 
               <Route path="/departamentos" element={<Departments />} />
               <Route path="/departamentos/nuevo" element={<DepartmentForm />} />
