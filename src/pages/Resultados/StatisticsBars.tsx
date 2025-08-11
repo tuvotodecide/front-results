@@ -22,18 +22,18 @@ interface StatisticsBarsProps {
 
 const StatisticsBars = ({
   voteData = [],
-  processedTables = { current: 0, total: 0 },
-  totalTables = 0,
-  totalVoters = 0,
-  totalActs = 0,
-  totalWitnesses = 0,
-}: StatisticsBarsProps) => {
+}: // processedTables = { current: 0, total: 0 },
+// totalTables = 0,
+// totalVoters = 0,
+// totalActs = 0,
+// totalWitnesses = 0,
+StatisticsBarsProps) => {
   const [animationComplete, setAnimationComplete] = useState(false);
 
   // Data from the image
-  const progressPercentage = processedTables.total
-    ? ((processedTables.current / processedTables.total) * 100).toFixed(1)
-    : 0;
+  // const progressPercentage = processedTables.total
+  //   ? ((processedTables.current / processedTables.total) * 100).toFixed(1)
+  //   : 0;
 
   const totalVotes = voteData.reduce((sum, item) => sum + item.value, 0);
 
@@ -44,12 +44,12 @@ const StatisticsBars = ({
   }));
 
   // Cards data
-  const cardsData = [
-    { title: 'Número de mesas', value: totalTables },
-    { title: 'Votantes habilitados', value: totalVoters },
-    { title: 'Actas subidas', value: totalActs },
-    { title: 'Número de atestiguamientos', value: totalWitnesses },
-  ];
+  // const cardsData = [
+  //   { title: 'Número de mesas', value: totalTables },
+  //   { title: 'Votantes habilitados', value: totalVoters },
+  //   { title: 'Actas subidas', value: totalActs },
+  //   { title: 'Número de atestiguamientos', value: totalWitnesses },
+  // ];
 
   useEffect(() => {
     const timer = setTimeout(() => setAnimationComplete(true), 100);

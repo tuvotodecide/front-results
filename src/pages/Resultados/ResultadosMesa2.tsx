@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Eye, FileText, Users } from 'lucide-react';
 import LocationSection from './LocationSection';
 import Graphs from './Graphs';
 import ImagesSection from './ImagesSection';
@@ -12,46 +11,16 @@ import BackButton from '../../components/BackButton';
 import { useLazyGetBallotByTableCodeQuery } from '../../store/ballots/ballotsEndpoints';
 import { BallotType } from '../../types';
 
-const combinedData = [
-  { name: 'Party A', value: 100, color: '#FF6384' },
-  { name: 'Party B', value: 200, color: '#36A2EB' },
-  { name: 'Party C', value: 150, color: '#FFCE56' },
-  { name: 'Party D', value: 80, color: '#4BC0C0' },
-  { name: 'Party E', value: 120, color: '#9966FF' },
-  { name: 'Party F', value: 90, color: '#FF9F40' },
-  { name: 'Party G', value: 60, color: '#FF6384' },
-  { name: 'Party H', value: 110, color: '#36A2EB' },
-];
-
-const menuOptions = [
-  {
-    id: 'resultados_presidenciales',
-    name: 'Resultados presidenciales',
-    icon: {
-      component: Eye,
-      color: 'text-purple-600',
-      background: 'bg-purple-100',
-    },
-  },
-  {
-    id: 'resultados_diputados',
-    name: 'Resultados diputados',
-    icon: {
-      component: Users,
-      color: 'text-green-600',
-      background: 'bg-green-100',
-    },
-  },
-  {
-    id: 'images',
-    name: 'Imagenes',
-    icon: {
-      component: FileText,
-      color: 'text-blue-600',
-      background: 'bg-blue-100',
-    },
-  },
-];
+// const combinedData = [
+//   { name: 'Party A', value: 100, color: '#FF6384' },
+//   { name: 'Party B', value: 200, color: '#36A2EB' },
+//   { name: 'Party C', value: 150, color: '#FFCE56' },
+//   { name: 'Party D', value: 80, color: '#4BC0C0' },
+//   { name: 'Party E', value: 120, color: '#9966FF' },
+//   { name: 'Party F', value: 90, color: '#FF9F40' },
+//   { name: 'Party G', value: 60, color: '#FF6384' },
+//   { name: 'Party H', value: 110, color: '#36A2EB' },
+// ];
 
 const ResultadosMesa2 = () => {
   const { tableCode } = useParams();
@@ -70,7 +39,7 @@ const ResultadosMesa2 = () => {
   const [images, setImages] = useState<BallotType[]>([]);
   const {
     data: electoralTableData,
-    error: electoralTableError,
+    // error: electoralTableError,
     isError: isElectoralTableError,
   } = useGetElectoralTableByTableCodeQuery(tableCode || '', {
     skip: !tableCode, // Skip the query if tableCode is falsy

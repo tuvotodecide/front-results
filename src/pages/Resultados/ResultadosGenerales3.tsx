@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useGetDepartmentsQuery } from '../../store/departments/departmentsEndpoints';
 import Breadcrumb2 from '../../components/Breadcrumb2';
 import { useSelector } from 'react-redux';
-import { Eye, FileText, Users } from 'lucide-react';
 import { selectFilters } from '../../store/resultados/resultadosSlice';
 import { useLazyGetResultsByLocationQuery } from '../../store/resultados/resultadosEndpoints';
 import Graphs from './Graphs';
@@ -22,36 +21,6 @@ import { ElectoralTableType } from '../../types';
 //   { name: 'Party G', value: 60, color: '#FF6384' },
 //   { name: 'Party H', value: 110, color: '#36A2EB' },
 // ];
-
-const menuOptions = [
-  {
-    id: 'resultados_presidenciales',
-    name: 'Resultados presidenciales',
-    icon: {
-      component: Eye,
-      color: 'text-purple-600',
-      background: 'bg-purple-100',
-    },
-  },
-  {
-    id: 'resultados_diputados',
-    name: 'Resultados diputados',
-    icon: {
-      component: Users,
-      color: 'text-green-600',
-      background: 'bg-green-100',
-    },
-  },
-  {
-    id: 'tables',
-    name: 'Mesas',
-    icon: {
-      component: FileText,
-      color: 'text-blue-600',
-      background: 'bg-blue-100',
-    },
-  },
-];
 
 const ResultadosGenerales3 = () => {
   const [searchParams] = useSearchParams();

@@ -16,16 +16,16 @@ const TablesSection = ({ tables = [] }: TablesSectionProps) => {
   const navigate = useNavigate();
 
   // Sample data - you can replace this with your actual data source
-  const mesas: Mesa[] = [
-    { number: 1, code: 'ERETTF', status: 'processed', photoCount: 3 },
-    { number: 2, code: 'FDHJYHY', status: 'unprocessed' },
-    { number: 3, code: 'DDFGG', status: 'dispute', photoCount: 2 },
-    { number: 4, code: 'YRTY', status: 'unprocessed' },
-    { number: 5, code: 'TYUUII', status: 'processed', photoCount: 4 },
-    { number: 6, code: 'FGJ', status: 'unprocessed' },
-    { number: 7, code: 'MUJUJT', status: 'dispute', photoCount: 1 },
-    { number: 8, code: 'ERTERT', status: 'unprocessed' },
-  ];
+  // const mesas: Mesa[] = [
+  //   { number: 1, code: 'ERETTF', status: 'processed', photoCount: 3 },
+  //   { number: 2, code: 'FDHJYHY', status: 'unprocessed' },
+  //   { number: 3, code: 'DDFGG', status: 'dispute', photoCount: 2 },
+  //   { number: 4, code: 'YRTY', status: 'unprocessed' },
+  //   { number: 5, code: 'TYUUII', status: 'processed', photoCount: 4 },
+  //   { number: 6, code: 'FGJ', status: 'unprocessed' },
+  //   { number: 7, code: 'MUJUJT', status: 'dispute', photoCount: 1 },
+  //   { number: 8, code: 'ERTERT', status: 'unprocessed' },
+  // ];
 
   const getCardStyle = (status: Mesa['status']) => {
     const baseStyle = {

@@ -1,6 +1,6 @@
 import { apiSlice } from '../apiSlice';
 import {
-  PaginatedResponse,
+  // PaginatedResponse,
   ConfigurationType,
   CreateConfigurationType,
   UpdateConfigurationType,

@@ -3,7 +3,7 @@ import {
   PaginatedResponse,
   ElectoralTablesType,
   ElectoralTableType,
-  ElectoralTableByCodeType,
+  // ElectoralTableByCodeType,
   CreateElectoralTableType,
   UpdateElectoralTableType,
   ElectoralTableTransformedType,

@@ -94,11 +94,29 @@ const ResultadosImagen = () => {
         </h1>
 
         {!id ? (
-          <div className="bg-white rounded-xl shadow-lg py-12 px-6">
+          <div className="bg-white rounded-lg shadow-md py-16 px-8 border border-gray-200">
             <div className="flex flex-col items-center justify-center text-center">
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-600 mb-8">
+              <div className="bg-gray-100 rounded-full p-4 mb-6">
+                <svg
+                  className="w-12 h-12 text-gray-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </div>
+              <h1 className="text-2xl md:text-3xl font-semibold text-gray-700 mb-4">
                 Introduzca el ID de la imagen
               </h1>
+              <p className="text-gray-500 mb-8">
+                Busque los resultados por ID de imagen específico
+              </p>
               <SimpleSearchBar
                 className="w-full max-w-md"
                 onSearch={handleSearch}
@@ -106,9 +124,24 @@ const ResultadosImagen = () => {
             </div>
           </div>
         ) : isBallotError ? (
-          <div className="bg-white rounded-xl shadow-lg py-12 px-6">
+          <div className="bg-white rounded-lg shadow-md py-16 px-8 border border-red-200">
             <div className="flex flex-col items-center justify-center text-center">
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-600 mb-4">
+              <div className="bg-red-50 rounded-full p-4 mb-6">
+                <svg
+                  className="w-12 h-12 text-red-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"
+                  />
+                </svg>
+              </div>
+              <h1 className="text-2xl md:text-3xl font-semibold text-gray-700 mb-4">
                 No se encontró la imagen "{id}"
               </h1>
               <p className="text-lg text-gray-500 mb-8">
@@ -121,17 +154,39 @@ const ResultadosImagen = () => {
             </div>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-lg py-6 px-6">
-            <div className="flex items-center mb-4 flex-wrap">
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-600">
-                Mesa #25548 &gt; Imagen {id}
-              </h1>
-              {/* <SearchBar className="ml-auto w-full" /> */}
+          <div className="bg-white rounded-lg shadow-md border border-gray-200">
+            {/* Header Section */}
+            <div className="bg-gray-800 text-white p-6 rounded-t-lg">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-semibold">
+                    Mesa #{currentItem?.tableNumber || '25548'}
+                  </h1>
+                  <p className="text-gray-300 mt-1">Imagen {id}</p>
+                </div>
+                <div className="bg-gray-700 rounded px-4 py-2">
+                  <span className="text-sm font-medium">ID: {id}</span>
+                </div>
+              </div>
             </div>
-            <div className="bg-gray-50 rounded-lg shadow-sm p-4 mb-4">
-              <div>
-                <h3 className="text-xl font-bold text-gray-800 mb-6 pb-3 border-b border-gray-200">
-                  Ubicacion
+
+            {/* Content */}
+            <div className="p-6">
+              {/* Location Section */}
+              <div className="bg-gray-50 rounded-lg p-6 mb-6 border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                  <svg
+                    className="w-5 h-5 text-gray-600 mr-2"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Ubicación
                 </h3>
                 <LocationSection
                   department={currentItem?.location.department || ''}
@@ -143,95 +198,137 @@ const ResultadosImagen = () => {
                   electoralSeat={currentItem?.location.electoralSeat || ''}
                 />
               </div>
-              <div className="flex flex-wrap gap-4 mt-4">
-                <div className="basis-[250px] grow-1 shrink-0">
-                  <h3 className="text-xl font-bold text-gray-800 mb-6 pb-3 border-b border-gray-200">
-                    Datos Imagen
-                  </h3>
-                  <div className="flex flex-wrap gap-6">
-                    <div>
-                      <h3 className="text-md font-bold lg:text-lg text-gray-600">
-                        Numero de mesa
-                      </h3>
-                      <h3 className="text-md font-bold lg:text-lg">
-                        {currentItem?.tableNumber}
-                      </h3>
-                    </div>
-                    <div>
-                      <h3 className="text-md font-bold lg:text-lg text-gray-600">
-                        Codigo de mesa
-                      </h3>
-                      <h3 className="text-md font-bold lg:text-lg">
-                        {currentItem?.tableCode}
-                      </h3>
-                    </div>
-                    <div>
-                      <h3 className="text-md font-bold lg:text-lg text-gray-600">
-                        A. a favor
-                      </h3>
-                      <h3 className="text-md font-bold lg:text-lg">x</h3>
-                    </div>
-                    <div>
-                      <h3 className="text-md font-bold lg:text-lg text-gray-600">
-                        A. en contra
-                      </h3>
-                      <h3 className="text-md font-bold lg:text-lg">y</h3>
+
+              {/* Attestation Information - Highlighted and Formal */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  Información de Atestiguamientos
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* A. a favor */}
+                  <div className="bg-green-50 border-l-4 border-green-500 p-6 rounded-r-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-sm font-medium text-green-800 mb-1">
+                          Atestiguamientos a favor
+                        </h4>
+                        <p className="text-3xl font-bold text-green-900">x</p>
+                      </div>
+                      <div className="text-green-600">
+                        <svg
+                          className="w-8 h-8"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="basis-[250px] grow-1 shrink-0">
-                  <h3 className="text-xl font-bold text-gray-800 mb-6 pb-3 border-b border-gray-200">
-                    Contratos Inteligentes
-                  </h3>
-                  <div className="flex flex-wrap gap-6">
-                    <div>
-                      <h3 className="text-md font-bold lg:text-lg text-gray-600">
-                        CID IPFS
-                      </h3>
-                      <h3 className="text-md font-bold lg:text-lg">
-                        {currentItem?.ipfsCid}
-                      </h3>
-                      <span>
-                        <a
-                          href={currentItem?.ipfsUri}
-                          target="_blank"
-                          rel="noopener noreferrer"
+
+                  {/* A. en contra */}
+                  <div className="bg-red-50 border-l-4 border-red-500 p-6 rounded-r-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-sm font-medium text-red-800 mb-1">
+                          Atestiguamientos en contra
+                        </h4>
+                        <p className="text-3xl font-bold text-red-900">y</p>
+                      </div>
+                      <div className="text-red-600">
+                        <svg
+                          className="w-8 h-8"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
                         >
-                          Ver en IPFS
-                        </a>
-                      </span>
+                          <path
+                            fillRule="evenodd"
+                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-            {/* <div className="relative bg-white rounded-xl overflow-hidden shadow-md transition-transform duration-300 border border-gray-100 mb-8">
-              {ballotData.imageUrl ? (
-                <>
-                  <img
-                    src={ballotData.imageUrl}
-                    alt={`Acta de la mesa ${ballotData.tableNumber}`}
-                    className="w-full h-full object-contain cursor-zoom-in"
-                    onClick={() => setIsImageModalOpen(true)}
-                  />
-                  <ModalImage
-                    isOpen={isImageModalOpen}
-                    onClose={() => setIsImageModalOpen(false)}
-                    imageUrl={ballotData.imageUrl}
-                  />
-                </>
-              ) : (
-                <div className="flex items-center justify-center h-[400px] bg-gray-50">
-                  <p className="text-gray-400 text-lg">
-                    No hay imagen disponible
+
+              {/* Table Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-gray-600 mb-2">
+                    Número de mesa
+                  </h4>
+                  <p className="text-xl font-semibold text-gray-900">
+                    {currentItem?.tableNumber || 'N/A'}
                   </p>
                 </div>
-              )}
-            </div> */}
-            <div className="w-full flex flex-wrap gap-4 bg-gray-50 rounded-lg">
-              <div className="px-0 md:px-6 pt-4 w-full">
-                <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
-                  Participacion
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-gray-600 mb-2">
+                    Código de mesa
+                  </h4>
+                  <p className="text-xl font-semibold text-gray-900">
+                    {currentItem?.tableCode || 'N/A'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Smart Contracts Section - Minimalist */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  Contratos Inteligentes
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-600 mb-2">
+                      CID IPFS
+                    </h4>
+                    <div className="bg-white border border-gray-300 rounded p-3">
+                      <code className="text-sm text-gray-700 font-mono break-all">
+                        {currentItem?.ipfsCid || 'No disponible'}
+                      </code>
+                    </div>
+                  </div>
+
+                  {currentItem?.ipfsUri && (
+                    <div>
+                      <a
+                        href={currentItem?.ipfsUri}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-gray-700 text-sm font-medium rounded hover:bg-gray-50 transition-colors duration-200"
+                      >
+                        <svg
+                          className="w-4 h-4 mr-2"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                          <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                        </svg>
+                        Ver en IPFS
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            {/* Results Section */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                  <svg
+                    className="w-5 h-5 text-gray-600 mr-2"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Participación
                 </h3>
                 <StatisticsBars
                   voteData={participation}
@@ -242,17 +339,39 @@ const ResultadosImagen = () => {
                   totalWitnesses={500}
                 />
               </div>
-              <div className="basis-[min(400px,100%)] grow-1 shrink-1">
-                <div className=" px-0 md:px-6 py-4">
-                  <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <svg
+                      className="w-5 h-5 text-gray-600 mr-2"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
                     Resultados Presidenciales
                   </h3>
                   <Graphs data={presidentialData} />
                 </div>
-              </div>
-              <div className="basis-[min(400px,100%)] grow-1 shrink-1">
-                <div className=" px-0 md:px-6 py-4">
-                  <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
+
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <svg
+                      className="w-5 h-5 text-gray-600 mr-2"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
                     Resultados Diputados
                   </h3>
                   <Graphs data={deputiesData} />
