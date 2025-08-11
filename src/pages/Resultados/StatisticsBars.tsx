@@ -57,7 +57,7 @@ const StatisticsBars = ({
   }, []);
 
   const formatNumber = (num: number) => {
-    return num.toLocaleString('es-ES');
+    return num?.toLocaleString('es-ES');
   };
   return (
     <div>

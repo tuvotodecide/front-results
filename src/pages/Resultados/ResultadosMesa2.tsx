@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Eye, FileText, Users } from 'lucide-react';
-import SearchBar from '../../components/SearchBar';
 import LocationSection from './LocationSection';
 import Graphs from './Graphs';
 import ImagesSection from './ImagesSection';
@@ -10,6 +9,8 @@ import { useLazyGetResultsByLocationQuery } from '../../store/resultados/resulta
 import SimpleSearchBar from '../../components/SimpleSearchBar';
 import StatisticsBars from './StatisticsBars';
 import BackButton from '../../components/BackButton';
+import { useLazyGetBallotByTableCodeQuery } from '../../store/ballots/ballotsEndpoints';
+import { BallotType } from '../../types';
 
 const combinedData = [
   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -56,6 +57,7 @@ const ResultadosMesa2 = () => {
   const { tableCode } = useParams();
   const navigate = useNavigate();
   const [getResultsByLocation] = useLazyGetResultsByLocationQuery({});
+  const [getBallotsByTableCode] = useLazyGetBallotByTableCodeQuery({});
   const [presidentialData, setPresidentialData] = useState<
     Array<{ name: string; value: number; color: string }>
   >([]);
@@ -65,6 +67,7 @@ const ResultadosMesa2 = () => {
   const [participation, setParticipation] = useState<
     Array<{ name: string; value: any; color: string }>
   >([]);
+  const [images, setImages] = useState<BallotType[]>([]);
   const {
     data: electoralTableData,
     error: electoralTableError,
@@ -81,14 +84,14 @@ const ResultadosMesa2 = () => {
   };
 
   useEffect(() => {
-    if (electoralTableData) {
-      console.log('Fetched electoral table data:', electoralTableData);
-      // Process the electoral table data as needed
-    }
-  }, [electoralTableData]);
-
-  useEffect(() => {
     if (tableCode && electoralTableData) {
+      getBallotsByTableCode(tableCode)
+        .unwrap()
+        .then((data) => {
+          setImages([data]);
+          //console.log('Fetched ballots data:', data);
+          // Process the fetched ballots data as needed
+        });
       getResultsByLocation({ tableCode, electionType: 'presidential' })
         .unwrap()
         .then((data) => {
@@ -281,7 +284,7 @@ const ResultadosMesa2 = () => {
               <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
                 Imagenes
               </h3>
-              <ImagesSection />
+              <ImagesSection images={images} />
             </div>
           </div>
         )}

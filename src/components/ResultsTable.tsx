@@ -44,7 +44,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ resultsData }) => {
                 </div>
               </td>
               <td className="px-4 sm:px-6 py-4 border-x border-gray-200 text-sm sm:text-base text-right tabular-nums">
-                {result.value.toLocaleString()}
+                {result.value?.toLocaleString()}
               </td>
               <td className="px-4 sm:px-6 py-4 border-x border-gray-200 text-sm sm:text-base text-right tabular-nums">
                 <span className="inline-block min-w-[60px]">

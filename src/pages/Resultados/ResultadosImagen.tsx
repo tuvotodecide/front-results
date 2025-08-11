@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import BarChart from '../../components/BarChart';
 import D3PieChart from '../../components/D3PieChart';
 import ResultsTable from '../../components/ResultsTable';
@@ -15,6 +15,9 @@ import ModalImage from '../../components/ModalImage';
 import actaImage from '../../assets/acta.jpg';
 import LocationSection from './LocationSection';
 import { useParams } from 'react-router-dom';
+import { useGetBallotQuery } from '../../store/ballots/ballotsEndpoints';
+import Graphs from './Graphs';
+import StatisticsBars from './StatisticsBars';
 
 const combinedData = [
   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -34,6 +37,69 @@ const ballotData = {
 
 const ResultadosImagen = () => {
   const { id } = useParams();
+  const { data: currentItem, isLoading: isLoadingitem } = useGetBallotQuery(
+    id!,
+    { skip: !id }
+  );
+  const [presidentialData, setPresidentialData] = useState<
+    Array<{ name: string; value: number; color: string }>
+  >([]);
+  const [deputiesData, setDeputiesData] = useState<
+    Array<{ name: string; value: number; color: string }>
+  >([]);
+  const [participation, setParticipation] = useState<
+    Array<{ name: string; value: any; color: string }>
+  >([]);
+
+  useEffect(() => {
+    if (currentItem && currentItem.votes) {
+      console.log('current item', currentItem);
+      const formattedPresidentialData =
+        currentItem.votes.parties.partyVotes.map((item: any) => {
+          // Generate random hex color if color not provided
+          const randomColor =
+            '#' + Math.floor(Math.random() * 16777215).toString(16);
+          return {
+            name: item.partyId,
+            value: item.votes,
+            color: item.color || randomColor, // Use random color as fallback
+          };
+        });
+      const formattedDeputiesData = currentItem.votes.deputies.partyVotes.map(
+        (item: any) => {
+          // Generate random hex color if color not provided
+          const randomColor =
+            '#' + Math.floor(Math.random() * 16777215).toString(16);
+          return {
+            name: item.partyId,
+            value: item.votes,
+            color: item.color || randomColor, // Use random color as fallback
+          };
+        }
+      );
+      setPresidentialData(formattedPresidentialData);
+      setDeputiesData(formattedDeputiesData);
+      const participationData = [
+        {
+          name: 'Válidos',
+          value: currentItem.votes.parties.validVotes || 0,
+          color: '#8cc689', // Green
+        },
+        {
+          name: 'Nulos',
+          value: currentItem.votes.parties.nullVotes || 0,
+          color: '#81858e', // Red
+        },
+        {
+          name: 'Blancos',
+          value: currentItem.votes.parties.blankVotes || 0,
+          color: '#f3f3ce', // Yellow
+        },
+      ];
+      setParticipation(participationData);
+    }
+  }, [currentItem]);
+
   const [activeTab, setActiveTab] = useState('bars');
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
@@ -51,16 +117,81 @@ const ResultadosImagen = () => {
             {/* <SearchBar className="ml-auto w-full" /> */}
           </div>
           <div className="bg-gray-50 rounded-lg shadow-sm p-4 mb-4">
-            <h3 className="text-xl font-bold text-gray-800 mb-6 pb-3 border-b border-gray-200">
-              Ubicacion
-            </h3>
-            <LocationSection
-              department="Cochabamba"
-              province="Esteban Arze"
-              municipality="Anzaldo"
-              electoralLocation="U.E. Arturo Sarmiento de Quiriria"
-              electoralSeat="Quiriria"
-            />
+            <div>
+              <h3 className="text-xl font-bold text-gray-800 mb-6 pb-3 border-b border-gray-200">
+                Ubicacion
+              </h3>
+              <LocationSection
+                department={currentItem?.location.department || ''}
+                province={currentItem?.location.province || ''}
+                municipality={currentItem?.location.municipality || ''}
+                electoralLocation={
+                  currentItem?.location.electoralLocationName || ''
+                }
+                electoralSeat={currentItem?.location.electoralSeat || ''}
+              />
+            </div>
+            <div className="flex flex-wrap gap-4 mt-4">
+              <div className="basis-[250px] grow-1 shrink-0">
+                <h3 className="text-xl font-bold text-gray-800 mb-6 pb-3 border-b border-gray-200">
+                  Datos Imagen
+                </h3>
+                <div className="flex flex-wrap gap-6">
+                  <div>
+                    <h3 className="text-md font-bold lg:text-lg text-gray-600">
+                      Numero de mesa
+                    </h3>
+                    <h3 className="text-md font-bold lg:text-lg">
+                      {currentItem?.tableNumber}
+                    </h3>
+                  </div>
+                  <div>
+                    <h3 className="text-md font-bold lg:text-lg text-gray-600">
+                      Codigo de mesa
+                    </h3>
+                    <h3 className="text-md font-bold lg:text-lg">
+                      {currentItem?.tableCode}
+                    </h3>
+                  </div>
+                  <div>
+                    <h3 className="text-md font-bold lg:text-lg text-gray-600">
+                      A. a favor
+                    </h3>
+                    <h3 className="text-md font-bold lg:text-lg">x</h3>
+                  </div>
+                  <div>
+                    <h3 className="text-md font-bold lg:text-lg text-gray-600">
+                      A. en contra
+                    </h3>
+                    <h3 className="text-md font-bold lg:text-lg">y</h3>
+                  </div>
+                </div>
+              </div>
+              <div className="basis-[250px] grow-1 shrink-0">
+                <h3 className="text-xl font-bold text-gray-800 mb-6 pb-3 border-b border-gray-200">
+                  Contratos Inteligentes
+                </h3>
+                <div className="flex flex-wrap gap-6">
+                  <div>
+                    <h3 className="text-md font-bold lg:text-lg text-gray-600">
+                      CID IPFS
+                    </h3>
+                    <h3 className="text-md font-bold lg:text-lg">
+                      {currentItem?.ipfsCid}
+                    </h3>
+                    <span>
+                      <a
+                        href={currentItem?.ipfsUri}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Ver en IPFS
+                      </a>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
           <div className="relative bg-white rounded-xl overflow-hidden shadow-md transition-transform duration-300 border border-gray-100 mb-8">
             {ballotData.imageUrl ? (
@@ -85,164 +216,34 @@ const ResultadosImagen = () => {
               </div>
             )}
           </div>
-          <div className="w-full flex flex-wrap gap-4">
-            <div className="bg-gray-50 rounded-lg shadow-sm overflow-hidden basis-[min(400px,100%)] grow-3 shrink-0">
-              <div className="border-b border-gray-300 px-1 md:px-6 py-4">
-                <div className="mb-4 border-b border-gray-200 bg-gray-50">
-                  <div className="flex gap-4">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('table')}
-                      className={`pb-2 px-4 font-medium flex items-center gap-2 ${
-                        activeTab === 'table'
-                          ? 'border-b-2 border-blue-500 text-blue-600'
-                          : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      <Table className="w-5 h-5 flex-shrink-0" />
-                      <span className="max-md:hidden">Tabla</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('bars')}
-                      className={`pb-2 px-4 font-medium flex items-center gap-2 ${
-                        activeTab === 'bars'
-                          ? 'border-b-2 border-blue-500 text-blue-600'
-                          : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      <BarChart3 className="w-5 h-5 flex-shrink-0" />
-                      <span className="max-md:hidden">Gráfico de Barras</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('pie')}
-                      className={`pb-2 px-4 font-medium flex items-center gap-2 ${
-                        activeTab === 'pie'
-                          ? 'border-b-2 border-blue-500 text-blue-600'
-                          : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      <PieChart className="w-5 h-5 flex-shrink-0" />
-                      <span className="max-md:hidden">Gráfico Circular</span>
-                    </button>
-                  </div>
-                </div>
-                {activeTab === 'bars' && <BarChart data={combinedData} />}
-                {activeTab === 'pie' && <D3PieChart data={combinedData} />}
-                {activeTab === 'table' && (
-                  <ResultsTable resultsData={combinedData} />
-                )}
+          <div className="w-full flex flex-wrap gap-4 bg-gray-50 rounded-lg">
+            <div className="px-0 md:px-6 pt-4 w-full">
+              <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
+                Participacion
+              </h3>
+              <StatisticsBars
+                voteData={participation}
+                processedTables={{ current: 1556, total: 2678 }}
+                totalTables={456}
+                totalVoters={1547}
+                totalActs={596}
+                totalWitnesses={500}
+              />
+            </div>
+            <div className="basis-[min(400px,100%)] grow-1 shrink-1">
+              <div className=" px-0 md:px-6 py-4">
+                <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
+                  Resultados Presidenciales
+                </h3>
+                <Graphs data={presidentialData} />
               </div>
             </div>
-            <div className="bg-gray-50 rounded-lg shadow-sm p-4 basis-[250px] grow-1 shrink-0">
-              <h3 className="text-xl font-bold text-gray-800 mb-6 pb-3 border-b border-gray-200">
-                Atestiguamientos
-              </h3>
-              <div className="space-y-4">
-                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">A favor</p>
-                      <p className="text-2xl font-bold text-gray-800">360</p>
-                    </div>
-                    <div className="bg-blue-100 p-3 rounded-full">
-                      <Check className="w-6 h-6 text-blue-600" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">En contra</p>
-                      <p className="text-2xl font-bold text-gray-800">120</p>
-                    </div>
-                    <div className="bg-red-100 p-3 rounded-full">
-                      <X className="w-6 h-6 text-red-600" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <h3 className="text-xl font-bold text-gray-800 my-6 pb-3 border-b border-gray-200">
-                Contratos inteligentes
-              </h3>
-              <div className="space-y-3">
-                <button className="w-full bg-white hover:bg-gray-50 border border-gray-200 rounded-lg p-4 transition-colors duration-200 flex items-center justify-between group">
-                  <div className="flex items-center">
-                    <div className="bg-purple-100 p-2 rounded-full mr-3">
-                      <Trophy className="w-5 h-5 text-purple-600" />
-                    </div>
-                    <span className="text-gray-800 font-medium">NFT</span>
-                  </div>
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <svg
-                      className="w-4 h-4 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </div>
-                </button>
-
-                <button className="w-full bg-white hover:bg-gray-50 border border-gray-200 rounded-lg p-4 transition-colors duration-200 flex items-center justify-between group">
-                  <div className="flex items-center">
-                    <div className="bg-green-100 p-2 rounded-full mr-3">
-                      <BarChart3 className="w-5 h-5 text-green-600" />
-                    </div>
-                    <span className="text-gray-800 font-medium">
-                      Resultados totales
-                    </span>
-                  </div>
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <svg
-                      className="w-4 h-4 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </div>
-                </button>
-
-                <button className="w-full bg-white hover:bg-gray-50 border border-gray-200 rounded-lg p-4 transition-colors duration-200 flex items-center justify-between group">
-                  <div className="flex items-center">
-                    <div className="bg-blue-100 p-2 rounded-full mr-3">
-                      <Vote className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <span className="text-gray-800 font-medium">
-                      Votos específicos
-                    </span>
-                  </div>
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <svg
-                      className="w-4 h-4 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </div>
-                </button>
+            <div className="basis-[min(400px,100%)] grow-1 shrink-1">
+              <div className=" px-0 md:px-6 py-4">
+                <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
+                  Resultados Diputados
+                </h3>
+                <Graphs data={deputiesData} />
               </div>
             </div>
           </div>
