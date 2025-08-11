@@ -4,9 +4,12 @@ import SearchBar from '../../components/SearchBar';
 import LocationSection from './LocationSection';
 import Graphs from './Graphs';
 import ImagesSection from './ImagesSection';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useGetElectoralTableByTableCodeQuery } from '../../store/electoralTables/electoralTablesEndpoints';
 import { useLazyGetResultsByLocationQuery } from '../../store/resultados/resultadosEndpoints';
+import SimpleSearchBar from '../../components/SimpleSearchBar';
+import StatisticsBars from './StatisticsBars';
+import BackButton from '../../components/BackButton';
 
 const combinedData = [
   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -51,8 +54,8 @@ const menuOptions = [
 
 const ResultadosMesa2 = () => {
   const { tableCode } = useParams();
+  const navigate = useNavigate();
   const [getResultsByLocation] = useLazyGetResultsByLocationQuery({});
-  const [selectedOption, setSelectedOption] = useState(menuOptions[0]);
   const [presidentialData, setPresidentialData] = useState<
     Array<{ name: string; value: number; color: string }>
   >([]);
@@ -62,12 +65,20 @@ const ResultadosMesa2 = () => {
   const [participation, setParticipation] = useState<
     Array<{ name: string; value: any; color: string }>
   >([]);
-  const { data: electoralTableData } = useGetElectoralTableByTableCodeQuery(
-    tableCode || '',
-    {
-      skip: !tableCode, // Skip the query if tableCode is falsy
-    }
-  );
+  const {
+    data: electoralTableData,
+    error: electoralTableError,
+    isError: isElectoralTableError,
+  } = useGetElectoralTableByTableCodeQuery(tableCode || '', {
+    skip: !tableCode, // Skip the query if tableCode is falsy
+  });
+
+  const handleSearch = (searchTerm: string) => {
+    if (!searchTerm) return;
+    navigate(`/resultados/mesa/${searchTerm}`);
+    // console.log('Search term:', searchTerm);
+    // Implement search functionality here
+  };
 
   useEffect(() => {
     if (electoralTableData) {
@@ -143,133 +154,137 @@ const ResultadosMesa2 = () => {
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-8">
           Resultados por Mesa
         </h1>
-        <div className="bg-white rounded-xl shadow-lg py-6 px-6">
-          <div className="flex items-center mb-4 flex-wrap">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-600">
-              {electoralTableData
-                ? `Mesa #${electoralTableData?.tableNumber} - ${electoralTableData?.tableCode}`
-                : 'No se encontró la mesa'}
-            </h1>
-            <SearchBar className="shrink-1 ml-auto" />
+
+        {!tableCode ? (
+          <div className="bg-white rounded-xl shadow-lg py-12 px-6">
+            <div className="flex flex-col items-center justify-center text-center">
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-600 mb-8">
+                Introduzca el codigo de mesa
+              </h1>
+              <SimpleSearchBar
+                className="w-full max-w-md"
+                onSearch={handleSearch}
+              />
+            </div>
           </div>
-          {electoralTableData && (
-            <div className="bg-gray-50 rounded-lg shadow-sm p-4 mb-4 flex flex-row flex-wrap gap-8">
-              <div className="basis-[300px] grow-2 shrink-0">
-                <h3 className="text-xl font-bold text-gray-800 mb-6 pb-3 border-b border-gray-200">
-                  Ubicacion
-                </h3>
-                <LocationSection
-                  department={electoralTableData?.department?.name}
-                  province={electoralTableData?.province?.name}
-                  municipality={electoralTableData?.municipality?.name}
-                  electoralLocation={
-                    electoralTableData?.electoralLocation?.name
-                  }
-                  electoralSeat={electoralTableData?.electoralSeat?.name}
-                />
+        ) : isElectoralTableError ? (
+          <div className="bg-white rounded-xl shadow-lg py-12 px-6">
+            <div className="flex flex-col items-center justify-center text-center">
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-600 mb-4">
+                No se encontró la mesa "{tableCode}"
+              </h1>
+              <p className="text-lg text-gray-500 mb-8">
+                Por favor, verifique el código e intente con una mesa diferente
+              </p>
+              <SimpleSearchBar
+                className="w-full max-w-md"
+                onSearch={handleSearch}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow-lg py-6 px-6">
+            <div className="flex items-center mb-4 flex-wrap">
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-600">
+                <BackButton className="mr-4" />
+                {electoralTableData
+                  ? `Mesa #${electoralTableData?.tableNumber} - ${electoralTableData?.tableCode}`
+                  : 'No se encontró la mesa'}
+              </h1>
+              <SimpleSearchBar
+                className="shrink-1 ml-auto"
+                onSearch={handleSearch}
+              />
+            </div>
+            {electoralTableData && (
+              <div className="bg-gray-50 rounded-lg shadow-sm p-4 mb-4 flex flex-row flex-wrap gap-8">
+                <div className="basis-[450px] grow-2 shrink-0">
+                  <h3 className="text-xl font-bold text-gray-800 mb-6 pb-3 border-b border-gray-200">
+                    Ubicacion
+                  </h3>
+                  <LocationSection
+                    department={electoralTableData?.department?.name}
+                    province={electoralTableData?.province?.name}
+                    municipality={electoralTableData?.municipality?.name}
+                    electoralLocation={
+                      electoralTableData?.electoralLocation?.name
+                    }
+                    electoralSeat={electoralTableData?.electoralSeat?.name}
+                  />
+                </div>
+                <div className="basis-[300px] grow-1 shrink-0">
+                  <h3 className="text-xl font-bold text-gray-800 mb-6 pb-3 border-b border-gray-200">
+                    Datos Mesa
+                  </h3>
+                  <div className="flex flex-wrap gap-6">
+                    <div>
+                      <h3 className="text-md font-bold lg:text-lg text-gray-600">
+                        Numero de mesa
+                      </h3>
+                      <h3 className="text-md font-bold lg:text-lg">
+                        {electoralTableData?.tableNumber}
+                      </h3>
+                    </div>
+                    <div>
+                      <h3 className="text-md font-bold lg:text-lg text-gray-600">
+                        Codigo de mesa
+                      </h3>
+                      <h3 className="text-md font-bold lg:text-lg">
+                        {electoralTableData?.tableCode}
+                      </h3>
+                    </div>
+                    <div className="w-full">
+                      <h3 className="text-md font-bold lg:text-lg text-gray-600">
+                        Direccion
+                      </h3>
+                      <h3 className="text-md font-bold lg:text-lg">
+                        {electoralTableData?.electoralLocation?.address}
+                      </h3>
+                    </div>
+                  </div>
+                </div>
+                <div className="basis-[100%] grow-1 shrink-0">
+                  <h3 className="text-xl font-bold text-gray-800 mb-6 pb-3 border-b border-gray-200">
+                    Participacion
+                  </h3>
+                  <StatisticsBars
+                    voteData={participation}
+                    processedTables={{ current: 1556, total: 2678 }}
+                    totalTables={456}
+                    totalVoters={1547}
+                    totalActs={596}
+                    totalWitnesses={500}
+                  />
+                </div>
               </div>
-              <div className="basis-[300px] grow-1 shrink-0">
-                <h3 className="text-xl font-bold text-gray-800 mb-6 pb-3 border-b border-gray-200">
-                  Datos Mesa
-                </h3>
-                <div className="flex flex-wrap gap-6">
-                  <div>
-                    <h3 className="text-md font-bold lg:text-lg text-gray-600">
-                      Numero de mesa
-                    </h3>
-                    <h3 className="text-md font-bold lg:text-lg">
-                      {electoralTableData?.tableNumber}
-                    </h3>
-                  </div>
-                  <div>
-                    <h3 className="text-md font-bold lg:text-lg text-gray-600">
-                      Codigo de mesa
-                    </h3>
-                    <h3 className="text-md font-bold lg:text-lg">
-                      {electoralTableData?.tableCode}
-                    </h3>
-                  </div>
-                  <div className="w-full">
-                    <h3 className="text-md font-bold lg:text-lg text-gray-600">
-                      Direccion
-                    </h3>
-                    <h3 className="text-md font-bold lg:text-lg">
-                      {electoralTableData?.electoralLocation?.address}
-                    </h3>
-                  </div>
+            )}
+            <div className="w-full flex flex-wrap gap-4">
+              <div className="bg-gray-50 rounded-lg shadow-sm overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
+                <div className=" px-0 md:px-6 py-4">
+                  <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
+                    Resultados Presidenciales
+                  </h3>
+                  <Graphs data={presidentialData} />
+                </div>
+              </div>
+              <div className="bg-gray-50 rounded-lg shadow-sm overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
+                <div className=" px-0 md:px-6 py-4">
+                  <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
+                    Resultados Diputados
+                  </h3>
+                  <Graphs data={deputiesData} />
+                  {/* {selectedOption.id === 'images' && <ImagesSection />} */}
                 </div>
               </div>
             </div>
-          )}
-          <div className="w-full flex flex-wrap gap-4">
-            <div className="bg-gray-50 rounded-lg shadow-sm p-4 basis-[200px] grow-1 shrink-0">
+            <div className="bg-gray-50 rounded-lg shadow-sm p-4 mt-6">
               <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
-                Opciones
+                Imagenes
               </h3>
-
-              <div className="flex flex-wrap gap-4">
-                {menuOptions.map((option) => (
-                  <div
-                    key={option.name}
-                    onClick={() => setSelectedOption(option)}
-                    className={`bg-gray-50 rounded-lg p-4 border ${
-                      selectedOption.id === option.id
-                        ? 'border-gray-500 shadow-lg'
-                        : 'border-gray-200 hover:shadow-md'
-                    } transition-all duration-200 basis-[min(200px,100%)] grow-1`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p
-                          className={`text-lg ${
-                            selectedOption.id === option.id
-                              ? 'font-semibold'
-                              : ''
-                          } text-gray-800`}
-                        >
-                          {option.name}
-                        </p>
-                      </div>
-                      <div
-                        className={`${option.icon.background} p-3 rounded-full`}
-                      >
-                        <option.icon.component
-                          className={`w-4 h-4 ${option.icon.color}`}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* <div className="mt-6 pt-4 border-t border-gray-200">
-                <p className="text-xs text-gray-500 text-center">
-                  Última actualización: {new Date().toLocaleDateString('es-ES')}
-                </p>
-              </div> */}
-            </div>
-            <div className="bg-gray-50 rounded-lg shadow-sm overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
-              {/* <div className="border-b border-gray-300 bg-gray-50 px-6 py-4">
-                <h2 className="text-xl font-semibold text-gray-600">
-                  Visualización de Resultados{' '}
-                </h2>
-              </div> */}
-
-              <div className=" px-0 md:px-6 py-4">
-                <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
-                  {selectedOption.name}
-                </h3>
-                {selectedOption.id === 'resultados_presidenciales' && (
-                  <Graphs data={presidentialData} />
-                )}
-                {selectedOption.id === 'resultados_diputados' && (
-                  <Graphs data={deputiesData} />
-                )}
-                {selectedOption.id === 'images' && <ImagesSection />}
-              </div>
+              <ImagesSection />
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
