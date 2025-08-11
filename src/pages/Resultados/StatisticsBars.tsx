@@ -62,7 +62,7 @@ const StatisticsBars = ({
   return (
     <div>
       {/* cards section */}
-      <div className="flex flex-wrap gap-4 pb-4 overflow-hidden">
+      {/* <div className="flex flex-wrap gap-4 pb-4 overflow-hidden">
         {cardsData.map(
           (card) =>
             !!card.value && (
@@ -85,10 +85,10 @@ const StatisticsBars = ({
               </div>
             )
         )}
-      </div>
+      </div> */}
       {/* Processing Progress */}
       <div className="mb-3">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2 gap-2">
+        {/* <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2 gap-2">
           <h2 className="text-md  text-slate-600">
             Mesas Procesadas
             <span className="text-md font-medium text-gray-600 ml-2">
@@ -99,17 +99,17 @@ const StatisticsBars = ({
             {formatNumber(processedTables.current)} /{' '}
             {formatNumber(processedTables.total)} mesas
           </span>
-        </div>
+        </div> */}
 
         {/* Main Progress Bar */}
-        <div className="h-4 bg-slate-200 rounded-full overflow-hidden shadow-inner">
+        {/* <div className="h-4 bg-slate-200 rounded-full overflow-hidden shadow-inner">
           <div
             className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-2000 ease-out rounded-full shadow-sm"
             style={{
               width: animationComplete ? `${progressPercentage}%` : '0%',
             }}
           ></div>
-        </div>
+        </div> */}
       </div>
 
       {/* Vote Distribution Progress */}
@@ -121,54 +121,67 @@ const StatisticsBars = ({
           </span>
         </div>
 
-        {/* Vote Distribution Bar - Full Width */}
-        <div className="relative">
-          {/* Background showing full width */}
-          <div className="h-4 bg-slate-200 rounded-full overflow-hidden shadow-inner">
-            {/* Container that shows full width */}
-            <div
-              className="h-full flex transition-all duration-500 ease-out"
-              style={{
-                width: animationComplete ? '100%' : '0%',
-              }}
-            >
-              {/* Vote type sections within the full area */}
-              {voteDataWithPercentage.map((item, index) => (
-                <div
-                  key={item.name}
-                  className="h-full transition-all duration-1500 ease-out first:rounded-l-full last:rounded-r-full"
-                  style={{
-                    backgroundColor: item.color,
-                    border: '1px solid rgba(0, 0, 0, 0.4)',
-                    width: `${item.percentage}%`,
-                    transitionDelay: `${index * 200 + 400}ms`,
-                  }}
-                ></div>
-              ))}
-            </div>
+        {totalVotes === 0 || voteData.length === 0 ? (
+          /* No Data Message */
+          <div className="flex items-center justify-center h-16 bg-slate-100 rounded-lg border-2 border-dashed border-slate-300">
+            <span className="text-slate-500 text-sm font-medium">
+              Sin datos
+            </span>
           </div>
-        </div>
-
-        {/* Vote Type Legend - Below Bar Chart */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mt-3">
-          {voteDataWithPercentage.map((item) => (
-            <div key={item.name} className="flex items-center text-sm">
-              <div
-                className="w-3 h-3 rounded-full mr-2 flex-shrink-0"
-                style={{
-                  border: '1px solid rgba(0, 0, 0, 0.4)',
-                  backgroundColor: item.color,
-                }}
-              ></div>
-              <div className="min-w-0 flex-1">
-                <span className="font-medium text-slate-700">{item.name}</span>
-                <span className="text-slate-600 ml-1 whitespace-nowrap">
-                  {item.percentage}% ({formatNumber(item.value)})
-                </span>
+        ) : (
+          <>
+            {/* Vote Distribution Bar - Full Width */}
+            <div className="relative">
+              {/* Background showing full width */}
+              <div className="h-4 bg-slate-200 rounded-full overflow-hidden shadow-inner">
+                {/* Container that shows full width */}
+                <div
+                  className="h-full flex transition-all duration-500 ease-out"
+                  style={{
+                    width: animationComplete ? '100%' : '0%',
+                  }}
+                >
+                  {/* Vote type sections within the full area */}
+                  {voteDataWithPercentage.map((item, index) => (
+                    <div
+                      key={item.name}
+                      className="h-full transition-all duration-1500 ease-out first:rounded-l-full last:rounded-r-full"
+                      style={{
+                        backgroundColor: item.color,
+                        border: '1px solid rgba(0, 0, 0, 0.4)',
+                        width: `${item.percentage}%`,
+                        transitionDelay: `${index * 200 + 400}ms`,
+                      }}
+                    ></div>
+                  ))}
+                </div>
               </div>
             </div>
-          ))}
-        </div>
+
+            {/* Vote Type Legend - Below Bar Chart */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mt-3">
+              {voteDataWithPercentage.map((item) => (
+                <div key={item.name} className="flex items-center text-sm">
+                  <div
+                    className="w-3 h-3 rounded-full mr-2 flex-shrink-0"
+                    style={{
+                      border: '1px solid rgba(0, 0, 0, 0.4)',
+                      backgroundColor: item.color,
+                    }}
+                  ></div>
+                  <div className="min-w-0 flex-1">
+                    <span className="font-medium text-slate-700">
+                      {item.name}
+                    </span>
+                    <span className="text-slate-600 ml-1 whitespace-nowrap">
+                      {item.percentage}% ({formatNumber(item.value)})
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

@@ -380,6 +380,7 @@ const Breadcrumb = () => {
   const resetPath = () => {
     //setSelectedPath2([]);
     selectLevel(0);
+
     if (selectedLevel?.index === 0) {
       setShowCurrentLevel((prev) => !prev);
     } else {

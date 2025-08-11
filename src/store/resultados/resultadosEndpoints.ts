@@ -6,7 +6,7 @@ interface GetResultsParams {
   municipality?: string;
   electoralSeat?: string;
   electoralLocation?: string;
-  tableNumber?: string;
+  tableCode?: string;
   electionType?: string;
 }
 

@@ -66,7 +66,6 @@ const ResultadosGenerales3 = () => {
     Array<{ name: string; value: any; color: string }>
   >([]);
   const [tablesData, setTablesData] = useState<ElectoralTableType[]>([]);
-  const [selectedOption, setSelectedOption] = useState(menuOptions[0]);
   useGetDepartmentsQuery({});
   const [getResultsByLocation] = useLazyGetResultsByLocationQuery({});
   const [getTablesByLocationId] =
@@ -74,69 +73,69 @@ const ResultadosGenerales3 = () => {
   const filters = useSelector(selectFilters);
 
   useEffect(() => {
-    if (filters) {
-      console.log('Current filters:', filters);
-      // const cleanedFilters = Object.fromEntries(
-      //   Object.entries(filters).filter(
-      //     ([key, value]) => value !== '' && key !== 'electoralLocation'
-      //   )
-      // );
-      // console.log('Cleaned filters:', cleanedFilters);
-      getResultsByLocation({ ...filters, electionType: 'presidential' })
-        .unwrap()
-        .then((data) => {
-          console.log('Fetched presidential data:', data);
-          const formattedData = data.results.map((item: any) => {
-            // Generate random hex color if color not provided
-            const randomColor =
-              '#' + Math.floor(Math.random() * 16777215).toString(16);
-            return {
-              name: item.partyId,
-              value: item.totalVotes,
-              color: item.color || randomColor, // Use random color as fallback
-            };
-          });
-          setPresidentialData(formattedData);
+    console.log('Current filters:', filters);
+    // const cleanedFilters = Object.fromEntries(
+    //   Object.entries(filters).filter(
+    //     ([key, value]) => value !== '' && key !== 'electoralLocation'
+    //   )
+    // );
+    // console.log('Cleaned filters:', cleanedFilters);
+    getResultsByLocation({ ...filters, electionType: 'presidential' })
+      .unwrap()
+      .then((data) => {
+        console.log('Fetched presidential data:', data);
+        const formattedData = data.results.map((item: any) => {
+          // Generate random hex color if color not provided
+          const randomColor =
+            '#' + Math.floor(Math.random() * 16777215).toString(16);
+          return {
+            name: item.partyId,
+            value: item.totalVotes,
+            color: item.color || randomColor, // Use random color as fallback
+          };
+        });
+        setPresidentialData(formattedData);
 
+        if (data.summary) {
           const participationData = [
             {
               name: 'Válidos',
               // value: data.summary?.validVotes || 0,
-              value: 80,
+              value: data.summary.validVotes || 0,
               color: '#8cc689', // Green
             },
             {
               name: 'Nulos',
               // value: data.summary?.nullVotes || 0,
-              value: 24,
+              value: data.summary.nullVotes || 0,
               color: '#81858e', // Red
             },
             {
               name: 'Blancos',
               // value: data.summary?.blankVotes || 0,
-              value: 15,
+              value: data.summary.blankVotes || 0,
               color: '#f3f3ce', // Yellow
             },
           ];
           setParticipation(participationData);
+        }
+      });
+    getResultsByLocation({ ...filters, electionType: 'deputies' })
+      .unwrap()
+      .then((data) => {
+        console.log('Fetched deputies data:', data);
+        const formattedData = data.results.map((item: any) => {
+          // Generate random hex color if color not provided
+          const randomColor =
+            '#' + Math.floor(Math.random() * 16777215).toString(16);
+          return {
+            name: item.partyId,
+            value: item.totalVotes,
+            color: item.color || randomColor, // Use random color as fallback
+          };
         });
-      getResultsByLocation({ ...filters, electionType: 'deputies' })
-        .unwrap()
-        .then((data) => {
-          console.log('Fetched deputies data:', data);
-          const formattedData = data.results.map((item: any) => {
-            // Generate random hex color if color not provided
-            const randomColor =
-              '#' + Math.floor(Math.random() * 16777215).toString(16);
-            return {
-              name: item.partyId,
-              value: item.totalVotes,
-              color: item.color || randomColor, // Use random color as fallback
-            };
-          });
-          setDeputiesData(formattedData);
-        });
-    }
+        setDeputiesData(formattedData);
+      });
   }, [filters]);
 
   useEffect(() => {
@@ -149,6 +148,8 @@ const ResultadosGenerales3 = () => {
           setTablesData(data);
           // Process tables data if needed
         });
+    } else {
+      setTablesData([]); // Clear tables data if no location selected
     }
   }, [searchParams]);
 
@@ -162,92 +163,71 @@ const ResultadosGenerales3 = () => {
           <div>
             <Breadcrumb2 />
           </div>
-          <div className="bg-gray-50 rounded-lg shadow-sm p-4 mb-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
-              Estadisticas Generales
-            </h3>
-            <StatisticsBars
-              voteData={participation}
-              processedTables={{ current: 1556, total: 2678 }}
-              totalTables={456}
-              totalVoters={1547}
-              totalActs={596}
-              totalWitnesses={500}
-            />
-          </div>
-          <div className="w-full flex flex-wrap gap-4">
-            <div className="bg-gray-50 rounded-lg shadow-sm p-4 basis-[200px] grow-1 shrink-0">
-              <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
-                Opciones
-              </h3>
 
-              <div className="flex flex-wrap gap-4">
-                {menuOptions.map((option) => (
-                  <div
-                    key={option.name}
-                    onClick={() => setSelectedOption(option)}
-                    className={`bg-gray-50 rounded-lg p-4 border ${
-                      selectedOption.id === option.id
-                        ? 'border-gray-500 shadow-lg'
-                        : 'border-gray-200 hover:shadow-md'
-                    } transition-all duration-200 basis-[min(200px,100%)] grow-1`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p
-                          className={`text-lg ${
-                            selectedOption.id === option.id
-                              ? 'font-semibold'
-                              : ''
-                          } text-gray-800`}
-                        >
-                          {option.name}
-                        </p>
-                      </div>
-                      <div
-                        className={`${option.icon.background} p-3 rounded-full`}
-                      >
-                        <option.icon.component
-                          className={`w-4 h-4 ${option.icon.color}`}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* <div className="mt-6 pt-4 border-t border-gray-200">
-                <p className="text-xs text-gray-500 text-center">
-                  Última actualización: {new Date().toLocaleDateString('es-ES')}
-                </p>
-              </div> */}
+          {presidentialData.length === 0 ? (
+            <div className="bg-gray-50 rounded-lg shadow-sm p-8 text-center">
+              <p className="text-xl text-gray-600">Sin datos</p>
             </div>
-            <div className="bg-gray-50 rounded-lg shadow-sm overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
-              {/* <div className="border-b border-gray-300 bg-gray-50 px-6 py-4">
-                <h2 className="text-xl font-semibold text-gray-600">
-                  Visualización de Resultados{' '}
-                </h2>
-              </div> */}
-
-              <div className=" px-0 md:px-6 py-4">
+          ) : (
+            <>
+              <div className="bg-gray-50 rounded-lg shadow-sm p-4 mb-6">
                 <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
-                  {selectedOption.name}
+                  Estadisticas Generales
                 </h3>
-                {selectedOption.id === 'resultados_presidenciales' && (
-                  // <Graphs data={presidentialData} />
-                  <Graphs data={presidentialData} />
-                )}
-                {selectedOption.id === 'resultados_diputados' && (
-                  // <Graphs data={deputiesData} />
-                  <Graphs data={deputiesData} />
-                )}
-                {selectedOption.id === 'tables' && (
-                  <TablesSection tables={tablesData} />
-                )}
+                <StatisticsBars
+                  voteData={participation}
+                  processedTables={{ current: 1556, total: 2678 }}
+                  totalTables={456}
+                  totalVoters={1547}
+                  totalActs={596}
+                  totalWitnesses={500}
+                />
               </div>
+              <div className="w-full flex flex-wrap gap-4">
+                <div className="bg-gray-50 rounded-lg shadow-sm overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
+                  {/* <div className="border-b border-gray-300 bg-gray-50 px-6 py-4">
+                    <h2 className="text-xl font-semibold text-gray-600">
+                      Visualización de Resultados{' '}
+                    </h2>
+                  </div> */}
+
+                  <div className=" px-0 md:px-6 py-4">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
+                      Resultados presidenciales
+                    </h3>
+
+                    <Graphs data={presidentialData} />
+                  </div>
+                </div>
+                <div className="bg-gray-50 rounded-lg shadow-sm overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
+                  {/* <div className="border-b border-gray-300 bg-gray-50 px-6 py-4">
+                    <h2 className="text-xl font-semibold text-gray-600">
+                      Visualización de Resultados{' '}
+                    </h2>
+                  </div> */}
+
+                  <div className=" px-0 md:px-6 py-4">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
+                      Resultados diputados
+                    </h3>
+                    <Graphs data={deputiesData} />
+                    {/* {selectedOption.id === 'tables' && (
+                      <TablesSection tables={tablesData} />
+                    )} */}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {tablesData.length > 0 && (
+            <div className="bg-gray-50 rounded-lg shadow-sm p-4 mt-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
+                Mesas
+              </h3>
+              <TablesSection tables={tablesData} />
             </div>
-          </div>
-          {/* Mesas */}
+          )}
         </div>
       </div>
     </div>

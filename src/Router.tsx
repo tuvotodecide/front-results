@@ -64,7 +64,10 @@ const AppRouter: React.FC = () => {
             <Route path="/verActa" element={<VerActa />} />
             <Route path="/resultados" element={<ResultadosGenerales3 />} />
             <Route path="/resultados/mesa" element={<ResultadosMesa2 />} />
-            <Route path="/resultados/mesa/:id" element={<ResultadosMesa2 />} />
+            <Route
+              path="/resultados/mesa/:tableCode"
+              element={<ResultadosMesa2 />}
+            />
             <Route path="/resultados/imagen" element={<ResultadosImagen />} />
             <Route
               path="/resultados/imagen/:id"

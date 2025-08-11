@@ -6,6 +6,7 @@ import Graphs from './Graphs';
 import ImagesSection from './ImagesSection';
 import { useParams } from 'react-router-dom';
 import { useGetElectoralTableByTableCodeQuery } from '../../store/electoralTables/electoralTablesEndpoints';
+import { useLazyGetResultsByLocationQuery } from '../../store/resultados/resultadosEndpoints';
 
 const combinedData = [
   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -49,12 +50,22 @@ const menuOptions = [
 ];
 
 const ResultadosMesa2 = () => {
-  const { id } = useParams();
+  const { tableCode } = useParams();
+  const [getResultsByLocation] = useLazyGetResultsByLocationQuery({});
   const [selectedOption, setSelectedOption] = useState(menuOptions[0]);
+  const [presidentialData, setPresidentialData] = useState<
+    Array<{ name: string; value: number; color: string }>
+  >([]);
+  const [deputiesData, setDeputiesData] = useState<
+    Array<{ name: string; value: number; color: string }>
+  >([]);
+  const [participation, setParticipation] = useState<
+    Array<{ name: string; value: any; color: string }>
+  >([]);
   const { data: electoralTableData } = useGetElectoralTableByTableCodeQuery(
-    id || '',
+    tableCode || '',
     {
-      skip: !id, // Skip the query if id is falsy
+      skip: !tableCode, // Skip the query if tableCode is falsy
     }
   );
 
@@ -64,6 +75,67 @@ const ResultadosMesa2 = () => {
       // Process the electoral table data as needed
     }
   }, [electoralTableData]);
+
+  useEffect(() => {
+    if (tableCode && electoralTableData) {
+      getResultsByLocation({ tableCode, electionType: 'presidential' })
+        .unwrap()
+        .then((data) => {
+          console.log('Fetched presidential data:', data);
+          const formattedData = data.results.map((item: any) => {
+            // Generate random hex color if color not provided
+            const randomColor =
+              '#' + Math.floor(Math.random() * 16777215).toString(16);
+            return {
+              name: item.partyId,
+              value: item.totalVotes,
+              color: item.color || randomColor, // Use random color as fallback
+            };
+          });
+          setPresidentialData(formattedData);
+
+          if (data.summary) {
+            const participationData = [
+              {
+                name: 'Válidos',
+                // value: data.summary?.validVotes || 0,
+                value: data.summary.validVotes || 0,
+                color: '#8cc689', // Green
+              },
+              {
+                name: 'Nulos',
+                // value: data.summary?.nullVotes || 0,
+                value: data.summary.nullVotes || 0,
+                color: '#81858e', // Red
+              },
+              {
+                name: 'Blancos',
+                // value: data.summary?.blankVotes || 0,
+                value: data.summary.blankVotes || 0,
+                color: '#f3f3ce', // Yellow
+              },
+            ];
+            setParticipation(participationData);
+          }
+        });
+      getResultsByLocation({ tableCode, electionType: 'deputies' })
+        .unwrap()
+        .then((data) => {
+          console.log('Fetched deputies data:', data);
+          const formattedData = data.results.map((item: any) => {
+            // Generate random hex color if color not provided
+            const randomColor =
+              '#' + Math.floor(Math.random() * 16777215).toString(16);
+            return {
+              name: item.partyId,
+              value: item.totalVotes,
+              color: item.color || randomColor, // Use random color as fallback
+            };
+          });
+          setDeputiesData(formattedData);
+        });
+    }
+  }, [tableCode, electoralTableData]);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -188,10 +260,10 @@ const ResultadosMesa2 = () => {
                   {selectedOption.name}
                 </h3>
                 {selectedOption.id === 'resultados_presidenciales' && (
-                  <Graphs data={combinedData} />
+                  <Graphs data={presidentialData} />
                 )}
                 {selectedOption.id === 'resultados_diputados' && (
-                  <Graphs data={combinedData} />
+                  <Graphs data={deputiesData} />
                 )}
                 {selectedOption.id === 'images' && <ImagesSection />}
               </div>
