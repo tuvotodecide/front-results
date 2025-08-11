@@ -20,6 +20,7 @@ const ConfigurationForm = () => {
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
   const [pendingValues, setPendingValues] =
     useState<CreateConfigurationType | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
   // API hooks
   const [createConfiguration] = useCreateConfigurationMutation();
@@ -45,6 +46,8 @@ const ConfigurationForm = () => {
   };
 
   const handleSubmit = (values: CreateConfigurationType) => {
+    // Clear any previous error message
+    setErrorMessage('');
     // Always set allowDataModification to true
     const submissionValues = {
       ...values,
@@ -68,9 +71,19 @@ const ConfigurationForm = () => {
         }).unwrap();
       }
       navigate('/configuraciones');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving configuration:', error);
-      // You might want to show an error message to the user here
+
+      // Extract error message from the API response
+      if (error?.data?.message) {
+        setErrorMessage(error.data.message);
+      } else if (error?.message) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage(
+          'Ocurrió un error inesperado al guardar la configuración'
+        );
+      }
     } finally {
       setIsConfirmationModalOpen(false);
       setPendingValues(null);
@@ -103,6 +116,56 @@ const ConfigurationForm = () => {
               ? 'Crear nueva configuración'
               : 'Editar configuración'}
           </h3>
+
+          {errorMessage && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <svg
+                    className="w-5 h-5 text-red-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-red-700 font-medium">Error</p>
+                  <p className="text-sm text-red-600">{errorMessage}</p>
+                </div>
+                <div className="ml-auto pl-3">
+                  <div className="-mx-1.5 -my-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setErrorMessage('')}
+                      className="inline-flex rounded-md p-1.5 text-red-400 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-red-50 focus:ring-red-600"
+                    >
+                      <span className="sr-only">Cerrar</span>
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <Formik
             initialValues={initialValues}
