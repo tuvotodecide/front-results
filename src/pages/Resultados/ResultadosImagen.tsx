@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import ModalImage from '../../components/ModalImage';
-import actaImage from '../../assets/acta.jpg';
+// import ModalImage from '../../components/ModalImage';
+// import actaImage from '../../assets/acta.jpg';
 import LocationSection from './LocationSection';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGetBallotQuery } from '../../store/ballots/ballotsEndpoints';
@@ -8,10 +8,10 @@ import Graphs from './Graphs';
 import StatisticsBars from './StatisticsBars';
 import SimpleSearchBar from '../../components/SimpleSearchBar';
 
-const ballotData = {
-  tableNumber: '25548',
-  imageUrl: actaImage,
-};
+// const ballotData = {
+//   tableNumber: '25548',
+//   imageUrl: actaImage,
+// };
 
 const ResultadosImagen = () => {
   const { id } = useParams();
@@ -84,7 +84,7 @@ const ResultadosImagen = () => {
     }
   }, [currentItem]);
 
-  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  // const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
