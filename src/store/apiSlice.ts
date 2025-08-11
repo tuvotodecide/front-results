@@ -50,6 +50,7 @@ export const apiSlice = createApi({
     'ElectoralSeats',
     'ElectoralLocations',
     'ElectoralTables',
+    'Configurations',
   ],
   endpoints: () => ({}),
 });
