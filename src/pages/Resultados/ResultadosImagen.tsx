@@ -205,7 +205,7 @@ const ResultadosImagen = () => {
                 </div>
               </div>
             </div>
-            <div className="relative bg-white rounded-xl overflow-hidden shadow-md transition-transform duration-300 border border-gray-100 mb-8">
+            {/* <div className="relative bg-white rounded-xl overflow-hidden shadow-md transition-transform duration-300 border border-gray-100 mb-8">
               {ballotData.imageUrl ? (
                 <>
                   <img
@@ -227,7 +227,7 @@ const ResultadosImagen = () => {
                   </p>
                 </div>
               )}
-            </div>
+            </div> */}
             <div className="w-full flex flex-wrap gap-4 bg-gray-50 rounded-lg">
               <div className="px-0 md:px-6 pt-4 w-full">
                 <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
