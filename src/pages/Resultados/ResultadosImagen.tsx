@@ -225,106 +225,107 @@ const ResultadosImagen = () => {
                 </div>
               </div>
 
-              {/* Attestation Information - Highlighted and Formal */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                  Información de Atestiguamientos
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* A. a favor */}
-                  <div className="bg-green-50 border-l-4 border-green-500 p-6 rounded-r-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="text-sm font-medium text-green-800 mb-1">
-                          Atestiguamientos a favor
-                        </h4>
-                        <p className="text-3xl font-bold text-green-900">x</p>
-                      </div>
-                      <div className="text-green-600">
-                        <svg
-                          className="w-8 h-8"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
+              {/* Attestation Information and Smart Contracts Section */}
+              <div className="flex flex-row flex-wrap gap-6">
+                {/* Attestation Information - Highlighted and Formal */}
+                <div className="border border-gray-200 rounded-lg p-6 mb-6 basis-[450px] grow-2 shrink-0">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                    Atestiguamientos
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* A. a favor */}
+                    <div className="bg-green-50 border-l-4 border-green-500 p-6 rounded-r-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-sm font-medium text-green-800 mb-1">
+                            Atestiguamientos a favor
+                          </h4>
+                          <p className="text-3xl font-bold text-green-900">x</p>
+                        </div>
+                        <div className="text-green-600">
+                          <svg
+                            className="w-8 h-8"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* A. en contra */}
-                  <div className="bg-red-50 border-l-4 border-red-500 p-6 rounded-r-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="text-sm font-medium text-red-800 mb-1">
-                          Atestiguamientos en contra
-                        </h4>
-                        <p className="text-3xl font-bold text-red-900">y</p>
-                      </div>
-                      <div className="text-red-600">
-                        <svg
-                          className="w-8 h-8"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
+                    {/* A. en contra */}
+                    <div className="bg-red-50 border-l-4 border-red-500 p-6 rounded-r-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-sm font-medium text-red-800 mb-1">
+                            Atestiguamientos en contra
+                          </h4>
+                          <p className="text-3xl font-bold text-red-900">y</p>
+                        </div>
+                        <div className="text-red-600">
+                          <svg
+                            className="w-8 h-8"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Smart Contracts Section - Minimalist */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                  Contratos Inteligentes
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-600 mb-2">
-                      CID IPFS
-                    </h4>
-                    <div className="bg-white border border-gray-300 rounded p-3">
-                      <code className="text-sm text-gray-700 font-mono break-all">
-                        {currentItem?.ipfsCid || 'No disponible'}
-                      </code>
-                    </div>
-                  </div>
-
-                  {currentItem?.ipfsUri && (
+                {/* Smart Contracts Section - Minimalist */}
+                <div className="border border-gray-200 rounded-lg p-6 mb-6 basis-[300px] grow-1 shrink-0">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                    Contratos Inteligentes
+                  </h3>
+                  <div className="space-y-4">
                     <div>
-                      <a
-                        href={currentItem?.ipfsUri}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-gray-700 text-sm font-medium rounded hover:bg-gray-50 transition-colors duration-200"
-                      >
-                        <svg
-                          className="w-4 h-4 mr-2"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
-                          <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
-                        </svg>
-                        Ver en IPFS
-                      </a>
+                      <h4 className="text-sm font-medium text-gray-600 mb-2">
+                        CID IPFS
+                      </h4>
+                      <div className="bg-gray-50 border border-gray-300 rounded p-3">
+                        <code className="text-sm text-gray-700 font-mono break-all">
+                          {currentItem?.ipfsCid || 'No disponible'}
+                        </code>
+                      </div>
                     </div>
-                  )}
+
+                    {currentItem?.ipfsUri && (
+                      <div>
+                        <a
+                          href={currentItem?.ipfsUri}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-gray-700 text-sm font-medium rounded hover:bg-gray-50 transition-colors duration-200"
+                        >
+                          <svg
+                            className="w-4 h-4 mr-2"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                            <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                          </svg>
+                          Ver en IPFS
+                        </a>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-            {/* Results Section */}
-            <div className=" rounded-lg p-6">
+              {/* Results Section */}
               <div className="border border-gray-200 rounded-lg p-6 mb-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                   Participación
