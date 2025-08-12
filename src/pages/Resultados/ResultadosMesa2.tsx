@@ -169,55 +169,57 @@ const ResultadosMesa2 = () => {
               />
             </div>
             {electoralTableData && (
-              <div className="bg-gray-50 rounded-lg shadow-sm p-4 mb-4 flex flex-row flex-wrap gap-8">
-                <div className="basis-[450px] grow-2 shrink-0">
-                  <h3 className="text-xl font-bold text-gray-800 mb-6 pb-3 border-b border-gray-200">
-                    Ubicacion
-                  </h3>
-                  <LocationSection
-                    department={electoralTableData?.department?.name}
-                    province={electoralTableData?.province?.name}
-                    municipality={electoralTableData?.municipality?.name}
-                    electoralLocation={
-                      electoralTableData?.electoralLocation?.name
-                    }
-                    electoralSeat={electoralTableData?.electoralSeat?.name}
-                  />
-                </div>
-                <div className="basis-[300px] grow-1 shrink-0">
-                  <h3 className="text-xl font-bold text-gray-800 mb-6 pb-3 border-b border-gray-200">
-                    Datos Mesa
-                  </h3>
-                  <div className="flex flex-wrap gap-6">
-                    <div>
-                      <h3 className="text-md font-bold lg:text-lg text-gray-600">
-                        Numero de mesa
-                      </h3>
-                      <h3 className="text-md font-bold lg:text-lg">
-                        {electoralTableData?.tableNumber}
-                      </h3>
-                    </div>
-                    <div>
-                      <h3 className="text-md font-bold lg:text-lg text-gray-600">
-                        Codigo de mesa
-                      </h3>
-                      <h3 className="text-md font-bold lg:text-lg">
-                        {electoralTableData?.tableCode}
-                      </h3>
-                    </div>
-                    <div className="w-full">
-                      <h3 className="text-md font-bold lg:text-lg text-gray-600">
-                        Direccion
-                      </h3>
-                      <h3 className="text-md font-bold lg:text-lg">
-                        {electoralTableData?.electoralLocation?.address}
-                      </h3>
+              <>
+                <div className="flex flex-row flex-wrap gap-6">
+                  <div className="border border-gray-200 rounded-lg p-6 mb-6 basis-[450px] grow-2 shrink-0">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                      Ubicacion
+                    </h3>
+                    <LocationSection
+                      department={electoralTableData?.department?.name}
+                      province={electoralTableData?.province?.name}
+                      municipality={electoralTableData?.municipality?.name}
+                      electoralLocation={
+                        electoralTableData?.electoralLocation?.name
+                      }
+                      electoralSeat={electoralTableData?.electoralSeat?.name}
+                    />
+                  </div>
+                  <div className="border border-gray-200 rounded-lg p-6 mb-6 basis-[300px] grow-1 shrink-0">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                      Datos Mesa
+                    </h3>
+                    <div className="flex flex-wrap gap-6">
+                      <div>
+                        <h3 className="text-md font-bold lg:text-lg text-gray-600">
+                          Numero de mesa
+                        </h3>
+                        <h3 className="text-md font-bold lg:text-lg">
+                          {electoralTableData?.tableNumber}
+                        </h3>
+                      </div>
+                      <div>
+                        <h3 className="text-md font-bold lg:text-lg text-gray-600">
+                          Codigo de mesa
+                        </h3>
+                        <h3 className="text-md font-bold lg:text-lg">
+                          {electoralTableData?.tableCode}
+                        </h3>
+                      </div>
+                      <div className="w-full">
+                        <h3 className="text-md font-bold lg:text-lg text-gray-600">
+                          Direccion
+                        </h3>
+                        <h3 className="text-md font-bold lg:text-lg">
+                          {electoralTableData?.electoralLocation?.address}
+                        </h3>
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div className="basis-[100%] grow-1 shrink-0">
-                  <h3 className="text-xl font-bold text-gray-800 mb-6 pb-3 border-b border-gray-200">
-                    Participacion
+                <div className="border border-gray-200 rounded-lg p-6 mb-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    Participación
                   </h3>
                   <StatisticsBars
                     voteData={participation}
@@ -228,20 +230,20 @@ const ResultadosMesa2 = () => {
                     totalWitnesses={500}
                   />
                 </div>
-              </div>
+              </>
             )}
             <div className="w-full flex flex-wrap gap-4">
-              <div className="bg-gray-50 rounded-lg shadow-sm overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
+              <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
                 <div className=" px-0 md:px-6 py-4">
-                  <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                     Resultados Presidenciales
                   </h3>
                   <Graphs data={presidentialData} />
                 </div>
               </div>
-              <div className="bg-gray-50 rounded-lg shadow-sm overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
+              <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
                 <div className=" px-0 md:px-6 py-4">
-                  <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                     Resultados Diputados
                   </h3>
                   <Graphs data={deputiesData} />
@@ -249,8 +251,8 @@ const ResultadosMesa2 = () => {
                 </div>
               </div>
             </div>
-            <div className="bg-gray-50 rounded-lg shadow-sm p-4 mt-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
+            <div className="border border-gray-200 rounded-lg p-4 mt-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                 Imagenes
               </h3>
               <ImagesSection images={images} />

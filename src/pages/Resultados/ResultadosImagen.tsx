@@ -164,28 +164,21 @@ const ResultadosImagen = () => {
                   </h1>
                   <p className="text-gray-300 mt-1">Imagen {id}</p>
                 </div>
-                <div className="bg-gray-700 rounded px-4 py-2">
+                <SimpleSearchBar
+                  className="shrink-1 ml-auto"
+                  onSearch={handleSearch}
+                />
+                {/* <div className="bg-gray-700 rounded px-4 py-2">
                   <span className="text-sm font-medium">ID: {id}</span>
-                </div>
+                </div> */}
               </div>
             </div>
 
             {/* Content */}
             <div className="p-6">
               {/* Location Section */}
-              <div className="bg-gray-50 rounded-lg p-6 mb-6 border border-gray-200">
+              <div className="rounded-lg p-6 mb-6 border border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <svg
-                    className="w-5 h-5 text-gray-600 mr-2"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
                   Ubicación
                 </h3>
                 <LocationSection
@@ -278,7 +271,7 @@ const ResultadosImagen = () => {
               </div>
 
               {/* Smart Contracts Section - Minimalist */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">
                   Contratos Inteligentes
                 </h3>
