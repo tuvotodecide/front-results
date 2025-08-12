@@ -29,6 +29,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Create .env file
+        run: echo "${{ vars.ENV_DEV }}" > .env
+
       - name: Set up QEMU (binfmt)
         uses: docker/setup-qemu-action@v3
 
