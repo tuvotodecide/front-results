@@ -42,7 +42,7 @@ const Graphs: React.FC<GraphProps> = ({ data }) => {
             }`}
           >
             <BarChart3 className="w-5 h-5 flex-shrink-0" />
-            <span className="max-md:hidden">Gráfico de Barras</span>
+            <span className="hidden md:inline lg:inline">Barras</span>
           </button>
           <button
             type="button"
@@ -54,7 +54,7 @@ const Graphs: React.FC<GraphProps> = ({ data }) => {
             }`}
           >
             <PieChart className="w-5 h-5 flex-shrink-0" />
-            <span className="max-md:hidden">Gráfico Circular</span>
+            <span className="hidden md:inline lg:inline">Circular</span>
           </button>
         </div>
       </div>

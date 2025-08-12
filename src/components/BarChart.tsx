@@ -103,7 +103,9 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
       .attr('transform', `translate(0,${height})`)
       .call(d3.axisBottom(x))
       .selectAll('text')
-      .style('font-size', dimensions.width < 600 ? '12px' : '14px')
+      .style('font-size', dimensions.width < 600 ? '13px' : '15px')
+      .style('font-weight', '500')
+      .style('fill', '#334155')
       .attr('dy', '1.5em');
 
     g.append('text')
@@ -111,7 +113,9 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
       .attr('text-anchor', 'middle')
       .attr('x', width / 2)
       .attr('y', height + 50)
-      .style('font-size', dimensions.width < 600 ? '14px' : '16px')
+      .style('font-size', dimensions.width < 600 ? '15px' : '17px')
+      .style('font-weight', '600')
+      .style('fill', '#1e293b')
       .text('Porcentaje');
 
     const yAxisGroup = g.append('g').call(d3.axisLeft(y));
@@ -119,7 +123,8 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
     yAxisGroup
       .selectAll('text')
       .style('font-size', dimensions.width < 600 ? '14px' : '16px')
-      .style('font-weight', '500')
+      .style('font-weight', '600')
+      .style('fill', '#1e293b')
       .each(function () {
         const text = d3.select(this);
         const textContent = text.text();
@@ -154,9 +159,9 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
       .attr('y', (d) => (y(d.name) || 0) + y.bandwidth() / 3)
       .attr('x', (d) => Math.max(x(parseFloat(d.percentage)) + 8, 30))
       .attr('dy', '.35em')
-      .style('font-size', dimensions.width < 600 ? '14px' : '16px')
-      .style('font-weight', '600')
-      .style('fill', 'black')
+      .style('font-size', dimensions.width < 600 ? '15px' : '17px')
+      .style('font-weight', '700')
+      .style('fill', '#0f172a')
       .style('letter-spacing', '0.5px')
       .text((d) => `${d.percentage}%`);
 
@@ -168,23 +173,23 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
       .attr('y', (d) => (y(d.name) || 0) + (y.bandwidth() * 2) / 3)
       .attr('x', (d) => Math.max(x(parseFloat(d.percentage)) + 8, 30))
       .attr('dy', '.35em')
-      .style('font-size', dimensions.width < 600 ? '12px' : '14px')
-      .style('font-weight', '500')
-      .style('fill', 'black')
+      .style('font-size', dimensions.width < 600 ? '13px' : '15px')
+      .style('font-weight', '600')
+      .style('fill', '#475569')
       .style('letter-spacing', '0.3px')
       .text((d) => `${d.value?.toLocaleString()} votos`);
   }, [dataWithPercentage, dimensions]);
 
   if (data.length === 0) {
     return (
-      <div className="w-full min-h-[700px] flex items-center justify-center">
+      <div className="w-full h-48 flex items-center justify-center text-slate-600">
         No hay datos
       </div>
     );
   }
 
   return (
-    <div ref={containerRef} className="w-full overflow-x-auto min-h-[700px]">
+    <div ref={containerRef} className="w-full overflow-x-auto">
       <svg
         ref={chartRef}
         width={dimensions.width}

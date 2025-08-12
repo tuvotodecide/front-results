@@ -14,55 +14,60 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ resultsData }) => {
   const total = resultsData.reduce((acc, item) => acc + item.value, 0);
 
   return (
-    <div className="w-full">
-      <table className="w-full table-fixed divide-y divide-gray-200 border border-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="w-[45%] px-4 sm:px-6 py-4 text-left text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wider border-x border-gray-200">
+    <div className="w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <table className="w-full table-fixed">
+        <thead>
+          <tr className="border-b border-slate-200 bg-slate-50/80">
+            <th className="w-[45%] px-6 py-4 text-left text-sm font-semibold text-slate-700 tracking-wide">
               Candidato / Partido
             </th>
-            <th className="w-[25%] px-4 sm:px-6 py-4 text-right text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wider border-x border-gray-200">
+            <th className="w-[25%] px-6 py-4 text-right text-sm font-semibold text-slate-700 tracking-wide">
               Votos
             </th>
-            <th className="w-[30%] px-4 sm:px-6 py-4 text-right text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wider border-x border-gray-200">
+            <th className="w-[30%] px-6 py-4 text-right text-sm font-semibold text-slate-700 tracking-wide">
               Porcentaje
             </th>
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+        <tbody className="divide-y divide-slate-100">
           {resultsData.map((result) => (
-            <tr key={result.name}>
-              <td className="px-4 sm:px-6 py-4 border-x border-gray-200 truncate">
-                <div className="flex items-center space-x-2 sm:space-x-3">
+            <tr
+              key={result.name}
+              className="group transition-colors duration-150 hover:bg-slate-50/60"
+            >
+              <td className="px-6 py-4">
+                <div className="flex items-center space-x-3">
                   <div
-                    className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0"
+                    className="h-3 w-3 rounded-sm shadow-sm border border-slate-200/50 flex-shrink-0"
                     style={{ backgroundColor: result.color }}
                   ></div>
-                  <span className="text-sm sm:text-base truncate">
+                  <span className="text-sm font-medium text-slate-800 truncate">
                     {result.name}
                   </span>
                 </div>
               </td>
-              <td className="px-4 sm:px-6 py-4 border-x border-gray-200 text-sm sm:text-base text-right tabular-nums">
+              <td className="px-6 py-4 text-base text-slate-900 text-right tabular-nums font-semibold">
                 {result.value?.toLocaleString()}
               </td>
-              <td className="px-4 sm:px-6 py-4 border-x border-gray-200 text-sm sm:text-base text-right tabular-nums">
-                <span className="inline-block min-w-[60px]">
-                  {((result.value / total) * 100).toFixed(2)} %
+              <td className="px-6 py-4 text-base text-slate-900 text-right tabular-nums">
+                <span className="inline-flex items-center justify-end min-w-[65px] font-semibold">
+                  {((result.value / total) * 100).toFixed(2)}%
                 </span>
               </td>
             </tr>
           ))}
           {/* Total row */}
-          <tr className="bg-gray-100 font-semibold">
-            <td className="px-4 sm:px-6 py-4 border-x border-gray-200 text-sm sm:text-base">
-              TOTAL
+          <tr className="border-t-2 border-slate-200 bg-slate-50">
+            <td className="px-6 py-4 text-sm font-bold text-slate-800 uppercase tracking-wide">
+              Total
             </td>
-            <td className="px-4 sm:px-6 py-4 border-x border-gray-200 text-sm sm:text-base text-right tabular-nums">
+            <td className="px-6 py-4 text-base font-bold text-slate-800 text-right tabular-nums">
               {total.toLocaleString()}
             </td>
-            <td className="px-4 sm:px-6 py-4 border-x border-gray-200 text-sm sm:text-base text-right tabular-nums">
-              <span className="inline-block min-w-[60px]">100 %</span>
+            <td className="px-6 py-4 text-base font-bold text-slate-800 text-right tabular-nums">
+              <span className="inline-flex items-center justify-end min-w-[65px]">
+                100%
+              </span>
             </td>
           </tr>
         </tbody>
