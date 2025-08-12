@@ -55,21 +55,30 @@ const LocationSection = ({
     },
   ];
   return (
-    <div className="w-full flex flex-col gap-2 justify-center items-start sm:flex-row sm:flex-wrap sm:justify-start sm:gap-x-6 ">
-      {location.map(
-        (item, index) =>
-          item.value && (
-            <div className="flex flex-col gap-2 px-3 py-2" key={index}>
-              <div className="text-md font-bold text-slate-900 flex items-center gap-2 lg:text-lg">
-                <item.icon className="w-5 h-5" />
-                <h3 className="text-md font-bold lg:text-lg text-gray-600">
-                  {item.title}
-                </h3>
+    <div className="w-full">
+      <div className="flex flex-wrap items-start gap-x-8 gap-y-6">
+        {location.map(
+          (item, index) =>
+            item.value && (
+              <div
+                className="flex items-start gap-3 min-w-0 flex-shrink-0"
+                key={index}
+              >
+                <div className="flex-shrink-0 mt-1">
+                  <item.icon className="w-4 h-4 text-gray-500" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-1">
+                    {item.title}
+                  </h3>
+                  <p className="text-base font-normal text-gray-900 leading-relaxed break-words">
+                    {item.value}
+                  </p>
+                </div>
               </div>
-              <h3 className="text-md font-bold lg:text-lg">{item.value}</h3>
-            </div>
-          )
-      )}
+            )
+        )}
+      </div>
     </div>
   );
 };
