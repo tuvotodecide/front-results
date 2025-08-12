@@ -1,5 +1,6 @@
 import { apiSlice } from '../apiSlice';
 import {
+  ConfigurationStatusType,
   // PaginatedResponse,
   ConfigurationType,
   CreateConfigurationType,
@@ -27,7 +28,7 @@ export const configurationsApiSlice = apiSlice.injectEndpoints({
       keepUnusedDataFor: 60,
       providesTags: (_result, _error) => [{ type: 'Configurations' as const }],
     }),
-    getConfigurationStatus: builder.query<ConfigurationType, void>({
+    getConfigurationStatus: builder.query<ConfigurationStatusType, void>({
       query: () => `/elections/config/status`,
       keepUnusedDataFor: 60,
       providesTags: (_result, _error) => [{ type: 'Configurations' as const }],

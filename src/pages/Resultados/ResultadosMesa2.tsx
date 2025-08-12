@@ -10,6 +10,7 @@ import StatisticsBars from './StatisticsBars';
 import BackButton from '../../components/BackButton';
 import { useLazyGetBallotByTableCodeQuery } from '../../store/ballots/ballotsEndpoints';
 import { BallotType } from '../../types';
+import { useGetConfigurationStatusQuery } from '../../store/configurations/configurationsEndpoints';
 
 // const combinedData = [
 //   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -37,6 +38,7 @@ const ResultadosMesa2 = () => {
     Array<{ name: string; value: any; color: string }>
   >([]);
   const [images, setImages] = useState<BallotType[]>([]);
+  const { data: configData } = useGetConfigurationStatusQuery();
   const {
     data: electoralTableData,
     // error: electoralTableError,
@@ -271,40 +273,78 @@ const ResultadosMesa2 = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="border border-gray-200 rounded-lg p-6 mb-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                      Participación
-                    </h3>
-                    <StatisticsBars
-                      voteData={participation}
-                      processedTables={{ current: 1556, total: 2678 }}
-                      totalTables={456}
-                      totalVoters={1547}
-                      totalActs={596}
-                      totalWitnesses={500}
-                    />
-                  </div>
+                  {configData &&
+                  !configData.isResultsPeriod &&
+                  configData.hasActiveConfig ? (
+                    <div className="border border-gray-200 rounded-lg p-8 text-center">
+                      <p className="text-xl text-gray-600 mb-6">
+                        Los resultados se habilitarán el:
+                      </p>
+                      <div className="mb-2">
+                        <p className="text-2xl text-gray-700 mb-1">
+                          {new Date(
+                            configData.config.resultsStartDateBolivia
+                          ).toLocaleDateString('es-ES', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            timeZone: 'America/La_Paz',
+                          })}
+                        </p>
+                        <p className="text-3xl font-bold text-gray-800">
+                          {new Date(
+                            configData.config.resultsStartDateBolivia
+                          ).toLocaleTimeString('es-ES', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            timeZone: 'America/La_Paz',
+                          })}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          (Hora de Bolivia)
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="border border-gray-200 rounded-lg p-6 mb-6">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                          Participación
+                        </h3>
+                        <StatisticsBars
+                          voteData={participation}
+                          processedTables={{ current: 1556, total: 2678 }}
+                          totalTables={456}
+                          totalVoters={1547}
+                          totalActs={596}
+                          totalWitnesses={500}
+                        />
+                      </div>
+                      <div className="w-full flex flex-wrap gap-4">
+                        <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
+                          <div className=" px-0 md:px-6 py-4">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                              Resultados Presidenciales
+                            </h3>
+                            <Graphs data={presidentialData} />
+                          </div>
+                        </div>
+                        <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
+                          <div className=" px-0 md:px-6 py-4">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                              Resultados Diputados
+                            </h3>
+                            <Graphs data={deputiesData} />
+                            {/* {selectedOption.id === 'images' && <ImagesSection />} */}
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
-              <div className="w-full flex flex-wrap gap-4">
-                <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
-                  <div className=" px-0 md:px-6 py-4">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                      Resultados Presidenciales
-                    </h3>
-                    <Graphs data={presidentialData} />
-                  </div>
-                </div>
-                <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
-                  <div className=" px-0 md:px-6 py-4">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                      Resultados Diputados
-                    </h3>
-                    <Graphs data={deputiesData} />
-                    {/* {selectedOption.id === 'images' && <ImagesSection />} */}
-                  </div>
-                </div>
-              </div>
+
               <div className="border border-gray-200 rounded-lg p-4 mt-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                   Imagenes

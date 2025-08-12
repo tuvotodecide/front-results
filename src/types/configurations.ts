@@ -33,3 +33,13 @@ export interface ConfigurationType {
   createdAt: string;
   updatedAt: string;
 }
+
+// Interface for configuration status response from the server
+export interface ConfigurationStatusType {
+  isVotingPeriod: boolean;
+  isResultsPeriod: boolean;
+  hasActiveConfig: boolean;
+  currentTime: string;
+  currentTimeBolivia: string;
+  config: ConfigurationType;
+}

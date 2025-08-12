@@ -10,6 +10,7 @@ import TablesSection from './TablesSection';
 import { useLazyGetElectoralTablesByElectoralLocationIdQuery } from '../../store/electoralTables/electoralTablesEndpoints';
 import { useSearchParams } from 'react-router-dom';
 import { ElectoralTableType } from '../../types';
+import { useGetConfigurationStatusQuery } from '../../store/configurations/configurationsEndpoints';
 
 // const combinedData = [
 //   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -39,7 +40,12 @@ const ResultadosGenerales3 = () => {
   const [getResultsByLocation] = useLazyGetResultsByLocationQuery({});
   const [getTablesByLocationId] =
     useLazyGetElectoralTablesByElectoralLocationIdQuery({});
+  const { data: configData } = useGetConfigurationStatusQuery();
   const filters = useSelector(selectFilters);
+
+  useEffect(() => {
+    console.log('Current config data:', configData);
+  }, [configData]);
 
   useEffect(() => {
     console.log('Current filters:', filters);
@@ -133,8 +139,39 @@ const ResultadosGenerales3 = () => {
             <Breadcrumb2 />
           </div>
 
-          {presidentialData.length === 0 ? (
-            <div className="bg-gray-50 rounded-lg shadow-sm p-8 text-center">
+          {configData &&
+          !configData.isResultsPeriod &&
+          configData.hasActiveConfig ? (
+            <div className="border border-gray-200 rounded-lg p-8 text-center">
+              <p className="text-xl text-gray-600 mb-6">
+                Los resultados se habilitarán el:
+              </p>
+              <div className="mb-2">
+                <p className="text-2xl text-gray-700 mb-1">
+                  {new Date(
+                    configData.config.resultsStartDateBolivia
+                  ).toLocaleDateString('es-ES', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    timeZone: 'America/La_Paz',
+                  })}
+                </p>
+                <p className="text-3xl font-bold text-gray-800">
+                  {new Date(
+                    configData.config.resultsStartDateBolivia
+                  ).toLocaleTimeString('es-ES', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    timeZone: 'America/La_Paz',
+                  })}
+                </p>
+                <p className="text-sm text-gray-500 mt-1">(Hora de Bolivia)</p>
+              </div>
+            </div>
+          ) : presidentialData.length === 0 ? (
+            <div className="border border-gray-200 rounded-lg p-8 text-center">
               <p className="text-xl text-gray-600">Sin datos</p>
             </div>
           ) : (
