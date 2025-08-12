@@ -189,30 +189,36 @@ const ResultadosMesa2 = () => {
                     <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                       Datos Mesa
                     </h3>
-                    <div className="flex flex-wrap gap-6">
-                      <div>
-                        <h3 className="text-md font-bold lg:text-lg text-gray-600">
-                          Numero de mesa
-                        </h3>
-                        <h3 className="text-md font-bold lg:text-lg">
-                          {electoralTableData?.tableNumber}
-                        </h3>
+                    <div className="flex flex-wrap items-start gap-x-6 gap-y-4">
+                      <div className="flex items-start gap-3 min-w-0 flex-shrink-0">
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-1">
+                            Numero de mesa
+                          </h3>
+                          <p className="text-base font-normal text-gray-900 leading-relaxed break-words">
+                            {electoralTableData?.tableNumber}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-md font-bold lg:text-lg text-gray-600">
-                          Codigo de mesa
-                        </h3>
-                        <h3 className="text-md font-bold lg:text-lg">
-                          {electoralTableData?.tableCode}
-                        </h3>
+                      <div className="flex items-start gap-3 min-w-0 flex-shrink-0">
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-1">
+                            Codigo de mesa
+                          </h3>
+                          <p className="text-base font-normal text-gray-900 leading-relaxed break-words">
+                            {electoralTableData?.tableCode}
+                          </p>
+                        </div>
                       </div>
-                      <div className="w-full">
-                        <h3 className="text-md font-bold lg:text-lg text-gray-600">
-                          Direccion
-                        </h3>
-                        <h3 className="text-md font-bold lg:text-lg">
-                          {electoralTableData?.electoralLocation?.address}
-                        </h3>
+                      <div className="flex items-start gap-3 min-w-0 w-full">
+                        <div className="min-w-0 w-full">
+                          <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-1">
+                            Direccion
+                          </h3>
+                          <p className="text-base font-normal text-gray-900 leading-relaxed break-words">
+                            {electoralTableData?.electoralLocation?.address}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
