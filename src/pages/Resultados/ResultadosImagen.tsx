@@ -318,16 +318,9 @@ const ResultadosImagen = () => {
               </div>
             </div>
             {/* Results Section */}
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-              <div className="mb-6">
+            <div className=" rounded-lg p-6">
+              <div className="border border-gray-200 rounded-lg p-6 mb-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <svg
-                    className="w-5 h-5 text-gray-600 mr-2"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
                   Participación
                 </h3>
                 <StatisticsBars
@@ -341,37 +334,15 @@ const ResultadosImagen = () => {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <div className="border border-gray-200 rounded-lg p-6">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                    <svg
-                      className="w-5 h-5 text-gray-600 mr-2"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
                     Resultados Presidenciales
                   </h3>
                   <Graphs data={presidentialData} />
                 </div>
 
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <div className="border border-gray-200 rounded-lg p-6">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                    <svg
-                      className="w-5 h-5 text-gray-600 mr-2"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
                     Resultados Diputados
                   </h3>
                   <Graphs data={deputiesData} />

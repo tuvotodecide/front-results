@@ -18,7 +18,7 @@ const Graphs: React.FC<GraphProps> = ({ data }) => {
   const [activeTab, setActiveTab] = useState('table');
   return (
     <div>
-      <div className="mb-4 border-b border-gray-200 bg-gray-50">
+      <div className="mb-4 border-b border-gray-200">
         <div className="flex gap-4">
           <button
             type="button"

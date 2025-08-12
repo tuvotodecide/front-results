@@ -411,7 +411,7 @@ const Breadcrumb = () => {
   };
 
   return (
-    <div className="mx-auto pb-6 bg-white">
+    <div className="mx-auto pb-6">
       {/* Breadcrumb Navigation */}
       <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
         <nav className="flex items-center gap-x-1.5 gap-y-3 text-sm flex-wrap w-full">
@@ -467,7 +467,7 @@ const Breadcrumb = () => {
 
       {/* Current Level Selection (Closable) */}
       {selectedLevel && showCurrentLevel && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6 relative mt-6">
+        <div className="border border-gray-200 rounded-lg p-6 relative mt-6">
           {/* Close button, floating on top right */}
           <button
             className="absolute -top-3 -right-3 p-2 rounded-full bg-gray-50 hover:bg-gray-200 text-gray-400 hover:text-gray-600 shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-200 hover:border-gray-300"

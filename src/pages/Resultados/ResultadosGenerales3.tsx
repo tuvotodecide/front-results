@@ -128,8 +128,8 @@ const ResultadosGenerales3 = () => {
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-8">
           Resultados Generales
         </h1>
-        <div className="bg-white rounded-xl shadow-lg py-6 px-6">
-          <div>
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+          <div className="">
             <Breadcrumb2 />
           </div>
 
@@ -139,9 +139,9 @@ const ResultadosGenerales3 = () => {
             </div>
           ) : (
             <>
-              <div className="bg-gray-50 rounded-lg shadow-sm p-4 mb-6">
-                <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
-                  Estadisticas Generales
+              <div className="border border-gray-200 rounded-lg p-6 mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                  Participación
                 </h3>
                 <StatisticsBars
                   voteData={participation}
@@ -153,36 +153,21 @@ const ResultadosGenerales3 = () => {
                 />
               </div>
               <div className="w-full flex flex-wrap gap-4">
-                <div className="bg-gray-50 rounded-lg shadow-sm overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
-                  {/* <div className="border-b border-gray-300 bg-gray-50 px-6 py-4">
-                    <h2 className="text-xl font-semibold text-gray-600">
-                      Visualización de Resultados{' '}
-                    </h2>
-                  </div> */}
-
+                <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
                   <div className=" px-0 md:px-6 py-4">
-                    <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
-                      Resultados presidenciales
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                      Resultados Presidenciales
                     </h3>
 
                     <Graphs data={presidentialData} />
                   </div>
                 </div>
-                <div className="bg-gray-50 rounded-lg shadow-sm overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
-                  {/* <div className="border-b border-gray-300 bg-gray-50 px-6 py-4">
-                    <h2 className="text-xl font-semibold text-gray-600">
-                      Visualización de Resultados{' '}
-                    </h2>
-                  </div> */}
-
+                <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
                   <div className=" px-0 md:px-6 py-4">
-                    <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
-                      Resultados diputados
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                      Resultados Diputados
                     </h3>
                     <Graphs data={deputiesData} />
-                    {/* {selectedOption.id === 'tables' && (
-                      <TablesSection tables={tablesData} />
-                    )} */}
                   </div>
                 </div>
               </div>
