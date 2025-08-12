@@ -7,6 +7,7 @@ import { useGetBallotQuery } from '../../store/ballots/ballotsEndpoints';
 import Graphs from './Graphs';
 import StatisticsBars from './StatisticsBars';
 import SimpleSearchBar from '../../components/SimpleSearchBar';
+import BackButton from '../../components/BackButton';
 
 // const ballotData = {
 //   tableNumber: '25548',
@@ -158,11 +159,14 @@ const ResultadosImagen = () => {
             {/* Header Section */}
             <div className="bg-gray-800 text-white p-6 rounded-t-lg">
               <div className="flex items-center justify-between flex-wrap gap-4">
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-semibold">
-                    Mesa #{currentItem?.tableNumber || '25548'}
-                  </h1>
-                  <p className="text-gray-300 mt-1">Imagen {id}</p>
+                <div className="flex items-center gap-4">
+                  <BackButton className="text-white hover:text-gray-300" />
+                  <div>
+                    <h1 className="text-2xl md:text-3xl font-semibold">
+                      Mesa #{currentItem?.tableNumber || '25548'}
+                    </h1>
+                    <p className="text-gray-300 mt-1">Imagen {id}</p>
+                  </div>
                 </div>
                 <SimpleSearchBar
                   className="shrink-1 ml-auto"
@@ -177,19 +181,48 @@ const ResultadosImagen = () => {
             {/* Content */}
             <div className="p-6">
               {/* Location Section */}
-              <div className="rounded-lg p-6 mb-6 border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  Ubicación
-                </h3>
-                <LocationSection
-                  department={currentItem?.location.department || ''}
-                  province={currentItem?.location.province || ''}
-                  municipality={currentItem?.location.municipality || ''}
-                  electoralLocation={
-                    currentItem?.location.electoralLocationName || ''
-                  }
-                  electoralSeat={currentItem?.location.electoralSeat || ''}
-                />
+              <div className="flex flex-row flex-wrap gap-6">
+                <div className="rounded-lg p-6 mb-6 border border-gray-200 basis-[450px] grow-2 shrink-0">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    Ubicación
+                  </h3>
+                  <LocationSection
+                    department={currentItem?.location.department || ''}
+                    province={currentItem?.location.province || ''}
+                    municipality={currentItem?.location.municipality || ''}
+                    electoralLocation={
+                      currentItem?.location.electoralLocationName || ''
+                    }
+                    electoralSeat={currentItem?.location.electoralSeat || ''}
+                  />
+                </div>
+                <div className="border border-gray-200 rounded-lg p-6 mb-6 basis-[300px] grow-1 shrink-0">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    Datos Mesa
+                  </h3>
+                  <div className="flex flex-wrap items-start gap-x-6 gap-y-4">
+                    <div className="flex items-start gap-3 min-w-0 flex-shrink-0">
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-1">
+                          Numero de mesa
+                        </h3>
+                        <p className="text-base font-normal text-gray-900 leading-relaxed break-words">
+                          {currentItem?.tableNumber || 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 min-w-0 flex-shrink-0">
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-1">
+                          Codigo de mesa
+                        </h3>
+                        <p className="text-base font-normal text-gray-900 leading-relaxed break-words">
+                          {currentItem?.tableCode || 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Attestation Information - Highlighted and Formal */}
@@ -247,26 +280,6 @@ const ResultadosImagen = () => {
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-
-              {/* Table Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <h4 className="text-sm font-medium text-gray-600 mb-2">
-                    Número de mesa
-                  </h4>
-                  <p className="text-xl font-semibold text-gray-900">
-                    {currentItem?.tableNumber || 'N/A'}
-                  </p>
-                </div>
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <h4 className="text-sm font-medium text-gray-600 mb-2">
-                    Código de mesa
-                  </h4>
-                  <p className="text-xl font-semibold text-gray-900">
-                    {currentItem?.tableCode || 'N/A'}
-                  </p>
                 </div>
               </div>
 

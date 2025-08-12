@@ -128,11 +128,29 @@ const ResultadosMesa2 = () => {
         </h1>
 
         {!tableCode ? (
-          <div className="bg-white rounded-xl shadow-lg py-12 px-6">
+          <div className="bg-white rounded-lg shadow-md py-16 px-8 border border-gray-200">
             <div className="flex flex-col items-center justify-center text-center">
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-600 mb-8">
+              <div className="bg-gray-100 rounded-full p-4 mb-6">
+                <svg
+                  className="w-12 h-12 text-gray-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </div>
+              <h1 className="text-2xl md:text-3xl font-semibold text-gray-700 mb-4">
                 Introduzca el codigo de mesa
               </h1>
+              <p className="text-gray-500 mb-8">
+                Busque los resultados por código de mesa específico
+              </p>
               <SimpleSearchBar
                 className="w-full max-w-md"
                 onSearch={handleSearch}
@@ -140,9 +158,24 @@ const ResultadosMesa2 = () => {
             </div>
           </div>
         ) : isElectoralTableError ? (
-          <div className="bg-white rounded-xl shadow-lg py-12 px-6">
+          <div className="bg-white rounded-lg shadow-md py-16 px-8 border border-red-200">
             <div className="flex flex-col items-center justify-center text-center">
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-600 mb-4">
+              <div className="bg-red-50 rounded-full p-4 mb-6">
+                <svg
+                  className="w-12 h-12 text-red-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"
+                  />
+                </svg>
+              </div>
+              <h1 className="text-2xl md:text-3xl font-semibold text-gray-700 mb-4">
                 No se encontró la mesa "{tableCode}"
               </h1>
               <p className="text-lg text-gray-500 mb-8">
@@ -155,113 +188,129 @@ const ResultadosMesa2 = () => {
             </div>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-lg py-6 px-6">
-            <div className="flex items-center mb-4 flex-wrap">
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-600">
-                <BackButton className="mr-4" />
-                {electoralTableData
-                  ? `Mesa #${electoralTableData?.tableNumber} - ${electoralTableData?.tableCode}`
-                  : 'No se encontró la mesa'}
-              </h1>
-              <SimpleSearchBar
-                className="shrink-1 ml-auto"
-                onSearch={handleSearch}
-              />
-            </div>
-            {electoralTableData && (
-              <>
-                <div className="flex flex-row flex-wrap gap-6">
-                  <div className="border border-gray-200 rounded-lg p-6 mb-6 basis-[450px] grow-2 shrink-0">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                      Ubicacion
-                    </h3>
-                    <LocationSection
-                      department={electoralTableData?.department?.name}
-                      province={electoralTableData?.province?.name}
-                      municipality={electoralTableData?.municipality?.name}
-                      electoralLocation={
-                        electoralTableData?.electoralLocation?.name
-                      }
-                      electoralSeat={electoralTableData?.electoralSeat?.name}
-                    />
+          <div className="bg-white rounded-lg shadow-md border border-gray-200">
+            {/* Header Section */}
+            <div className="bg-gray-800 text-white p-6 rounded-t-lg">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-4">
+                  <BackButton className="text-white hover:text-gray-300" />
+                  <div>
+                    <h1 className="text-2xl md:text-3xl font-semibold">
+                      {electoralTableData
+                        ? `Mesa #${electoralTableData?.tableNumber}`
+                        : 'No se encontró la mesa'}
+                    </h1>
+                    {electoralTableData?.tableCode && (
+                      <p className="text-gray-300 mt-1">
+                        Código: {electoralTableData.tableCode}
+                      </p>
+                    )}
                   </div>
-                  <div className="border border-gray-200 rounded-lg p-6 mb-6 basis-[300px] grow-1 shrink-0">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                      Datos Mesa
-                    </h3>
-                    <div className="flex flex-wrap items-start gap-x-6 gap-y-4">
-                      <div className="flex items-start gap-3 min-w-0 flex-shrink-0">
-                        <div className="min-w-0">
-                          <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-1">
-                            Numero de mesa
-                          </h3>
-                          <p className="text-base font-normal text-gray-900 leading-relaxed break-words">
-                            {electoralTableData?.tableNumber}
-                          </p>
+                </div>
+                <SimpleSearchBar
+                  className="shrink-1 ml-auto"
+                  onSearch={handleSearch}
+                />
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              {electoralTableData && (
+                <>
+                  <div className="flex flex-row flex-wrap gap-6">
+                    <div className="border border-gray-200 rounded-lg p-6 mb-6 basis-[450px] grow-2 shrink-0">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        Ubicacion
+                      </h3>
+                      <LocationSection
+                        department={electoralTableData?.department?.name}
+                        province={electoralTableData?.province?.name}
+                        municipality={electoralTableData?.municipality?.name}
+                        electoralLocation={
+                          electoralTableData?.electoralLocation?.name
+                        }
+                        electoralSeat={electoralTableData?.electoralSeat?.name}
+                      />
+                    </div>
+                    <div className="border border-gray-200 rounded-lg p-6 mb-6 basis-[300px] grow-1 shrink-0">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        Datos Mesa
+                      </h3>
+                      <div className="flex flex-wrap items-start gap-x-6 gap-y-4">
+                        <div className="flex items-start gap-3 min-w-0 flex-shrink-0">
+                          <div className="min-w-0">
+                            <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-1">
+                              Numero de mesa
+                            </h3>
+                            <p className="text-base font-normal text-gray-900 leading-relaxed break-words">
+                              {electoralTableData?.tableNumber}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-start gap-3 min-w-0 flex-shrink-0">
-                        <div className="min-w-0">
-                          <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-1">
-                            Codigo de mesa
-                          </h3>
-                          <p className="text-base font-normal text-gray-900 leading-relaxed break-words">
-                            {electoralTableData?.tableCode}
-                          </p>
+                        <div className="flex items-start gap-3 min-w-0 flex-shrink-0">
+                          <div className="min-w-0">
+                            <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-1">
+                              Codigo de mesa
+                            </h3>
+                            <p className="text-base font-normal text-gray-900 leading-relaxed break-words">
+                              {electoralTableData?.tableCode}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-start gap-3 min-w-0 w-full">
-                        <div className="min-w-0 w-full">
-                          <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-1">
-                            Direccion
-                          </h3>
-                          <p className="text-base font-normal text-gray-900 leading-relaxed break-words">
-                            {electoralTableData?.electoralLocation?.address}
-                          </p>
+                        <div className="flex items-start gap-3 min-w-0 w-full">
+                          <div className="min-w-0 w-full">
+                            <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-1">
+                              Direccion
+                            </h3>
+                            <p className="text-base font-normal text-gray-900 leading-relaxed break-words">
+                              {electoralTableData?.electoralLocation?.address}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
+                  <div className="border border-gray-200 rounded-lg p-6 mb-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                      Participación
+                    </h3>
+                    <StatisticsBars
+                      voteData={participation}
+                      processedTables={{ current: 1556, total: 2678 }}
+                      totalTables={456}
+                      totalVoters={1547}
+                      totalActs={596}
+                      totalWitnesses={500}
+                    />
+                  </div>
+                </>
+              )}
+              <div className="w-full flex flex-wrap gap-4">
+                <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
+                  <div className=" px-0 md:px-6 py-4">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                      Resultados Presidenciales
+                    </h3>
+                    <Graphs data={presidentialData} />
+                  </div>
                 </div>
-                <div className="border border-gray-200 rounded-lg p-6 mb-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                    Participación
-                  </h3>
-                  <StatisticsBars
-                    voteData={participation}
-                    processedTables={{ current: 1556, total: 2678 }}
-                    totalTables={456}
-                    totalVoters={1547}
-                    totalActs={596}
-                    totalWitnesses={500}
-                  />
-                </div>
-              </>
-            )}
-            <div className="w-full flex flex-wrap gap-4">
-              <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
-                <div className=" px-0 md:px-6 py-4">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                    Resultados Presidenciales
-                  </h3>
-                  <Graphs data={presidentialData} />
+                <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
+                  <div className=" px-0 md:px-6 py-4">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                      Resultados Diputados
+                    </h3>
+                    <Graphs data={deputiesData} />
+                    {/* {selectedOption.id === 'images' && <ImagesSection />} */}
+                  </div>
                 </div>
               </div>
-              <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
-                <div className=" px-0 md:px-6 py-4">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                    Resultados Diputados
-                  </h3>
-                  <Graphs data={deputiesData} />
-                  {/* {selectedOption.id === 'images' && <ImagesSection />} */}
-                </div>
+              <div className="border border-gray-200 rounded-lg p-4 mt-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                  Imagenes
+                </h3>
+                <ImagesSection images={images} />
               </div>
-            </div>
-            <div className="border border-gray-200 rounded-lg p-4 mt-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                Imagenes
-              </h3>
-              <ImagesSection images={images} />
             </div>
           </div>
         )}
