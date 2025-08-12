@@ -394,6 +394,7 @@ const Breadcrumb = () => {
     setShowCurrentLevel(false);
     setSelectedLevel(null);
     setFilteredOptions([]);
+    dispatch(setFilters({}));
   };
   // Show the next breadcrumb level form when "ver más" is clicked
   const handleShowNextLevel = async () => {
