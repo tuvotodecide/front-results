@@ -3,6 +3,7 @@ name: CI & CD
 on:
   push:
     branches: [main]
+    tags: ["v*"]
     paths:
       - "Dockerfile"
       - "package.json"
@@ -13,21 +14,39 @@ on:
 
 env:
   BUILD_PLATFORMS: linux/arm64
-  CACHE_TAG: buildcache
 
 jobs:
   build:
     name: Build & Push Docker image
     runs-on: ubuntu-latest
     environment: devops_aws
+    outputs:
+      image_tag: ${{ steps.meta.outputs.image_tag }}
     env:
       AWS_REGION: ${{ vars.AWS_REGION }}
       ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
       ECR_REPO: ${{ vars.ECR_REPOSITORY }}
-      IMAGE_TAG: ${{ github.sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Select env & image tag
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "▶️ Build in PROD"
+            echo "${{ vars.ENV_PROD }}" > .env
+            echo "image_tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "alias_tag=prod" >> $GITHUB_OUTPUT
+          else
+            echo "▶️ Build in DEV"
+            echo "${{ vars.ENV_DEV }}" > .env
+            echo "image_tag=latest" >> $GITHUB_OUTPUT
+            echo "alias_tag=dev" >> $GITHUB_OUTPUT
+          fi
+          echo "⎿ wrote .env with tag: $(cat $GITHUB_OUTPUT)"
 
       - name: Set up QEMU (binfmt)
         uses: docker/setup-qemu-action@v3
@@ -47,7 +66,7 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build & Push (with cache)
+      - name: Build & Push (multi-arch)
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -55,11 +74,12 @@ jobs:
           push: true
           platforms: ${{ env.BUILD_PLATFORMS }}
           tags: |
-            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:latest
-          cache-from: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:latest
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.meta.outputs.image_tag }}
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.meta.outputs.alias_tag }}
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.meta.outputs.alias_tag }}
           cache-to: type=inline
 
-  # 2) DEPLOY --------------------------------
   deploy:
     name: Deploy to EC2 via SSM
     needs: build
@@ -69,6 +89,7 @@ jobs:
       AWS_REGION: ${{ vars.AWS_REGION }}
       ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
       ECR_REPO: ${{ vars.ECR_REPOSITORY }}
+      IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
       EC2_INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
       PUBLIC_IP: ${{ vars.PUBLIC_IP }}
       EXTERNAL_PORT: ${{ vars.EXTERNAL_PORT }}
@@ -86,20 +107,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "📦 Deploying $ECR_REGISTRY/$ECR_REPO:latest to $EC2_INSTANCE_ID"
+          echo "📦 Deploying $ECR_REGISTRY/$ECR_REPO:$IMAGE_TAG to $EC2_INSTANCE_ID"
 
           CMDS=$(jq -nc --arg reg "$ECR_REGISTRY" \
             --arg repo "$ECR_REPO" \
             --arg region "$AWS_REGION" \
             --arg port "${EXTERNAL_PORT}" \
             --arg name "$CONTAINER_NAME" \
+            --arg tag "$IMAGE_TAG" \
             '
           [
             "aws ecr get-login-password --region \($region) | docker login --username AWS --password-stdin \($reg)",
-            "docker pull \($reg)/\($repo):latest",
+            "docker pull \($reg)/\($repo):\($tag)",
             "docker stop \($name) || true",
             "docker rm \($name) || true",
-            "docker run -d --name \($name) -p \($port):80 --restart unless-stopped \($reg)/\($repo):latest",
+            "docker run -d --name \($name) -p \($port):80 --restart unless-stopped \($reg)/\($repo):\($tag)",
             "docker image prune -f"
           ]')
 
@@ -139,16 +161,14 @@ jobs:
           set -euo pipefail
           stdbuf -oL -eL echo "🔎 Comprobando http://${PUBLIC_IP}:${EXTERNAL_PORT}/"
           for i in {1..24}; do # = 2 minutos máx.
-            http_code=$(curl -s -o /dev/null -w '%{http_code}' \
-              --max-time 5 \
-              "http://${PUBLIC_IP}:${EXTERNAL_PORT}/") || true
+            http_code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "http://${PUBLIC_IP}:${EXTERNAL_PORT}/") || true
             if [[ "$http_code" == "200" ]]; then
               echo "✅ Servicio OK (${http_code})"; exit 0
             fi
             echo "⏳ intento $i/24 — code=${http_code:-timeout}"
             sleep 5
           done
-          echo "❌ Health‑check failed, dumping container logs"
+          echo "❌ Health-check failed, dumping container logs"
           aws ssm send-command \
             --instance-ids "$EC2_INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
