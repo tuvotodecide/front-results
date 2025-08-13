@@ -17,31 +17,31 @@ const columns: ColumnDef<ElectoralTablesType>[] = [
     accessorKey: 'department',
     header: 'Departamento',
     cell: ({ row }) =>
-      row.original.electoralLocationId.electoralSeatId.municipalityId.provinceId
-        .departmentId.name,
+      row.original.electoralLocationId?.electoralSeatId?.municipalityId
+        ?.provinceId?.departmentId?.name,
   },
   {
     accessorKey: 'province',
     header: 'Provincia',
     cell: ({ row }) =>
-      row.original.electoralLocationId.electoralSeatId.municipalityId.provinceId
-        .name,
+      row.original.electoralLocationId?.electoralSeatId?.municipalityId
+        ?.provinceId?.name,
   },
   {
     accessorKey: 'municipality',
     header: 'Municipio',
     cell: ({ row }) =>
-      row.original.electoralLocationId.electoralSeatId.municipalityId.name,
+      row.original.electoralLocationId?.electoralSeatId?.municipalityId?.name,
   },
   {
     accessorKey: 'electoralSeat',
     header: 'Asiento Electoral',
-    cell: ({ row }) => row.original.electoralLocationId.electoralSeatId.name,
+    cell: ({ row }) => row.original.electoralLocationId?.electoralSeatId?.name,
   },
   {
     accessorKey: 'electoralLocation',
     header: 'Recinto Electoral',
-    cell: ({ row }) => row.original.electoralLocationId.name,
+    cell: ({ row }) => row.original.electoralLocationId?.name,
   },
   {
     accessorKey: 'tableNumber',

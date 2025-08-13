@@ -16,12 +16,12 @@ const columns: ColumnDef<MunicipalitiesType>[] = [
   {
     accessorKey: 'department',
     header: 'Departamento',
-    cell: ({ row }) => row.original.provinceId.departmentId.name,
+    cell: ({ row }) => row.original.provinceId?.departmentId?.name,
   },
   {
     accessorKey: 'province',
     header: 'Provincia',
-    cell: ({ row }) => row.original.provinceId.name,
+    cell: ({ row }) => row.original.provinceId?.name,
   },
   {
     accessorKey: 'name',

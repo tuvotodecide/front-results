@@ -16,17 +16,18 @@ const columns: ColumnDef<ElectoralSeatsType>[] = [
   {
     accessorKey: 'department',
     header: 'Departamento',
-    cell: ({ row }) => row.original.municipalityId.provinceId.departmentId.name,
+    cell: ({ row }) =>
+      row.original.municipalityId?.provinceId?.departmentId?.name,
   },
   {
     accessorKey: 'province',
     header: 'Provincia',
-    cell: ({ row }) => row.original.municipalityId.provinceId.name,
+    cell: ({ row }) => row.original.municipalityId?.provinceId?.name,
   },
   {
     accessorKey: 'municipality',
     header: 'Municipio',
-    cell: ({ row }) => row.original.municipalityId.name,
+    cell: ({ row }) => row.original.municipalityId?.name,
   },
   {
     accessorKey: 'idLoc',

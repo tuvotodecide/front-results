@@ -175,6 +175,16 @@ const ElectoralLocationForm: React.FC = () => {
     electoralSeatId: Yup.string().required(
       'Debe seleccionar un asiento electoral'
     ),
+    latitude: Yup.number()
+      .typeError('Debe ser un número válido')
+      .required('Este campo es obligatorio')
+      .min(-90, 'La latitud debe estar entre -90 y 90')
+      .max(90, 'La latitud debe estar entre -90 y 90'),
+    longitude: Yup.number()
+      .typeError('Debe ser un número válido')
+      .required('Este campo es obligatorio')
+      .min(-180, 'La longitud debe estar entre -180 y 180')
+      .max(180, 'La longitud debe estar entre -180 y 180'),
   });
 
   const initialValues = {
@@ -185,6 +195,8 @@ const ElectoralLocationForm: React.FC = () => {
     district: currentItem?.district || '',
     zone: currentItem?.zone || '',
     active: currentItem?.active ?? true,
+    latitude: currentItem?.coordinates?.latitude || 0,
+    longitude: currentItem?.coordinates?.longitude || 0,
     departmentId:
       typeof currentItem?.electoralSeatId === 'object'
         ? currentItem.electoralSeatId.municipalityId.provinceId.departmentId._id
@@ -211,6 +223,8 @@ const ElectoralLocationForm: React.FC = () => {
     district: string;
     zone: string;
     active: boolean;
+    latitude: number;
+    longitude: number;
     departmentId: string;
     provinceId: string;
     municipalityId: string;
@@ -229,6 +243,10 @@ const ElectoralLocationForm: React.FC = () => {
           zone: values.zone,
           active: values.active,
           electoralSeatId: values.electoralSeatId,
+          coordinates: {
+            latitude: Number(values.latitude),
+            longitude: Number(values.longitude),
+          },
         };
         await updateItem({ id, item: updatePayload }).unwrap();
       } else {
@@ -242,7 +260,10 @@ const ElectoralLocationForm: React.FC = () => {
           zone: values.zone,
           active: values.active,
           electoralSeatId: values.electoralSeatId,
-          coordinates: { latitude: 0, longitude: 0 }, // Default coordinates
+          coordinates: {
+            latitude: Number(values.latitude),
+            longitude: Number(values.longitude),
+          },
           circunscripcion: {
             number: 4,
             type: 'Especial',
@@ -657,6 +678,52 @@ const ElectoralLocationForm: React.FC = () => {
                       />
                       <ErrorMessage
                         name="zone"
+                        component="div"
+                        className="text-orange-600 text-sm mt-1"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-6">
+                    <div>
+                      <label
+                        htmlFor="latitude"
+                        className="block text-sm font-medium text-gray-700"
+                      >
+                        Latitud
+                      </label>
+                      <Field
+                        id="latitude"
+                        name="latitude"
+                        type="number"
+                        step="any"
+                        placeholder="-21.357303"
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      />
+                      <ErrorMessage
+                        name="latitude"
+                        component="div"
+                        className="text-orange-600 text-sm mt-1"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-6">
+                    <div>
+                      <label
+                        htmlFor="longitude"
+                        className="block text-sm font-medium text-gray-700"
+                      >
+                        Longitud
+                      </label>
+                      <Field
+                        id="longitude"
+                        name="longitude"
+                        type="number"
+                        step="any"
+                        placeholder="-63.87766"
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      />
+                      <ErrorMessage
+                        name="longitude"
                         component="div"
                         className="text-orange-600 text-sm mt-1"
                       />

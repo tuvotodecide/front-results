@@ -36,7 +36,9 @@ const ResultadosGenerales3 = () => {
     Array<{ name: string; value: any; color: string }>
   >([]);
   const [tablesData, setTablesData] = useState<ElectoralTableType[]>([]);
-  useGetDepartmentsQuery({});
+  useGetDepartmentsQuery({
+    limit: 100,
+  });
   const [getResultsByLocation] = useLazyGetResultsByLocationQuery({});
   const [getTablesByLocationId] =
     useLazyGetElectoralTablesByElectoralLocationIdQuery({});

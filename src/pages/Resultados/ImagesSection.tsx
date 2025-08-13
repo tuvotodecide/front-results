@@ -119,46 +119,6 @@ const ImagesSection = ({ images }: ImagesSectionProps) => {
             </div>
           </Link>
         ))}
-        <Link to={`/resultados/imagen/example`} key={`example`}>
-          <div className="relative">
-            <div
-              className="rounded-lg overflow-hidden shadow-sm cursor-pointer transition-all duration-300 hover:shadow-md"
-              onClick={() => () => {}}
-            >
-              {/* Background area with acta image */}
-              <div className="h-32 relative">
-                <img
-                  src={actaImage}
-                  alt="Acta Electoral"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-br from-gray-300/30 to-gray-400/30"></div>
-              </div>
-
-              {/* Content */}
-              <div className="p-4">
-                <h3 className="font-semibold text-gray-800 text-sm mb-1">
-                  Código imagen
-                </h3>
-                <p className="text-gray-700 text-base mb-3 font-medium">
-                  IM123456 ejemplo
-                </p>
-
-                {/* Vote counts */}
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">A favor:</span>
-                    <span className="font-semibold text-gray-800">X</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">En contra:</span>
-                    <span className="font-semibold text-gray-800">Y</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Link>
       </div>
     </div>
   );

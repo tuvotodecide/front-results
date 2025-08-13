@@ -16,7 +16,7 @@ const columns: ColumnDef<ProvincesType>[] = [
   {
     accessorKey: 'department',
     header: 'Departamento',
-    cell: ({ row }) => row.original.departmentId.name,
+    cell: ({ row }) => row.original.departmentId?.name,
   },
   {
     accessorKey: 'name',
