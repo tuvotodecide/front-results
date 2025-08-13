@@ -17,24 +17,24 @@ const columns: ColumnDef<ElectoralLocationsType>[] = [
     accessorKey: "department",
     header: "Departamento",
     cell: ({ row }) =>
-      row.original?.electoralSeatId?.municipalityId?.provinceId?.departmentId
+      row.original.electoralSeatId?.municipalityId?.provinceId?.departmentId
         ?.name,
   },
   {
     accessorKey: "province",
     header: "Provincia",
     cell: ({ row }) =>
-      row.original?.electoralSeatId?.municipalityId?.provinceId?.name,
+      row.original.electoralSeatId?.municipalityId?.provinceId?.name,
   },
   {
     accessorKey: "municipality",
     header: "Municipio",
-    cell: ({ row }) => row.original?.electoralSeatId?.municipalityId?.name,
+    cell: ({ row }) => row.original.electoralSeatId?.municipalityId?.name,
   },
   {
     accessorKey: "electoralSeat",
     header: "Asiento Electoral",
-    cell: ({ row }) => row.original?.electoralSeatId?.name,
+    cell: ({ row }) => row.original.electoralSeatId?.name,
   },
   {
     accessorKey: "fid",
