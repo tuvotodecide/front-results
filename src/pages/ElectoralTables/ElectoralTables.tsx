@@ -1,68 +1,68 @@
-import React, { useEffect, useState } from 'react';
-import Table from '../../components/Table';
-import Modal from '../../components/Modal';
-import Pagination from '../../components/Pagination';
-import SearchForm from '../../components/SearchForm';
-import { Link, useNavigate } from 'react-router-dom';
-import type { ColumnDef } from '@tanstack/react-table';
-import BackButton from '../../components/BackButton';
+import React, { useEffect, useState } from "react";
+import Table from "../../components/Table";
+import Modal from "../../components/Modal";
+import Pagination from "../../components/Pagination";
+import SearchForm from "../../components/SearchForm";
+import { Link, useNavigate } from "react-router-dom";
+import type { ColumnDef } from "@tanstack/react-table";
+import BackButton from "../../components/BackButton";
 import {
   useGetElectoralTablesQuery,
   useDeleteElectoralTableMutation,
-} from '../../store/electoralTables/electoralTablesEndpoints';
-import { ElectoralTablesType } from '../../types';
+} from "../../store/electoralTables/electoralTablesEndpoints";
+import { ElectoralTablesType } from "../../types";
 
 const columns: ColumnDef<ElectoralTablesType>[] = [
   {
-    accessorKey: 'department',
-    header: 'Departamento',
+    accessorKey: "department",
+    header: "Departamento",
     cell: ({ row }) =>
-      row.original.electoralLocationId.electoralSeatId.municipalityId.provinceId
-        .departmentId.name,
+      row.original?.electoralLocationId?.electoralSeatId?.municipalityId
+        ?.provinceId?.departmentId?.name,
   },
   {
-    accessorKey: 'province',
-    header: 'Provincia',
+    accessorKey: "province",
+    header: "Provincia",
     cell: ({ row }) =>
-      row.original.electoralLocationId.electoralSeatId.municipalityId.provinceId
-        .name,
+      row.original?.electoralLocationId?.electoralSeatId?.municipalityId
+        ?.provinceId?.name,
   },
   {
-    accessorKey: 'municipality',
-    header: 'Municipio',
+    accessorKey: "municipality",
+    header: "Municipio",
     cell: ({ row }) =>
-      row.original.electoralLocationId.electoralSeatId.municipalityId.name,
+      row.original?.electoralLocationId?.electoralSeatId?.municipalityId?.name,
   },
   {
-    accessorKey: 'electoralSeat',
-    header: 'Asiento Electoral',
-    cell: ({ row }) => row.original.electoralLocationId.electoralSeatId.name,
+    accessorKey: "electoralSeat",
+    header: "Asiento Electoral",
+    cell: ({ row }) => row.original?.electoralLocationId?.electoralSeatId?.name,
   },
   {
-    accessorKey: 'electoralLocation',
-    header: 'Recinto Electoral',
-    cell: ({ row }) => row.original.electoralLocationId.name,
+    accessorKey: "electoralLocation",
+    header: "Recinto Electoral",
+    cell: ({ row }) => row.original?.electoralLocationId?.name,
   },
   {
-    accessorKey: 'tableNumber',
-    header: 'Número de Mesa',
+    accessorKey: "tableNumber",
+    header: "Número de Mesa",
   },
   {
-    accessorKey: 'tableCode',
-    header: 'Código de Mesa',
+    accessorKey: "tableCode",
+    header: "Código de Mesa",
   },
   {
-    id: 'status',
-    header: 'Estado',
+    id: "status",
+    header: "Estado",
     cell: ({ row }) => (
       <span
         className={`px-2 py-1 rounded-full text-sm ${
           row.original.active
-            ? 'bg-green-100 text-green-800'
-            : 'bg-red-100 text-red-800'
+            ? "bg-green-100 text-green-800"
+            : "bg-red-100 text-red-800"
         }`}
       >
-        {row.original.active ? 'Activo' : 'Inactivo'}
+        {row.original.active ? "Activo" : "Inactivo"}
       </span>
     ),
   },
@@ -106,7 +106,7 @@ const ElectoralTables: React.FC = () => {
         setItemToDelete(null);
       })
       .catch((error: any) => {
-        console.error('Failed to delete item:', error);
+        console.error("Failed to delete item:", error);
       });
   };
 
@@ -118,7 +118,7 @@ const ElectoralTables: React.FC = () => {
   // Log electoral tables whenever they change
   useEffect(() => {
     if (data) {
-      console.log('Electoral Tables Data:', data);
+      console.log("Electoral Tables Data:", data);
     }
   }, [data]);
 

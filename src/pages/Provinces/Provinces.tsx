@@ -1,43 +1,43 @@
-import React, { useEffect, useState } from 'react';
-import Table from '../../components/Table';
-import Modal from '../../components/Modal';
-import Pagination from '../../components/Pagination';
-import SearchForm from '../../components/SearchForm';
-import { Link, useNavigate } from 'react-router-dom';
-import type { ColumnDef } from '@tanstack/react-table';
-import BackButton from '../../components/BackButton';
+import React, { useEffect, useState } from "react";
+import Table from "../../components/Table";
+import Modal from "../../components/Modal";
+import Pagination from "../../components/Pagination";
+import SearchForm from "../../components/SearchForm";
+import { Link, useNavigate } from "react-router-dom";
+import type { ColumnDef } from "@tanstack/react-table";
+import BackButton from "../../components/BackButton";
 import {
   useGetProvincesQuery,
   useDeleteProvinceMutation,
-} from '../../store/provinces/provincesEndpoints';
-import { ProvincesType } from '../../types';
+} from "../../store/provinces/provincesEndpoints";
+import { ProvincesType } from "../../types";
 
 const columns: ColumnDef<ProvincesType>[] = [
   {
-    accessorKey: 'department',
-    header: 'Departamento',
-    cell: ({ row }) => row.original.departmentId.name,
+    accessorKey: "department",
+    header: "Departamento",
+    cell: ({ row }) => row.original?.departmentId?.name,
   },
   {
-    accessorKey: 'name',
-    header: 'Nombre',
+    accessorKey: "name",
+    header: "Nombre",
   },
   {
-    accessorKey: 'totalTables',
-    header: 'Total Mesas',
+    accessorKey: "totalTables",
+    header: "Total Mesas",
   },
   {
-    id: 'status',
-    header: 'Estado',
+    id: "status",
+    header: "Estado",
     cell: ({ row }) => (
       <span
         className={`px-2 py-1 rounded-full text-sm ${
           row.original.active
-            ? 'bg-green-100 text-green-800'
-            : 'bg-red-100 text-red-800'
+            ? "bg-green-100 text-green-800"
+            : "bg-red-100 text-red-800"
         }`}
       >
-        {row.original.active ? 'Activo' : 'Inactivo'}
+        {row.original.active ? "Activo" : "Inactivo"}
       </span>
     ),
   },
@@ -79,7 +79,7 @@ const Provinces: React.FC = () => {
         setItemToDelete(null);
       })
       .catch((error) => {
-        console.error('Failed to delete item:', error);
+        console.error("Failed to delete item:", error);
       });
   };
 
@@ -91,7 +91,7 @@ const Provinces: React.FC = () => {
   // Log departments whenever they change
   useEffect(() => {
     if (data) {
-      console.log('respp respp respp:', data);
+      console.log("respp respp respp:", data);
     }
   }, [data]);
 

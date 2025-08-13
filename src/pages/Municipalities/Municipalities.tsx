@@ -1,48 +1,48 @@
-import React, { useEffect, useState } from 'react';
-import Table from '../../components/Table';
-import Modal from '../../components/Modal';
-import Pagination from '../../components/Pagination';
-import SearchForm from '../../components/SearchForm';
-import { Link, useNavigate } from 'react-router-dom';
-import type { ColumnDef } from '@tanstack/react-table';
-import BackButton from '../../components/BackButton';
+import React, { useEffect, useState } from "react";
+import Table from "../../components/Table";
+import Modal from "../../components/Modal";
+import Pagination from "../../components/Pagination";
+import SearchForm from "../../components/SearchForm";
+import { Link, useNavigate } from "react-router-dom";
+import type { ColumnDef } from "@tanstack/react-table";
+import BackButton from "../../components/BackButton";
 import {
   useGetMunicipalitiesQuery,
   useDeleteMunicipalityMutation,
-} from '../../store/municipalities/municipalitiesEndpoints';
-import { MunicipalitiesType } from '../../types';
+} from "../../store/municipalities/municipalitiesEndpoints";
+import { MunicipalitiesType } from "../../types";
 
 const columns: ColumnDef<MunicipalitiesType>[] = [
   {
-    accessorKey: 'department',
-    header: 'Departamento',
-    cell: ({ row }) => row.original.provinceId.departmentId.name,
+    accessorKey: "department",
+    header: "Departamento",
+    cell: ({ row }) => row.original?.provinceId?.departmentId?.name,
   },
   {
-    accessorKey: 'province',
-    header: 'Provincia',
-    cell: ({ row }) => row.original.provinceId.name,
+    accessorKey: "province",
+    header: "Provincia",
+    cell: ({ row }) => row.original?.provinceId?.name,
   },
   {
-    accessorKey: 'name',
-    header: 'Nombre',
+    accessorKey: "name",
+    header: "Nombre",
   },
   {
-    accessorKey: 'totalTables',
-    header: 'Total Mesas',
+    accessorKey: "totalTables",
+    header: "Total Mesas",
   },
   {
-    id: 'status',
-    header: 'Estado',
+    id: "status",
+    header: "Estado",
     cell: ({ row }) => (
       <span
         className={`px-2 py-1 rounded-full text-sm ${
           row.original.active
-            ? 'bg-green-100 text-green-800'
-            : 'bg-red-100 text-red-800'
+            ? "bg-green-100 text-green-800"
+            : "bg-red-100 text-red-800"
         }`}
       >
-        {row.original.active ? 'Activo' : 'Inactivo'}
+        {row.original.active ? "Activo" : "Inactivo"}
       </span>
     ),
   },
@@ -86,7 +86,7 @@ const Municipalities: React.FC = () => {
         setItemToDelete(null);
       })
       .catch((error: any) => {
-        console.error('Failed to delete item:', error);
+        console.error("Failed to delete item:", error);
       });
   };
 
@@ -98,7 +98,7 @@ const Municipalities: React.FC = () => {
   // Log municipalities whenever they change
   useEffect(() => {
     if (data) {
-      console.log('respp respp respp:', data);
+      console.log("respp respp respp:", data);
     }
   }, [data]);
 

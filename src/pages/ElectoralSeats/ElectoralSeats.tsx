@@ -1,53 +1,54 @@
-import React, { useEffect, useState } from 'react';
-import Table from '../../components/Table';
-import Modal from '../../components/Modal';
-import Pagination from '../../components/Pagination';
-import SearchForm from '../../components/SearchForm';
-import { Link, useNavigate } from 'react-router-dom';
-import type { ColumnDef } from '@tanstack/react-table';
-import BackButton from '../../components/BackButton';
+import React, { useEffect, useState } from "react";
+import Table from "../../components/Table";
+import Modal from "../../components/Modal";
+import Pagination from "../../components/Pagination";
+import SearchForm from "../../components/SearchForm";
+import { Link, useNavigate } from "react-router-dom";
+import type { ColumnDef } from "@tanstack/react-table";
+import BackButton from "../../components/BackButton";
 import {
   useGetElectoralSeatsQuery,
   useDeleteElectoralSeatMutation,
-} from '../../store/electoralSeats/electoralSeatsEndpoints';
-import { ElectoralSeatsType } from '../../types';
+} from "../../store/electoralSeats/electoralSeatsEndpoints";
+import { ElectoralSeatsType } from "../../types";
 
 const columns: ColumnDef<ElectoralSeatsType>[] = [
   {
-    accessorKey: 'department',
-    header: 'Departamento',
-    cell: ({ row }) => row.original.municipalityId.provinceId.departmentId.name,
+    accessorKey: "department",
+    header: "Departamento",
+    cell: ({ row }) =>
+      row.original?.municipalityId?.provinceId?.departmentId?.name,
   },
   {
-    accessorKey: 'province',
-    header: 'Provincia',
-    cell: ({ row }) => row.original.municipalityId.provinceId.name,
+    accessorKey: "province",
+    header: "Provincia",
+    cell: ({ row }) => row.original?.municipalityId?.provinceId?.name,
   },
   {
-    accessorKey: 'municipality',
-    header: 'Municipio',
-    cell: ({ row }) => row.original.municipalityId.name,
+    accessorKey: "municipality",
+    header: "Municipio",
+    cell: ({ row }) => row.original?.municipalityId?.name,
   },
   {
-    accessorKey: 'idLoc',
-    header: 'ID Localización',
+    accessorKey: "idLoc",
+    header: "ID Localización",
   },
   {
-    accessorKey: 'name',
-    header: 'Nombre',
+    accessorKey: "name",
+    header: "Nombre",
   },
   {
-    id: 'status',
-    header: 'Estado',
+    id: "status",
+    header: "Estado",
     cell: ({ row }) => (
       <span
         className={`px-2 py-1 rounded-full text-sm ${
           row.original.active
-            ? 'bg-green-100 text-green-800'
-            : 'bg-red-100 text-red-800'
+            ? "bg-green-100 text-green-800"
+            : "bg-red-100 text-red-800"
         }`}
       >
-        {row.original.active ? 'Activo' : 'Inactivo'}
+        {row.original.active ? "Activo" : "Inactivo"}
       </span>
     ),
   },
@@ -91,7 +92,7 @@ const ElectoralSeats: React.FC = () => {
         setItemToDelete(null);
       })
       .catch((error: any) => {
-        console.error('Failed to delete item:', error);
+        console.error("Failed to delete item:", error);
       });
   };
 
@@ -103,7 +104,7 @@ const ElectoralSeats: React.FC = () => {
   // Log municipalities whenever they change
   useEffect(() => {
     if (data) {
-      console.log('respp respp respp:', data);
+      console.log("respp respp respp:", data);
     }
   }, [data]);
 
