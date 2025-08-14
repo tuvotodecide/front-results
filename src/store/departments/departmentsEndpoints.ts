@@ -33,7 +33,7 @@ export const departmentsApiSlice = apiSlice.injectEndpoints({
           const {
             data: { data: departments },
           } = await queryFulfilled;
-          console.log('Fetched departments:', departments);
+          // console.log('Fetched departments:', departments);
           dispatch(setDepartments(departments));
         } catch (error) {
           console.error('Failed to fetch departments:', error);

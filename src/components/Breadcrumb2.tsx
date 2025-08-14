@@ -155,11 +155,11 @@ const Breadcrumb = () => {
   // Initialize from URL parameters only once on mount
   useEffect(() => {
     if (!isInitialized && searchParams.size > 0 && selectedPath2.length === 0) {
-      console.log(
-        '%cInitializing from URL params:',
-        'color: blue; font-size: 16px; font-weight: bold;',
-        Object.fromEntries(searchParams.entries())
-      );
+      // console.log(
+      //   '%cInitializing from URL params:',
+      //   'color: blue; font-size: 16px; font-weight: bold;',
+      //   Object.fromEntries(searchParams.entries())
+      // );
       const {
         department: departmentId,
         province: provinceId,
@@ -290,66 +290,66 @@ const Breadcrumb = () => {
       return options.departments;
     }
     const currentPath = pathOverride || selectedPath2;
-    console.log(
-      '%ccurrentPath:',
-      'color: blue; font-size: 16px; font-weight: bold;',
-      currentPath
-    );
+    // console.log(
+    //   '%ccurrentPath:',
+    //   'color: blue; font-size: 16px; font-weight: bold;',
+    //   currentPath
+    // );
     const idParentOption = currentPath[levelIndex - 1]?.selectedOption?._id;
-    console.log(
-      '%cParent option ID:',
-      'color: purple; font-size: 16px; font-weight: bold;',
-      idParentOption
-    );
+    // console.log(
+    //   '%cParent option ID:',
+    //   'color: purple; font-size: 16px; font-weight: bold;',
+    //   idParentOption
+    // );
     if (!idParentOption) {
       return [];
     }
     switch (levelIndex) {
       case 0:
         // GET departments
-        console.log(
-          '%cDepartments fetched:',
-          'color: green; font-size: 16px; font-weight: bold;',
-          options.departments
-        );
+        // console.log(
+        //   '%cDepartments fetched:',
+        //   'color: green; font-size: 16px; font-weight: bold;',
+        //   options.departments
+        // );
         return options.departments;
       case 1:
         const resp = await getProvincesByDepartmentId(idParentOption).unwrap();
-        console.log(
-          '%cProvinces fetched for department222222:',
-          'color: green; font-size: 16px; font-weight: bold;',
-          resp
-        );
+        // console.log(
+        //   '%cProvinces fetched for department222222:',
+        //   'color: green; font-size: 16px; font-weight: bold;',
+        //   resp
+        // );
         // GET provinces based on selected department
         return resp;
       case 2:
         const municipalitiesResp = await getMunicipalitiesByProvinceId(
           idParentOption
         ).unwrap();
-        console.log(
-          '%cMunicipalities fetched for province:',
-          'color: green; font-size: 16px; font-weight: bold;',
-          municipalitiesResp
-        );
+        // console.log(
+        //   '%cMunicipalities fetched for province:',
+        //   'color: green; font-size: 16px; font-weight: bold;',
+        //   municipalitiesResp
+        // );
         return municipalitiesResp;
       case 3:
         const electoralSeatsResp = await getElectoralSeatsByMunicipalityId(
           idParentOption
         ).unwrap();
-        console.log(
-          '%cElectoral seats fetched for municipality:',
-          'color: green; font-size: 16px; font-weight: bold;',
-          electoralSeatsResp
-        );
+        // console.log(
+        //   '%cElectoral seats fetched for municipality:',
+        //   'color: green; font-size: 16px; font-weight: bold;',
+        //   electoralSeatsResp
+        // );
         return electoralSeatsResp;
       case 4:
         const electoralLocationsResp =
           await getElectoralLocationsByElectoralSeatId(idParentOption).unwrap();
-        console.log(
-          '%cElectoral locations fetched for electoral seat:',
-          'color: green; font-size: 16px; font-weight: bold;',
-          electoralLocationsResp
-        );
+        // console.log(
+        //   '%cElectoral locations fetched for electoral seat:',
+        //   'color: green; font-size: 16px; font-weight: bold;',
+        //   electoralLocationsResp
+        // );
         return electoralLocationsResp;
       default:
         return [];
@@ -397,9 +397,9 @@ const Breadcrumb = () => {
     dispatch(setFilters({}));
   };
   // Show the next breadcrumb level form when "ver más" is clicked
-  const handleShowNextLevel = async () => {
-    setShowCurrentLevel(true);
-  };
+  // const handleShowNextLevel = async () => {
+  //   setShowCurrentLevel(true);
+  // };
 
   const handleSearch = (query: string) => {
     console.log('Search initiated for query:', query);
@@ -447,13 +447,13 @@ const Breadcrumb = () => {
             </React.Fragment>
           ))}
           <div className="ml-auto">
-            <button
+            {/* <button
               className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500 transition-colors duration-200 shrink-0"
               onClick={handleShowNextLevel}
               disabled={selectedPath2.length >= breadcrumbLevels.length}
             >
               Ver más
-            </button>
+            </button> */}
             <button
               className="ml-2 px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
               onClick={clearSelectedPath}

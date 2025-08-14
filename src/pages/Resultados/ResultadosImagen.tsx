@@ -8,6 +8,8 @@ import Graphs from './Graphs';
 import StatisticsBars from './StatisticsBars';
 import SimpleSearchBar from '../../components/SimpleSearchBar';
 import BackButton from '../../components/BackButton';
+import { useDispatch } from 'react-redux';
+import { setCurrentBallot } from '../../store/resultados/resultadosSlice';
 
 // const ballotData = {
 //   tableNumber: '25548',
@@ -16,6 +18,7 @@ import BackButton from '../../components/BackButton';
 
 const ResultadosImagen = () => {
   const { id } = useParams();
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const { data: currentItem, isError: isBallotError } = useGetBallotQuery(id!, {
     skip: !id,
@@ -84,6 +87,12 @@ const ResultadosImagen = () => {
       setParticipation(participationData);
     }
   }, [currentItem]);
+
+  useEffect(() => {
+    if (id) {
+      dispatch(setCurrentBallot(id));
+    }
+  }, [id]);
 
   // const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 

@@ -11,6 +11,7 @@ export interface ResultsState {
     electoralSeat: string;
   };
   currentTable: string | null;
+  currentBallot: string | null;
 }
 
 const initialState: ResultsState = {
@@ -24,6 +25,7 @@ const initialState: ResultsState = {
     electoralSeat: '',
   },
   currentTable: null,
+  currentBallot: null,
 };
 
 export const resultsSlice = createSlice({
@@ -31,11 +33,14 @@ export const resultsSlice = createSlice({
   initialState,
   reducers: {
     setFilters: (state, action) => {
-      console.log('setFilters action payload:', action.payload);
+      // console.log('setFilters action payload:', action.payload);
       state.filters = action.payload;
     },
     setCurrentTable: (state, action) => {
       state.currentTable = action.payload;
+    },
+    setCurrentBallot: (state, action) => {
+      state.currentBallot = action.payload;
     },
   },
 });
@@ -44,6 +49,9 @@ export const selectFilters = (state: { results: ResultsState }) =>
   state.results.filters;
 export const selectCurrentTable = (state: { results: ResultsState }) =>
   state.results.currentTable;
-export const { setFilters, setCurrentTable } = resultsSlice.actions;
+export const selectCurrentBallot = (state: { results: ResultsState }) =>
+  state.results.currentBallot;
+export const { setFilters, setCurrentTable, setCurrentBallot } =
+  resultsSlice.actions;
 // export const { setRecintos } = actasSlice.actions;
 // export const selectAuth = (state: RootState) => state.auth;

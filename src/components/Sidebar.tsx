@@ -4,6 +4,10 @@ import styles from './Sidebar.module.css';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { selectIsLoggedIn } from '../store/auth/authSlice';
+import {
+  selectCurrentBallot,
+  selectCurrentTable,
+} from '../store/resultados/resultadosSlice';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -13,6 +17,8 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
   const { isSmallScreen } = useScreenSize();
   const isLoggedIn = useSelector(selectIsLoggedIn);
+  const currentTable = useSelector(selectCurrentTable);
+  const currentBallot = useSelector(selectCurrentBallot);
 
   React.useEffect(() => {
     const handleMenuClick = () => {
@@ -64,12 +70,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
               </Link>
             </li>
             <li className={styles.menuItem}>
-              <Link to="/resultados/mesa" className={styles.menuLink}>
+              <Link
+                to={
+                  currentTable
+                    ? `/resultados/mesa/${currentTable}`
+                    : '/resultados/mesa'
+                }
+                className={styles.menuLink}
+              >
                 <span className={styles.icon}>🗳️</span>Resultados por mesa
               </Link>
             </li>
             <li className={styles.menuItem}>
-              <Link to="/resultados/imagen" className={styles.menuLink}>
+              <Link
+                to={
+                  currentBallot
+                    ? `/resultados/imagen/${currentBallot}`
+                    : '/resultados/imagen'
+                }
+                className={styles.menuLink}
+              >
                 <span className={styles.icon}>🖼️</span>Resultados por imagen
               </Link>
             </li>

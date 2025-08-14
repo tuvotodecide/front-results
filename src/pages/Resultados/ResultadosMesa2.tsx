@@ -11,6 +11,8 @@ import BackButton from '../../components/BackButton';
 import { useLazyGetBallotByTableCodeQuery } from '../../store/ballots/ballotsEndpoints';
 import { BallotType } from '../../types';
 import { useGetConfigurationStatusQuery } from '../../store/configurations/configurationsEndpoints';
+import { setCurrentTable } from '../../store/resultados/resultadosSlice';
+import { useDispatch } from 'react-redux';
 
 // const combinedData = [
 //   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -25,6 +27,7 @@ import { useGetConfigurationStatusQuery } from '../../store/configurations/confi
 
 const ResultadosMesa2 = () => {
   const { tableCode } = useParams();
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const [getResultsByLocation] = useLazyGetResultsByLocationQuery({});
   const [getBallotsByTableCode] = useLazyGetBallotByTableCodeQuery({});
@@ -66,7 +69,7 @@ const ResultadosMesa2 = () => {
       getResultsByLocation({ tableCode, electionType: 'presidential' })
         .unwrap()
         .then((data) => {
-          console.log('Fetched presidential data:', data);
+          // console.log('Fetched presidential data:', data);
           const formattedData = data.results.map((item: any) => {
             // Generate random hex color if color not provided
             const randomColor =
@@ -106,7 +109,7 @@ const ResultadosMesa2 = () => {
       getResultsByLocation({ tableCode, electionType: 'deputies' })
         .unwrap()
         .then((data) => {
-          console.log('Fetched deputies data:', data);
+          // console.log('Fetched deputies data:', data);
           const formattedData = data.results.map((item: any) => {
             // Generate random hex color if color not provided
             const randomColor =
@@ -121,6 +124,12 @@ const ResultadosMesa2 = () => {
         });
     }
   }, [tableCode, electoralTableData]);
+
+  useEffect(() => {
+    if (tableCode) {
+      dispatch(setCurrentTable(tableCode));
+    }
+  }, [tableCode]);
 
   return (
     <div className="outer-container min-h-screen bg-gray-50 py-8">

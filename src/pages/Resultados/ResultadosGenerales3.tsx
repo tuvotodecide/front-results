@@ -45,12 +45,12 @@ const ResultadosGenerales3 = () => {
   const { data: configData } = useGetConfigurationStatusQuery();
   const filters = useSelector(selectFilters);
 
-  useEffect(() => {
-    console.log('Current config data:', configData);
-  }, [configData]);
+  // useEffect(() => {
+  //   // console.log('Current config data:', configData);
+  // }, [configData]);
 
   useEffect(() => {
-    console.log('Current filters:', filters);
+    // console.log('Current filters:', filters);
     // const cleanedFilters = Object.fromEntries(
     //   Object.entries(filters).filter(
     //     ([key, value]) => value !== '' && key !== 'electoralLocation'
@@ -60,7 +60,7 @@ const ResultadosGenerales3 = () => {
     getResultsByLocation({ ...filters, electionType: 'presidential' })
       .unwrap()
       .then((data) => {
-        console.log('Fetched presidential data:', data);
+        // console.log('Fetched presidential data:', data);
         const formattedData = data.results.map((item: any) => {
           // Generate random hex color if color not provided
           const randomColor =
@@ -100,7 +100,7 @@ const ResultadosGenerales3 = () => {
     getResultsByLocation({ ...filters, electionType: 'deputies' })
       .unwrap()
       .then((data) => {
-        console.log('Fetched deputies data:', data);
+        // console.log('Fetched deputies data:', data);
         const formattedData = data.results.map((item: any) => {
           // Generate random hex color if color not provided
           const randomColor =
@@ -117,7 +117,7 @@ const ResultadosGenerales3 = () => {
 
   useEffect(() => {
     const electoralLocationId = searchParams.get('electoralLocation');
-    console.log('Electoral Location ID:', electoralLocationId);
+    // console.log('Electoral Location ID:', electoralLocationId);
     if (electoralLocationId) {
       getTablesByLocationId(electoralLocationId)
         .unwrap()

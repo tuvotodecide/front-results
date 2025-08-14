@@ -40,7 +40,7 @@ const AppRouter: React.FC = () => {
     const token = localStorage.getItem('token');
     if (user && token) {
       dispatch(setAuth({ access_token: token, user }));
-      console.log('User data:', user);
+      // console.log('User data:', user);
     }
     setIsAuthLoading(false);
   }, [dispatch]);

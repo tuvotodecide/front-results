@@ -28,7 +28,7 @@ const StatisticsBars = ({
 // totalActs = 0,
 // totalWitnesses = 0,
 StatisticsBarsProps) => {
-  const [animationComplete, setAnimationComplete] = useState(false);
+  // const [animationComplete, setAnimationComplete] = useState(false);
 
   // Data from the image
   // const progressPercentage = processedTables.total
@@ -51,10 +51,10 @@ StatisticsBarsProps) => {
   //   { title: 'Número de atestiguamientos', value: totalWitnesses },
   // ];
 
-  useEffect(() => {
-    const timer = setTimeout(() => setAnimationComplete(true), 100);
-    return () => clearTimeout(timer);
-  }, []);
+  // useEffect(() => {
+  //   const timer = setTimeout(() => setAnimationComplete(true), 100);
+  //   return () => clearTimeout(timer);
+  // }, []);
 
   const formatNumber = (num: number) => {
     return num?.toLocaleString('es-ES');
@@ -138,7 +138,8 @@ StatisticsBarsProps) => {
                 <div
                   className="h-full flex transition-all duration-500 ease-out"
                   style={{
-                    width: animationComplete ? '100%' : '0%',
+                    // width: animationComplete ? '100%' : '0%',
+                    width: '100%',
                   }}
                 >
                   {/* Vote type sections within the full area */}

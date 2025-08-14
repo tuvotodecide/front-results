@@ -66,7 +66,7 @@ const Login: React.FC = () => {
     <div className="flex items-center justify-center w-full h-full">
       <div className="w-full max-w-md p-8 bg-white rounded shadow-md">
         <h1 className="text-2xl font-bold text-center mb-6 text-gray-700">
-          Yo Custodio
+          Tu voto decide
         </h1>
         <Formik
           initialValues={initialValues}
