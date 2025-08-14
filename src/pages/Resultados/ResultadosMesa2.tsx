@@ -123,7 +123,7 @@ const ResultadosMesa2 = () => {
   }, [tableCode, electoralTableData]);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="outer-container min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto max-w-7xl">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-8">
           Resultados por Mesa
@@ -132,7 +132,7 @@ const ResultadosMesa2 = () => {
         {!tableCode ? (
           <div className="bg-white rounded-lg shadow-md py-16 px-8 border border-gray-200">
             <div className="flex flex-col items-center justify-center text-center">
-              <div className="bg-gray-100 rounded-full p-4 mb-6">
+              <div className="bg-gray-100 rounded-full p-4 mb-4">
                 <svg
                   className="w-12 h-12 text-gray-600"
                   fill="none"
@@ -162,7 +162,7 @@ const ResultadosMesa2 = () => {
         ) : isElectoralTableError ? (
           <div className="bg-white rounded-lg shadow-md py-16 px-8 border border-red-200">
             <div className="flex flex-col items-center justify-center text-center">
-              <div className="bg-red-50 rounded-full p-4 mb-6">
+              <div className="bg-red-50 rounded-full p-4 mb-4">
                 <svg
                   className="w-12 h-12 text-red-600"
                   fill="none"
@@ -217,11 +217,11 @@ const ResultadosMesa2 = () => {
             </div>
 
             {/* Content */}
-            <div className="p-6">
+            <div className="inner-container">
               {electoralTableData && (
                 <>
-                  <div className="flex flex-row flex-wrap gap-6">
-                    <div className="border border-gray-200 rounded-lg p-6 mb-6 basis-[450px] grow-2 shrink-0">
+                  <div className="flex flex-row flex-wrap gap-4 mb-4">
+                    <div className="border border-gray-200 rounded-lg p-6 basis-[450px] grow-2 shrink-1">
                       <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         Ubicacion
                       </h3>
@@ -235,7 +235,7 @@ const ResultadosMesa2 = () => {
                         electoralSeat={electoralTableData?.electoralSeat?.name}
                       />
                     </div>
-                    <div className="border border-gray-200 rounded-lg p-6 mb-6 basis-[300px] grow-1 shrink-0">
+                    <div className="border border-gray-200 rounded-lg p-6 basis-[300px] grow-1 shrink-1">
                       <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         Datos Mesa
                       </h3>
@@ -277,7 +277,7 @@ const ResultadosMesa2 = () => {
                   !configData.isResultsPeriod &&
                   configData.hasActiveConfig ? (
                     <div className="border border-gray-200 rounded-lg p-8 text-center">
-                      <p className="text-xl text-gray-600 mb-6">
+                      <p className="text-xl text-gray-600 mb-4">
                         Los resultados se habilitarán el:
                       </p>
                       <div className="mb-2">
@@ -308,7 +308,7 @@ const ResultadosMesa2 = () => {
                     </div>
                   ) : (
                     <>
-                      <div className="border border-gray-200 rounded-lg p-6 mb-6">
+                      <div className="border border-gray-200 rounded-lg p-6 mb-4">
                         <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                           Participación
                         </h3>
@@ -323,7 +323,7 @@ const ResultadosMesa2 = () => {
                       </div>
                       <div className="w-full flex flex-wrap gap-4">
                         <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
-                          <div className=" px-0 md:px-6 py-4">
+                          <div className="p-4">
                             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                               Resultados Presidenciales
                             </h3>
@@ -331,7 +331,7 @@ const ResultadosMesa2 = () => {
                           </div>
                         </div>
                         <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
-                          <div className=" px-0 md:px-6 py-4">
+                          <div className="p-4">
                             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                               Resultados Diputados
                             </h3>
@@ -345,7 +345,7 @@ const ResultadosMesa2 = () => {
                 </>
               )}
 
-              <div className="border border-gray-200 rounded-lg p-4 mt-6">
+              <div className="border border-gray-200 rounded-lg p-4 mt-4">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                   Imagenes
                 </h3>

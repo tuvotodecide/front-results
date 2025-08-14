@@ -10,6 +10,7 @@ export interface ResultsState {
     electoralLocation: string;
     electoralSeat: string;
   };
+  currentTable: string | null;
 }
 
 const initialState: ResultsState = {
@@ -22,6 +23,7 @@ const initialState: ResultsState = {
     electoralLocation: '',
     electoralSeat: '',
   },
+  currentTable: null,
 };
 
 export const resultsSlice = createSlice({
@@ -32,11 +34,16 @@ export const resultsSlice = createSlice({
       console.log('setFilters action payload:', action.payload);
       state.filters = action.payload;
     },
+    setCurrentTable: (state, action) => {
+      state.currentTable = action.payload;
+    },
   },
 });
 
 export const selectFilters = (state: { results: ResultsState }) =>
   state.results.filters;
-export const { setFilters } = resultsSlice.actions;
+export const selectCurrentTable = (state: { results: ResultsState }) =>
+  state.results.currentTable;
+export const { setFilters, setCurrentTable } = resultsSlice.actions;
 // export const { setRecintos } = actasSlice.actions;
 // export const selectAuth = (state: RootState) => state.auth;

@@ -413,7 +413,7 @@ const Breadcrumb = () => {
   return (
     <div className="mx-auto pb-6">
       {/* Breadcrumb Navigation */}
-      <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+      <div className="bg-gray-50 rounded-lg flex items-center justify-between">
         <nav className="flex items-center gap-x-1.5 gap-y-3 text-sm flex-wrap w-full">
           <button
             onClick={() => resetPath()}

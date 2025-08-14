@@ -224,7 +224,7 @@ const Configurations = () => {
                 </div>
               </div>
 
-              <div className="p-6">
+              <div className="inner-container">
                 <div className="mb-6">
                   <h3 className="text-2xl font-bold text-gray-900 mb-2">
                     {activeConfig.name}

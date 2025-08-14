@@ -14,8 +14,8 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ resultsData }) => {
   const total = resultsData.reduce((acc, item) => acc + item.value, 0);
 
   return (
-    <div className="w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-      <table className="w-full table-fixed">
+    <div className="w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm overflow-x-auto">
+      <table className="table-fixed w-full min-w-[320px]">
         <thead>
           <tr className="border-b border-slate-200 bg-slate-50/80">
             <th className="w-[45%] px-6 py-4 text-left text-sm font-semibold text-slate-700 tracking-wide">

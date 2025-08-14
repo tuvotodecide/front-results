@@ -88,7 +88,7 @@ const ResultadosImagen = () => {
   // const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="outer-container min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto max-w-7xl">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-8">
           Resultados por Imagen
@@ -97,7 +97,7 @@ const ResultadosImagen = () => {
         {!id ? (
           <div className="bg-white rounded-lg shadow-md py-16 px-8 border border-gray-200">
             <div className="flex flex-col items-center justify-center text-center">
-              <div className="bg-gray-100 rounded-full p-4 mb-6">
+              <div className="bg-gray-100 rounded-full p-4 mb-4">
                 <svg
                   className="w-12 h-12 text-gray-600"
                   fill="none"
@@ -127,7 +127,7 @@ const ResultadosImagen = () => {
         ) : isBallotError ? (
           <div className="bg-white rounded-lg shadow-md py-16 px-8 border border-red-200">
             <div className="flex flex-col items-center justify-center text-center">
-              <div className="bg-red-50 rounded-full p-4 mb-6">
+              <div className="bg-red-50 rounded-full p-4 mb-4">
                 <svg
                   className="w-12 h-12 text-red-600"
                   fill="none"
@@ -179,10 +179,10 @@ const ResultadosImagen = () => {
             </div>
 
             {/* Content */}
-            <div className="p-6">
+            <div className="inner-container">
               {/* Location Section */}
-              <div className="flex flex-row flex-wrap gap-6">
-                <div className="rounded-lg p-6 mb-6 border border-gray-200 basis-[450px] grow-2 shrink-0">
+              <div className="flex flex-row flex-wrap gap-4">
+                <div className="rounded-lg p-6 mb-4 border border-gray-200 basis-[450px] grow-2 shrink-0">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                     Ubicación
                   </h3>
@@ -196,7 +196,7 @@ const ResultadosImagen = () => {
                     electoralSeat={currentItem?.location.electoralSeat || ''}
                   />
                 </div>
-                <div className="border border-gray-200 rounded-lg p-6 mb-6 basis-[300px] grow-1 shrink-0">
+                <div className="border border-gray-200 rounded-lg p-6 mb-4 basis-[300px] grow-1 shrink-0">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                     Datos Mesa
                   </h3>
@@ -226,13 +226,13 @@ const ResultadosImagen = () => {
               </div>
 
               {/* Attestation Information and Smart Contracts Section */}
-              <div className="flex flex-row flex-wrap gap-6">
+              <div className="flex flex-row flex-wrap gap-4 mb-4">
                 {/* Attestation Information - Highlighted and Formal */}
-                <div className="border border-gray-200 rounded-lg p-6 mb-6 basis-[450px] grow-2 shrink-0">
+                <div className="border border-gray-200 rounded-lg p-6 basis-[450px] grow-2 shrink-1">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4">
                     Atestiguamientos
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* A. a favor */}
                     <div className="bg-green-50 border-l-4 border-green-500 p-6 rounded-r-lg">
                       <div className="flex items-center justify-between">
@@ -286,7 +286,7 @@ const ResultadosImagen = () => {
                 </div>
 
                 {/* Smart Contracts Section - Minimalist */}
-                <div className="border border-gray-200 rounded-lg p-6 mb-6 basis-[300px] grow-1 shrink-0">
+                <div className="border border-gray-200 rounded-lg p-6 basis-[300px] grow-1 shrink-1">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4">
                     Contratos Inteligentes
                   </h3>
@@ -326,7 +326,7 @@ const ResultadosImagen = () => {
                 </div>
               </div>
               {/* Results Section */}
-              <div className="border border-gray-200 rounded-lg p-6 mb-6">
+              <div className="border border-gray-200 rounded-lg p-6 mb-4">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                   Participación
                 </h3>
@@ -340,7 +340,7 @@ const ResultadosImagen = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="border border-gray-200 rounded-lg p-6">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                     Resultados Presidenciales

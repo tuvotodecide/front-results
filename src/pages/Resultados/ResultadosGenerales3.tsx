@@ -131,12 +131,12 @@ const ResultadosGenerales3 = () => {
   }, [searchParams]);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="outer-container min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto max-w-7xl">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-8">
           Resultados Generales
         </h1>
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+        <div className="inner-container bg-gray-50 border border-gray-200 rounded-lg">
           <div className="">
             <Breadcrumb2 />
           </div>
@@ -145,7 +145,7 @@ const ResultadosGenerales3 = () => {
           !configData.isResultsPeriod &&
           configData.hasActiveConfig ? (
             <div className="border border-gray-200 rounded-lg p-8 text-center">
-              <p className="text-xl text-gray-600 mb-6">
+              <p className="text-xl text-gray-600 mb-4">
                 Los resultados se habilitarán el:
               </p>
               <div className="mb-2">
@@ -178,7 +178,7 @@ const ResultadosGenerales3 = () => {
             </div>
           ) : (
             <>
-              <div className="border border-gray-200 rounded-lg p-6 mb-6">
+              <div className="border border-gray-200 rounded-lg p-6 mb-4">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                   Participación
                 </h3>
@@ -193,7 +193,7 @@ const ResultadosGenerales3 = () => {
               </div>
               <div className="w-full flex flex-wrap gap-4">
                 <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
-                  <div className=" px-0 md:px-6 py-4">
+                  <div className="p-4">
                     <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                       Resultados Presidenciales
                     </h3>
@@ -202,7 +202,7 @@ const ResultadosGenerales3 = () => {
                   </div>
                 </div>
                 <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
-                  <div className=" px-0 md:px-6 py-4">
+                  <div className="p-4">
                     <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                       Resultados Diputados
                     </h3>
