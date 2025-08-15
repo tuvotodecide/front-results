@@ -141,6 +141,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
                     <span className={styles.icon}>⚙️</span>Configuraciones
                   </Link>
                 </li>
+                <li className={styles.menuItem}>
+                  <Link to="/partidos-politicos" className={styles.menuLink}>
+                    <span className={styles.icon}>⚙️</span>Partidos Políticos
+                  </Link>
+                </li>
               </ul>
             </div>
           </>

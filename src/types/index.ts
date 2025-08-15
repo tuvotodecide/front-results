@@ -9,3 +9,4 @@ export * from './electoralSeats';
 export * from './electoralLocations';
 export * from './electoralTable';
 export * from './configurations';
+export * from './politicalParties';

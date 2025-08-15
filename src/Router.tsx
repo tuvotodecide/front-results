@@ -20,6 +20,8 @@ import ElectoralTables from './pages/ElectoralTables/ElectoralTables';
 import ElectoralTableForm from './pages/ElectoralTables/ElectoralTableForm';
 import Configurations from './pages/Configurations/Configurations';
 import ConfigurationForm from './pages/Configurations/ConfigurationForm';
+import PoliticalParties from './pages/PoliticalParties/PoliticalParties';
+import PoliticalPartyForm from './pages/PoliticalParties/PoliticalPartyForm';
 
 const Home = React.lazy(() => import('./pages/Home'));
 const Login = React.lazy(() => import('./pages/Auth/Login'));
@@ -133,6 +135,18 @@ const AppRouter: React.FC = () => {
               <Route
                 path="/configuraciones/editar/:id"
                 element={<ConfigurationForm />}
+              />
+              <Route
+                path="/partidos-politicos"
+                element={<PoliticalParties />}
+              />
+              <Route
+                path="/partidos-politicos/nuevo"
+                element={<PoliticalPartyForm />}
+              />
+              <Route
+                path="/partidos-politicos/editar/:id"
+                element={<PoliticalPartyForm />}
               />
             </Route>
           </Route>
