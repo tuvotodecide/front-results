@@ -62,7 +62,7 @@ const ResultadosMesa2 = () => {
       getBallotsByTableCode(tableCode)
         .unwrap()
         .then((data) => {
-          setImages([data]);
+          setImages(data);
           //console.log('Fetched ballots data:', data);
           // Process the fetched ballots data as needed
         });

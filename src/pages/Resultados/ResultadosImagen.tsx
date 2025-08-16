@@ -334,6 +334,30 @@ const ResultadosImagen = () => {
                   </div>
                 </div>
               </div>
+              {/* Image section */}
+              {/* <div className="relative bg-white rounded-xl overflow-hidden shadow-md transition-transform duration-300 border border-gray-100 mb-8 max-w-[400px]">
+                {ballotData.imageUrl ? (
+                  <>
+                    <img
+                      src={ballotData.imageUrl}
+                      alt={`Acta de la mesa ${ballotData.tableNumber}`}
+                      className="w-full h-full object-contain cursor-zoom-in"
+                      onClick={() => setIsImageModalOpen(true)}
+                    />
+                    <ModalImage
+                      isOpen={isImageModalOpen}
+                      onClose={() => setIsImageModalOpen(false)}
+                      imageUrl={ballotData.imageUrl}
+                    />
+                  </>
+                ) : (
+                  <div className="flex items-center justify-center h-[400px] bg-gray-50">
+                    <p className="text-gray-400 text-lg">
+                      No hay imagen disponible
+                    </p>
+                  </div>
+                )}
+              </div> */}
               {/* Results Section */}
               <div className="border border-gray-200 rounded-lg p-6 mb-4">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
