@@ -45,7 +45,7 @@ interface SupportsType {
   juries: number;
 }
 
-interface BallotType {
+export interface AttestationsBallotType {
   ballotId: string;
   version: number;
   location: LocationType;
@@ -58,6 +58,6 @@ export interface AttestationCasesType {
   isObserved: boolean;
   winningBallotId: string | null;
   resolvedAt: string | null;
-  ballots: BallotType[];
+  ballots: AttestationsBallotType[];
   summary: Record<string, any>;
 }

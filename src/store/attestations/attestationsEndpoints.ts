@@ -42,16 +42,15 @@ export const attestationsApiSlice = apiSlice.injectEndpoints({
       ],
     }),
     // /api/v1/attestations/cases/{tableCode}
-    getAttestationCasesByTableCode: builder.query<
-      AttestationCasesType[],
-      string
-    >({
-      query: (tableCode) => `/attestations/cases/${tableCode}`,
-      keepUnusedDataFor: 60,
-      providesTags: (_result, _error, tableCode) => [
-        { type: 'Attestations' as const, id: tableCode },
-      ],
-    }),
+    getAttestationCasesByTableCode: builder.query<AttestationCasesType, string>(
+      {
+        query: (tableCode) => `/attestations/cases/${tableCode}`,
+        keepUnusedDataFor: 60,
+        providesTags: (_result, _error, tableCode) => [
+          { type: 'Attestations' as const, id: tableCode },
+        ],
+      }
+    ),
   }),
 });
 

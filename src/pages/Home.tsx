@@ -4,6 +4,7 @@
 //   ChartPieIcon,
 //   ClipboardDocumentCheckIcon,
 // } from '@heroicons/react/24/outline';
+import tuvotoDecideImage from '../assets/tuvotodecide.webp';
 
 const Home: React.FC = () => {
   return (
@@ -34,7 +35,7 @@ const Home: React.FC = () => {
             </h2>
             <div className="flex flex-col items-center space-y-6">
               <img
-                src="/src/assets/tuvotodecide.webp"
+                src={tuvotoDecideImage}
                 alt="Tu Voto Decide App"
                 className="w-48 h-auto rounded-lg shadow-lg"
               />

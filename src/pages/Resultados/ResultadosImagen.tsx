@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 // import ModalImage from '../../components/ModalImage';
 // import actaImage from '../../assets/acta.jpg';
 import LocationSection from './LocationSection';
@@ -17,6 +17,8 @@ import { getPartyColor } from './partyColors';
 //   tableNumber: '25548',
 //   imageUrl: actaImage,
 // };
+
+const BASE_NFT_URL = import.meta.env.VITE_BASE_NFT_URL;
 
 const ResultadosImagen = () => {
   const { id } = useParams();
@@ -43,6 +45,22 @@ const ResultadosImagen = () => {
   const [participation, setParticipation] = useState<
     Array<{ name: string; value: any; color: string }>
   >([]);
+
+  // Calculate attestations counts using useMemo for optimization
+  const { attestationsInFavor, attestationsAgainst } = useMemo(() => {
+    if (!attestationsData) {
+      return { attestationsInFavor: 0, attestationsAgainst: 0 };
+    }
+
+    const inFavor = attestationsData.filter(
+      (attestation: any) => attestation.support === true
+    ).length;
+    const against = attestationsData.filter(
+      (attestation: any) => attestation.support === false
+    ).length;
+
+    return { attestationsInFavor: inFavor, attestationsAgainst: against };
+  }, [attestationsData]);
 
   useEffect(() => {
     if (currentItem && currentItem.votes) {
@@ -262,9 +280,11 @@ const ResultadosImagen = () => {
                       <div className="flex items-center justify-between">
                         <div>
                           <h4 className="text-sm font-medium text-green-800 mb-1">
-                            Atestiguamientos a favor
+                            A favor
                           </h4>
-                          <p className="text-3xl font-bold text-green-900">x</p>
+                          <p className="text-3xl font-bold text-green-900">
+                            {attestationsInFavor}
+                          </p>
                         </div>
                         <div className="text-green-600">
                           <svg
@@ -287,9 +307,11 @@ const ResultadosImagen = () => {
                       <div className="flex items-center justify-between">
                         <div>
                           <h4 className="text-sm font-medium text-red-800 mb-1">
-                            Atestiguamientos en contra
+                            En contra
                           </h4>
-                          <p className="text-3xl font-bold text-red-900">y</p>
+                          <p className="text-3xl font-bold text-red-900">
+                            {attestationsAgainst}
+                          </p>
                         </div>
                         <div className="text-red-600">
                           <svg
@@ -319,46 +341,39 @@ const ResultadosImagen = () => {
                       Acciones disponibles
                     </h4>
                     <div className="grid grid-cols-1 gap-2">
-                      <button
-                        onClick={() => {
-                          if (currentItem?.image) {
-                            const baseUrl = 'https://ipfs.io/ipfs/';
-                            const ipfsHash = currentItem.image.replace(
-                              'ipfs://',
-                              ''
-                            );
-                            window.open(`${baseUrl}${ipfsHash}`, '_blank');
-                          }
-                        }}
-                        className="px-3 py-2.5 text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-md hover:bg-slate-100 hover:border-slate-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-1"
-                      >
-                        Imagen
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (currentItem?.ipfsUri) {
-                            window.open(currentItem.ipfsUri, '_blank');
-                          }
-                        }}
-                        className="px-3 py-2.5 text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-md hover:bg-slate-100 hover:border-slate-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-1"
-                      >
-                        Metadata
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (currentItem?.recordId) {
-                            const nftBaseUrl =
-                              'https://testnet.routescan.io/nft/0xdCa6d6E8f4E69C3Cf86B656f0bBf9b460727Bed9/';
-                            window.open(
-                              nftBaseUrl + currentItem.recordId,
-                              '_blank'
-                            );
-                          }
-                        }}
-                        className="px-3 py-2.5 text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-md hover:bg-slate-100 hover:border-slate-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-1"
-                      >
-                        NFT
-                      </button>
+                      {currentItem?.image && (
+                        <a
+                          href={`https://ipfs.io/ipfs/${currentItem.image.replace(
+                            'ipfs://',
+                            ''
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-2.5 text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-md hover:bg-slate-100 hover:border-slate-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-1 text-center no-underline"
+                        >
+                          Imagen
+                        </a>
+                      )}
+                      {currentItem?.ipfsUri && (
+                        <a
+                          href={currentItem.ipfsUri}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-2.5 text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-md hover:bg-slate-100 hover:border-slate-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-1 text-center no-underline"
+                        >
+                          Metadata
+                        </a>
+                      )}
+                      {currentItem?.recordId && (
+                        <a
+                          href={`${BASE_NFT_URL}${currentItem.recordId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-2.5 text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-md hover:bg-slate-100 hover:border-slate-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-1 text-center no-underline"
+                        >
+                          NFT
+                        </a>
+                      )}
                     </div>
                   </div>
                 </div>
