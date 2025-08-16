@@ -11,6 +11,7 @@ import BackButton from '../../components/BackButton';
 import { useDispatch } from 'react-redux';
 import { setCurrentBallot } from '../../store/resultados/resultadosSlice';
 import { useGetAttestationsByBallotIdQuery } from '../../store/attestations/attestationsEndpoints';
+import { getPartyColor } from './partyColors';
 
 // const ballotData = {
 //   tableNumber: '25548',
@@ -48,24 +49,26 @@ const ResultadosImagen = () => {
       console.log('current item', currentItem);
       const formattedPresidentialData =
         currentItem.votes.parties.partyVotes.map((item: any) => {
-          // Generate random hex color if color not provided
+          // Get party color or generate random hex color if not found
+          const partyColor = getPartyColor(item.partyId);
           const randomColor =
             '#' + Math.floor(Math.random() * 16777215).toString(16);
           return {
             name: item.partyId,
             value: item.votes,
-            color: item.color || randomColor, // Use random color as fallback
+            color: partyColor || randomColor, // Use party color, then item color, then random as fallback
           };
         });
       const formattedDeputiesData = currentItem.votes.deputies.partyVotes.map(
         (item: any) => {
-          // Generate random hex color if color not provided
+          // Get party color or generate random hex color if not found
+          const partyColor = getPartyColor(item.partyId);
           const randomColor =
             '#' + Math.floor(Math.random() * 16777215).toString(16);
           return {
             name: item.partyId,
             value: item.votes,
-            color: item.color || randomColor, // Use random color as fallback
+            color: partyColor || randomColor, // Use party color, then item color, then random as fallback
           };
         }
       );

@@ -11,6 +11,7 @@ import { useLazyGetElectoralTablesByElectoralLocationIdQuery } from '../../store
 import { useSearchParams } from 'react-router-dom';
 import { ElectoralTableType } from '../../types';
 import { useGetConfigurationStatusQuery } from '../../store/configurations/configurationsEndpoints';
+import { getPartyColor } from './partyColors';
 
 // const combinedData = [
 //   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -62,13 +63,14 @@ const ResultadosGenerales3 = () => {
       .then((data) => {
         // console.log('Fetched presidential data:', data);
         const formattedData = data.results.map((item: any) => {
-          // Generate random hex color if color not provided
+          // Get party color or generate random hex color if not found
+          const partyColor = getPartyColor(item.partyId);
           const randomColor =
             '#' + Math.floor(Math.random() * 16777215).toString(16);
           return {
             name: item.partyId,
             value: item.totalVotes,
-            color: item.color || randomColor, // Use random color as fallback
+            color: partyColor || randomColor, // Use party color, then random as fallback
           };
         });
         setPresidentialData(formattedData);
@@ -102,13 +104,14 @@ const ResultadosGenerales3 = () => {
       .then((data) => {
         // console.log('Fetched deputies data:', data);
         const formattedData = data.results.map((item: any) => {
-          // Generate random hex color if color not provided
+          // Get party color or generate random hex color if not found
+          const partyColor = getPartyColor(item.partyId);
           const randomColor =
             '#' + Math.floor(Math.random() * 16777215).toString(16);
           return {
             name: item.partyId,
             value: item.totalVotes,
-            color: item.color || randomColor, // Use random color as fallback
+            color: partyColor || randomColor, // Use party color, then item color, then random as fallback
           };
         });
         setDeputiesData(formattedData);
