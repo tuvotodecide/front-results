@@ -68,7 +68,7 @@ const ImagesSection = ({ images }: ImagesSectionProps) => {
                   <h3 className="text-lg font-semibold text-gray-900">
                     Acta Electoral
                   </h3>
-                  <span
+                  {/* <span
                     className={`px-2 py-1 rounded text-xs font-medium ${
                       image.valuable
                         ? 'bg-green-100 text-green-700 border border-green-200'
@@ -76,7 +76,7 @@ const ImagesSection = ({ images }: ImagesSectionProps) => {
                     }`}
                   >
                     {image.valuable ? 'Principal' : 'Respaldo'}
-                  </span>
+                  </span> */}
                 </div>
 
                 <div className="space-y-2">

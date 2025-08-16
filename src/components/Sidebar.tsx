@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useScreenSize } from '../hooks/useScreenSize';
 import styles from './Sidebar.module.css';
 import { Link } from 'react-router-dom';
@@ -7,6 +7,7 @@ import { selectIsLoggedIn } from '../store/auth/authSlice';
 import {
   selectCurrentBallot,
   selectCurrentTable,
+  selectQueryParamsResults,
 } from '../store/resultados/resultadosSlice';
 
 interface SidebarProps {
@@ -19,6 +20,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const currentTable = useSelector(selectCurrentTable);
   const currentBallot = useSelector(selectCurrentBallot);
+  const queryParamsResults = useSelector(selectQueryParamsResults);
 
   React.useEffect(() => {
     const handleMenuClick = () => {
@@ -38,6 +40,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
       });
     };
   }, [closeSidebar, isSmallScreen]);
+
+  useEffect(() => {
+    console.log('Query Params Results changed:', queryParamsResults);
+  }, [queryParamsResults]);
 
   return (
     <>
@@ -65,7 +71,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
           <ul className={styles.menu}>
             <li className={styles.menuItem}>
               {' '}
-              <Link to="/resultados" className={styles.menuLink}>
+              <Link
+                to={
+                  queryParamsResults
+                    ? `/resultados?${queryParamsResults}`
+                    : '/resultados'
+                }
+                className={styles.menuLink}
+              >
                 <span className={styles.icon}>📊</span>Resultados generales
               </Link>
             </li>

@@ -12,6 +12,7 @@ export interface ResultsState {
   };
   currentTable: string | null;
   currentBallot: string | null;
+  queryParamsResults: string;
 }
 
 const initialState: ResultsState = {
@@ -26,6 +27,7 @@ const initialState: ResultsState = {
   },
   currentTable: null,
   currentBallot: null,
+  queryParamsResults: '',
 };
 
 export const resultsSlice = createSlice({
@@ -42,6 +44,9 @@ export const resultsSlice = createSlice({
     setCurrentBallot: (state, action) => {
       state.currentBallot = action.payload;
     },
+    setQueryParamsResults: (state, action) => {
+      state.queryParamsResults = action.payload;
+    },
   },
 });
 
@@ -51,7 +56,13 @@ export const selectCurrentTable = (state: { results: ResultsState }) =>
   state.results.currentTable;
 export const selectCurrentBallot = (state: { results: ResultsState }) =>
   state.results.currentBallot;
-export const { setFilters, setCurrentTable, setCurrentBallot } =
-  resultsSlice.actions;
+export const selectQueryParamsResults = (state: { results: ResultsState }) =>
+  state.results.queryParamsResults;
+export const {
+  setFilters,
+  setCurrentTable,
+  setCurrentBallot,
+  setQueryParamsResults,
+} = resultsSlice.actions;
 // export const { setRecintos } = actasSlice.actions;
 // export const selectAuth = (state: RootState) => state.auth;

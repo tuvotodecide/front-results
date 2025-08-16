@@ -47,6 +47,7 @@ const ResultadosMesa2 = () => {
     data: electoralTableData,
     // error: electoralTableError,
     isError: isElectoralTableError,
+    isLoading: isElectoralTableLoading,
   } = useGetElectoralTableByTableCodeQuery(tableCode || '', {
     skip: !tableCode, // Skip the query if tableCode is falsy
   });
@@ -67,6 +68,12 @@ const ResultadosMesa2 = () => {
           //console.log('Fetched ballots data:', data);
           // Process the fetched ballots data as needed
         });
+
+      // Only make API calls if results period is active
+      if (!configData?.isResultsPeriod) {
+        return;
+      }
+
       getResultsByLocation({ tableCode, electionType: 'presidential' })
         .unwrap()
         .then((data) => {
@@ -126,7 +133,7 @@ const ResultadosMesa2 = () => {
           setDeputiesData(formattedData);
         });
     }
-  }, [tableCode, electoralTableData]);
+  }, [tableCode, electoralTableData, configData]);
 
   useEffect(() => {
     if (tableCode) {
@@ -169,6 +176,59 @@ const ResultadosMesa2 = () => {
                 className="w-full max-w-md"
                 onSearch={handleSearch}
               />
+            </div>
+          </div>
+        ) : isElectoralTableLoading ? (
+          <div className="bg-white rounded-lg shadow-md border border-gray-200">
+            {/* Header Skeleton */}
+            <div className="bg-gray-800 p-6 rounded-t-lg">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-8 h-8 bg-gray-600 rounded animate-pulse"></div>
+                  <div>
+                    <div className="h-8 bg-gray-600 rounded w-32 animate-pulse mb-2"></div>
+                    <div className="h-4 bg-gray-700 rounded w-24 animate-pulse"></div>
+                  </div>
+                </div>
+                <div className="h-10 bg-gray-600 rounded w-64 animate-pulse"></div>
+              </div>
+            </div>
+
+            {/* Content Skeleton */}
+            <div className="p-6">
+              <div className="flex flex-row flex-wrap gap-4 mb-4">
+                <div className="border border-gray-200 rounded-lg p-6 basis-[450px] grow-2 shrink-1">
+                  <div className="h-6 bg-gray-300 rounded w-24 animate-pulse mb-4"></div>
+                  <div className="space-y-3">
+                    <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse"></div>
+                  </div>
+                </div>
+                <div className="border border-gray-200 rounded-lg p-6 basis-[300px] grow-1 shrink-1">
+                  <div className="h-6 bg-gray-300 rounded w-32 animate-pulse mb-4"></div>
+                  <div className="space-y-3">
+                    <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-2/3 animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border border-gray-200 rounded-lg p-6 mb-4">
+                <div className="h-6 bg-gray-300 rounded w-28 animate-pulse mb-4"></div>
+                <div className="h-32 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+
+              <div className="w-full flex flex-wrap gap-4">
+                <div className="border border-gray-200 rounded-lg p-4 basis-[min(420px,100%)] grow-3 shrink-0">
+                  <div className="h-6 bg-gray-300 rounded w-48 animate-pulse mb-4"></div>
+                  <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+                <div className="border border-gray-200 rounded-lg p-4 basis-[min(420px,100%)] grow-3 shrink-0">
+                  <div className="h-6 bg-gray-300 rounded w-44 animate-pulse mb-4"></div>
+                  <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
             </div>
           </div>
         ) : isElectoralTableError ? (
@@ -317,6 +377,10 @@ const ResultadosMesa2 = () => {
                           (Hora de Bolivia)
                         </p>
                       </div>
+                    </div>
+                  ) : presidentialData.length === 0 ? (
+                    <div className="border border-gray-200 rounded-lg p-8 text-center">
+                      <p className="text-xl text-gray-600">Sin datos</p>
                     </div>
                   ) : (
                     <>

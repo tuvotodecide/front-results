@@ -23,7 +23,10 @@ import {
   useLazyGetElectoralLocationQuery,
 } from '../store/electoralLocations/electoralLocationsEndpoints';
 import SimpleSearchBar from './SimpleSearchBar';
-import { setFilters } from '../store/resultados/resultadosSlice';
+import {
+  setFilters,
+  setQueryParamsResults,
+} from '../store/resultados/resultadosSlice';
 
 interface LevelOption {
   _id: string;
@@ -154,6 +157,7 @@ const Breadcrumb = () => {
 
   // Initialize from URL parameters only once on mount
   useEffect(() => {
+    dispatch(setQueryParamsResults(searchParams.toString()));
     if (!isInitialized && searchParams.size > 0 && selectedPath2.length === 0) {
       // console.log(
       //   '%cInitializing from URL params:',

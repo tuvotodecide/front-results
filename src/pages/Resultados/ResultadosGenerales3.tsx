@@ -51,6 +51,11 @@ const ResultadosGenerales3 = () => {
   // }, [configData]);
 
   useEffect(() => {
+    // Only make API calls if results period is active
+    if (!configData?.isResultsPeriod) {
+      return;
+    }
+
     // console.log('Current filters:', filters);
     // const cleanedFilters = Object.fromEntries(
     //   Object.entries(filters).filter(
@@ -116,7 +121,7 @@ const ResultadosGenerales3 = () => {
         });
         setDeputiesData(formattedData);
       });
-  }, [filters]);
+  }, [filters, configData]);
 
   useEffect(() => {
     const electoralLocationId = searchParams.get('electoralLocation');
