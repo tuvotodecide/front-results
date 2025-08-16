@@ -3,33 +3,87 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setAuth } from './store/auth/authSlice';
 import LoadingSkeleton from './components/LoadingSkeleton';
-import ResultadosGenerales3 from './pages/Resultados/ResultadosGenerales3';
-import ResultadosMesa2 from './pages/Resultados/ResultadosMesa2';
-import ResultadosImagen from './pages/Resultados/ResultadosImagen';
-import Departments from './pages/Departments/Departments';
-import DepartmentForm from './pages/Departments/DepartmentForm';
-import Provinces from './pages/Provinces/Provinces';
-import ProvincesForm from './pages/Provinces/ProvincesForm';
-import Municipalities from './pages/Municipalities/Municipalities';
-import MunicipalityForm from './pages/Municipalities/MunicipalityForm';
-import ElectoralSeats from './pages/ElectoralSeats/ElectoralSeats';
-import ElectoralSeatForm from './pages/ElectoralSeats/ElectoralSeatForm';
-import ElectoralLocations from './pages/ElectoralLocations/ElectoralLocations';
-import ElectoralLocationForm from './pages/ElectoralLocations/ElectoralLocationForm';
-import ElectoralTables from './pages/ElectoralTables/ElectoralTables';
-import ElectoralTableForm from './pages/ElectoralTables/ElectoralTableForm';
-import Configurations from './pages/Configurations/Configurations';
-import ConfigurationForm from './pages/Configurations/ConfigurationForm';
-import PoliticalParties from './pages/PoliticalParties/PoliticalParties';
-import PoliticalPartyForm from './pages/PoliticalParties/PoliticalPartyForm';
 
+// Lazy load all components for better code splitting
 const Home = React.lazy(() => import('./pages/Home'));
 const Login = React.lazy(() => import('./pages/Auth/Login'));
-const PanelControl = React.lazy(() => import('./pages/PanelControl'));
-
 const CrearCuenta = React.lazy(() => import('./pages/Auth/CrearCuenta'));
+const PanelControl = React.lazy(() => import('./pages/PanelControl'));
 const ProtectedRoutes = React.lazy(() => import('./pages/ProtectedRoutes'));
 const BasicLayout = React.lazy(() => import('./components/BasicLayout'));
+
+// Results pages
+const ResultadosGenerales3 = React.lazy(
+  () => import('./pages/Resultados/ResultadosGenerales3')
+);
+const ResultadosMesa2 = React.lazy(
+  () => import('./pages/Resultados/ResultadosMesa2')
+);
+const ResultadosImagen = React.lazy(
+  () => import('./pages/Resultados/ResultadosImagen')
+);
+
+// Department pages
+const Departments = React.lazy(() => import('./pages/Departments/Departments'));
+const DepartmentForm = React.lazy(
+  () => import('./pages/Departments/DepartmentForm')
+);
+
+// Province pages
+const Provinces = React.lazy(() => import('./pages/Provinces/Provinces'));
+const ProvincesForm = React.lazy(
+  () => import('./pages/Provinces/ProvincesForm')
+);
+
+// Municipality pages
+const Municipalities = React.lazy(
+  () => import('./pages/Municipalities/Municipalities')
+);
+const MunicipalityForm = React.lazy(
+  () => import('./pages/Municipalities/MunicipalityForm')
+);
+
+// Electoral Seat pages
+const ElectoralSeats = React.lazy(
+  () => import('./pages/ElectoralSeats/ElectoralSeats')
+);
+const ElectoralSeatForm = React.lazy(
+  () => import('./pages/ElectoralSeats/ElectoralSeatForm')
+);
+
+// Electoral Location pages
+const ElectoralLocations = React.lazy(
+  () => import('./pages/ElectoralLocations/ElectoralLocations')
+);
+const ElectoralLocationForm = React.lazy(
+  () => import('./pages/ElectoralLocations/ElectoralLocationForm')
+);
+
+// Electoral Table pages
+const ElectoralTables = React.lazy(
+  () => import('./pages/ElectoralTables/ElectoralTables')
+);
+const ElectoralTableForm = React.lazy(
+  () => import('./pages/ElectoralTables/ElectoralTableForm')
+);
+
+// Configuration pages
+const Configurations = React.lazy(
+  () => import('./pages/Configurations/Configurations')
+);
+const ConfigurationForm = React.lazy(
+  () => import('./pages/Configurations/ConfigurationForm')
+);
+
+// Political Party pages
+const PoliticalParties = React.lazy(
+  () => import('./pages/PoliticalParties/PoliticalParties')
+);
+const PoliticalPartyForm = React.lazy(
+  () => import('./pages/PoliticalParties/PoliticalPartyForm')
+);
+
+// Partidos pages
 const Partidos = React.lazy(() => import('./pages/Partidos/Partidos'));
 const PartidoForm = React.lazy(() => import('./pages/Partidos/PartidoForm'));
 
