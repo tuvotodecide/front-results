@@ -1,34 +1,34 @@
-import React from 'react';
-import { Formik, Form, Field, ErrorMessage } from 'formik';
-import * as Yup from 'yup';
+import React from "react";
+import { Formik, Form, Field, ErrorMessage } from "formik";
+import * as Yup from "yup";
 import {
   useCreateElectoralLocationMutation,
   useGetElectoralLocationQuery,
   useUpdateElectoralLocationMutation,
-} from '../../store/electoralLocations/electoralLocationsEndpoints';
-import { useLazyGetElectoralSeatsByMunicipalityIdQuery } from '../../store/electoralSeats/electoralSeatsEndpoints';
+} from "../../store/electoralLocations/electoralLocationsEndpoints";
+import { useLazyGetElectoralSeatsByMunicipalityIdQuery } from "../../store/electoralSeats/electoralSeatsEndpoints";
 import {
   useLazyGetMunicipalitiesQuery,
   useLazyGetMunicipalitiesByProvinceIdQuery,
-} from '../../store/municipalities/municipalitiesEndpoints';
+} from "../../store/municipalities/municipalitiesEndpoints";
 import {
   useLazyGetProvincesQuery,
   useLazyGetProvincesByDepartmentIdQuery,
-} from '../../store/provinces/provincesEndpoints';
-import { useLazyGetDepartmentsQuery } from '../../store/departments/departmentsEndpoints';
-import { useNavigate, useParams } from 'react-router-dom';
-import LoadingButton from '../../components/LoadingButton';
-import Modal from '../../components/Modal';
-import BackButton from '../../components/BackButton';
-import { useState, useEffect } from 'react';
+} from "../../store/provinces/provincesEndpoints";
+import { useLazyGetDepartmentsQuery } from "../../store/departments/departmentsEndpoints";
+import { useNavigate, useParams } from "react-router-dom";
+import LoadingButton from "../../components/LoadingButton";
+import Modal from "../../components/Modal";
+import BackButton from "../../components/BackButton";
+import { useState, useEffect } from "react";
 import {
   ProvincesType,
   DepartmentType,
   CreateElectoralLocationType,
   UpdateElectoralLocationType,
   ElectoralSeatByMunicipalityType,
-} from '../../types';
-import AsyncSelect from 'react-select/async';
+} from "../../types";
+import AsyncSelect from "react-select/async";
 
 const ElectoralLocationForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -74,7 +74,7 @@ const ElectoralLocationForm: React.FC = () => {
   useEffect(() => {
     if (
       currentItem?.electoralSeatId &&
-      typeof currentItem.electoralSeatId === 'object'
+      typeof currentItem.electoralSeatId === "object"
     ) {
       // Set electoral seat
       setSelectedElectoralSeat({
@@ -121,7 +121,7 @@ const ElectoralLocationForm: React.FC = () => {
       if (
         !currentItem ||
         (currentItem.electoralSeatId &&
-          typeof currentItem.electoralSeatId === 'object' &&
+          typeof currentItem.electoralSeatId === "object" &&
           currentItem.electoralSeatId.municipalityId.provinceId.departmentId
             ._id !== selectedDepartment.value)
       ) {
@@ -139,7 +139,7 @@ const ElectoralLocationForm: React.FC = () => {
       if (
         !currentItem ||
         (currentItem.electoralSeatId &&
-          typeof currentItem.electoralSeatId === 'object' &&
+          typeof currentItem.electoralSeatId === "object" &&
           currentItem.electoralSeatId.municipalityId.provinceId._id !==
             selectedProvince.value)
       ) {
@@ -156,7 +156,7 @@ const ElectoralLocationForm: React.FC = () => {
       if (
         !currentItem ||
         (currentItem.electoralSeatId &&
-          typeof currentItem.electoralSeatId === 'object' &&
+          typeof currentItem.electoralSeatId === "object" &&
           currentItem.electoralSeatId.municipalityId._id !==
             selectedMunicipality.value)
       ) {
@@ -164,55 +164,58 @@ const ElectoralLocationForm: React.FC = () => {
       }
     }
   }, [selectedMunicipality, currentItem]);
+  const notZeroMessage = "El valor no puede ser 0";
 
   const validationSchema = Yup.object({
-    name: Yup.string().required('Este campo es obligatorio'),
-    fid: Yup.string().required('Este campo es obligatorio'),
-    address: Yup.string().required('Este campo es obligatorio'),
-    code: Yup.string().required('Este campo es obligatorio'),
-    district: Yup.string().required('Este campo es obligatorio'),
-    zone: Yup.string().required('Este campo es obligatorio'),
+    name: Yup.string().required("Este campo es obligatorio"),
+    fid: Yup.string().required("Este campo es obligatorio"),
+    address: Yup.string().required("Este campo es obligatorio"),
+    code: Yup.string().required("Este campo es obligatorio"),
+    district: Yup.string().required("Este campo es obligatorio"),
+    zone: Yup.string().required("Este campo es obligatorio"),
     electoralSeatId: Yup.string().required(
-      'Debe seleccionar un asiento electoral'
+      "Debe seleccionar un asiento electoral"
     ),
     latitude: Yup.number()
-      .typeError('Debe ser un número válido')
-      .required('Este campo es obligatorio')
-      .min(-90, 'La latitud debe estar entre -90 y 90')
-      .max(90, 'La latitud debe estar entre -90 y 90'),
+      .typeError("Debe ser un número válido")
+      .required("Este campo es obligatorio")
+      .min(-90, "La latitud debe estar entre -90 y 90")
+      .max(90, "La latitud debe estar entre -90 y 90")
+      .test("not-zero", notZeroMessage, (value) => value !== 0),
     longitude: Yup.number()
-      .typeError('Debe ser un número válido')
-      .required('Este campo es obligatorio')
-      .min(-180, 'La longitud debe estar entre -180 y 180')
-      .max(180, 'La longitud debe estar entre -180 y 180'),
+      .typeError("Debe ser un número válido")
+      .required("Este campo es obligatorio")
+      .min(-180, "La longitud debe estar entre -180 y 180")
+      .max(180, "La longitud debe estar entre -180 y 180")
+      .test("not-zero", notZeroMessage, (value) => value !== 0),
   });
 
   const initialValues = {
-    name: currentItem?.name || '',
-    fid: currentItem?.fid || '',
-    address: currentItem?.address || '',
-    code: currentItem?.code || '',
-    district: currentItem?.district || '',
-    zone: currentItem?.zone || '',
+    name: currentItem?.name || "",
+    fid: currentItem?.fid || "",
+    address: currentItem?.address || "",
+    code: currentItem?.code || "",
+    district: currentItem?.district || "",
+    zone: currentItem?.zone || "",
     active: currentItem?.active ?? true,
     latitude: currentItem?.coordinates?.latitude || 0,
     longitude: currentItem?.coordinates?.longitude || 0,
     departmentId:
-      typeof currentItem?.electoralSeatId === 'object'
+      typeof currentItem?.electoralSeatId === "object"
         ? currentItem.electoralSeatId.municipalityId.provinceId.departmentId._id
-        : '',
+        : "",
     provinceId:
-      typeof currentItem?.electoralSeatId === 'object'
+      typeof currentItem?.electoralSeatId === "object"
         ? currentItem.electoralSeatId.municipalityId.provinceId._id
-        : '',
+        : "",
     municipalityId:
-      typeof currentItem?.electoralSeatId === 'object'
+      typeof currentItem?.electoralSeatId === "object"
         ? currentItem.electoralSeatId.municipalityId._id
-        : '',
+        : "",
     electoralSeatId:
-      typeof currentItem?.electoralSeatId === 'object'
+      typeof currentItem?.electoralSeatId === "object"
         ? currentItem.electoralSeatId._id
-        : '',
+        : "",
   };
 
   const handleSubmit = async (values: {
@@ -230,7 +233,7 @@ const ElectoralLocationForm: React.FC = () => {
     municipalityId: string;
     electoralSeatId: string;
   }) => {
-    console.log('Submitting values:', values);
+    console.log("Submitting values:", values);
     try {
       if (isEditMode && id) {
         // For updates, only send the fields that can be updated
@@ -266,20 +269,22 @@ const ElectoralLocationForm: React.FC = () => {
           },
           circunscripcion: {
             number: 4,
-            type: 'Especial',
-            name: 'Especial Indígena-Tarija',
+            type: "Especial",
+            name: "Especial Indígena-Tarija",
           }, // Default circumscription
         };
+        console.log("Creating values:", createPayload);
         await createItem(createPayload).unwrap();
       }
+
       setIsModalOpen(true);
-      navigate('/recintos-electorales');
+      navigate("/recintos-electorales");
     } catch (err) {
-      console.error('Failed to save electoral location:', err);
+      console.error("Failed to save electoral location:", err);
     }
   };
 
-  const loadElectoralSeats = async (inputValue: string = '') => {
+  const loadElectoralSeats = async (inputValue: string = "") => {
     try {
       let data: ElectoralSeatByMunicipalityType[];
       if (selectedMunicipality) {
@@ -304,12 +309,12 @@ const ElectoralLocationForm: React.FC = () => {
         label: item.name,
       }));
     } catch (error) {
-      console.error('Search failed:', error);
+      console.error("Search failed:", error);
       return [];
     }
   };
 
-  const loadMunicipalities = async (inputValue: string = '') => {
+  const loadMunicipalities = async (inputValue: string = "") => {
     try {
       let data: any[];
       if (selectedProvince) {
@@ -338,12 +343,12 @@ const ElectoralLocationForm: React.FC = () => {
         label: item.name,
       }));
     } catch (error) {
-      console.error('Search failed:', error);
+      console.error("Search failed:", error);
       return [];
     }
   };
 
-  const loadProvinces = async (inputValue: string = '') => {
+  const loadProvinces = async (inputValue: string = "") => {
     try {
       let data;
       if (selectedDepartment) {
@@ -372,7 +377,7 @@ const ElectoralLocationForm: React.FC = () => {
         label: item.name,
       }));
     } catch (error) {
-      console.error('Search failed:', error);
+      console.error("Search failed:", error);
       return [];
     }
   };
@@ -389,7 +394,7 @@ const ElectoralLocationForm: React.FC = () => {
         label: item.name,
       }));
     } catch (error) {
-      console.error('Search failed:', error);
+      console.error("Search failed:", error);
       return [];
     }
   };
@@ -401,13 +406,13 @@ const ElectoralLocationForm: React.FC = () => {
           <div className="flex items-center mb-8 border-b pb-4 border-gray-300">
             <BackButton className="mr-4" />
             <h1 className="text-2xl font-bold text-gray-700">
-              {isEditMode ? 'Editar' : 'Registro de'} Recinto Electoral
+              {isEditMode ? "Editar" : "Registro de"} Recinto Electoral
             </h1>
           </div>
 
           {error && (
             <div className="mb-6 p-4 bg-orange-100 border border-orange-400 text-orange-700 rounded-lg">
-              Error al {isEditMode ? 'actualizar' : 'crear'} el recinto
+              Error al {isEditMode ? "actualizar" : "crear"} el recinto
               electoral. Por favor intente nuevamente.
             </div>
           )}
@@ -442,9 +447,9 @@ const ElectoralLocationForm: React.FC = () => {
                           setSelectedProvince(null);
                           setSelectedMunicipality(null);
                           setSelectedElectoralSeat(null);
-                          setFieldValue('provinceId', '');
-                          setFieldValue('municipalityId', '');
-                          setFieldValue('electoralSeatId', '');
+                          setFieldValue("provinceId", "");
+                          setFieldValue("municipalityId", "");
+                          setFieldValue("electoralSeatId", "");
                         }}
                       />
                     </div>
@@ -458,7 +463,7 @@ const ElectoralLocationForm: React.FC = () => {
                         Provincia
                       </label>
                       <AsyncSelect
-                        key={selectedDepartment?.value || 'no-department'}
+                        key={selectedDepartment?.value || "no-department"}
                         name="provinceId"
                         loadOptions={loadProvinces}
                         defaultOptions={selectedDepartment ? true : false}
@@ -471,17 +476,17 @@ const ElectoralLocationForm: React.FC = () => {
                           setSelectedMunicipality(null);
                           setSelectedElectoralSeat(null);
                           setFieldValue(
-                            'provinceId',
-                            selectedOption ? selectedOption.value : ''
+                            "provinceId",
+                            selectedOption ? selectedOption.value : ""
                           );
-                          setFieldValue('municipalityId', '');
-                          setFieldValue('electoralSeatId', '');
+                          setFieldValue("municipalityId", "");
+                          setFieldValue("electoralSeatId", "");
                         }}
                         isDisabled={!selectedDepartment}
                         noOptionsMessage={() =>
                           !selectedDepartment
-                            ? 'Primero selecciona un departamento'
-                            : 'No se encontraron provincias'
+                            ? "Primero selecciona un departamento"
+                            : "No se encontraron provincias"
                         }
                       />
                     </div>
@@ -495,7 +500,7 @@ const ElectoralLocationForm: React.FC = () => {
                         Municipio
                       </label>
                       <AsyncSelect
-                        key={selectedProvince?.value || 'no-province'}
+                        key={selectedProvince?.value || "no-province"}
                         name="municipalityId"
                         loadOptions={loadMunicipalities}
                         defaultOptions={selectedProvince ? true : false}
@@ -506,16 +511,16 @@ const ElectoralLocationForm: React.FC = () => {
                           setSelectedMunicipality(selectedOption);
                           setSelectedElectoralSeat(null);
                           setFieldValue(
-                            'municipalityId',
-                            selectedOption ? selectedOption.value : ''
+                            "municipalityId",
+                            selectedOption ? selectedOption.value : ""
                           );
-                          setFieldValue('electoralSeatId', '');
+                          setFieldValue("electoralSeatId", "");
                         }}
                         isDisabled={!selectedProvince}
                         noOptionsMessage={() =>
                           !selectedProvince
-                            ? 'Primero selecciona una provincia'
-                            : 'No se encontraron municipios'
+                            ? "Primero selecciona una provincia"
+                            : "No se encontraron municipios"
                         }
                       />
                     </div>
@@ -529,7 +534,7 @@ const ElectoralLocationForm: React.FC = () => {
                         Asiento Electoral
                       </label>
                       <AsyncSelect
-                        key={selectedMunicipality?.value || 'no-municipality'}
+                        key={selectedMunicipality?.value || "no-municipality"}
                         name="electoralSeatId"
                         loadOptions={loadElectoralSeats}
                         defaultOptions={selectedMunicipality ? true : false}
@@ -539,15 +544,15 @@ const ElectoralLocationForm: React.FC = () => {
                         onChange={(selectedOption) => {
                           setSelectedElectoralSeat(selectedOption);
                           setFieldValue(
-                            'electoralSeatId',
-                            selectedOption ? selectedOption.value : ''
+                            "electoralSeatId",
+                            selectedOption ? selectedOption.value : ""
                           );
                         }}
                         isDisabled={!selectedMunicipality}
                         noOptionsMessage={() =>
                           !selectedMunicipality
-                            ? 'Primero selecciona un municipio'
-                            : 'No se encontraron asientos electorales'
+                            ? "Primero selecciona un municipio"
+                            : "No se encontraron asientos electorales"
                         }
                       />
                       <ErrorMessage
@@ -734,7 +739,7 @@ const ElectoralLocationForm: React.FC = () => {
                 <div className="flex justify-end space-x-4 pt-6 border-t border-gray-300">
                   <button
                     type="button"
-                    onClick={() => navigate('/recintos-electorales')}
+                    onClick={() => navigate("/recintos-electorales")}
                     className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-100 focus:outline-none focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200"
                     disabled={isLoading}
                   >

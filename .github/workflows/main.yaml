@@ -42,7 +42,7 @@ jobs:
             echo "alias_tag=prod" >> $GITHUB_OUTPUT
           else
             echo "▶️ Build in DEV"
-            echo "${{ vars.ENV_DEV }}" > .env
+            echo "${{ vars.ENV_PROD }}" > .env
             echo "image_tag=latest" >> $GITHUB_OUTPUT
             echo "alias_tag=dev" >> $GITHUB_OUTPUT
           fi
