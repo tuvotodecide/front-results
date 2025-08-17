@@ -224,7 +224,7 @@ const ResultadosImagen = () => {
             <div className="inner-container">
               {/* Location Section */}
               <div className="flex flex-row flex-wrap gap-4">
-                <div className="rounded-lg p-6 mb-4 border border-gray-200 basis-[450px] grow-2 shrink-0">
+                <div className="rounded-lg p-6 mb-4 border border-gray-200 basis-[450px] grow-2 shrink-1">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                     Ubicación
                   </h3>
@@ -418,14 +418,14 @@ const ResultadosImagen = () => {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="border border-gray-200 rounded-lg p-6">
+                <div className="border border-gray-200 rounded-lg p-4">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                     Resultados Presidenciales
                   </h3>
                   <Graphs data={presidentialData} />
                 </div>
 
-                <div className="border border-gray-200 rounded-lg p-6">
+                <div className="border border-gray-200 rounded-lg p-4">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                     Resultados Diputados
                   </h3>

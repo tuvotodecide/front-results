@@ -18,10 +18,10 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ resultsData }) => {
       <table className="table-fixed w-full min-w-[320px]">
         <thead>
           <tr className="border-b border-slate-200 bg-slate-50/80">
-            <th className="w-[45%] px-6 py-4 text-left text-sm font-semibold text-slate-700 tracking-wide">
-              Candidato / Partido
+            <th className="w-[40%] px-6 py-4 text-left text-sm font-semibold text-slate-700 tracking-wide">
+              Partido
             </th>
-            <th className="w-[25%] px-6 py-4 text-right text-sm font-semibold text-slate-700 tracking-wide">
+            <th className="w-[30%] px-6 py-4 text-right text-sm font-semibold text-slate-700 tracking-wide">
               Votos
             </th>
             <th className="w-[30%] px-6 py-4 text-right text-sm font-semibold text-slate-700 tracking-wide">

@@ -186,7 +186,7 @@ const ResultadosGenerales3 = () => {
             </div>
           ) : (
             <>
-              <div className="border border-gray-200 rounded-lg p-6 mb-4">
+              <div className="border border-gray-200 rounded-lg p-4 mb-4">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                   Participación
                 </h3>
