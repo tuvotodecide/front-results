@@ -42,9 +42,12 @@ export interface BallotType {
   votes: Votes;
   ipfsUri: string;
   ipfsCid: string;
+  image: string;
   recordId: string;
   tableIdIpfs: string;
   status: string;
+  valuable: boolean;
+  version: number;
   createdAt: string;
   updatedAt: string;
   __v: number;

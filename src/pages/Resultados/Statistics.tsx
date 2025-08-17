@@ -89,7 +89,7 @@ const Statistics = () => {
     <div className="w-full bg-gray-50 p-2 sm:p-4">
       <div className="max-w-full mx-auto">
         {/* Main Statistics Grid - More compact on mobile */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-4">
           <StatisticCard
             title="Total de Mesas"
             value={mockStats.totalMesas}
@@ -130,7 +130,7 @@ const Statistics = () => {
         </div>
 
         {/* Secondary Statistics - Stacked on mobile */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-4">
           <StatisticCard
             title="Recintos Electorales"
             value={mockStats.recintos}
@@ -169,7 +169,7 @@ const Statistics = () => {
         </div>
 
         {/* Progress and Vote Distribution - Stack on mobile and small tablets */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-4">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
             <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">
               Progreso de Procesamiento
@@ -268,7 +268,7 @@ const Statistics = () => {
         </div>
 
         {/* Full Width Progress Section */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4 mb-4 sm:mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4 mb-4 sm:mb-4">
           <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
             Progreso Electoral y Distribución de Votos
           </h3>

@@ -8,7 +8,7 @@ export const ballotsApiSlice = apiSlice.injectEndpoints({
       keepUnusedDataFor: 60,
       providesTags: (_result, _error, id) => [{ type: 'Ballots' as const, id }],
     }),
-    getBallotByTableCode: builder.query<BallotType, string>({
+    getBallotByTableCode: builder.query<BallotType[], string>({
       query: (tableCode) => `/ballots/by-table/${tableCode}`,
       keepUnusedDataFor: 60,
       providesTags: (_result, _error, tableCode) => [

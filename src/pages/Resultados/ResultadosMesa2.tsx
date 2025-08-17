@@ -2,15 +2,25 @@ import { useEffect, useState } from 'react';
 import LocationSection from './LocationSection';
 import Graphs from './Graphs';
 import ImagesSection from './ImagesSection';
-import { useNavigate, useParams } from 'react-router-dom';
-import { useGetElectoralTableByTableCodeQuery } from '../../store/electoralTables/electoralTablesEndpoints';
+import { useNavigate, useParams, Link } from 'react-router-dom';
+import {
+  useGetElectoralTableByTableCodeQuery,
+  useLazyGetElectoralTablesByElectoralLocationIdQuery,
+} from '../../store/electoralTables/electoralTablesEndpoints';
 import { useLazyGetResultsByLocationQuery } from '../../store/resultados/resultadosEndpoints';
 import SimpleSearchBar from '../../components/SimpleSearchBar';
 import StatisticsBars from './StatisticsBars';
 import BackButton from '../../components/BackButton';
 import { useLazyGetBallotByTableCodeQuery } from '../../store/ballots/ballotsEndpoints';
-import { BallotType } from '../../types';
+import { BallotType, ElectoralTableType } from '../../types';
 import { useGetConfigurationStatusQuery } from '../../store/configurations/configurationsEndpoints';
+import { setCurrentTable } from '../../store/resultados/resultadosSlice';
+import { useDispatch } from 'react-redux';
+import { getPartyColor } from './partyColors';
+import {
+  useGetAttestationCasesByTableCodeQuery,
+  useGetMostSupportedBallotByTableCodeQuery,
+} from '../../store/attestations/attestationsEndpoints';
 
 // const combinedData = [
 //   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -25,9 +35,12 @@ import { useGetConfigurationStatusQuery } from '../../store/configurations/confi
 
 const ResultadosMesa2 = () => {
   const { tableCode } = useParams();
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const [getResultsByLocation] = useLazyGetResultsByLocationQuery({});
   const [getBallotsByTableCode] = useLazyGetBallotByTableCodeQuery({});
+  const [getTablesByLocationId] =
+    useLazyGetElectoralTablesByElectoralLocationIdQuery({});
   const [presidentialData, setPresidentialData] = useState<
     Array<{ name: string; value: number; color: string }>
   >([]);
@@ -37,12 +50,26 @@ const ResultadosMesa2 = () => {
   const [participation, setParticipation] = useState<
     Array<{ name: string; value: any; color: string }>
   >([]);
+  const [otherTables, setOtherTables] = useState<ElectoralTableType[]>([]);
   const [images, setImages] = useState<BallotType[]>([]);
+  const [showAllTables, setShowAllTables] = useState(false);
   const { data: configData } = useGetConfigurationStatusQuery();
+  const { data: mostSupportedBallotData } =
+    useGetMostSupportedBallotByTableCodeQuery(tableCode || '', {
+      skip: !tableCode,
+    });
+  const { data: attestationCases } = useGetAttestationCasesByTableCodeQuery(
+    tableCode || '',
+    {
+      skip: !tableCode,
+    }
+  );
+
   const {
     data: electoralTableData,
     // error: electoralTableError,
     isError: isElectoralTableError,
+    isLoading: isElectoralTableLoading,
   } = useGetElectoralTableByTableCodeQuery(tableCode || '', {
     skip: !tableCode, // Skip the query if tableCode is falsy
   });
@@ -55,26 +82,53 @@ const ResultadosMesa2 = () => {
   };
 
   useEffect(() => {
+    if (mostSupportedBallotData) {
+      console.log('Most Supported Ballot Data:', mostSupportedBallotData);
+    }
+  }, [mostSupportedBallotData]);
+
+  useEffect(() => {
     if (tableCode && electoralTableData) {
       getBallotsByTableCode(tableCode)
         .unwrap()
         .then((data) => {
-          setImages([data]);
+          setImages(data);
           //console.log('Fetched ballots data:', data);
           // Process the fetched ballots data as needed
         });
+
+      if (electoralTableData.electoralLocation) {
+        getTablesByLocationId(electoralTableData.electoralLocation._id)
+          .unwrap()
+          .then((data) => {
+            console.log('Fetched other tables data:', data);
+            setOtherTables(
+              data.filter(
+                (table: ElectoralTableType) => table._id !== tableCode
+              )
+            );
+            // Process the fetched tables data as needed
+          });
+      }
+
+      // Only make API calls if results period is active
+      if (!configData?.isResultsPeriod) {
+        return;
+      }
+
       getResultsByLocation({ tableCode, electionType: 'presidential' })
         .unwrap()
         .then((data) => {
-          console.log('Fetched presidential data:', data);
+          // console.log('Fetched presidential data:', data);
           const formattedData = data.results.map((item: any) => {
-            // Generate random hex color if color not provided
+            // Get party color or generate random hex color if not found
+            const partyColor = getPartyColor(item.partyId);
             const randomColor =
               '#' + Math.floor(Math.random() * 16777215).toString(16);
             return {
               name: item.partyId,
               value: item.totalVotes,
-              color: item.color || randomColor, // Use random color as fallback
+              color: partyColor || randomColor, // Use party color, then item color, then random as fallback
             };
           });
           setPresidentialData(formattedData);
@@ -106,24 +160,31 @@ const ResultadosMesa2 = () => {
       getResultsByLocation({ tableCode, electionType: 'deputies' })
         .unwrap()
         .then((data) => {
-          console.log('Fetched deputies data:', data);
+          // console.log('Fetched deputies data:', data);
           const formattedData = data.results.map((item: any) => {
-            // Generate random hex color if color not provided
+            // Get party color or generate random hex color if not found
+            const partyColor = getPartyColor(item.partyId);
             const randomColor =
               '#' + Math.floor(Math.random() * 16777215).toString(16);
             return {
               name: item.partyId,
               value: item.totalVotes,
-              color: item.color || randomColor, // Use random color as fallback
+              color: partyColor || randomColor, // Use party color, then item color, then random as fallback
             };
           });
           setDeputiesData(formattedData);
         });
     }
-  }, [tableCode, electoralTableData]);
+  }, [tableCode, electoralTableData, configData]);
+
+  useEffect(() => {
+    if (tableCode) {
+      dispatch(setCurrentTable(tableCode));
+    }
+  }, [tableCode]);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="outer-container min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto max-w-7xl">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-8">
           Resultados por Mesa
@@ -132,7 +193,7 @@ const ResultadosMesa2 = () => {
         {!tableCode ? (
           <div className="bg-white rounded-lg shadow-md py-16 px-8 border border-gray-200">
             <div className="flex flex-col items-center justify-center text-center">
-              <div className="bg-gray-100 rounded-full p-4 mb-6">
+              <div className="bg-gray-100 rounded-full p-4 mb-4">
                 <svg
                   className="w-12 h-12 text-gray-600"
                   fill="none"
@@ -159,10 +220,63 @@ const ResultadosMesa2 = () => {
               />
             </div>
           </div>
+        ) : isElectoralTableLoading ? (
+          <div className="bg-white rounded-lg shadow-md border border-gray-200">
+            {/* Header Skeleton */}
+            <div className="bg-gray-800 p-6 rounded-t-lg">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-8 h-8 bg-gray-600 rounded animate-pulse"></div>
+                  <div>
+                    <div className="h-8 bg-gray-600 rounded w-32 animate-pulse mb-2"></div>
+                    <div className="h-4 bg-gray-700 rounded w-24 animate-pulse"></div>
+                  </div>
+                </div>
+                <div className="h-10 bg-gray-600 rounded w-64 animate-pulse"></div>
+              </div>
+            </div>
+
+            {/* Content Skeleton */}
+            <div className="p-6">
+              <div className="flex flex-row flex-wrap gap-4 mb-4">
+                <div className="border border-gray-200 rounded-lg p-6 basis-[450px] grow-2 shrink-1">
+                  <div className="h-6 bg-gray-300 rounded w-24 animate-pulse mb-4"></div>
+                  <div className="space-y-3">
+                    <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse"></div>
+                  </div>
+                </div>
+                <div className="border border-gray-200 rounded-lg p-6 basis-[300px] grow-1 shrink-1">
+                  <div className="h-6 bg-gray-300 rounded w-32 animate-pulse mb-4"></div>
+                  <div className="space-y-3">
+                    <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-2/3 animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border border-gray-200 rounded-lg p-6 mb-4">
+                <div className="h-6 bg-gray-300 rounded w-28 animate-pulse mb-4"></div>
+                <div className="h-32 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+
+              <div className="w-full flex flex-wrap gap-4">
+                <div className="border border-gray-200 rounded-lg p-4 basis-[min(420px,100%)] grow-3 shrink-0">
+                  <div className="h-6 bg-gray-300 rounded w-48 animate-pulse mb-4"></div>
+                  <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+                <div className="border border-gray-200 rounded-lg p-4 basis-[min(420px,100%)] grow-3 shrink-0">
+                  <div className="h-6 bg-gray-300 rounded w-44 animate-pulse mb-4"></div>
+                  <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          </div>
         ) : isElectoralTableError ? (
           <div className="bg-white rounded-lg shadow-md py-16 px-8 border border-red-200">
             <div className="flex flex-col items-center justify-center text-center">
-              <div className="bg-red-50 rounded-full p-4 mb-6">
+              <div className="bg-red-50 rounded-full p-4 mb-4">
                 <svg
                   className="w-12 h-12 text-red-600"
                   fill="none"
@@ -217,11 +331,11 @@ const ResultadosMesa2 = () => {
             </div>
 
             {/* Content */}
-            <div className="p-6">
+            <div className="inner-container">
               {electoralTableData && (
                 <>
-                  <div className="flex flex-row flex-wrap gap-6">
-                    <div className="border border-gray-200 rounded-lg p-6 mb-6 basis-[450px] grow-2 shrink-0">
+                  <div className="flex flex-row flex-wrap gap-4 mb-4">
+                    <div className="border border-gray-200 rounded-lg p-6 basis-[450px] grow-2 shrink-1">
                       <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         Ubicacion
                       </h3>
@@ -235,7 +349,7 @@ const ResultadosMesa2 = () => {
                         electoralSeat={electoralTableData?.electoralSeat?.name}
                       />
                     </div>
-                    <div className="border border-gray-200 rounded-lg p-6 mb-6 basis-[300px] grow-1 shrink-0">
+                    <div className="border border-gray-200 rounded-lg p-6 basis-[300px] grow-1 shrink-1">
                       <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         Datos Mesa
                       </h3>
@@ -273,11 +387,92 @@ const ResultadosMesa2 = () => {
                       </div>
                     </div>
                   </div>
+                  {otherTables.length > 0 && (
+                    <div className="border border-gray-200 rounded-lg p-6 mb-4">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        Otras mesas del Recinto
+                      </h3>
+                      <div
+                        className={`flex flex-wrap gap-3 ${
+                          !showAllTables
+                            ? 'max-h-[calc(3*5.5rem+2*0.75rem)] overflow-hidden'
+                            : ''
+                        }`}
+                      >
+                        {otherTables.map((table) => (
+                          <Link
+                            key={table._id}
+                            to={`/resultados/mesa/${table.tableCode}`}
+                            className="border border-gray-300 rounded-lg p-4 hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200 block flex-shrink-0 w-[calc(20%-0.6rem)] min-w-[120px]"
+                          >
+                            <div className="text-center">
+                              <div className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-1">
+                                Mesa
+                              </div>
+                              <div className="text-lg font-semibold text-gray-900 mb-2">
+                                #{table.tableNumber}
+                              </div>
+                              <div
+                                className="text-xs text-gray-500 break-words truncate"
+                                title={table.tableCode}
+                              >
+                                {table.tableCode}
+                              </div>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                      {otherTables.length > 15 && (
+                        <div className="mt-4 text-center">
+                          <button
+                            onClick={() => setShowAllTables(!showAllTables)}
+                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200"
+                          >
+                            {showAllTables ? (
+                              <>
+                                Mostrar menos
+                                <svg
+                                  className="ml-2 w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                    d="M5 15l7-7 7 7"
+                                  />
+                                </svg>
+                              </>
+                            ) : (
+                              <>
+                                Mostrar todas ({otherTables.length} mesas)
+                                <svg
+                                  className="ml-2 w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                    d="M19 9l-7 7-7-7"
+                                  />
+                                </svg>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {configData &&
                   !configData.isResultsPeriod &&
                   configData.hasActiveConfig ? (
                     <div className="border border-gray-200 rounded-lg p-8 text-center">
-                      <p className="text-xl text-gray-600 mb-6">
+                      <p className="text-xl text-gray-600 mb-4">
                         Los resultados se habilitarán el:
                       </p>
                       <div className="mb-2">
@@ -306,9 +501,13 @@ const ResultadosMesa2 = () => {
                         </p>
                       </div>
                     </div>
+                  ) : presidentialData.length === 0 ? (
+                    <div className="border border-gray-200 rounded-lg p-8 text-center">
+                      <p className="text-xl text-gray-600">Sin datos</p>
+                    </div>
                   ) : (
                     <>
-                      <div className="border border-gray-200 rounded-lg p-6 mb-6">
+                      <div className="border border-gray-200 rounded-lg p-6 mb-4">
                         <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                           Participación
                         </h3>
@@ -323,7 +522,7 @@ const ResultadosMesa2 = () => {
                       </div>
                       <div className="w-full flex flex-wrap gap-4">
                         <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
-                          <div className=" px-0 md:px-6 py-4">
+                          <div className="p-4">
                             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                               Resultados Presidenciales
                             </h3>
@@ -331,7 +530,7 @@ const ResultadosMesa2 = () => {
                           </div>
                         </div>
                         <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
-                          <div className=" px-0 md:px-6 py-4">
+                          <div className="p-4">
                             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                               Resultados Diputados
                             </h3>
@@ -345,11 +544,15 @@ const ResultadosMesa2 = () => {
                 </>
               )}
 
-              <div className="border border-gray-200 rounded-lg p-4 mt-6">
+              <div className="border border-gray-200 rounded-lg p-4 mt-4">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                   Imagenes
                 </h3>
-                <ImagesSection images={images} />
+                <ImagesSection
+                  images={images}
+                  mostSupportedBallot={mostSupportedBallotData}
+                  attestationCases={attestationCases?.ballots || []}
+                />
               </div>
             </div>
           </div>

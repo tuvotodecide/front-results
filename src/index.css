@@ -5,3 +5,21 @@
   --breakpoint-2xl: 100rem;
   --breakpoint-3xl: 120rem;
 }
+
+.outer-container {
+  padding: 16px;
+}
+
+.inner-container {
+  padding: 16px;
+}
+
+@media (max-width: 600px) {
+  .outer-container {
+    padding: 0px;
+  }
+
+  .inner-container {
+    padding: 8px;
+  }
+}

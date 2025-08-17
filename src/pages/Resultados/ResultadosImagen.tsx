@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 // import ModalImage from '../../components/ModalImage';
 // import actaImage from '../../assets/acta.jpg';
 import LocationSection from './LocationSection';
@@ -8,16 +8,26 @@ import Graphs from './Graphs';
 import StatisticsBars from './StatisticsBars';
 import SimpleSearchBar from '../../components/SimpleSearchBar';
 import BackButton from '../../components/BackButton';
+import { useDispatch } from 'react-redux';
+import { setCurrentBallot } from '../../store/resultados/resultadosSlice';
+import { useGetAttestationsByBallotIdQuery } from '../../store/attestations/attestationsEndpoints';
+import { getPartyColor } from './partyColors';
 
 // const ballotData = {
 //   tableNumber: '25548',
 //   imageUrl: actaImage,
 // };
 
+const BASE_NFT_URL = import.meta.env.VITE_BASE_NFT_URL;
+
 const ResultadosImagen = () => {
   const { id } = useParams();
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const { data: currentItem, isError: isBallotError } = useGetBallotQuery(id!, {
+    skip: !id,
+  });
+  const { data: attestationsData } = useGetAttestationsByBallotIdQuery(id!, {
     skip: !id,
   });
 
@@ -36,29 +46,47 @@ const ResultadosImagen = () => {
     Array<{ name: string; value: any; color: string }>
   >([]);
 
+  // Calculate attestations counts using useMemo for optimization
+  const { attestationsInFavor, attestationsAgainst } = useMemo(() => {
+    if (!attestationsData) {
+      return { attestationsInFavor: 0, attestationsAgainst: 0 };
+    }
+
+    const inFavor = attestationsData.filter(
+      (attestation: any) => attestation.support === true
+    ).length;
+    const against = attestationsData.filter(
+      (attestation: any) => attestation.support === false
+    ).length;
+
+    return { attestationsInFavor: inFavor, attestationsAgainst: against };
+  }, [attestationsData]);
+
   useEffect(() => {
     if (currentItem && currentItem.votes) {
       console.log('current item', currentItem);
       const formattedPresidentialData =
         currentItem.votes.parties.partyVotes.map((item: any) => {
-          // Generate random hex color if color not provided
+          // Get party color or generate random hex color if not found
+          const partyColor = getPartyColor(item.partyId);
           const randomColor =
             '#' + Math.floor(Math.random() * 16777215).toString(16);
           return {
             name: item.partyId,
             value: item.votes,
-            color: item.color || randomColor, // Use random color as fallback
+            color: partyColor || randomColor, // Use party color, then item color, then random as fallback
           };
         });
       const formattedDeputiesData = currentItem.votes.deputies.partyVotes.map(
         (item: any) => {
-          // Generate random hex color if color not provided
+          // Get party color or generate random hex color if not found
+          const partyColor = getPartyColor(item.partyId);
           const randomColor =
             '#' + Math.floor(Math.random() * 16777215).toString(16);
           return {
             name: item.partyId,
             value: item.votes,
-            color: item.color || randomColor, // Use random color as fallback
+            color: partyColor || randomColor, // Use party color, then item color, then random as fallback
           };
         }
       );
@@ -85,10 +113,22 @@ const ResultadosImagen = () => {
     }
   }, [currentItem]);
 
+  useEffect(() => {
+    if (id) {
+      dispatch(setCurrentBallot(id));
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (attestationsData) {
+      console.log('Attestations Data:', attestationsData);
+    }
+  }, [attestationsData]);
+
   // const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="outer-container min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto max-w-7xl">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-8">
           Resultados por Imagen
@@ -97,7 +137,7 @@ const ResultadosImagen = () => {
         {!id ? (
           <div className="bg-white rounded-lg shadow-md py-16 px-8 border border-gray-200">
             <div className="flex flex-col items-center justify-center text-center">
-              <div className="bg-gray-100 rounded-full p-4 mb-6">
+              <div className="bg-gray-100 rounded-full p-4 mb-4">
                 <svg
                   className="w-12 h-12 text-gray-600"
                   fill="none"
@@ -127,7 +167,7 @@ const ResultadosImagen = () => {
         ) : isBallotError ? (
           <div className="bg-white rounded-lg shadow-md py-16 px-8 border border-red-200">
             <div className="flex flex-col items-center justify-center text-center">
-              <div className="bg-red-50 rounded-full p-4 mb-6">
+              <div className="bg-red-50 rounded-full p-4 mb-4">
                 <svg
                   className="w-12 h-12 text-red-600"
                   fill="none"
@@ -158,18 +198,20 @@ const ResultadosImagen = () => {
           <div className="bg-white rounded-lg shadow-md border border-gray-200">
             {/* Header Section */}
             <div className="bg-gray-800 text-white p-6 rounded-t-lg">
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <div className="flex items-center gap-4">
-                  <BackButton className="text-white hover:text-gray-300" />
-                  <div>
-                    <h1 className="text-2xl md:text-3xl font-semibold">
-                      Mesa #{currentItem?.tableNumber || '25548'}
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div className="flex items-center gap-4 min-w-0 flex-1">
+                  <BackButton className="text-white hover:text-gray-300 flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <h1 className="text-2xl md:text-3xl font-semibold break-words">
+                      Imagen {id}
                     </h1>
-                    <p className="text-gray-300 mt-1">Imagen {id}</p>
+                    <p className="text-gray-300 mt-1 break-words">
+                      Codigo mesa: {currentItem?.tableCode || ''}
+                    </p>
                   </div>
                 </div>
                 <SimpleSearchBar
-                  className="shrink-1 ml-auto"
+                  className="w-full lg:w-auto lg:shrink-1 lg:ml-auto"
                   onSearch={handleSearch}
                 />
                 {/* <div className="bg-gray-700 rounded px-4 py-2">
@@ -179,10 +221,10 @@ const ResultadosImagen = () => {
             </div>
 
             {/* Content */}
-            <div className="p-6">
+            <div className="inner-container">
               {/* Location Section */}
-              <div className="flex flex-row flex-wrap gap-6">
-                <div className="rounded-lg p-6 mb-6 border border-gray-200 basis-[450px] grow-2 shrink-0">
+              <div className="flex flex-row flex-wrap gap-4">
+                <div className="rounded-lg p-6 mb-4 border border-gray-200 basis-[450px] grow-2 shrink-0">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                     Ubicación
                   </h3>
@@ -196,7 +238,7 @@ const ResultadosImagen = () => {
                     electoralSeat={currentItem?.location.electoralSeat || ''}
                   />
                 </div>
-                <div className="border border-gray-200 rounded-lg p-6 mb-6 basis-[300px] grow-1 shrink-0">
+                <div className="border border-gray-200 rounded-lg p-6 mb-4 basis-[300px] grow-1 shrink-0">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                     Datos Mesa
                   </h3>
@@ -226,21 +268,23 @@ const ResultadosImagen = () => {
               </div>
 
               {/* Attestation Information and Smart Contracts Section */}
-              <div className="flex flex-row flex-wrap gap-6">
+              <div className="flex flex-row flex-wrap gap-4 mb-4">
                 {/* Attestation Information - Highlighted and Formal */}
-                <div className="border border-gray-200 rounded-lg p-6 mb-6 basis-[450px] grow-2 shrink-0">
+                <div className="border border-gray-200 rounded-lg p-6 basis-[450px] grow-2 shrink-1">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4">
                     Atestiguamientos
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* A. a favor */}
                     <div className="bg-green-50 border-l-4 border-green-500 p-6 rounded-r-lg">
                       <div className="flex items-center justify-between">
                         <div>
                           <h4 className="text-sm font-medium text-green-800 mb-1">
-                            Atestiguamientos a favor
+                            A favor
                           </h4>
-                          <p className="text-3xl font-bold text-green-900">x</p>
+                          <p className="text-3xl font-bold text-green-900">
+                            {attestationsInFavor}
+                          </p>
                         </div>
                         <div className="text-green-600">
                           <svg
@@ -263,9 +307,11 @@ const ResultadosImagen = () => {
                       <div className="flex items-center justify-between">
                         <div>
                           <h4 className="text-sm font-medium text-red-800 mb-1">
-                            Atestiguamientos en contra
+                            En contra
                           </h4>
-                          <p className="text-3xl font-bold text-red-900">y</p>
+                          <p className="text-3xl font-bold text-red-900">
+                            {attestationsAgainst}
+                          </p>
                         </div>
                         <div className="text-red-600">
                           <svg
@@ -286,47 +332,78 @@ const ResultadosImagen = () => {
                 </div>
 
                 {/* Smart Contracts Section - Minimalist */}
-                <div className="border border-gray-200 rounded-lg p-6 mb-6 basis-[300px] grow-1 shrink-0">
+                <div className="border border-gray-200 rounded-lg p-6 basis-[300px] grow-1 shrink-1">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4">
                     Contratos Inteligentes
                   </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-600 mb-2">
-                        CID IPFS
-                      </h4>
-                      <div className="bg-gray-50 border border-gray-300 rounded p-3">
-                        <code className="text-sm text-gray-700 font-mono break-all">
-                          {currentItem?.ipfsCid || 'No disponible'}
-                        </code>
-                      </div>
-                    </div>
-
-                    {currentItem?.ipfsUri && (
-                      <div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                      Acciones disponibles
+                    </h4>
+                    <div className="grid grid-cols-1 gap-2">
+                      {currentItem?.image && (
                         <a
-                          href={currentItem?.ipfsUri}
+                          href={`https://ipfs.io/ipfs/${currentItem.image.replace(
+                            'ipfs://',
+                            ''
+                          )}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-gray-700 text-sm font-medium rounded hover:bg-gray-50 transition-colors duration-200"
+                          className="px-3 py-2.5 text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-md hover:bg-slate-100 hover:border-slate-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-1 text-center no-underline"
                         >
-                          <svg
-                            className="w-4 h-4 mr-2"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
-                            <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
-                          </svg>
-                          Ver en IPFS
+                          Imagen
                         </a>
-                      </div>
-                    )}
+                      )}
+                      {currentItem?.ipfsUri && (
+                        <a
+                          href={currentItem.ipfsUri}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-2.5 text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-md hover:bg-slate-100 hover:border-slate-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-1 text-center no-underline"
+                        >
+                          Metadata
+                        </a>
+                      )}
+                      {currentItem?.recordId && (
+                        <a
+                          href={`${BASE_NFT_URL}${currentItem.recordId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-2.5 text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-md hover:bg-slate-100 hover:border-slate-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-1 text-center no-underline"
+                        >
+                          NFT
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
+              {/* Image section */}
+              {/* <div className="relative bg-white rounded-xl overflow-hidden shadow-md transition-transform duration-300 border border-gray-100 mb-8 max-w-[400px]">
+                {ballotData.imageUrl ? (
+                  <>
+                    <img
+                      src={ballotData.imageUrl}
+                      alt={`Acta de la mesa ${ballotData.tableNumber}`}
+                      className="w-full h-full object-contain cursor-zoom-in"
+                      onClick={() => setIsImageModalOpen(true)}
+                    />
+                    <ModalImage
+                      isOpen={isImageModalOpen}
+                      onClose={() => setIsImageModalOpen(false)}
+                      imageUrl={ballotData.imageUrl}
+                    />
+                  </>
+                ) : (
+                  <div className="flex items-center justify-center h-[400px] bg-gray-50">
+                    <p className="text-gray-400 text-lg">
+                      No hay imagen disponible
+                    </p>
+                  </div>
+                )}
+              </div> */}
               {/* Results Section */}
-              <div className="border border-gray-200 rounded-lg p-6 mb-6">
+              <div className="border border-gray-200 rounded-lg p-6 mb-4">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                   Participación
                 </h3>
@@ -340,7 +417,7 @@ const ResultadosImagen = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="border border-gray-200 rounded-lg p-6">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                     Resultados Presidenciales

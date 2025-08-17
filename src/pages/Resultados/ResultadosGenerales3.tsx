@@ -11,6 +11,7 @@ import { useLazyGetElectoralTablesByElectoralLocationIdQuery } from '../../store
 import { useSearchParams } from 'react-router-dom';
 import { ElectoralTableType } from '../../types';
 import { useGetConfigurationStatusQuery } from '../../store/configurations/configurationsEndpoints';
+import { getPartyColor } from './partyColors';
 
 // const combinedData = [
 //   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -45,12 +46,17 @@ const ResultadosGenerales3 = () => {
   const { data: configData } = useGetConfigurationStatusQuery();
   const filters = useSelector(selectFilters);
 
-  useEffect(() => {
-    console.log('Current config data:', configData);
-  }, [configData]);
+  // useEffect(() => {
+  //   // console.log('Current config data:', configData);
+  // }, [configData]);
 
   useEffect(() => {
-    console.log('Current filters:', filters);
+    // Only make API calls if results period is active
+    if (!configData?.isResultsPeriod) {
+      return;
+    }
+
+    // console.log('Current filters:', filters);
     // const cleanedFilters = Object.fromEntries(
     //   Object.entries(filters).filter(
     //     ([key, value]) => value !== '' && key !== 'electoralLocation'
@@ -60,15 +66,16 @@ const ResultadosGenerales3 = () => {
     getResultsByLocation({ ...filters, electionType: 'presidential' })
       .unwrap()
       .then((data) => {
-        console.log('Fetched presidential data:', data);
+        // console.log('Fetched presidential data:', data);
         const formattedData = data.results.map((item: any) => {
-          // Generate random hex color if color not provided
+          // Get party color or generate random hex color if not found
+          const partyColor = getPartyColor(item.partyId);
           const randomColor =
             '#' + Math.floor(Math.random() * 16777215).toString(16);
           return {
             name: item.partyId,
             value: item.totalVotes,
-            color: item.color || randomColor, // Use random color as fallback
+            color: partyColor || randomColor, // Use party color, then random as fallback
           };
         });
         setPresidentialData(formattedData);
@@ -100,24 +107,25 @@ const ResultadosGenerales3 = () => {
     getResultsByLocation({ ...filters, electionType: 'deputies' })
       .unwrap()
       .then((data) => {
-        console.log('Fetched deputies data:', data);
+        // console.log('Fetched deputies data:', data);
         const formattedData = data.results.map((item: any) => {
-          // Generate random hex color if color not provided
+          // Get party color or generate random hex color if not found
+          const partyColor = getPartyColor(item.partyId);
           const randomColor =
             '#' + Math.floor(Math.random() * 16777215).toString(16);
           return {
             name: item.partyId,
             value: item.totalVotes,
-            color: item.color || randomColor, // Use random color as fallback
+            color: partyColor || randomColor, // Use party color, then item color, then random as fallback
           };
         });
         setDeputiesData(formattedData);
       });
-  }, [filters]);
+  }, [filters, configData]);
 
   useEffect(() => {
     const electoralLocationId = searchParams.get('electoralLocation');
-    console.log('Electoral Location ID:', electoralLocationId);
+    // console.log('Electoral Location ID:', electoralLocationId);
     if (electoralLocationId) {
       getTablesByLocationId(electoralLocationId)
         .unwrap()
@@ -131,12 +139,12 @@ const ResultadosGenerales3 = () => {
   }, [searchParams]);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="outer-container min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto max-w-7xl">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-8">
           Resultados Generales
         </h1>
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+        <div className="inner-container bg-gray-50 border border-gray-200 rounded-lg">
           <div className="">
             <Breadcrumb2 />
           </div>
@@ -145,7 +153,7 @@ const ResultadosGenerales3 = () => {
           !configData.isResultsPeriod &&
           configData.hasActiveConfig ? (
             <div className="border border-gray-200 rounded-lg p-8 text-center">
-              <p className="text-xl text-gray-600 mb-6">
+              <p className="text-xl text-gray-600 mb-4">
                 Los resultados se habilitarán el:
               </p>
               <div className="mb-2">
@@ -178,7 +186,7 @@ const ResultadosGenerales3 = () => {
             </div>
           ) : (
             <>
-              <div className="border border-gray-200 rounded-lg p-6 mb-6">
+              <div className="border border-gray-200 rounded-lg p-6 mb-4">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                   Participación
                 </h3>
@@ -193,7 +201,7 @@ const ResultadosGenerales3 = () => {
               </div>
               <div className="w-full flex flex-wrap gap-4">
                 <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
-                  <div className=" px-0 md:px-6 py-4">
+                  <div className="p-4">
                     <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                       Resultados Presidenciales
                     </h3>
@@ -202,7 +210,7 @@ const ResultadosGenerales3 = () => {
                   </div>
                 </div>
                 <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
-                  <div className=" px-0 md:px-6 py-4">
+                  <div className="p-4">
                     <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                       Resultados Diputados
                     </h3>

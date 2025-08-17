@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <clipPath id="rounded">
+      <rect x="0" y="0" width="32" height="32" rx="6" ry="6"/>
+    </clipPath>
+    <linearGradient id="redGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#D52B1E;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#B91C0C;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="yellowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F9E300;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E6CC00;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#007934;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#005A28;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <g clip-path="url(#rounded)">
+    <!-- Red stripe -->
+    <rect x="0" y="0" width="32" height="10.67" fill="url(#redGrad)"/>
+
+    <!-- Yellow stripe -->
+    <rect x="0" y="10.67" width="32" height="10.67" fill="url(#yellowGrad)"/>
+
+    <!-- Green stripe -->
+    <rect x="0" y="21.33" width="32" height="10.67" fill="url(#greenGrad)"/>
+
+    <!-- Subtle border -->
+    <rect x="0" y="0" width="32" height="32" fill="none" stroke="#2D3748" stroke-width="0.5" rx="6" ry="6" opacity="0.3"/>
+  </g>
+</svg>

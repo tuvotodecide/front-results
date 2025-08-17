@@ -1,10 +1,10 @@
-import React, { useState } from "react";
-import { useScreenSize } from "../hooks/useScreenSize";
-import { Header } from "./Header";
-import { Sidebar } from "./Sidebar";
-import { MainContent } from "./MainContent";
-import { Outlet } from "react-router-dom";
-import "./BasicLayout.css"; // Assuming you have a CSS file for styles
+import React, { useState } from 'react';
+import { useScreenSize } from '../hooks/useScreenSize';
+import { Header } from './Header';
+import { Sidebar } from './Sidebar';
+import { MainContent } from './MainContent';
+import { Outlet } from 'react-router-dom';
+import './BasicLayout.css'; // Assuming you have a CSS file for styles
 
 const BasicLayout: React.FC = () => {
   const { isSmallScreen } = useScreenSize();
@@ -23,27 +23,27 @@ const BasicLayout: React.FC = () => {
   return (
     <div
       style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100vh",
-        overflow: "hidden",
-        ["--sidebar-width" as string]:
-          !isSmallScreen && isSidebarOpen ? "280px" : "0px",
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        overflow: 'hidden',
+        ['--sidebar-width' as string]:
+          !isSmallScreen && isSidebarOpen ? '280px' : '0px',
       }}
     >
       <Header toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
       <div
         style={{
-          display: "flex",
+          display: 'flex',
           flex: 1,
-          overflow: "hidden",
-          position: "relative",
+          overflow: 'hidden',
+          position: 'relative',
         }}
       >
-        <Sidebar isOpen={isSidebarOpen} closeSidebar={closeSidebar} />
         <MainContent>
           <Outlet />
         </MainContent>
+        <Sidebar isOpen={isSidebarOpen} closeSidebar={closeSidebar} />
       </div>
     </div>
   );

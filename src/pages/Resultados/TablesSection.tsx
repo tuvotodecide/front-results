@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ElectoralTableType } from '../../types';
 
 interface Mesa {
@@ -13,8 +13,6 @@ interface TablesSectionProps {
 }
 
 const TablesSection = ({ tables = [] }: TablesSectionProps) => {
-  const navigate = useNavigate();
-
   // Sample data - you can replace this with your actual data source
   // const mesas: Mesa[] = [
   //   { number: 1, code: 'ERETTF', status: 'processed', photoCount: 3 },
@@ -101,14 +99,6 @@ const TablesSection = ({ tables = [] }: TablesSectionProps) => {
     }
   };
 
-  const handleCardClick = (table: ElectoralTableType) => {
-    // if (mesa.status === 'unprocessed') {
-    //   return; // Do nothing for unprocessed mesas
-    // }
-    // Navigate to the mesa details page with the mesa number as ID
-    navigate(`/resultados/mesa/${table.tableCode}`);
-  };
-
   return (
     <div style={{ padding: '20px' }}>
       <div
@@ -120,10 +110,14 @@ const TablesSection = ({ tables = [] }: TablesSectionProps) => {
         }}
       >
         {tables.map((table) => (
-          <div
+          <Link
             key={table._id}
-            style={getCardStyle('processed')}
-            onClick={() => handleCardClick(table)}
+            to={`/resultados/mesa/${table.tableCode}`}
+            style={{
+              ...getCardStyle('processed'),
+              textDecoration: 'none',
+              cursor: 'pointer',
+            }}
           >
             <div
               style={{
@@ -222,7 +216,7 @@ const TablesSection = ({ tables = [] }: TablesSectionProps) => {
                 </div>
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

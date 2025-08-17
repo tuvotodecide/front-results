@@ -4,22 +4,22 @@ import {
   createApi,
   fetchBaseQuery,
 } from '@reduxjs/toolkit/query/react';
-import { RootState } from './index';
+// import { RootState } from './index';
 
 const { VITE_BASE_API_URL } = import.meta.env;
 const baseApiUrl = VITE_BASE_API_URL || 'http://localhost:3000/api/v1';
 
 const baseQuery = fetchBaseQuery({
   baseUrl: baseApiUrl,
-  prepareHeaders: (headers, { getState }) => {
-    const state: RootState = getState() as RootState;
-    const token = state.auth.token;
-    headers.set('Accept', 'application/json');
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
-    }
-    return headers;
-  },
+  // prepareHeaders: (headers, { getState }) => {
+  //   const state: RootState = getState() as RootState;
+  //   const token = state.auth.token;
+  //   headers.set('Accept', 'application/json');
+  //   if (token) {
+  //     headers.set('Authorization', `Bearer ${token}`);
+  //   }
+  //   return headers;
+  // },
 });
 
 const baseQueryWrapper = async (
@@ -51,6 +51,8 @@ export const apiSlice = createApi({
     'ElectoralLocations',
     'ElectoralTables',
     'Configurations',
+    'PoliticalParties',
+    'Attestations',
   ],
   endpoints: () => ({}),
 });

@@ -17,8 +17,10 @@ const D3PieChart: React.FC<PieChartProps> = ({ data }) => {
   const baseHeight = 500;
   const heightPerLabel = 50;
 
-  // Sort data by votes in descending order
-  const sortedData = [...data].sort((a, b) => b.value - a.value);
+  // Filter out data with value 0 and sort by votes in descending order
+  const sortedData = [...data]
+    .filter((d) => d.value > 0)
+    .sort((a, b) => b.value - a.value);
 
   // Configure pie layout to start from 180 degrees (left) so largest segments start from there
   const pie = d3
@@ -27,7 +29,7 @@ const D3PieChart: React.FC<PieChartProps> = ({ data }) => {
     .startAngle(Math.PI) // Start from left (180 degrees)
     .endAngle(Math.PI * 3); // Complete the circle (540 degrees)
 
-  const smallSegmentsCount = data.length
+  const smallSegmentsCount = sortedData.length
     ? pie(sortedData).filter((d) => d.endAngle - d.startAngle < 0.4).length
     : 0;
   const height = Math.max(
@@ -36,7 +38,7 @@ const D3PieChart: React.FC<PieChartProps> = ({ data }) => {
   );
 
   useEffect(() => {
-    if (!svgRef.current || !data.length) return;
+    if (!svgRef.current || !sortedData.length) return;
 
     // Clear previous chart
     d3.select(svgRef.current).selectAll('*').remove();
@@ -133,9 +135,10 @@ const D3PieChart: React.FC<PieChartProps> = ({ data }) => {
         return `translate(${arc.centroid(d)})`;
       })
       .attr('text-anchor', 'middle')
-      .style('font-size', '16px')
+      .style('font-size', '20px')
       .style('fill', 'black')
       .style('font-weight', 'bold')
+      .style('letter-spacing', '1px')
       .style('paint-order', 'stroke fill')
       .style('stroke', 'white')
       .style('stroke-width', '10px')
@@ -166,27 +169,40 @@ const D3PieChart: React.FC<PieChartProps> = ({ data }) => {
     // Add name as first line(s) with text wrapping
     textElements.each(function (d) {
       const element = d3.select(this);
-      const lines = wrapText(d.data.name);
+      const isSmall = isSmallSegment(d);
 
-      lines.forEach((line, i) => {
+      // For small segments, show everything in one line
+      if (isSmall) {
+        const percentage = ((d.data.value / total) * 100).toFixed(1);
         element
           .append('tspan')
           .attr('x', 0)
-          .attr('dy', i === 0 ? '-0.8em' : '1.1em')
-          .text(line);
-      });
+          .attr('dy', '0.35em')
+          .text(`${d.data.name} ${percentage}%`);
+      } else {
+        // For large segments, use the original multi-line approach
+        const lines = wrapText(d.data.name);
 
-      // Add percentage as last line with more spacing
-      element
-        .append('tspan')
-        .attr('x', 0)
-        .attr('dy', '1.8em')
-        .text(() => {
-          const percentage = ((d.data.value / total) * 100).toFixed(1);
-          return `${percentage}%`;
-        })
-        .style('font-size', '14px')
-        .style('font-weight', 'normal');
+        lines.forEach((line, i) => {
+          element
+            .append('tspan')
+            .attr('x', 0)
+            .attr('dy', i === 0 ? '-0.8em' : '1.1em')
+            .text(line);
+        });
+
+        // Add percentage as last line with more spacing
+        element
+          .append('tspan')
+          .attr('x', 0)
+          .attr('dy', '1.8em')
+          .text(() => {
+            const percentage = ((d.data.value / total) * 100).toFixed(1);
+            return `${percentage}%`;
+          })
+          .style('font-size', '20px')
+          .style('font-weight', 'bold');
+      }
     });
 
     // Adjust SVG size to fit the g tag
@@ -202,9 +218,9 @@ const D3PieChart: React.FC<PieChartProps> = ({ data }) => {
         )
         .attr('preserveAspectRatio', 'xMidYMid meet');
     }
-  }, [data]);
+  }, [sortedData]);
 
-  if (data.length === 0) {
+  if (sortedData.length === 0) {
     return (
       <div
         className="flex justify-center items-center w-full h-full"

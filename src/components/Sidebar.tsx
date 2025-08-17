@@ -1,9 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useScreenSize } from '../hooks/useScreenSize';
 import styles from './Sidebar.module.css';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { selectIsLoggedIn } from '../store/auth/authSlice';
+import {
+  selectCurrentBallot,
+  selectCurrentTable,
+  selectQueryParamsResults,
+} from '../store/resultados/resultadosSlice';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -13,6 +18,9 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
   const { isSmallScreen } = useScreenSize();
   const isLoggedIn = useSelector(selectIsLoggedIn);
+  const currentTable = useSelector(selectCurrentTable);
+  const currentBallot = useSelector(selectCurrentBallot);
+  const queryParamsResults = useSelector(selectQueryParamsResults);
 
   React.useEffect(() => {
     const handleMenuClick = () => {
@@ -32,6 +40,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
       });
     };
   }, [closeSidebar, isSmallScreen]);
+
+  useEffect(() => {
+    console.log('Query Params Results changed:', queryParamsResults);
+  }, [queryParamsResults]);
 
   return (
     <>
@@ -59,17 +71,38 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
           <ul className={styles.menu}>
             <li className={styles.menuItem}>
               {' '}
-              <Link to="/resultados" className={styles.menuLink}>
+              <Link
+                to={
+                  queryParamsResults
+                    ? `/resultados?${queryParamsResults}`
+                    : '/resultados'
+                }
+                className={styles.menuLink}
+              >
                 <span className={styles.icon}>📊</span>Resultados generales
               </Link>
             </li>
             <li className={styles.menuItem}>
-              <Link to="/resultados/mesa" className={styles.menuLink}>
+              <Link
+                to={
+                  currentTable
+                    ? `/resultados/mesa/${currentTable}`
+                    : '/resultados/mesa'
+                }
+                className={styles.menuLink}
+              >
                 <span className={styles.icon}>🗳️</span>Resultados por mesa
               </Link>
             </li>
             <li className={styles.menuItem}>
-              <Link to="/resultados/imagen" className={styles.menuLink}>
+              <Link
+                to={
+                  currentBallot
+                    ? `/resultados/imagen/${currentBallot}`
+                    : '/resultados/imagen'
+                }
+                className={styles.menuLink}
+              >
                 <span className={styles.icon}>🖼️</span>Resultados por imagen
               </Link>
             </li>
@@ -119,6 +152,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
                 <li className={styles.menuItem}>
                   <Link to="/configuraciones" className={styles.menuLink}>
                     <span className={styles.icon}>⚙️</span>Configuraciones
+                  </Link>
+                </li>
+                <li className={styles.menuItem}>
+                  <Link to="/partidos-politicos" className={styles.menuLink}>
+                    <span className={styles.icon}>⚙️</span>Partidos Políticos
                   </Link>
                 </li>
               </ul>
