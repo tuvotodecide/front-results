@@ -2,6 +2,7 @@ import React from 'react';
 import styles from './Header.module.css';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectIsLoggedIn, selectAuth, logOut } from '../store/auth/authSlice';
+import tuvotoDecideImage from '../assets/tuvotodecide.webp';
 // import { Link } from 'react-router-dom';
 
 interface HeaderProps {
@@ -38,7 +39,14 @@ export const Header: React.FC<HeaderProps> = ({
   };
   return (
     <header className={styles.header}>
-      <a className={styles.logo}>Tu voto decide</a>
+      <a className={styles.logo}>
+        <img 
+          src={tuvotoDecideImage} 
+          alt="Tu voto decide" 
+          className={styles.logoImage}
+        />
+        <span className={styles.logoText}>Tu voto decide</span>
+      </a>
       <div className={styles.headerActions}>
         {isLoggedIn ? (
           <>

@@ -209,7 +209,7 @@ const Home: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl overflow-hidden shadow-xl">
             <div className="px-8 py-12 sm:px-12 sm:py-16">
-              <div className="text-center">                
+              <div className="text-center">                 
                 <h2 className="text-3xl font-bold text-white mb-4">
                   Lleva el control en tu móvil
                 </h2>
