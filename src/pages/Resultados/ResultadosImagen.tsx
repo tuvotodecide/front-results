@@ -408,6 +408,7 @@ const ResultadosImagen = () => {
                   Participación
                 </h3>
                 <StatisticsBars
+                  title='Distribución de votos'
                   voteData={participation}
                   processedTables={{ current: 1556, total: 2678 }}
                   totalTables={456}
