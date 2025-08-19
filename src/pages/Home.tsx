@@ -214,7 +214,7 @@ const Home: React.FC = () => {
                   Lleva el control en tu móvil
                 </h2>
                 <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-                  Descarga nuestra aplicación móvil y mantente informado sobre los resultados electorales desde cualquier lugar
+                  Participa en el control electoral, gana recompensas y obtén tu identidad digital soberana con Wira Wallet.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
@@ -232,19 +232,19 @@ const Home: React.FC = () => {
                         <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
-                        <span>Resultados en tiempo real</span>
+                        <span>Identidad Digital Soberana</span>
                       </div>
                       <div className="flex items-center justify-center sm:justify-start text-blue-100">
                         <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
-                        <span>Notificaciones instantáneas</span>
+                        <span>Conversión de Actas en NFTs</span>
                       </div>
                       <div className="flex items-center justify-center sm:justify-start text-blue-100">
                         <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
-                        <span>Acceso sin conexión</span>
+                        <span>Validación Blockchain</span>
                       </div>
                     </div>
                     
