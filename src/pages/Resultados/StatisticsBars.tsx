@@ -12,6 +12,7 @@ interface ProcessedTables {
 }
 
 interface StatisticsBarsProps {
+  title: string;
   voteData: VoteData[];
   processedTables: ProcessedTables;
   totalTables?: number; // Optional prop for total tables
@@ -21,6 +22,7 @@ interface StatisticsBarsProps {
 }
 
 const StatisticsBars = ({
+  title,
   voteData = [],
 }: // processedTables = { current: 0, total: 0 },
 // totalTables = 0,
@@ -115,9 +117,9 @@ StatisticsBarsProps) => {
       {/* Vote Distribution Progress */}
       <div className="mb-2">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2 gap-2">
-          <h2 className="text-md text-slate-600">Distribución de votos</h2>
+          <h2 className="text-md text-slate-600">{title}</h2>
           <span className="text-md text-slate-600">
-            {formatNumber(totalVotes)} votos
+            Total: {formatNumber(totalVotes)}
           </span>
         </div>
 
