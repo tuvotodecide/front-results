@@ -36,6 +36,9 @@ const ResultadosGenerales3 = () => {
   const [participation, setParticipation] = useState<
     Array<{ name: string; value: any; color: string }>
   >([]);
+  const [validTables, setValidTables] = useState<
+    Array<{ name: string; value: any; color: string }>
+  >([]);
   const [tablesData, setTablesData] = useState<ElectoralTableType[]>([]);
   useGetDepartmentsQuery({
     limit: 100,
@@ -101,7 +104,19 @@ const ResultadosGenerales3 = () => {
               color: '#f3f3ce', // Yellow
             },
           ];
+          const validTableData = [
+            {
+              name: 'Atestiguados',
+              value: data.summary.tablesProcessed,
+              color: '#8cc689',
+            },{
+              name: 'No atestiguados',
+              value: data.summary.totalTables - data.summary.tablesProcessed,
+              color: '#81858e',
+            }
+          ]
           setParticipation(participationData);
+          setValidTables(validTableData);
         }
       });
     getResultsByLocation({ ...filters, electionType: 'deputies' })
@@ -180,10 +195,6 @@ const ResultadosGenerales3 = () => {
                 <p className="text-sm text-gray-500 mt-1">(Hora de Bolivia)</p>
               </div>
             </div>
-          ) : presidentialData.length === 0 ? (
-            <div className="border border-gray-200 rounded-lg p-8 text-center">
-              <p className="text-xl text-gray-600">Sin datos</p>
-            </div>
           ) : (
             <>
               <div className="border border-gray-200 rounded-lg p-4 mb-4">
@@ -191,6 +202,7 @@ const ResultadosGenerales3 = () => {
                   Participación
                 </h3>
                 <StatisticsBars
+                  title='Distribución de votos'
                   voteData={participation}
                   processedTables={{ current: 1556, total: 2678 }}
                   totalTables={456}
@@ -198,26 +210,41 @@ const ResultadosGenerales3 = () => {
                   totalActs={596}
                   totalWitnesses={500}
                 />
+                <StatisticsBars
+                  title='Mesas atestiguadas'
+                  voteData={validTables}
+                  processedTables={{ current: 1556, total: 2678 }}
+                  totalTables={456}
+                  totalVoters={1547}
+                  totalActs={596}
+                  totalWitnesses={500}
+                />
               </div>
-              <div className="w-full flex flex-wrap gap-4">
-                <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
-                  <div className="p-4">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                      Resultados Presidenciales
-                    </h3>
+              {presidentialData.length === 0 ? (
+                <div className="border border-gray-200 rounded-lg p-8 text-center">
+                  <p className="text-xl text-gray-600">Sin datos</p>
+                </div>
+              ): (
+                <div className="w-full flex flex-wrap gap-4">
+                  <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
+                    <div className="p-4">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        Resultados Presidenciales
+                      </h3>
 
-                    <Graphs data={presidentialData} />
+                      <Graphs data={presidentialData} />
+                    </div>
+                  </div>
+                  <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
+                    <div className="p-4">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        Resultados Diputados
+                      </h3>
+                      <Graphs data={deputiesData} />
+                    </div>
                   </div>
                 </div>
-                <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
-                  <div className="p-4">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                      Resultados Diputados
-                    </h3>
-                    <Graphs data={deputiesData} />
-                  </div>
-                </div>
-              </div>
+              )}
             </>
           )}
 
