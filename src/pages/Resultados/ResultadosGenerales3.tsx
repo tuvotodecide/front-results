@@ -12,6 +12,7 @@ import { useSearchParams } from 'react-router-dom';
 import { ElectoralTableType } from '../../types';
 import { useGetConfigurationStatusQuery } from '../../store/configurations/configurationsEndpoints';
 import { getPartyColor } from './partyColors';
+import LoadingSkeleton from '../../components/LoadingSkeleton';
 
 // const combinedData = [
 //   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -48,6 +49,10 @@ const ResultadosGenerales3 = () => {
     useLazyGetElectoralTablesByElectoralLocationIdQuery({});
   const { data: configData } = useGetConfigurationStatusQuery();
   const filters = useSelector(selectFilters);
+  const [isLoading, setIsLoading] = useState({
+    president: true,
+    deputies: true
+  });
 
   // useEffect(() => {
   //   // console.log('Current config data:', configData);
@@ -66,6 +71,10 @@ const ResultadosGenerales3 = () => {
     //   )
     // );
     // console.log('Cleaned filters:', cleanedFilters);
+    setIsLoading({
+      president: true,
+      deputies: true
+    });
     getResultsByLocation({ ...filters, electionType: 'presidential' })
       .unwrap()
       .then((data) => {
@@ -118,6 +127,10 @@ const ResultadosGenerales3 = () => {
           setParticipation(participationData);
           setValidTables(validTableData);
         }
+        setIsLoading({
+          ...isLoading,
+          president: false
+        });
       });
     getResultsByLocation({ ...filters, electionType: 'deputies' })
       .unwrap()
@@ -135,6 +148,10 @@ const ResultadosGenerales3 = () => {
           };
         });
         setDeputiesData(formattedData);
+        setIsLoading({
+          ...isLoading,
+          deputies: false
+        });
       });
   }, [filters, configData]);
 
@@ -195,6 +212,8 @@ const ResultadosGenerales3 = () => {
                 <p className="text-sm text-gray-500 mt-1">(Hora de Bolivia)</p>
               </div>
             </div>
+          ) : isLoading.president && isLoading.deputies ? (
+            <LoadingSkeleton />
           ) : (
             <>
               <div className="border border-gray-200 rounded-lg p-4 mb-4">
