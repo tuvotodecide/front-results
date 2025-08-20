@@ -23,6 +23,29 @@
   text-overflow: ellipsis;
   min-width: 0;
   flex-shrink: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logoImage {
+  height: 40px;
+  width: auto;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.logoText {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* Responsive: En pantallas pequeñas, ocultar el texto */
+@media (max-width: 640px) {
+  .logoText {
+    display: none;
+  }
 }
 
 .menuToggle {
