@@ -162,6 +162,7 @@ const Home: React.FC = () => {
                   </div>
                   <div className="p-6">
                     <StatisticsBars
+                      title="Distribución de Votos"
                       voteData={participation}
                       processedTables={{ current: 0, total: 0 }}
                     />
