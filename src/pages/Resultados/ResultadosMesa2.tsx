@@ -11,7 +11,7 @@ import { useLazyGetResultsByLocationQuery } from '../../store/resultados/resulta
 import SimpleSearchBar from '../../components/SimpleSearchBar';
 import StatisticsBars from './StatisticsBars';
 import BackButton from '../../components/BackButton';
-import { useLazyGetBallotByTableCodeQuery } from '../../store/ballots/ballotsEndpoints';
+import { useLazyGetBallotByTableCodeQuery, useGetBallotQuery } from '../../store/ballots/ballotsEndpoints';
 import { BallotType, ElectoralTableType } from '../../types';
 import { useGetConfigurationStatusQuery } from '../../store/configurations/configurationsEndpoints';
 import { setCurrentTable, selectFilters } from '../../store/resultados/resultadosSlice';
@@ -20,9 +20,11 @@ import { getPartyColor } from './partyColors';
 import {
   useGetAttestationCasesByTableCodeQuery,
   useGetMostSupportedBallotByTableCodeQuery,
+  useGetAttestationsQuery,
 } from '../../store/attestations/attestationsEndpoints';
 import Breadcrumb2 from '../../components/Breadcrumb2';
 import { useGetDepartmentsQuery } from '../../store/departments/departmentsEndpoints';
+import TablesSection from './TablesSection';
 
 // const combinedData = [
 //   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -60,6 +62,7 @@ const ResultadosMesa2 = () => {
   const [images, setImages] = useState<BallotType[]>([]);
   const [showAllTables, setShowAllTables] = useState(false);
   const [showAllFilteredTables, setShowAllFilteredTables] = useState(false);
+  const [attestedTables, setAttestedTables] = useState<ElectoralTableType[]>([]);
   
   const { data: configData } = useGetConfigurationStatusQuery();
   const filters = useSelector(selectFilters);
@@ -86,6 +89,12 @@ const ResultadosMesa2 = () => {
   } = useGetElectoralTableByTableCodeQuery(tableCode || '', {
     skip: !tableCode, // Skip the query if tableCode is falsy
   });
+
+  // Get attestations when no specific table is selected
+  const { data: attestationsData } = useGetAttestationsQuery(
+    { limit: 20, page: 1 },
+    { skip: !!tableCode } // Skip if tableCode exists (we're viewing a specific table)
+  );
 
   const handleSearch = (searchTerm: string) => {
     if (!searchTerm) return;
@@ -214,6 +223,35 @@ const ResultadosMesa2 = () => {
     }
   }, [searchParams, getTablesByLocationId]);
 
+  // Effect to process attestations and create attested tables
+  useEffect(() => {
+    if (attestationsData?.data && !tableCode) {
+      // Get unique ballot IDs from attestations
+      const uniqueBallotIds = Array.from(
+        new Set(attestationsData.data.map((attestation: any) => attestation.ballotId))
+      );
+
+      // For now, we'll create mock ElectoralTableType objects
+      // In a real implementation, you would fetch the actual ballot data for each ballotId
+      // and convert it to ElectoralTableType format
+      const mockAttestedTables: ElectoralTableType[] = uniqueBallotIds.slice(0, 15).map((ballotId, index) => ({
+        _id: ballotId,
+        tableCode: `ATT-${ballotId.slice(-6)}`, // Mock table code
+        tableNumber: `${index + 1}`, // Mock table number
+        electoralLocation: {
+          _id: 'mock-location-id',
+          name: 'Mesa Atestiguada',
+        },
+        department: { _id: 'mock-dept', name: 'Departamento' },
+        province: { _id: 'mock-prov', name: 'Provincia' },
+        municipality: { _id: 'mock-muni', name: 'Municipio' },
+        electoralSeat: { _id: 'mock-seat', name: 'Asiento Electoral' },
+      }));
+
+      setAttestedTables(mockAttestedTables);
+    }
+  }, [attestationsData, tableCode]);
+
   return (
     <div className="outer-container min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto max-w-7xl">
@@ -315,36 +353,48 @@ const ResultadosMesa2 = () => {
                 )}
               </div>
             ) : (
-              /* Default search section when no filters are applied */
-              <div className="bg-white rounded-lg shadow-md py-16 px-8 border border-gray-200 mt-6">
-                <div className="flex flex-col items-center justify-center text-center">
-                  <div className="bg-gray-100 rounded-full p-4 mb-4">
-                    <svg
-                      className="w-12 h-12 text-gray-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                      />
-                    </svg>
+              <>
+                {/* Search section */}
+                <div className="bg-white rounded-lg shadow-md py-16 px-8 border border-gray-200 mt-6">
+                  <div className="flex flex-col items-center justify-center text-center">
+                    <div className="bg-gray-100 rounded-full p-4 mb-4">
+                      <svg
+                        className="w-12 h-12 text-gray-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
+                      </svg>
+                    </div>
+                    <h1 className="text-2xl md:text-3xl font-semibold text-gray-700 mb-4">
+                      Buscar Mesa Electoral
+                    </h1>
+                    <p className="text-gray-500 mb-8">
+                      Use los filtros territoriales arriba o busque directamente por código de mesa
+                    </p>
+                    <SimpleSearchBar
+                      className="w-full max-w-md"
+                      onSearch={handleSearch}
+                    />
                   </div>
-                  <h1 className="text-2xl md:text-3xl font-semibold text-gray-700 mb-4">
-                    Buscar Mesa Electoral
-                  </h1>
-                  <p className="text-gray-500 mb-8">
-                    Use los filtros territoriales arriba o busque directamente por código de mesa
-                  </p>
-                  <SimpleSearchBar
-                    className="w-full max-w-md"
-                    onSearch={handleSearch}
-                  />
                 </div>
-              </div>
+
+                {/* Attested tables section */}
+                {attestedTables.length > 0 && (
+                  <div className="bg-gray-50 rounded-lg shadow-sm p-4 mt-6">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
+                      Mesas Atestiguadas ({attestedTables.length})
+                    </h3>
+                    <TablesSection tables={attestedTables} />
+                  </div>
+                )}
+              </>
             )}
           </div>
         ) : isElectoralTableLoading ? (
