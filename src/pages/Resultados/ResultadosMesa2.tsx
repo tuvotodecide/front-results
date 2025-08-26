@@ -11,11 +11,11 @@ import { useLazyGetResultsByLocationQuery } from '../../store/resultados/resulta
 import SimpleSearchBar from '../../components/SimpleSearchBar';
 import StatisticsBars from './StatisticsBars';
 import BackButton from '../../components/BackButton';
-import { useLazyGetBallotByTableCodeQuery, useGetBallotQuery } from '../../store/ballots/ballotsEndpoints';
+import { useLazyGetBallotByTableCodeQuery } from '../../store/ballots/ballotsEndpoints';
 import { BallotType, ElectoralTableType } from '../../types';
 import { useGetConfigurationStatusQuery } from '../../store/configurations/configurationsEndpoints';
-import { setCurrentTable, selectFilters } from '../../store/resultados/resultadosSlice';
-import { useDispatch, useSelector } from 'react-redux';
+import { setCurrentTable } from '../../store/resultados/resultadosSlice';
+import { useDispatch } from 'react-redux';
 import { getPartyColor } from './partyColors';
 import {
   useGetAttestationCasesByTableCodeQuery,
@@ -25,6 +25,8 @@ import {
 import Breadcrumb2 from '../../components/Breadcrumb2';
 import { useGetDepartmentsQuery } from '../../store/departments/departmentsEndpoints';
 import TablesSection from './TablesSection';
+import { useMultipleBallots } from '../../hooks/useMultipleBallots';
+import { ballotsToElectoralTables } from '../../utils/ballotToElectoralTable';
 
 // const combinedData = [
 //   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -63,9 +65,9 @@ const ResultadosMesa2 = () => {
   const [showAllTables, setShowAllTables] = useState(false);
   const [showAllFilteredTables, setShowAllFilteredTables] = useState(false);
   const [attestedTables, setAttestedTables] = useState<ElectoralTableType[]>([]);
+  const [uniqueBallotIds, setUniqueBallotIds] = useState<string[]>([]);
   
   const { data: configData } = useGetConfigurationStatusQuery();
-  const filters = useSelector(selectFilters);
   
   useGetDepartmentsQuery({
     limit: 100,
@@ -95,6 +97,9 @@ const ResultadosMesa2 = () => {
     { limit: 20, page: 1 },
     { skip: !!tableCode } // Skip if tableCode exists (we're viewing a specific table)
   );
+
+  // Get multiple ballots based on attestations
+  const { ballots, loading: ballotsLoading, error: ballotsError } = useMultipleBallots(uniqueBallotIds);
 
   const handleSearch = (searchTerm: string) => {
     if (!searchTerm) return;
@@ -223,34 +228,32 @@ const ResultadosMesa2 = () => {
     }
   }, [searchParams, getTablesByLocationId]);
 
-  // Effect to process attestations and create attested tables
+  // Effect to extract unique ballot IDs from attestations
   useEffect(() => {
     if (attestationsData?.data && !tableCode) {
       // Get unique ballot IDs from attestations
-      const uniqueBallotIds = Array.from(
-        new Set(attestationsData.data.map((attestation: any) => attestation.ballotId))
-      );
+      const uniqueIds = Array.from(
+        new Set(attestationsData.data.map((attestation: any) => attestation.ballotId as string))
+      ).slice(0, 15); // Limit to 15 for performance
 
-      // For now, we'll create mock ElectoralTableType objects
-      // In a real implementation, you would fetch the actual ballot data for each ballotId
-      // and convert it to ElectoralTableType format
-      const mockAttestedTables: ElectoralTableType[] = uniqueBallotIds.slice(0, 15).map((ballotId, index) => ({
-        _id: ballotId,
-        tableCode: `ATT-${ballotId.slice(-6)}`, // Mock table code
-        tableNumber: `${index + 1}`, // Mock table number
-        electoralLocation: {
-          _id: 'mock-location-id',
-          name: 'Mesa Atestiguada',
-        },
-        department: { _id: 'mock-dept', name: 'Departamento' },
-        province: { _id: 'mock-prov', name: 'Provincia' },
-        municipality: { _id: 'mock-muni', name: 'Municipio' },
-        electoralSeat: { _id: 'mock-seat', name: 'Asiento Electoral' },
-      }));
-
-      setAttestedTables(mockAttestedTables);
+      setUniqueBallotIds(uniqueIds);
+    } else {
+      setUniqueBallotIds([]);
     }
   }, [attestationsData, tableCode]);
+
+  // Effect to process real ballot data and convert to ElectoralTableType
+  useEffect(() => {
+    if (ballots.length > 0 && !ballotsLoading && !ballotsError) {
+      const convertedTables = ballotsToElectoralTables(ballots);
+      setAttestedTables(convertedTables);
+    } else if (ballotsError) {
+      console.error('Error loading ballots');
+      setAttestedTables([]);
+    } else if (uniqueBallotIds.length === 0) {
+      setAttestedTables([]);
+    }
+  }, [ballots, ballotsLoading, ballotsError, uniqueBallotIds.length]);
 
   return (
     <div className="outer-container min-h-screen bg-gray-50 py-8">
@@ -298,11 +301,6 @@ const ResultadosMesa2 = () => {
                         >
                           {table.tableCode}
                         </div>
-                        {table.electoralLocation && (
-                          <div className="text-xs text-blue-600 mt-2 truncate" title={table.electoralLocation.name}>
-                            {table.electoralLocation.name}
-                          </div>
-                        )}
                       </div>
                     </Link>
                   ))}
@@ -386,12 +384,49 @@ const ResultadosMesa2 = () => {
                 </div>
 
                 {/* Attested tables section */}
-                {attestedTables.length > 0 && (
+                {uniqueBallotIds.length > 0 && (
                   <div className="bg-gray-50 rounded-lg shadow-sm p-4 mt-6">
                     <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
-                      Mesas Atestiguadas ({attestedTables.length})
+                      Mesas Atestiguadas {attestedTables.length > 0 && `(${attestedTables.length})`}
                     </h3>
-                    <TablesSection tables={attestedTables} />
+                    {ballotsLoading ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                        {Array.from({ length: Math.min(uniqueBallotIds.length, 10) }).map((_, index) => (
+                          <div key={index} className="border border-gray-300 rounded-lg p-4 animate-pulse">
+                            <div className="text-center">
+                              <div className="h-4 bg-gray-300 rounded w-16 mx-auto mb-2"></div>
+                              <div className="h-6 bg-gray-300 rounded w-12 mx-auto mb-2"></div>
+                              <div className="h-3 bg-gray-300 rounded w-20 mx-auto"></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : ballotsError ? (
+                      <div className="text-center py-8">
+                        <div className="bg-red-50 rounded-full p-4 mb-4 inline-block">
+                          <svg
+                            className="w-8 h-8 text-red-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"
+                            />
+                          </svg>
+                        </div>
+                        <p className="text-gray-600">Error al cargar mesas atestiguadas</p>
+                      </div>
+                    ) : attestedTables.length > 0 ? (
+                      <TablesSection tables={attestedTables} />
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-gray-600">No hay mesas atestiguadas disponibles</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </>

@@ -20,6 +20,7 @@ export const ballotsApiSlice = apiSlice.injectEndpoints({
 
 export const {
   useGetBallotQuery,
+  useLazyGetBallotQuery,
   useGetBallotByTableCodeQuery,
   useLazyGetBallotByTableCodeQuery,
 } = ballotsApiSlice;

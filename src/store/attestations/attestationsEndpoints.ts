@@ -10,7 +10,7 @@ export const attestationsApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     // /api/v1/attestations
     getAttestations: builder.query<
-      AttestationType[],
+      { data: AttestationType[]; total: number; page: number; limit: number; totalPages: number },
       QueryParamsListAttestations
     >({
       query: (params) => ({
