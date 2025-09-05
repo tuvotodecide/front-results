@@ -22,6 +22,8 @@ import {
   useGetMostSupportedBallotByTableCodeQuery,
   useGetAttestationsQuery,
   useGetAttestationsByDepartmentIdQuery,
+  useGetAttestationsByProvinceIdQuery,
+  useGetAttestationsByMunicipalityIdQuery,
 } from '../../store/attestations/attestationsEndpoints';
 import Breadcrumb2 from '../../components/Breadcrumb2';
 import { useGetDepartmentsQuery } from '../../store/departments/departmentsEndpoints';
@@ -71,6 +73,8 @@ const ResultadosMesa2 = () => {
   const [attestedTables, setAttestedTables] = useState<ElectoralTableType[]>([]);
   const [uniqueBallotIds, setUniqueBallotIds] = useState<string[]>([]);
   const [departmentUniqueBallotIds, setDepartmentUniqueBallotIds] = useState<string[]>([]);
+  const [provinceUniqueBallotIds, setProvinceUniqueBallotIds] = useState<string[]>([]);
+  const [municipalityUniqueBallotIds, setMunicipalityUniqueBallotIds] = useState<string[]>([]);
   
   const { data: configData } = useGetConfigurationStatusQuery();
   
@@ -116,6 +120,32 @@ const ResultadosMesa2 = () => {
     }
   );
 
+  // Get province-based attestations when province is selected
+  const { data: provinceAttestationsData } = useGetAttestationsByProvinceIdQuery(
+    { 
+      provinceId: filterIds.provinceId,
+      support: true,
+      page: 1,
+      limit: 15
+    },
+    { 
+      skip: !filterIds.provinceId || !!tableCode || filteredTables.length > 0
+    }
+  );
+
+  // Get municipality-based attestations when municipality is selected
+  const { data: municipalityAttestationsData } = useGetAttestationsByMunicipalityIdQuery(
+    { 
+      municipalityId: filterIds.municipalityId,
+      support: true,
+      page: 1,
+      limit: 15
+    },
+    { 
+      skip: !filterIds.municipalityId || !!tableCode || filteredTables.length > 0
+    }
+  );
+
   // Get multiple ballots based on attestations
   const { ballots, loading: ballotsLoading, error: ballotsError } = useMultipleBallots(uniqueBallotIds);
   
@@ -125,6 +155,20 @@ const ResultadosMesa2 = () => {
     loading: departmentBallotsLoading, 
     error: departmentBallotsError 
   } = useMultipleBallots(departmentUniqueBallotIds);
+  
+  // Get multiple ballots for province-specific attestations
+  const { 
+    ballots: provinceBallots, 
+    loading: provinceBallotsLoading, 
+    error: provinceBallotsError 
+  } = useMultipleBallots(provinceUniqueBallotIds);
+  
+  // Get multiple ballots for municipality-specific attestations
+  const { 
+    ballots: municipalityBallots, 
+    loading: municipalityBallotsLoading, 
+    error: municipalityBallotsError 
+  } = useMultipleBallots(municipalityUniqueBallotIds);
 
 
   const handleSearch = (searchTerm: string) => {
@@ -255,9 +299,9 @@ const ResultadosMesa2 = () => {
   }, [searchParams, getTablesByLocationId]);
 
   // Effect to extract unique ballot IDs from general attestations
-  // Only when no department is selected and no filtered tables
+  // Only when no territorial filters are selected and no filtered tables
   useEffect(() => {
-    if (attestationsData?.data && !tableCode && !filterIds.departmentId && filteredTables.length === 0) {
+    if (attestationsData?.data && !tableCode && !filterIds.departmentId && !filterIds.provinceId && !filterIds.municipalityId && filteredTables.length === 0) {
       // Get unique ballot IDs from attestations - try both ballotId and _id fields
       const validBallotIds = attestationsData.data
         .map((attestation: any) => attestation.ballotId || attestation._id)
@@ -269,7 +313,7 @@ const ResultadosMesa2 = () => {
     } else {
       setUniqueBallotIds([]);
     }
-  }, [attestationsData, tableCode, filterIds.departmentId, filteredTables.length]);
+  }, [attestationsData, tableCode, filterIds.departmentId, filterIds.provinceId, filterIds.municipalityId, filteredTables.length]);
 
   // Effect to extract unique ballot IDs from department attestations
   useEffect(() => {
@@ -293,26 +337,106 @@ const ResultadosMesa2 = () => {
     }
   }, [departmentAttestationsData, tableCode, filteredTables.length]);
 
+  // Effect to extract unique ballot IDs from province attestations
+  useEffect(() => {
+    if (provinceAttestationsData?.data && !tableCode && filteredTables.length === 0) {
+      // Get unique ballot IDs from province attestations using _id field
+      const allBallotIds = provinceAttestationsData.data.map((attestation: any) => attestation._id);
+      const validBallotIds = allBallotIds.filter((ballotId: any) => ballotId && ballotId !== undefined && ballotId !== null);
+      
+      const uniqueIds = Array.from(new Set(validBallotIds)).slice(0, 15); // Limit to 15 for performance
+
+      console.log('🏛️ Province attestations:', {
+        totalAttestations: provinceAttestationsData.data.length,
+        validBallotIds: validBallotIds.length,
+        uniqueIds: uniqueIds.length,
+        sampleIds: uniqueIds.slice(0, 3)
+      });
+
+      setProvinceUniqueBallotIds(uniqueIds);
+    } else {
+      setProvinceUniqueBallotIds([]);
+    }
+  }, [provinceAttestationsData, tableCode, filteredTables.length]);
+
+  // Effect to extract unique ballot IDs from municipality attestations
+  useEffect(() => {
+    if (municipalityAttestationsData?.data && !tableCode && filteredTables.length === 0) {
+      // Get unique ballot IDs from municipality attestations using _id field
+      const allBallotIds = municipalityAttestationsData.data.map((attestation: any) => attestation._id);
+      const validBallotIds = allBallotIds.filter((ballotId: any) => ballotId && ballotId !== undefined && ballotId !== null);
+      
+      const uniqueIds = Array.from(new Set(validBallotIds)).slice(0, 15); // Limit to 15 for performance
+
+      console.log('🏘️ Municipality attestations:', {
+        totalAttestations: municipalityAttestationsData.data.length,
+        validBallotIds: validBallotIds.length,
+        uniqueIds: uniqueIds.length,
+        sampleIds: uniqueIds.slice(0, 3)
+      });
+
+      setMunicipalityUniqueBallotIds(uniqueIds);
+    } else {
+      setMunicipalityUniqueBallotIds([]);
+    }
+  }, [municipalityAttestationsData, tableCode, filteredTables.length]);
+
   // Effect to process real ballot data and convert to ElectoralTableType
   useEffect(() => {
-    // Determine which ballots to use: department-specific or general
-    const ballotsToUse = departmentUniqueBallotIds.length > 0 ? departmentBallots : ballots;
-    const isLoadingToUse = departmentUniqueBallotIds.length > 0 ? departmentBallotsLoading : ballotsLoading;
-    const errorToUse = departmentUniqueBallotIds.length > 0 ? departmentBallotsError : ballotsError;
-    const ballotIdsToCheck = departmentUniqueBallotIds.length > 0 ? departmentUniqueBallotIds : uniqueBallotIds;
+    // Determine which ballots to use with priority: municipality > province > department > general
+    let ballotsToUse, isLoadingToUse, errorToUse, ballotIdsToCheck, sourceName;
+
+    if (municipalityUniqueBallotIds.length > 0) {
+      // Municipality has highest priority
+      ballotsToUse = municipalityBallots;
+      isLoadingToUse = municipalityBallotsLoading;
+      errorToUse = municipalityBallotsError;
+      ballotIdsToCheck = municipalityUniqueBallotIds;
+      sourceName = 'municipality';
+    } else if (provinceUniqueBallotIds.length > 0) {
+      // Province has second priority
+      ballotsToUse = provinceBallots;
+      isLoadingToUse = provinceBallotsLoading;
+      errorToUse = provinceBallotsError;
+      ballotIdsToCheck = provinceUniqueBallotIds;
+      sourceName = 'province';
+    } else if (departmentUniqueBallotIds.length > 0) {
+      // Department has third priority
+      ballotsToUse = departmentBallots;
+      isLoadingToUse = departmentBallotsLoading;
+      errorToUse = departmentBallotsError;
+      ballotIdsToCheck = departmentUniqueBallotIds;
+      sourceName = 'department';
+    } else {
+      // General fallback (lowest priority)
+      ballotsToUse = ballots;
+      isLoadingToUse = ballotsLoading;
+      errorToUse = ballotsError;
+      ballotIdsToCheck = uniqueBallotIds;
+      sourceName = 'general';
+    }
+
+    console.log('🔄 Processing ballots with priority source:', sourceName, {
+      ballotIdsCount: ballotIdsToCheck.length,
+      ballotsLoaded: ballotsToUse.length,
+      isLoading: isLoadingToUse,
+      hasError: !!errorToUse
+    });
 
     if (ballotsToUse.length > 0 && !isLoadingToUse && !errorToUse) {
       const convertedTables = ballotsToElectoralTables(ballotsToUse);
       setAttestedTables(convertedTables);
     } else if (errorToUse) {
-      console.error('Error loading ballots');
+      console.error('Error loading ballots from', sourceName);
       setAttestedTables([]);
     } else if (ballotIdsToCheck.length === 0) {
       setAttestedTables([]);
     }
   }, [
     ballots, ballotsLoading, ballotsError, uniqueBallotIds.length,
-    departmentBallots, departmentBallotsLoading, departmentBallotsError, departmentUniqueBallotIds.length
+    departmentBallots, departmentBallotsLoading, departmentBallotsError, departmentUniqueBallotIds.length,
+    provinceBallots, provinceBallotsLoading, provinceBallotsError, provinceUniqueBallotIds.length,
+    municipalityBallots, municipalityBallotsLoading, municipalityBallotsError, municipalityUniqueBallotIds.length
   ]);
 
   return (
@@ -444,81 +568,147 @@ const ResultadosMesa2 = () => {
                 </div>
 
                 {/* Attested tables section */}
-                {(uniqueBallotIds.length > 0 || departmentUniqueBallotIds.length > 0 || filterIds.departmentId) && (
+                {(uniqueBallotIds.length > 0 || departmentUniqueBallotIds.length > 0 || provinceUniqueBallotIds.length > 0 || municipalityUniqueBallotIds.length > 0 || filterIds.departmentId || filterIds.provinceId || filterIds.municipalityId) && (
                   <div className="bg-gray-50 rounded-lg shadow-sm p-4 mt-6">
                     <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
-                      {filters.department 
-                        ? `Mesas Atestiguadas - ${filters.department}`
-                        : 'Mesas Atestiguadas'} {attestedTables.length > 0 && `(${attestedTables.length})`}
+                      {(() => {
+                        if (filters.municipality) {
+                          return `Mesas Atestiguadas - ${filters.municipality}`;
+                        } else if (filters.province) {
+                          return `Mesas Atestiguadas - ${filters.province}`;
+                        } else if (filters.department) {
+                          return `Mesas Atestiguadas - ${filters.department}`;
+                        } else {
+                          return 'Mesas Atestiguadas';
+                        }
+                      })()} {attestedTables.length > 0 && `(${attestedTables.length})`}
                     </h3>
-                    {(departmentUniqueBallotIds.length > 0 ? departmentBallotsLoading : ballotsLoading) ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                        {Array.from({ length: Math.min(departmentUniqueBallotIds.length > 0 ? departmentUniqueBallotIds.length : uniqueBallotIds.length, 10) }).map((_, index) => (
-                          <div key={index} className="border border-gray-300 rounded-lg p-4 animate-pulse">
-                            <div className="text-center">
-                              <div className="h-4 bg-gray-300 rounded w-16 mx-auto mb-2"></div>
-                              <div className="h-6 bg-gray-300 rounded w-12 mx-auto mb-2"></div>
-                              <div className="h-3 bg-gray-300 rounded w-20 mx-auto"></div>
-                            </div>
+                    {(() => {
+                      let isLoading, loadingBallotIds;
+                      if (municipalityUniqueBallotIds.length > 0) {
+                        isLoading = municipalityBallotsLoading;
+                        loadingBallotIds = municipalityUniqueBallotIds;
+                      } else if (provinceUniqueBallotIds.length > 0) {
+                        isLoading = provinceBallotsLoading;
+                        loadingBallotIds = provinceUniqueBallotIds;
+                      } else if (departmentUniqueBallotIds.length > 0) {
+                        isLoading = departmentBallotsLoading;
+                        loadingBallotIds = departmentUniqueBallotIds;
+                      } else {
+                        isLoading = ballotsLoading;
+                        loadingBallotIds = uniqueBallotIds;
+                      }
+
+                      if (isLoading) {
+                        return (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                            {Array.from({ length: Math.min(loadingBallotIds.length, 10) }).map((_, index) => (
+                              <div key={index} className="border border-gray-300 rounded-lg p-4 animate-pulse">
+                                <div className="text-center">
+                                  <div className="h-4 bg-gray-300 rounded w-16 mx-auto mb-2"></div>
+                                  <div className="h-6 bg-gray-300 rounded w-12 mx-auto mb-2"></div>
+                                  <div className="h-3 bg-gray-300 rounded w-20 mx-auto"></div>
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    ) : (departmentUniqueBallotIds.length > 0 ? departmentBallotsError : ballotsError) ? (
-                      <div className="text-center py-8">
-                        <div className="bg-red-50 rounded-full p-4 mb-4 inline-block">
-                          <svg
-                            className="w-8 h-8 text-red-600"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"
-                            />
-                          </svg>
+                        );
+                      }
+
+                      let hasError;
+                      if (municipalityUniqueBallotIds.length > 0) {
+                        hasError = municipalityBallotsError;
+                      } else if (provinceUniqueBallotIds.length > 0) {
+                        hasError = provinceBallotsError;
+                      } else if (departmentUniqueBallotIds.length > 0) {
+                        hasError = departmentBallotsError;
+                      } else {
+                        hasError = ballotsError;
+                      }
+
+                      if (hasError) {
+                        return (
+                          <div className="text-center py-8">
+                            <div className="bg-red-50 rounded-full p-4 mb-4 inline-block">
+                              <svg
+                                className="w-8 h-8 text-red-600"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="2"
+                                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"
+                                />
+                              </svg>
+                            </div>
+                            <p className="text-gray-600">Error al cargar mesas atestiguadas</p>
+                          </div>
+                        );
+                      }
+
+                      if (attestedTables.length > 0) {
+                        return <TablesSection tables={attestedTables} />;
+                      }
+
+                      // Check for empty results with data for each level
+                      let attestationsData, currentFilter, currentBallotIds;
+                      if (filterIds.municipalityId && municipalityUniqueBallotIds.length === 0) {
+                        attestationsData = municipalityAttestationsData;
+                        currentFilter = filters.municipality;
+                        currentBallotIds = municipalityUniqueBallotIds;
+                      } else if (filterIds.provinceId && provinceUniqueBallotIds.length === 0) {
+                        attestationsData = provinceAttestationsData;
+                        currentFilter = filters.province;
+                        currentBallotIds = provinceUniqueBallotIds;
+                      } else if (filterIds.departmentId && departmentUniqueBallotIds.length === 0) {
+                        attestationsData = departmentAttestationsData;
+                        currentFilter = filters.department;
+                        currentBallotIds = departmentUniqueBallotIds;
+                      }
+
+                      if (currentFilter && currentBallotIds && currentBallotIds.length === 0) {
+                        return (
+                          <div className="text-center py-8">
+                            <div className="bg-amber-50 rounded-full p-4 mb-4 inline-block">
+                              <svg
+                                className="w-8 h-8 text-amber-600"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="2"
+                                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"
+                                />
+                              </svg>
+                            </div>
+                            <p className="text-gray-600 mb-2">
+                              {attestationsData?.data ? 
+                                `Se encontraron ${attestationsData.data.length} attestations para ${currentFilter}, pero no contienen datos de ballots válidos` :
+                                `No se encontraron mesas atestiguadas para ${currentFilter}`
+                              }
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {attestationsData?.data ? 
+                                'Los datos del backend necesitan ser corregidos para incluir ballotId válidos' :
+                                'Intente seleccionar un filtro territorial diferente'
+                              }
+                            </p>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="text-center py-8">
+                          <p className="text-gray-600">No hay mesas atestiguadas disponibles</p>
                         </div>
-                        <p className="text-gray-600">Error al cargar mesas atestiguadas</p>
-                      </div>
-                    ) : attestedTables.length > 0 ? (
-                      <TablesSection tables={attestedTables} />
-                    ) : filterIds.departmentId && departmentUniqueBallotIds.length === 0 ? (
-                      <div className="text-center py-8">
-                        <div className="bg-amber-50 rounded-full p-4 mb-4 inline-block">
-                          <svg
-                            className="w-8 h-8 text-amber-600"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"
-                            />
-                          </svg>
-                        </div>
-                        <p className="text-gray-600 mb-2">
-                          {departmentAttestationsData?.data ? 
-                            `Se encontraron ${departmentAttestationsData.data.length} attestations para ${filters.department}, pero no contienen datos de ballots válidos` :
-                            `No se encontraron mesas atestiguadas para ${filters.department}`
-                          }
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {departmentAttestationsData?.data ? 
-                            'Los datos del backend necesitan ser corregidos para incluir ballotId válidos' :
-                            'Intente seleccionar un departamento diferente o usar filtros territoriales más específicos'
-                          }
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <p className="text-gray-600">No hay mesas atestiguadas disponibles</p>
-                      </div>
-                    )}
+                      );
+                    })()}
                   </div>
                 )}
               </>
