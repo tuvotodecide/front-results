@@ -51,6 +51,20 @@ export const attestationsApiSlice = apiSlice.injectEndpoints({
         ],
       }
     ),
+    // /api/v1/attestations/by-department-id/{departmentId}
+    getAttestationsByDepartmentId: builder.query<
+      { data: AttestationType[]; total: number; page: number; limit: number; totalPages: number },
+      { departmentId: string } & QueryParamsListAttestations
+    >({
+      query: ({ departmentId, ...params }) => ({
+        url: `/attestations/by-department-id/${departmentId}`,
+        params,
+      }),
+      keepUnusedDataFor: 60,
+      providesTags: (_result, _error, { departmentId }) => [
+        { type: 'Attestations' as const, id: `dept-${departmentId}` },
+      ],
+    }),
   }),
 });
 
@@ -59,4 +73,5 @@ export const {
   useGetAttestationsByBallotIdQuery,
   useGetMostSupportedBallotByTableCodeQuery,
   useGetAttestationCasesByTableCodeQuery,
+  useGetAttestationsByDepartmentIdQuery,
 } = attestationsApiSlice;

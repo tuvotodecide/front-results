@@ -25,6 +25,7 @@ import {
 import SimpleSearchBar from './SimpleSearchBar';
 import {
   setFilters,
+  setFilterIds,
   setQueryParamsResults,
 } from '../store/resultados/resultadosSlice';
 
@@ -213,7 +214,12 @@ const Breadcrumb = () => {
             acc[item.id] = item.selectedOption?.name || '';
             return acc;
           }, {} as Record<string, string>);
+          const filterIds = newPath.reduce((acc, item) => {
+            acc[item.id + 'Id'] = item.selectedOption?._id || '';
+            return acc;
+          }, {} as Record<string, string>);
           dispatch(setFilters(filters));
+          dispatch(setFilterIds(filterIds));
         });
       }
       setIsInitialized(true);
@@ -251,7 +257,12 @@ const Breadcrumb = () => {
       acc[item.id] = item.selectedOption?.name || '';
       return acc;
     }, {} as Record<string, string>);
+    const filterIds = newPath.reduce((acc, item) => {
+      acc[item.id + 'Id'] = item.selectedOption?._id || '';
+      return acc;
+    }, {} as Record<string, string>);
     dispatch(setFilters(filters));
+    dispatch(setFilterIds(filterIds));
 
     setSelectedPath2(newPath);
 
@@ -399,6 +410,7 @@ const Breadcrumb = () => {
     setSelectedLevel(null);
     setFilteredOptions([]);
     dispatch(setFilters({}));
+    dispatch(setFilterIds({}));
   };
   // Show the next breadcrumb level form when "ver más" is clicked
   // const handleShowNextLevel = async () => {

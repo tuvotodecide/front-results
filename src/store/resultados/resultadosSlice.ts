@@ -10,6 +10,13 @@ export interface ResultsState {
     electoralLocation: string;
     electoralSeat: string;
   };
+  filterIds: {
+    departmentId: string;
+    provinceId: string;
+    municipalityId: string;
+    electoralLocationId: string;
+    electoralSeatId: string;
+  };
   currentTable: string | null;
   currentBallot: string | null;
   queryParamsResults: string;
@@ -25,6 +32,13 @@ const initialState: ResultsState = {
     electoralLocation: '',
     electoralSeat: '',
   },
+  filterIds: {
+    departmentId: '',
+    provinceId: '',
+    municipalityId: '',
+    electoralLocationId: '',
+    electoralSeatId: '',
+  },
   currentTable: null,
   currentBallot: null,
   queryParamsResults: '',
@@ -37,6 +51,9 @@ export const resultsSlice = createSlice({
     setFilters: (state, action) => {
       // console.log('setFilters action payload:', action.payload);
       state.filters = action.payload;
+    },
+    setFilterIds: (state, action) => {
+      state.filterIds = action.payload;
     },
     setCurrentTable: (state, action) => {
       state.currentTable = action.payload;
@@ -52,6 +69,8 @@ export const resultsSlice = createSlice({
 
 export const selectFilters = (state: { results: ResultsState }) =>
   state.results.filters;
+export const selectFilterIds = (state: { results: ResultsState }) =>
+  state.results.filterIds;
 export const selectCurrentTable = (state: { results: ResultsState }) =>
   state.results.currentTable;
 export const selectCurrentBallot = (state: { results: ResultsState }) =>
@@ -60,6 +79,7 @@ export const selectQueryParamsResults = (state: { results: ResultsState }) =>
   state.results.queryParamsResults;
 export const {
   setFilters,
+  setFilterIds,
   setCurrentTable,
   setCurrentBallot,
   setQueryParamsResults,
