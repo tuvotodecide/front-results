@@ -10,7 +10,7 @@ export const attestationsApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     // /api/v1/attestations
     getAttestations: builder.query<
-      AttestationType[],
+      { data: AttestationType[]; total: number; page: number; limit: number; totalPages: number },
       QueryParamsListAttestations
     >({
       query: (params) => ({
@@ -51,6 +51,48 @@ export const attestationsApiSlice = apiSlice.injectEndpoints({
         ],
       }
     ),
+    // /api/v1/attestations/by-department-id/{departmentId}
+    getAttestationsByDepartmentId: builder.query<
+      { data: AttestationType[]; total: number; page: number; limit: number; totalPages: number },
+      { departmentId: string } & QueryParamsListAttestations
+    >({
+      query: ({ departmentId, ...params }) => ({
+        url: `/attestations/by-department-id/${departmentId}`,
+        params,
+      }),
+      keepUnusedDataFor: 60,
+      providesTags: (_result, _error, { departmentId }) => [
+        { type: 'Attestations' as const, id: `dept-${departmentId}` },
+      ],
+    }),
+    // /api/v1/attestations/by-province-id/{provinceId}
+    getAttestationsByProvinceId: builder.query<
+      { data: AttestationType[]; total: number; page: number; limit: number; totalPages: number },
+      { provinceId: string } & QueryParamsListAttestations
+    >({
+      query: ({ provinceId, ...params }) => ({
+        url: `/attestations/by-province-id/${provinceId}`,
+        params,
+      }),
+      keepUnusedDataFor: 60,
+      providesTags: (_result, _error, { provinceId }) => [
+        { type: 'Attestations' as const, id: `prov-${provinceId}` },
+      ],
+    }),
+    // /api/v1/attestations/by-municipality-id/{municipalityId}
+    getAttestationsByMunicipalityId: builder.query<
+      { data: AttestationType[]; total: number; page: number; limit: number; totalPages: number },
+      { municipalityId: string } & QueryParamsListAttestations
+    >({
+      query: ({ municipalityId, ...params }) => ({
+        url: `/attestations/by-municipality-id/${municipalityId}`,
+        params,
+      }),
+      keepUnusedDataFor: 60,
+      providesTags: (_result, _error, { municipalityId }) => [
+        { type: 'Attestations' as const, id: `muni-${municipalityId}` },
+      ],
+    }),
   }),
 });
 
@@ -59,4 +101,7 @@ export const {
   useGetAttestationsByBallotIdQuery,
   useGetMostSupportedBallotByTableCodeQuery,
   useGetAttestationCasesByTableCodeQuery,
+  useGetAttestationsByDepartmentIdQuery,
+  useGetAttestationsByProvinceIdQuery,
+  useGetAttestationsByMunicipalityIdQuery,
 } = attestationsApiSlice;

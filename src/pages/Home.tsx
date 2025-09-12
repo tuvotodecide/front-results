@@ -70,7 +70,7 @@ const Home: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section - Más compacto */}
-      <div className="bg-gradient-to-br from-blue-600 to-blue-800 text-white">
+      <div className="bg-gradient-to-br bg-[#459151] text-white">
         <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-3xl font-bold sm:text-4xl lg:text-5xl">
@@ -208,13 +208,13 @@ const Home: React.FC = () => {
       {/* Mobile App Download Section - Mejorado */}
       <div className="bg-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl overflow-hidden shadow-xl">
+          <div className="bg-gradient-to-r bg-[#459151] rounded-2xl overflow-hidden shadow-xl">
             <div className="px-8 py-12 sm:px-12 sm:py-16">
               <div className="text-center">                 
                 <h2 className="text-3xl font-bold text-white mb-4">
                   Lleva el control en tu móvil
                 </h2>
-                <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+                <p className="text-xl text-green-100 mb-8 max-w-2xl mx-auto">
                   Participa en el control electoral, gana recompensas y obtén tu identidad digital soberana con Wira Wallet.
                 </p>
 
