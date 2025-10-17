@@ -1,60 +1,81 @@
-import { apiSlice } from '../apiSlice';
+import { apiSlice } from "../apiSlice";
 import {
   AttestationType,
   QueryParamsListAttestations,
   MostSupportedBallotType,
   AttestationCasesType,
-} from '../../types';
+} from "../../types";
 
 export const attestationsApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     // /api/v1/attestations
     getAttestations: builder.query<
-      { data: AttestationType[]; total: number; page: number; limit: number; totalPages: number },
-      QueryParamsListAttestations
+      {
+        data: AttestationType[];
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      },
+      QueryParamsListAttestations & { electionId?: string }
     >({
       query: (params) => ({
-        url: '/attestations',
+        url: "/attestations",
         params,
       }),
       keepUnusedDataFor: 60,
-      providesTags: () => [{ type: 'Attestations' as const, id: 'LIST' }],
+      providesTags: () => [{ type: "Attestations" as const, id: "LIST" }],
     }),
     // /api/v1/attestations/ballot/{ballotId}
     getAttestationsByBallotId: builder.query<AttestationType[], string>({
       query: (ballotId) => ({
-        url: '/attestations/ballot/' + ballotId,
+        url: "/attestations/ballot/" + ballotId,
       }),
       keepUnusedDataFor: 60,
       providesTags: (_result, _error, ballotId) => [
-        { type: 'Attestations' as const, id: ballotId },
+        { type: "Attestations" as const, id: ballotId },
       ],
     }),
     // /api/v1/attestations/most-supported/{tableCode}
     getMostSupportedBallotByTableCode: builder.query<
       MostSupportedBallotType,
-      string
+      { tableCode: string; electionId?: string }
     >({
-      query: (tableCode) => `/attestations/most-supported/${tableCode}`,
+      query: ({ tableCode, electionId }) => ({
+        url: `/attestations/most-supported/${tableCode}`,
+        params: { electionId },
+      }),
       keepUnusedDataFor: 60,
-      providesTags: (_result, _error, tableCode) => [
-        { type: 'Attestations' as const, id: tableCode },
+      providesTags: (_result, _error, { tableCode }) => [
+        { type: "Attestations" as const, id: tableCode },
       ],
     }),
     // /api/v1/attestations/cases/{tableCode}
-    getAttestationCasesByTableCode: builder.query<AttestationCasesType, string>(
-      {
-        query: (tableCode) => `/attestations/cases/${tableCode}`,
-        keepUnusedDataFor: 60,
-        providesTags: (_result, _error, tableCode) => [
-          { type: 'Attestations' as const, id: tableCode },
-        ],
-      }
-    ),
+    getAttestationCasesByTableCode: builder.query<
+      AttestationCasesType,
+      { tableCode: string; electionId?: string }
+    >({
+      query: ({ tableCode, electionId }) => ({
+        url: `/attestations/cases/${tableCode}`,
+        params: { electionId },
+      }),
+      keepUnusedDataFor: 60,
+      providesTags: (_result, _error, { tableCode }) => [
+        { type: "Attestations" as const, id: tableCode },
+      ],
+    }),
     // /api/v1/attestations/by-department-id/{departmentId}
     getAttestationsByDepartmentId: builder.query<
-      { data: AttestationType[]; total: number; page: number; limit: number; totalPages: number },
-      { departmentId: string } & QueryParamsListAttestations
+      {
+        data: AttestationType[];
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      },
+      { departmentId: string } & QueryParamsListAttestations & {
+          electionId?: string;
+        }
     >({
       query: ({ departmentId, ...params }) => ({
         url: `/attestations/by-department-id/${departmentId}`,
@@ -62,13 +83,19 @@ export const attestationsApiSlice = apiSlice.injectEndpoints({
       }),
       keepUnusedDataFor: 60,
       providesTags: (_result, _error, { departmentId }) => [
-        { type: 'Attestations' as const, id: `dept-${departmentId}` },
+        { type: "Attestations" as const, id: `dept-${departmentId}` },
       ],
     }),
     // /api/v1/attestations/by-province-id/{provinceId}
     getAttestationsByProvinceId: builder.query<
-      { data: AttestationType[]; total: number; page: number; limit: number; totalPages: number },
-      { provinceId: string } & QueryParamsListAttestations
+      {
+        data: AttestationType[];
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      },
+      { provinceId: string } & QueryParamsListAttestations & { electionId?: string }
     >({
       query: ({ provinceId, ...params }) => ({
         url: `/attestations/by-province-id/${provinceId}`,
@@ -76,13 +103,19 @@ export const attestationsApiSlice = apiSlice.injectEndpoints({
       }),
       keepUnusedDataFor: 60,
       providesTags: (_result, _error, { provinceId }) => [
-        { type: 'Attestations' as const, id: `prov-${provinceId}` },
+        { type: "Attestations" as const, id: `prov-${provinceId}` },
       ],
     }),
     // /api/v1/attestations/by-municipality-id/{municipalityId}
     getAttestationsByMunicipalityId: builder.query<
-      { data: AttestationType[]; total: number; page: number; limit: number; totalPages: number },
-      { municipalityId: string } & QueryParamsListAttestations
+      {
+        data: AttestationType[];
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      },
+      { municipalityId: string } & QueryParamsListAttestations & { electionId?: string }
     >({
       query: ({ municipalityId, ...params }) => ({
         url: `/attestations/by-municipality-id/${municipalityId}`,
@@ -90,7 +123,7 @@ export const attestationsApiSlice = apiSlice.injectEndpoints({
       }),
       keepUnusedDataFor: 60,
       providesTags: (_result, _error, { municipalityId }) => [
-        { type: 'Attestations' as const, id: `muni-${municipalityId}` },
+        { type: "Attestations" as const, id: `muni-${municipalityId}` },
       ],
     }),
   }),

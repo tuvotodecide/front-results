@@ -1,33 +1,34 @@
-import React, { useState, useEffect } from 'react';
-import styles from './Breadcrumb.module.css';
-import { ChevronRight } from 'lucide-react';
-import { useSelector, useDispatch } from 'react-redux';
-import { useSearchParams } from 'react-router-dom';
-import Fuse from 'fuse.js';
-import { selectDepartments } from '../store/departments/departmentsSlice';
-import { useLazyGetDepartmentQuery } from '../store/departments/departmentsEndpoints';
+import React, { useState, useEffect } from "react";
+import styles from "./Breadcrumb.module.css";
+import { ChevronRight } from "lucide-react";
+import { useSelector, useDispatch } from "react-redux";
+import { useSearchParams } from "react-router-dom";
+import Fuse from "fuse.js";
+import { selectDepartments } from "../store/departments/departmentsSlice";
+import { useLazyGetDepartmentQuery } from "../store/departments/departmentsEndpoints";
 import {
   useLazyGetProvincesByDepartmentIdQuery,
   useLazyGetProvinceQuery,
-} from '../store/provinces/provincesEndpoints';
+} from "../store/provinces/provincesEndpoints";
 import {
   useLazyGetMunicipalitiesByProvinceIdQuery,
   useLazyGetMunicipalityQuery,
-} from '../store/municipalities/municipalitiesEndpoints';
+} from "../store/municipalities/municipalitiesEndpoints";
 import {
   useLazyGetElectoralSeatsByMunicipalityIdQuery,
   useLazyGetElectoralSeatQuery,
-} from '../store/electoralSeats/electoralSeatsEndpoints';
+} from "../store/electoralSeats/electoralSeatsEndpoints";
 import {
   useLazyGetElectoralLocationsByElectoralSeatIdQuery,
   useLazyGetElectoralLocationQuery,
-} from '../store/electoralLocations/electoralLocationsEndpoints';
-import SimpleSearchBar from './SimpleSearchBar';
+} from "../store/electoralLocations/electoralLocationsEndpoints";
+import SimpleSearchBar from "./SimpleSearchBar";
 import {
   setFilters,
   setFilterIds,
   setQueryParamsResults,
-} from '../store/resultados/resultadosSlice';
+} from "../store/resultados/resultadosSlice";
+import ElectionSelector from "./ElectionSelector";
 
 interface LevelOption {
   _id: string;
@@ -55,24 +56,24 @@ interface SelectedLevel extends PathItem2 {
 
 const breadcrumbLevels = [
   {
-    id: 'department',
-    title: 'Departamento',
+    id: "department",
+    title: "Departamento",
   },
   {
-    id: 'province',
-    title: 'Provincia',
+    id: "province",
+    title: "Provincia",
   },
   {
-    id: 'municipality',
-    title: 'Municipio',
+    id: "municipality",
+    title: "Municipio",
   },
   {
-    id: 'electoralSeat',
-    title: 'Asiento Electoral',
+    id: "electoralSeat",
+    title: "Asiento Electoral",
   },
   {
-    id: 'electoralLocation',
-    title: 'Recinto Electoral',
+    id: "electoralLocation",
+    title: "Recinto Electoral",
   },
 ];
 const Breadcrumb = () => {
@@ -111,10 +112,10 @@ const Breadcrumb = () => {
 
   // update to useMemo to be a function that returns filtered options
   const filterOptions = (options: LevelOption[], searchTerm: string) => {
-    if (searchTerm === '') return options;
+    if (searchTerm === "") return options;
     // Configure Fuse.js for fuzzy search
     const fuse = new Fuse(options, {
-      keys: ['name'],
+      keys: ["name"],
       threshold: 0.4, // Lower threshold = more strict matching (0.0 = exact match, 1.0 = match anything)
       includeScore: true,
       minMatchCharLength: 1,
@@ -195,7 +196,7 @@ const Breadcrumb = () => {
           const newPath: PathItem2[] = [];
           for (let index = 0; index < results.length; index++) {
             const result = results[index];
-            if (result.status === 'fulfilled' && result.value.data) {
+            if (result.status === "fulfilled" && result.value.data) {
               const level = breadcrumbLevels[index];
               const { _id, name } = result.value.data;
               newPath.push({
@@ -211,11 +212,11 @@ const Breadcrumb = () => {
           }
           setSelectedPath2(newPath);
           const filters = newPath.reduce((acc, item) => {
-            acc[item.id] = item.selectedOption?.name || '';
+            acc[item.id] = item.selectedOption?.name || "";
             return acc;
           }, {} as Record<string, string>);
           const filterIds = newPath.reduce((acc, item) => {
-            acc[item.id + 'Id'] = item.selectedOption?._id || '';
+            acc[item.id + "Id"] = item.selectedOption?._id || "";
             return acc;
           }, {} as Record<string, string>);
           dispatch(setFilters(filters));
@@ -254,11 +255,11 @@ const Breadcrumb = () => {
     };
     newPath.push(newItem);
     const filters = newPath.reduce((acc, item) => {
-      acc[item.id] = item.selectedOption?.name || '';
+      acc[item.id] = item.selectedOption?.name || "";
       return acc;
     }, {} as Record<string, string>);
     const filterIds = newPath.reduce((acc, item) => {
-      acc[item.id + 'Id'] = item.selectedOption?._id || '';
+      acc[item.id + "Id"] = item.selectedOption?._id || "";
       return acc;
     }, {} as Record<string, string>);
     dispatch(setFilters(filters));
@@ -418,7 +419,6 @@ const Breadcrumb = () => {
   // };
 
   const handleSearch = (query: string) => {
-    console.log('Search initiated for query:', query);
     const internalFilteredOptions = filterOptions(
       selectedLevel?.options || [],
       query
@@ -430,7 +430,7 @@ const Breadcrumb = () => {
     <div className="mx-auto pb-6">
       {/* Breadcrumb Navigation */}
       <div className="bg-gray-50 rounded-lg flex items-center justify-between">
-        <nav className="flex items-center gap-x-1.5 gap-y-3 text-sm flex-wrap w-full">
+        <nav className="flex items-center gap-x-1.5 text-sm w-full flex-nowrap overflow-x-auto">
           <button
             onClick={() => resetPath()}
             className="flex flex-col items-start text-black group min-w-[120px] border border-gray-300 p-2 rounded hover:bg-blue-100"
@@ -443,7 +443,6 @@ const Breadcrumb = () => {
           {selectedPath2.length > 0 && (
             <ChevronRight className="w-4 h-4 text-gray-400 mt-1" />
           )}
-
           {selectedPath2.map((pathItem, index) => (
             <React.Fragment key={index}>
               <button
@@ -462,7 +461,7 @@ const Breadcrumb = () => {
               )}
             </React.Fragment>
           ))}
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2 shrink-0">
             {/* <button
               className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500 transition-colors duration-200 shrink-0"
               onClick={handleShowNextLevel}
@@ -470,6 +469,7 @@ const Breadcrumb = () => {
             >
               Ver más
             </button> */}
+            <ElectionSelector />
             <button
               className="ml-2 px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
               onClick={clearSelectedPath}
@@ -507,14 +507,14 @@ const Breadcrumb = () => {
             </svg>
           </button>
           <div
-            className={`flex items-center mb-4 justify-between flex-wrap ${styles['suggestions-title-container']}`}
+            className={`flex items-center mb-4 justify-between flex-wrap ${styles["suggestions-title-container"]}`}
           >
             <SimpleSearchBar
-              className={styles['search-bar']}
+              className={styles["search-bar"]}
               onSearch={handleSearch}
             />
             <h2
-              className={`text-lg font-semibold text-gray-800 ${styles['suggestions-title-text']}`}
+              className={`text-lg font-semibold text-gray-800 ${styles["suggestions-title-text"]}`}
             >
               Seleccione {selectedLevel?.title}
             </h2>
@@ -522,7 +522,7 @@ const Breadcrumb = () => {
           <div className="relative">
             {isLoadingOptions && (
               <div
-                className={`flex items-center justify-center py-12 ${styles['animate-fadeIn']}`}
+                className={`flex items-center justify-center py-12 ${styles["animate-fadeIn"]}`}
               >
                 <div className="flex items-center space-x-2">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -534,7 +534,7 @@ const Breadcrumb = () => {
             )}
 
             {!isLoadingOptions && selectedLevel?.options && (
-              <div className={styles['animate-fadeInUp']}>
+              <div className={styles["animate-fadeInUp"]}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                   {filteredOptions.map((option, index) => (
                     <button
@@ -542,7 +542,7 @@ const Breadcrumb = () => {
                       onClick={() =>
                         handleOptionClick(selectedLevel.index, option)
                       }
-                      className={`p-3 text-left border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${styles['animate-fadeInStagger']}`}
+                      className={`p-3 text-left border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${styles["animate-fadeInStagger"]}`}
                       style={{ animationDelay: `${index * 50}ms` }}
                     >
                       <div className="font-medium text-gray-800">

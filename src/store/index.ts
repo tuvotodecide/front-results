@@ -1,21 +1,15 @@
-import { configureStore } from '@reduxjs/toolkit';
-import { apiSlice } from './apiSlice';
-import { setupListeners } from '@reduxjs/toolkit/query';
-import { authSlice, AuthState } from './auth/authSlice';
-import { recintosSlice, RecintosState } from './recintos/recintosSlice';
+import { configureStore } from "@reduxjs/toolkit";
+import { apiSlice } from "./apiSlice";
+import { setupListeners } from "@reduxjs/toolkit/query";
+import { authSlice,  } from "./auth/authSlice";
+import { recintosSlice,  } from "./recintos/recintosSlice";
 import {
   departmentsSlice,
-  departmentsState,
-} from './departments/departmentsSlice';
-import { resultsSlice } from './resultados/resultadosSlice';
-import { electoralLocationsSlice } from './electoralLocations/electoralLocationsSlice';
+} from "./departments/departmentsSlice";
+import { resultsSlice } from "./resultados/resultadosSlice";
+import { electoralLocationsSlice } from "./electoralLocations/electoralLocationsSlice";
+import electionReducer from "./election/electionSlice";
 
-export interface RootState {
-  [apiSlice.reducerPath]: ReturnType<typeof apiSlice.reducer>;
-  auth: AuthState;
-  recintos: RecintosState;
-  departments: departmentsState;
-}
 
 const store = configureStore({
   reducer: {
@@ -25,6 +19,7 @@ const store = configureStore({
     departments: departmentsSlice.reducer,
     electoralLocations: electoralLocationsSlice.reducer,
     results: resultsSlice.reducer,
+    election: electionReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(apiSlice.middleware),
@@ -32,7 +27,7 @@ const store = configureStore({
 
 setupListeners(store.dispatch);
 
-// export type RootState = ReturnType<typeof store.getState>;
+export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
 
 export default store;

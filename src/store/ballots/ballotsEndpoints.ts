@@ -1,18 +1,25 @@
-import { apiSlice } from '../apiSlice';
-import { BallotType } from '../../types';
+// C:\apps\front-results\src\store\ballots\ballotsEndpoints.ts
+import { apiSlice } from "../apiSlice";
+import { BallotType } from "../../types";
 
 export const ballotsApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getBallot: builder.query<BallotType, string>({
       query: (id) => `/ballots/${id}`,
       keepUnusedDataFor: 60,
-      providesTags: (_result, _error, id) => [{ type: 'Ballots' as const, id }],
+      providesTags: (_r, _e, id) => [{ type: "Ballots" as const, id }],
     }),
-    getBallotByTableCode: builder.query<BallotType[], string>({
-      query: (tableCode) => `/ballots/by-table/${tableCode}`,
+    getBallotByTableCode: builder.query<
+      BallotType[],
+      { tableCode: string; electionId?: string }
+    >({
+      query: ({ tableCode, electionId }) => ({
+        url: `/ballots/by-table/${tableCode}`,
+        params: { electionId },
+      }),
       keepUnusedDataFor: 60,
-      providesTags: (_result, _error, tableCode) => [
-        { type: 'Ballots' as const, id: tableCode },
+      providesTags: (_r, _e, { tableCode }) => [
+        { type: "Ballots" as const, id: tableCode },
       ],
     }),
   }),
@@ -20,7 +27,7 @@ export const ballotsApiSlice = apiSlice.injectEndpoints({
 
 export const {
   useGetBallotQuery,
-  useLazyGetBallotQuery,
   useGetBallotByTableCodeQuery,
   useLazyGetBallotByTableCodeQuery,
+  useLazyGetBallotQuery
 } = ballotsApiSlice;

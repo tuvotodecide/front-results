@@ -1,22 +1,27 @@
-import { useEffect, useState } from 'react';
-import LocationSection from './LocationSection';
-import Graphs from './Graphs';
-import ImagesSection from './ImagesSection';
-import { useNavigate, useParams, Link, useSearchParams } from 'react-router-dom';
+import { useEffect, useState } from "react";
+import LocationSection from "./LocationSection";
+import Graphs from "./Graphs";
+import ImagesSection from "./ImagesSection";
+import {
+  useNavigate,
+  useParams,
+  Link,
+  useSearchParams,
+} from "react-router-dom";
 import {
   useGetElectoralTableByTableCodeQuery,
   useLazyGetElectoralTablesByElectoralLocationIdQuery,
-} from '../../store/electoralTables/electoralTablesEndpoints';
-import { useLazyGetResultsByLocationQuery } from '../../store/resultados/resultadosEndpoints';
-import SimpleSearchBar from '../../components/SimpleSearchBar';
-import StatisticsBars from './StatisticsBars';
-import BackButton from '../../components/BackButton';
-import { useLazyGetBallotByTableCodeQuery } from '../../store/ballots/ballotsEndpoints';
-import { BallotType, ElectoralTableType } from '../../types';
-import { useGetConfigurationStatusQuery } from '../../store/configurations/configurationsEndpoints';
-import { setCurrentTable } from '../../store/resultados/resultadosSlice';
-import { useDispatch, useSelector } from 'react-redux';
-import { getPartyColor } from './partyColors';
+} from "../../store/electoralTables/electoralTablesEndpoints";
+import { useLazyGetResultsByLocationQuery } from "../../store/resultados/resultadosEndpoints";
+import SimpleSearchBar from "../../components/SimpleSearchBar";
+import StatisticsBars from "./StatisticsBars";
+import BackButton from "../../components/BackButton";
+import { useLazyGetBallotByTableCodeQuery } from "../../store/ballots/ballotsEndpoints";
+import { BallotType, ElectoralTableType } from "../../types";
+import { useGetConfigurationStatusQuery } from "../../store/configurations/configurationsEndpoints";
+import { setCurrentTable } from "../../store/resultados/resultadosSlice";
+import { useDispatch, useSelector } from "react-redux";
+import { getPartyColor } from "./partyColors";
 import {
   useGetAttestationCasesByTableCodeQuery,
   useGetMostSupportedBallotByTableCodeQuery,
@@ -24,13 +29,17 @@ import {
   useGetAttestationsByDepartmentIdQuery,
   useGetAttestationsByProvinceIdQuery,
   useGetAttestationsByMunicipalityIdQuery,
-} from '../../store/attestations/attestationsEndpoints';
-import Breadcrumb2 from '../../components/Breadcrumb2';
-import { useGetDepartmentsQuery } from '../../store/departments/departmentsEndpoints';
-import TablesSection from './TablesSection';
-import { useMultipleBallots } from '../../hooks/useMultipleBallots';
-import { ballotsToElectoralTables } from '../../utils/ballotToElectoralTable';
-import { selectFilters, selectFilterIds } from '../../store/resultados/resultadosSlice';
+} from "../../store/attestations/attestationsEndpoints";
+import Breadcrumb2 from "../../components/Breadcrumb2";
+import { useGetDepartmentsQuery } from "../../store/departments/departmentsEndpoints";
+import TablesSection from "./TablesSection";
+import { useMultipleBallots } from "../../hooks/useMultipleBallots";
+import { ballotsToElectoralTables } from "../../utils/ballotToElectoralTable";
+import {
+  selectFilters,
+  selectFilterIds,
+} from "../../store/resultados/resultadosSlice";
+import useElectionId from "../../hooks/useElectionId";
 
 // const combinedData = [
 //   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -44,18 +53,19 @@ import { selectFilters, selectFilterIds } from '../../store/resultados/resultado
 // ];
 
 const ResultadosMesa2 = () => {
+  const electionId = useElectionId();
   const { tableCode } = useParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const filters = useSelector(selectFilters);
   const filterIds = useSelector(selectFilterIds);
-  
+
   const [getResultsByLocation] = useLazyGetResultsByLocationQuery({});
   const [getBallotsByTableCode] = useLazyGetBallotByTableCodeQuery({});
   const [getTablesByLocationId] =
     useLazyGetElectoralTablesByElectoralLocationIdQuery({});
-  
+
   const [presidentialData, setPresidentialData] = useState<
     Array<{ name: string; value: number; color: string }>
   >([]);
@@ -66,30 +76,38 @@ const ResultadosMesa2 = () => {
     Array<{ name: string; value: any; color: string }>
   >([]);
   const [otherTables, setOtherTables] = useState<ElectoralTableType[]>([]);
-  const [filteredTables, setFilteredTables] = useState<ElectoralTableType[]>([]);
+  const [filteredTables, setFilteredTables] = useState<ElectoralTableType[]>(
+    []
+  );
   const [images, setImages] = useState<BallotType[]>([]);
   const [showAllTables, setShowAllTables] = useState(false);
   const [showAllFilteredTables, setShowAllFilteredTables] = useState(false);
-  const [attestedTables, setAttestedTables] = useState<ElectoralTableType[]>([]);
+  const [attestedTables, setAttestedTables] = useState<ElectoralTableType[]>(
+    []
+  );
   const [uniqueBallotIds, setUniqueBallotIds] = useState<string[]>([]);
-  const [departmentUniqueBallotIds, setDepartmentUniqueBallotIds] = useState<string[]>([]);
-  const [provinceUniqueBallotIds, setProvinceUniqueBallotIds] = useState<string[]>([]);
-  const [municipalityUniqueBallotIds, setMunicipalityUniqueBallotIds] = useState<string[]>([]);
-  
+  const [departmentUniqueBallotIds, setDepartmentUniqueBallotIds] = useState<
+    string[]
+  >([]);
+  const [provinceUniqueBallotIds, setProvinceUniqueBallotIds] = useState<
+    string[]
+  >([]);
+  const [municipalityUniqueBallotIds, setMunicipalityUniqueBallotIds] =
+    useState<string[]>([]);
+
   const { data: configData } = useGetConfigurationStatusQuery();
-  
+
   useGetDepartmentsQuery({
     limit: 100,
   });
   const { data: mostSupportedBallotData } =
-    useGetMostSupportedBallotByTableCodeQuery(tableCode || '', {
-      skip: !tableCode,
-    });
+    useGetMostSupportedBallotByTableCodeQuery(
+      { tableCode: tableCode || "", electionId: electionId ?? undefined },
+      { skip: !tableCode }
+    );
   const { data: attestationCases } = useGetAttestationCasesByTableCodeQuery(
-    tableCode || '',
-    {
-      skip: !tableCode,
-    }
+    { tableCode: tableCode || "", electionId: electionId ?? undefined },
+    { skip: !tableCode }
   );
 
   const {
@@ -97,79 +115,90 @@ const ResultadosMesa2 = () => {
     // error: electoralTableError,
     isError: isElectoralTableError,
     isLoading: isElectoralTableLoading,
-  } = useGetElectoralTableByTableCodeQuery(tableCode || '', {
+  } = useGetElectoralTableByTableCodeQuery(tableCode || "", {
     skip: !tableCode, // Skip the query if tableCode is falsy
   });
 
   // Get attestations when no specific table is selected
   const { data: attestationsData } = useGetAttestationsQuery(
-    { limit: 20, page: 1 },
+    { limit: 20, page: 1, electionId: electionId ?? undefined },
     { skip: !!tableCode } // Skip if tableCode exists (we're viewing a specific table)
   );
 
   // Get department-based attestations when department is selected
-  const { data: departmentAttestationsData } = useGetAttestationsByDepartmentIdQuery(
-    { 
-      departmentId: filterIds.departmentId,
-      support: true,
-      page: 1,
-      limit: 15
-    },
-    { 
-      skip: !filterIds.departmentId || !!tableCode || filteredTables.length > 0
-    }
-  );
+  const { data: departmentAttestationsData } =
+    useGetAttestationsByDepartmentIdQuery(
+      {
+        departmentId: filterIds.departmentId,
+        support: true,
+        page: 1,
+        limit: 15,
+        electionId: electionId ?? undefined,
+      },
+      {
+        skip:
+          !filterIds.departmentId || !!tableCode || filteredTables.length > 0,
+      }
+    );
 
   // Get province-based attestations when province is selected
-  const { data: provinceAttestationsData } = useGetAttestationsByProvinceIdQuery(
-    { 
-      provinceId: filterIds.provinceId,
-      support: true,
-      page: 1,
-      limit: 15
-    },
-    { 
-      skip: !filterIds.provinceId || !!tableCode || filteredTables.length > 0
-    }
-  );
+  const { data: provinceAttestationsData } =
+    useGetAttestationsByProvinceIdQuery(
+      {
+        provinceId: filterIds.provinceId,
+        support: true,
+        page: 1,
+        limit: 15,
+        electionId: electionId ?? undefined,
+      },
+      {
+        skip: !filterIds.provinceId || !!tableCode || filteredTables.length > 0,
+      }
+    );
 
   // Get municipality-based attestations when municipality is selected
-  const { data: municipalityAttestationsData } = useGetAttestationsByMunicipalityIdQuery(
-    { 
-      municipalityId: filterIds.municipalityId,
-      support: true,
-      page: 1,
-      limit: 15
-    },
-    { 
-      skip: !filterIds.municipalityId || !!tableCode || filteredTables.length > 0
-    }
-  );
+  const { data: municipalityAttestationsData } =
+    useGetAttestationsByMunicipalityIdQuery(
+      {
+        municipalityId: filterIds.municipalityId,
+        support: true,
+        page: 1,
+        limit: 15,
+        electionId: electionId ?? undefined,
+      },
+      {
+        skip:
+          !filterIds.municipalityId || !!tableCode || filteredTables.length > 0,
+      }
+    );
 
   // Get multiple ballots based on attestations
-  const { ballots, loading: ballotsLoading, error: ballotsError } = useMultipleBallots(uniqueBallotIds);
-  
-  // Get multiple ballots for department-specific attestations
-  const { 
-    ballots: departmentBallots, 
-    loading: departmentBallotsLoading, 
-    error: departmentBallotsError 
-  } = useMultipleBallots(departmentUniqueBallotIds);
-  
-  // Get multiple ballots for province-specific attestations
-  const { 
-    ballots: provinceBallots, 
-    loading: provinceBallotsLoading, 
-    error: provinceBallotsError 
-  } = useMultipleBallots(provinceUniqueBallotIds);
-  
-  // Get multiple ballots for municipality-specific attestations
-  const { 
-    ballots: municipalityBallots, 
-    loading: municipalityBallotsLoading, 
-    error: municipalityBallotsError 
-  } = useMultipleBallots(municipalityUniqueBallotIds);
+  const {
+    ballots,
+    loading: ballotsLoading,
+    error: ballotsError,
+  } = useMultipleBallots(uniqueBallotIds);
 
+  // Get multiple ballots for department-specific attestations
+  const {
+    ballots: departmentBallots,
+    loading: departmentBallotsLoading,
+    error: departmentBallotsError,
+  } = useMultipleBallots(departmentUniqueBallotIds);
+
+  // Get multiple ballots for province-specific attestations
+  const {
+    ballots: provinceBallots,
+    loading: provinceBallotsLoading,
+    error: provinceBallotsError,
+  } = useMultipleBallots(provinceUniqueBallotIds);
+
+  // Get multiple ballots for municipality-specific attestations
+  const {
+    ballots: municipalityBallots,
+    loading: municipalityBallotsLoading,
+    error: municipalityBallotsError,
+  } = useMultipleBallots(municipalityUniqueBallotIds);
 
   const handleSearch = (searchTerm: string) => {
     if (!searchTerm) return;
@@ -180,15 +209,15 @@ const ResultadosMesa2 = () => {
 
   useEffect(() => {
     if (mostSupportedBallotData) {
-      console.log('Most Supported Ballot Data:', mostSupportedBallotData);
+      console.log("Most Supported Ballot Data:", mostSupportedBallotData);
     }
   }, [mostSupportedBallotData]);
 
   useEffect(() => {
     if (tableCode && electoralTableData) {
-      getBallotsByTableCode(tableCode)
+      getBallotsByTableCode({ tableCode, electionId: electionId ?? undefined })
         .unwrap()
-        .then((data) => {
+        .then((data: any) => {
           setImages(data);
           //console.log('Fetched ballots data:', data);
           // Process the fetched ballots data as needed
@@ -198,7 +227,7 @@ const ResultadosMesa2 = () => {
         getTablesByLocationId(electoralTableData.electoralLocation._id)
           .unwrap()
           .then((data) => {
-            console.log('Fetched other tables data:', data);
+            console.log("Fetched other tables data:", data);
             setOtherTables(
               data.filter(
                 (table: ElectoralTableType) => table._id !== tableCode
@@ -213,7 +242,11 @@ const ResultadosMesa2 = () => {
         return;
       }
 
-      getResultsByLocation({ tableCode, electionType: 'presidential' })
+      getResultsByLocation({
+        tableCode,
+        electionType: "presidential",
+        electionId: electionId ?? undefined,
+      })
         .unwrap()
         .then((data) => {
           // console.log('Fetched presidential data:', data);
@@ -221,7 +254,7 @@ const ResultadosMesa2 = () => {
             // Get party color or generate random hex color if not found
             const partyColor = getPartyColor(item.partyId);
             const randomColor =
-              '#' + Math.floor(Math.random() * 16777215).toString(16);
+              "#" + Math.floor(Math.random() * 16777215).toString(16);
             return {
               name: item.partyId,
               value: item.totalVotes,
@@ -233,28 +266,32 @@ const ResultadosMesa2 = () => {
           if (data.summary) {
             const participationData = [
               {
-                name: 'Válidos',
+                name: "Válidos",
                 // value: data.summary?.validVotes || 0,
                 value: data.summary.validVotes || 0,
-                color: '#8cc689', // Green
+                color: "#8cc689", // Green
               },
               {
-                name: 'Nulos',
+                name: "Nulos",
                 // value: data.summary?.nullVotes || 0,
                 value: data.summary.nullVotes || 0,
-                color: '#81858e', // Red
+                color: "#81858e", // Red
               },
               {
-                name: 'Blancos',
+                name: "Blancos",
                 // value: data.summary?.blankVotes || 0,
                 value: data.summary.blankVotes || 0,
-                color: '#f3f3ce', // Yellow
+                color: "#f3f3ce", // Yellow
               },
             ];
             setParticipation(participationData);
           }
         });
-      getResultsByLocation({ tableCode, electionType: 'deputies' })
+      getResultsByLocation({
+        tableCode,
+        electionType: "deputies",
+        electionId: electionId ?? undefined,
+      })
         .unwrap()
         .then((data) => {
           // console.log('Fetched deputies data:', data);
@@ -262,7 +299,7 @@ const ResultadosMesa2 = () => {
             // Get party color or generate random hex color if not found
             const partyColor = getPartyColor(item.partyId);
             const randomColor =
-              '#' + Math.floor(Math.random() * 16777215).toString(16);
+              "#" + Math.floor(Math.random() * 16777215).toString(16);
             return {
               name: item.partyId,
               value: item.totalVotes,
@@ -272,7 +309,7 @@ const ResultadosMesa2 = () => {
           setDeputiesData(formattedData);
         });
     }
-  }, [tableCode, electoralTableData, configData]);
+  }, [tableCode, electoralTableData, configData, electionId]);
 
   useEffect(() => {
     if (tableCode) {
@@ -282,7 +319,7 @@ const ResultadosMesa2 = () => {
 
   // Effect to handle territorial filters and get filtered tables
   useEffect(() => {
-    const electoralLocationId = searchParams.get('electoralLocation');
+    const electoralLocationId = searchParams.get("electoralLocation");
     if (electoralLocationId) {
       getTablesByLocationId(electoralLocationId)
         .unwrap()
@@ -290,7 +327,7 @@ const ResultadosMesa2 = () => {
           setFilteredTables(data);
         })
         .catch((error) => {
-          console.error('Error fetching filtered tables:', error);
+          console.error("Error fetching filtered tables:", error);
           setFilteredTables([]);
         });
     } else {
@@ -301,34 +338,60 @@ const ResultadosMesa2 = () => {
   // Effect to extract unique ballot IDs from general attestations
   // Only when no territorial filters are selected and no filtered tables
   useEffect(() => {
-    if (attestationsData?.data && !tableCode && !filterIds.departmentId && !filterIds.provinceId && !filterIds.municipalityId && filteredTables.length === 0) {
+    if (
+      attestationsData?.data &&
+      !tableCode &&
+      !filterIds.departmentId &&
+      !filterIds.provinceId &&
+      !filterIds.municipalityId &&
+      filteredTables.length === 0
+    ) {
       // Get unique ballot IDs from attestations - try both ballotId and _id fields
       const validBallotIds = attestationsData.data
         .map((attestation: any) => attestation.ballotId || attestation._id)
-        .filter((ballotId: any) => ballotId && ballotId !== undefined && ballotId !== null);
-      
+        .filter(
+          (ballotId: any) =>
+            ballotId && ballotId !== undefined && ballotId !== null
+        );
+
       const uniqueIds = Array.from(new Set(validBallotIds)).slice(0, 15); // Limit to 15 for performance
 
       setUniqueBallotIds(uniqueIds);
     } else {
       setUniqueBallotIds([]);
     }
-  }, [attestationsData, tableCode, filterIds.departmentId, filterIds.provinceId, filterIds.municipalityId, filteredTables.length]);
+  }, [
+    attestationsData,
+    tableCode,
+    filterIds.departmentId,
+    filterIds.provinceId,
+    filterIds.municipalityId,
+    filteredTables.length,
+  ]);
 
   // Effect to extract unique ballot IDs from department attestations
   useEffect(() => {
-    if (departmentAttestationsData?.data && !tableCode && filteredTables.length === 0) {
+    if (
+      departmentAttestationsData?.data &&
+      !tableCode &&
+      filteredTables.length === 0
+    ) {
       // Get unique ballot IDs from department attestations using _id field
-      const allBallotIds = departmentAttestationsData.data.map((attestation: any) => attestation._id);
-      const validBallotIds = allBallotIds.filter((ballotId: any) => ballotId && ballotId !== undefined && ballotId !== null);
-      
+      const allBallotIds = departmentAttestationsData.data.map(
+        (attestation: any) => attestation._id
+      );
+      const validBallotIds = allBallotIds.filter(
+        (ballotId: any) =>
+          ballotId && ballotId !== undefined && ballotId !== null
+      );
+
       const uniqueIds = Array.from(new Set(validBallotIds)).slice(0, 15); // Limit to 15 for performance
 
-      console.log('🎯 Department attestations corrected:', {
+      console.log("🎯 Department attestations corrected:", {
         totalAttestations: departmentAttestationsData.data.length,
         validBallotIds: validBallotIds.length,
         uniqueIds: uniqueIds.length,
-        sampleIds: uniqueIds.slice(0, 3)
+        sampleIds: uniqueIds.slice(0, 3),
       });
 
       setDepartmentUniqueBallotIds(uniqueIds);
@@ -339,18 +402,27 @@ const ResultadosMesa2 = () => {
 
   // Effect to extract unique ballot IDs from province attestations
   useEffect(() => {
-    if (provinceAttestationsData?.data && !tableCode && filteredTables.length === 0) {
+    if (
+      provinceAttestationsData?.data &&
+      !tableCode &&
+      filteredTables.length === 0
+    ) {
       // Get unique ballot IDs from province attestations using _id field
-      const allBallotIds = provinceAttestationsData.data.map((attestation: any) => attestation._id);
-      const validBallotIds = allBallotIds.filter((ballotId: any) => ballotId && ballotId !== undefined && ballotId !== null);
-      
+      const allBallotIds = provinceAttestationsData.data.map(
+        (attestation: any) => attestation._id
+      );
+      const validBallotIds = allBallotIds.filter(
+        (ballotId: any) =>
+          ballotId && ballotId !== undefined && ballotId !== null
+      );
+
       const uniqueIds = Array.from(new Set(validBallotIds)).slice(0, 15); // Limit to 15 for performance
 
-      console.log('🏛️ Province attestations:', {
+      console.log("🏛️ Province attestations:", {
         totalAttestations: provinceAttestationsData.data.length,
         validBallotIds: validBallotIds.length,
         uniqueIds: uniqueIds.length,
-        sampleIds: uniqueIds.slice(0, 3)
+        sampleIds: uniqueIds.slice(0, 3),
       });
 
       setProvinceUniqueBallotIds(uniqueIds);
@@ -361,18 +433,27 @@ const ResultadosMesa2 = () => {
 
   // Effect to extract unique ballot IDs from municipality attestations
   useEffect(() => {
-    if (municipalityAttestationsData?.data && !tableCode && filteredTables.length === 0) {
+    if (
+      municipalityAttestationsData?.data &&
+      !tableCode &&
+      filteredTables.length === 0
+    ) {
       // Get unique ballot IDs from municipality attestations using _id field
-      const allBallotIds = municipalityAttestationsData.data.map((attestation: any) => attestation._id);
-      const validBallotIds = allBallotIds.filter((ballotId: any) => ballotId && ballotId !== undefined && ballotId !== null);
-      
+      const allBallotIds = municipalityAttestationsData.data.map(
+        (attestation: any) => attestation._id
+      );
+      const validBallotIds = allBallotIds.filter(
+        (ballotId: any) =>
+          ballotId && ballotId !== undefined && ballotId !== null
+      );
+
       const uniqueIds = Array.from(new Set(validBallotIds)).slice(0, 15); // Limit to 15 for performance
 
-      console.log('🏘️ Municipality attestations:', {
+      console.log("🏘️ Municipality attestations:", {
         totalAttestations: municipalityAttestationsData.data.length,
         validBallotIds: validBallotIds.length,
         uniqueIds: uniqueIds.length,
-        sampleIds: uniqueIds.slice(0, 3)
+        sampleIds: uniqueIds.slice(0, 3),
       });
 
       setMunicipalityUniqueBallotIds(uniqueIds);
@@ -392,51 +473,63 @@ const ResultadosMesa2 = () => {
       isLoadingToUse = municipalityBallotsLoading;
       errorToUse = municipalityBallotsError;
       ballotIdsToCheck = municipalityUniqueBallotIds;
-      sourceName = 'municipality';
+      sourceName = "municipality";
     } else if (provinceUniqueBallotIds.length > 0) {
       // Province has second priority
       ballotsToUse = provinceBallots;
       isLoadingToUse = provinceBallotsLoading;
       errorToUse = provinceBallotsError;
       ballotIdsToCheck = provinceUniqueBallotIds;
-      sourceName = 'province';
+      sourceName = "province";
     } else if (departmentUniqueBallotIds.length > 0) {
       // Department has third priority
       ballotsToUse = departmentBallots;
       isLoadingToUse = departmentBallotsLoading;
       errorToUse = departmentBallotsError;
       ballotIdsToCheck = departmentUniqueBallotIds;
-      sourceName = 'department';
+      sourceName = "department";
     } else {
       // General fallback (lowest priority)
       ballotsToUse = ballots;
       isLoadingToUse = ballotsLoading;
       errorToUse = ballotsError;
       ballotIdsToCheck = uniqueBallotIds;
-      sourceName = 'general';
+      sourceName = "general";
     }
 
-    console.log('🔄 Processing ballots with priority source:', sourceName, {
+    console.log("🔄 Processing ballots with priority source:", sourceName, {
       ballotIdsCount: ballotIdsToCheck.length,
       ballotsLoaded: ballotsToUse.length,
       isLoading: isLoadingToUse,
-      hasError: !!errorToUse
+      hasError: !!errorToUse,
     });
 
     if (ballotsToUse.length > 0 && !isLoadingToUse && !errorToUse) {
       const convertedTables = ballotsToElectoralTables(ballotsToUse);
       setAttestedTables(convertedTables);
     } else if (errorToUse) {
-      console.error('Error loading ballots from', sourceName);
+      console.error("Error loading ballots from", sourceName);
       setAttestedTables([]);
     } else if (ballotIdsToCheck.length === 0) {
       setAttestedTables([]);
     }
   }, [
-    ballots, ballotsLoading, ballotsError, uniqueBallotIds.length,
-    departmentBallots, departmentBallotsLoading, departmentBallotsError, departmentUniqueBallotIds.length,
-    provinceBallots, provinceBallotsLoading, provinceBallotsError, provinceUniqueBallotIds.length,
-    municipalityBallots, municipalityBallotsLoading, municipalityBallotsError, municipalityUniqueBallotIds.length
+    ballots,
+    ballotsLoading,
+    ballotsError,
+    uniqueBallotIds.length,
+    departmentBallots,
+    departmentBallotsLoading,
+    departmentBallotsError,
+    departmentUniqueBallotIds.length,
+    provinceBallots,
+    provinceBallotsLoading,
+    provinceBallotsError,
+    provinceUniqueBallotIds.length,
+    municipalityBallots,
+    municipalityBallotsLoading,
+    municipalityBallotsError,
+    municipalityUniqueBallotIds.length,
   ]);
 
   return (
@@ -462,8 +555,8 @@ const ResultadosMesa2 = () => {
                 <div
                   className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 ${
                     !showAllFilteredTables && filteredTables.length > 15
-                      ? 'max-h-[calc(3*10rem+2*0.75rem)] overflow-hidden'
-                      : ''
+                      ? "max-h-[calc(3*10rem+2*0.75rem)] overflow-hidden"
+                      : ""
                   }`}
                 >
                   {filteredTables.map((table) => (
@@ -492,7 +585,9 @@ const ResultadosMesa2 = () => {
                 {filteredTables.length > 15 && (
                   <div className="mt-4 text-center">
                     <button
-                      onClick={() => setShowAllFilteredTables(!showAllFilteredTables)}
+                      onClick={() =>
+                        setShowAllFilteredTables(!showAllFilteredTables)
+                      }
                       className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200"
                     >
                       {showAllFilteredTables ? (
@@ -558,7 +653,8 @@ const ResultadosMesa2 = () => {
                       Buscar Mesa Electoral
                     </h1>
                     <p className="text-gray-500 mb-8">
-                      Use los filtros territoriales arriba o busque directamente por código de mesa
+                      Use los filtros territoriales arriba o busque directamente
+                      por código de mesa
                     </p>
                     <SimpleSearchBar
                       className="w-full max-w-md"
@@ -568,7 +664,13 @@ const ResultadosMesa2 = () => {
                 </div>
 
                 {/* Attested tables section */}
-                {(uniqueBallotIds.length > 0 || departmentUniqueBallotIds.length > 0 || provinceUniqueBallotIds.length > 0 || municipalityUniqueBallotIds.length > 0 || filterIds.departmentId || filterIds.provinceId || filterIds.municipalityId) && (
+                {(uniqueBallotIds.length > 0 ||
+                  departmentUniqueBallotIds.length > 0 ||
+                  provinceUniqueBallotIds.length > 0 ||
+                  municipalityUniqueBallotIds.length > 0 ||
+                  filterIds.departmentId ||
+                  filterIds.provinceId ||
+                  filterIds.municipalityId) && (
                   <div className="bg-gray-50 rounded-lg shadow-sm p-4 mt-6">
                     <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
                       {(() => {
@@ -579,9 +681,11 @@ const ResultadosMesa2 = () => {
                         } else if (filters.department) {
                           return `Mesas Atestiguadas - ${filters.department}`;
                         } else {
-                          return 'Mesas Atestiguadas';
+                          return "Mesas Atestiguadas";
                         }
-                      })()} {attestedTables.length > 0 && `(${attestedTables.length})`}
+                      })()}{" "}
+                      {attestedTables.length > 0 &&
+                        `(${attestedTables.length})`}
                     </h3>
                     {(() => {
                       let isLoading, loadingBallotIds;
@@ -602,8 +706,13 @@ const ResultadosMesa2 = () => {
                       if (isLoading) {
                         return (
                           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                            {Array.from({ length: Math.min(loadingBallotIds.length, 10) }).map((_, index) => (
-                              <div key={index} className="border border-gray-300 rounded-lg p-4 animate-pulse">
+                            {Array.from({
+                              length: Math.min(loadingBallotIds.length, 10),
+                            }).map((_, index) => (
+                              <div
+                                key={index}
+                                className="border border-gray-300 rounded-lg p-4 animate-pulse"
+                              >
                                 <div className="text-center">
                                   <div className="h-4 bg-gray-300 rounded w-16 mx-auto mb-2"></div>
                                   <div className="h-6 bg-gray-300 rounded w-12 mx-auto mb-2"></div>
@@ -644,7 +753,9 @@ const ResultadosMesa2 = () => {
                                 />
                               </svg>
                             </div>
-                            <p className="text-gray-600">Error al cargar mesas atestiguadas</p>
+                            <p className="text-gray-600">
+                              Error al cargar mesas atestiguadas
+                            </p>
                           </div>
                         );
                       }
@@ -655,21 +766,34 @@ const ResultadosMesa2 = () => {
 
                       // Check for empty results with data for each level
                       let attestationsData, currentFilter, currentBallotIds;
-                      if (filterIds.municipalityId && municipalityUniqueBallotIds.length === 0) {
+                      if (
+                        filterIds.municipalityId &&
+                        municipalityUniqueBallotIds.length === 0
+                      ) {
                         attestationsData = municipalityAttestationsData;
                         currentFilter = filters.municipality;
                         currentBallotIds = municipalityUniqueBallotIds;
-                      } else if (filterIds.provinceId && provinceUniqueBallotIds.length === 0) {
+                      } else if (
+                        filterIds.provinceId &&
+                        provinceUniqueBallotIds.length === 0
+                      ) {
                         attestationsData = provinceAttestationsData;
                         currentFilter = filters.province;
                         currentBallotIds = provinceUniqueBallotIds;
-                      } else if (filterIds.departmentId && departmentUniqueBallotIds.length === 0) {
+                      } else if (
+                        filterIds.departmentId &&
+                        departmentUniqueBallotIds.length === 0
+                      ) {
                         attestationsData = departmentAttestationsData;
                         currentFilter = filters.department;
                         currentBallotIds = departmentUniqueBallotIds;
                       }
 
-                      if (currentFilter && currentBallotIds && currentBallotIds.length === 0) {
+                      if (
+                        currentFilter &&
+                        currentBallotIds &&
+                        currentBallotIds.length === 0
+                      ) {
                         return (
                           <div className="text-center py-8">
                             <div className="bg-amber-50 rounded-full p-4 mb-4 inline-block">
@@ -688,16 +812,14 @@ const ResultadosMesa2 = () => {
                               </svg>
                             </div>
                             <p className="text-gray-600 mb-2">
-                              {attestationsData?.data ? 
-                                `Se encontraron ${attestationsData.data.length} attestations para ${currentFilter}, pero no contienen datos de ballots válidos` :
-                                `No se encontraron mesas atestiguadas para ${currentFilter}`
-                              }
+                              {attestationsData?.data
+                                ? `Se encontraron ${attestationsData.data.length} attestations para ${currentFilter}, pero no contienen datos de ballots válidos`
+                                : `No se encontraron mesas atestiguadas para ${currentFilter}`}
                             </p>
                             <p className="text-sm text-gray-500">
-                              {attestationsData?.data ? 
-                                'Los datos del backend necesitan ser corregidos para incluir ballotId válidos' :
-                                'Intente seleccionar un filtro territorial diferente'
-                              }
+                              {attestationsData?.data
+                                ? "Los datos del backend necesitan ser corregidos para incluir ballotId válidos"
+                                : "Intente seleccionar un filtro territorial diferente"}
                             </p>
                           </div>
                         );
@@ -705,7 +827,9 @@ const ResultadosMesa2 = () => {
 
                       return (
                         <div className="text-center py-8">
-                          <p className="text-gray-600">No hay mesas atestiguadas disponibles</p>
+                          <p className="text-gray-600">
+                            No hay mesas atestiguadas disponibles
+                          </p>
                         </div>
                       );
                     })()}
@@ -808,7 +932,7 @@ const ResultadosMesa2 = () => {
                     <h1 className="text-2xl md:text-3xl font-semibold">
                       {electoralTableData
                         ? `Mesa #${electoralTableData?.tableNumber}`
-                        : 'No se encontró la mesa'}
+                        : "No se encontró la mesa"}
                     </h1>
                     {electoralTableData?.tableCode && (
                       <p className="text-gray-300 mt-1">
@@ -889,8 +1013,8 @@ const ResultadosMesa2 = () => {
                       <div
                         className={`flex flex-wrap gap-3 ${
                           !showAllTables
-                            ? 'max-h-[calc(3*5.5rem+2*0.75rem)] overflow-hidden'
-                            : ''
+                            ? "max-h-[calc(3*5.5rem+2*0.75rem)] overflow-hidden"
+                            : ""
                         }`}
                       >
                         {otherTables.map((table) => (
@@ -973,21 +1097,21 @@ const ResultadosMesa2 = () => {
                         <p className="text-2xl text-gray-700 mb-1">
                           {new Date(
                             configData.config.resultsStartDateBolivia
-                          ).toLocaleDateString('es-ES', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                            timeZone: 'America/La_Paz',
+                          ).toLocaleDateString("es-ES", {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                            timeZone: "America/La_Paz",
                           })}
                         </p>
                         <p className="text-3xl font-bold text-gray-800">
                           {new Date(
                             configData.config.resultsStartDateBolivia
-                          ).toLocaleTimeString('es-ES', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            timeZone: 'America/La_Paz',
+                          ).toLocaleTimeString("es-ES", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            timeZone: "America/La_Paz",
                           })}
                         </p>
                         <p className="text-sm text-gray-500 mt-1">
@@ -1006,7 +1130,7 @@ const ResultadosMesa2 = () => {
                           Participación
                         </h3>
                         <StatisticsBars
-                          title='Distribución de votos'
+                          title="Distribución de votos"
                           voteData={participation}
                           processedTables={{ current: 1556, total: 2678 }}
                           totalTables={456}

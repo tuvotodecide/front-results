@@ -1,18 +1,19 @@
-import { useEffect, useState } from 'react';
-import { useGetDepartmentsQuery } from '../../store/departments/departmentsEndpoints';
-import Breadcrumb2 from '../../components/Breadcrumb2';
-import { useSelector } from 'react-redux';
-import { selectFilters } from '../../store/resultados/resultadosSlice';
-import { useLazyGetResultsByLocationQuery } from '../../store/resultados/resultadosEndpoints';
-import Graphs from './Graphs';
-import StatisticsBars from './StatisticsBars';
-import TablesSection from './TablesSection';
-import { useLazyGetElectoralTablesByElectoralLocationIdQuery } from '../../store/electoralTables/electoralTablesEndpoints';
-import { useSearchParams } from 'react-router-dom';
-import { ElectoralTableType } from '../../types';
-import { useGetConfigurationStatusQuery } from '../../store/configurations/configurationsEndpoints';
-import { getPartyColor } from './partyColors';
-import LoadingSkeleton from '../../components/LoadingSkeleton';
+import { useEffect, useState } from "react";
+import { useGetDepartmentsQuery } from "../../store/departments/departmentsEndpoints";
+import Breadcrumb2 from "../../components/Breadcrumb2";
+import { useSelector } from "react-redux";
+import { selectFilters } from "../../store/resultados/resultadosSlice";
+import { useLazyGetResultsByLocationQuery } from "../../store/resultados/resultadosEndpoints";
+import Graphs from "./Graphs";
+import StatisticsBars from "./StatisticsBars";
+import TablesSection from "./TablesSection";
+import { useLazyGetElectoralTablesByElectoralLocationIdQuery } from "../../store/electoralTables/electoralTablesEndpoints";
+import { useSearchParams } from "react-router-dom";
+import { ElectoralTableType } from "../../types";
+import { useGetConfigurationStatusQuery } from "../../store/configurations/configurationsEndpoints";
+import { getPartyColor } from "./partyColors";
+import LoadingSkeleton from "../../components/LoadingSkeleton";
+import useElectionId from "../../hooks/useElectionId";
 
 // const combinedData = [
 //   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -26,6 +27,7 @@ import LoadingSkeleton from '../../components/LoadingSkeleton';
 // ];
 
 const ResultadosGenerales3 = () => {
+  const electionId = useElectionId();
   const [searchParams] = useSearchParams();
   // const [resultsData, setResultsData] = useState([]);
   const [presidentialData, setPresidentialData] = useState<
@@ -51,7 +53,7 @@ const ResultadosGenerales3 = () => {
   const filters = useSelector(selectFilters);
   const [isLoading, setIsLoading] = useState({
     president: true,
-    deputies: true
+    deputies: true,
   });
 
   // useEffect(() => {
@@ -73,9 +75,13 @@ const ResultadosGenerales3 = () => {
     // console.log('Cleaned filters:', cleanedFilters);
     setIsLoading({
       president: true,
-      deputies: true
+      deputies: true,
     });
-    getResultsByLocation({ ...filters, electionType: 'presidential' })
+    getResultsByLocation({
+      ...filters,
+      electionType: "presidential",
+      electionId: electionId ?? undefined,
+    })
       .unwrap()
       .then((data) => {
         // console.log('Fetched presidential data:', data);
@@ -83,7 +89,7 @@ const ResultadosGenerales3 = () => {
           // Get party color or generate random hex color if not found
           const partyColor = getPartyColor(item.partyId);
           const randomColor =
-            '#' + Math.floor(Math.random() * 16777215).toString(16);
+            "#" + Math.floor(Math.random() * 16777215).toString(16);
           return {
             name: item.partyId,
             value: item.totalVotes,
@@ -95,44 +101,49 @@ const ResultadosGenerales3 = () => {
         if (data.summary) {
           const participationData = [
             {
-              name: 'Válidos',
+              name: "Válidos",
               // value: data.summary?.validVotes || 0,
               value: data.summary.validVotes || 0,
-              color: '#8cc689', // Green
+              color: "#8cc689", // Green
             },
             {
-              name: 'Nulos',
+              name: "Nulos",
               // value: data.summary?.nullVotes || 0,
               value: data.summary.nullVotes || 0,
-              color: '#81858e', // Red
+              color: "#81858e", // Red
             },
             {
-              name: 'Blancos',
+              name: "Blancos",
               // value: data.summary?.blankVotes || 0,
               value: data.summary.blankVotes || 0,
-              color: '#f3f3ce', // Yellow
+              color: "#f3f3ce", // Yellow
             },
           ];
           const validTableData = [
             {
-              name: 'Atestiguados',
+              name: "Atestiguados",
               value: data.summary.tablesProcessed,
-              color: '#8cc689',
-            },{
-              name: 'No atestiguados',
+              color: "#8cc689",
+            },
+            {
+              name: "No atestiguados",
               value: data.summary.totalTables - data.summary.tablesProcessed,
-              color: '#81858e',
-            }
-          ]
+              color: "#81858e",
+            },
+          ];
           setParticipation(participationData);
           setValidTables(validTableData);
         }
         setIsLoading({
           ...isLoading,
-          president: false
+          president: false,
         });
       });
-    getResultsByLocation({ ...filters, electionType: 'deputies' })
+    getResultsByLocation({
+      ...filters,
+      electionType: "deputies",
+      electionId: electionId ?? undefined,
+    })
       .unwrap()
       .then((data) => {
         // console.log('Fetched deputies data:', data);
@@ -140,7 +151,7 @@ const ResultadosGenerales3 = () => {
           // Get party color or generate random hex color if not found
           const partyColor = getPartyColor(item.partyId);
           const randomColor =
-            '#' + Math.floor(Math.random() * 16777215).toString(16);
+            "#" + Math.floor(Math.random() * 16777215).toString(16);
           return {
             name: item.partyId,
             value: item.totalVotes,
@@ -150,13 +161,13 @@ const ResultadosGenerales3 = () => {
         setDeputiesData(formattedData);
         setIsLoading({
           ...isLoading,
-          deputies: false
+          deputies: false,
         });
       });
-  }, [filters, configData]);
+  }, [filters, configData, electionId]);
 
   useEffect(() => {
-    const electoralLocationId = searchParams.get('electoralLocation');
+    const electoralLocationId = searchParams.get("electoralLocation");
     // console.log('Electoral Location ID:', electoralLocationId);
     if (electoralLocationId) {
       getTablesByLocationId(electoralLocationId)
@@ -192,21 +203,21 @@ const ResultadosGenerales3 = () => {
                 <p className="text-2xl text-gray-700 mb-1">
                   {new Date(
                     configData.config.resultsStartDateBolivia
-                  ).toLocaleDateString('es-ES', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    timeZone: 'America/La_Paz',
+                  ).toLocaleDateString("es-ES", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                    timeZone: "America/La_Paz",
                   })}
                 </p>
                 <p className="text-3xl font-bold text-gray-800">
                   {new Date(
                     configData.config.resultsStartDateBolivia
-                  ).toLocaleTimeString('es-ES', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    timeZone: 'America/La_Paz',
+                  ).toLocaleTimeString("es-ES", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    timeZone: "America/La_Paz",
                   })}
                 </p>
                 <p className="text-sm text-gray-500 mt-1">(Hora de Bolivia)</p>
@@ -221,7 +232,7 @@ const ResultadosGenerales3 = () => {
                   Participación
                 </h3>
                 <StatisticsBars
-                  title='Distribución de votos'
+                  title="Distribución de votos"
                   voteData={participation}
                   processedTables={{ current: 1556, total: 2678 }}
                   totalTables={456}
@@ -230,7 +241,7 @@ const ResultadosGenerales3 = () => {
                   totalWitnesses={500}
                 />
                 <StatisticsBars
-                  title='Mesas atestiguadas'
+                  title="Mesas atestiguadas"
                   voteData={validTables}
                   processedTables={{ current: 1556, total: 2678 }}
                   totalTables={456}
@@ -243,7 +254,7 @@ const ResultadosGenerales3 = () => {
                 <div className="border border-gray-200 rounded-lg p-8 text-center">
                   <p className="text-xl text-gray-600">Sin datos</p>
                 </div>
-              ): (
+              ) : (
                 <div className="w-full flex flex-wrap gap-4">
                   <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
                     <div className="p-4">

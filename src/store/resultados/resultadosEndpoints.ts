@@ -8,6 +8,7 @@ interface GetResultsParams {
   electoralLocation?: string;
   tableCode?: string;
   electionType?: string;
+  electionId?: string; 
 }
 
 export const resultadosApiSlice = apiSlice.injectEndpoints({
@@ -34,14 +35,8 @@ export const resultadosApiSlice = apiSlice.injectEndpoints({
 });
 
 export const {
-  useGetResultsByLocationQuery, // Hook to get results
-  useLazyGetResultsByLocationQuery, // Lazy query to get results by location
-  useGetStatisticsQuery, // Hook to get statistics
-  useLazyGetRegistrationProgressQuery, // Lazy query to get registration progress
+  useGetResultsByLocationQuery,
+  useLazyGetResultsByLocationQuery,
+  useGetStatisticsQuery,
+  useLazyGetRegistrationProgressQuery,
 } = resultadosApiSlice;
-
-/**
- * const { data } = useGetResultsQuery();
-   const { data: statistics } = useGetStatisticsQuery();
-   console.log("statistics", statistics);
- */
