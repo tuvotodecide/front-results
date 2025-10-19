@@ -134,10 +134,7 @@ const ResultadosGenerales3 = () => {
           setParticipation(participationData);
           setValidTables(validTableData);
         }
-        setIsLoading({
-          ...isLoading,
-          president: false,
-        });
+        setIsLoading((prev) => ({ ...prev, president: false }));
       });
     getResultsByLocation({
       ...filters,
@@ -159,10 +156,7 @@ const ResultadosGenerales3 = () => {
           };
         });
         setDeputiesData(formattedData);
-        setIsLoading({
-          ...isLoading,
-          deputies: false,
-        });
+        setIsLoading((prev) => ({ ...prev, deputies: false }));
       });
   }, [filters, configData, electionId]);
 
@@ -223,7 +217,9 @@ const ResultadosGenerales3 = () => {
                 <p className="text-sm text-gray-500 mt-1">(Hora de Bolivia)</p>
               </div>
             </div>
-          ) : isLoading.president && isLoading.deputies ? (
+          ) : !presidentialData.length &&
+            !deputiesData.length &&
+            (isLoading.president || isLoading.deputies) ? (
             <LoadingSkeleton />
           ) : (
             <>

@@ -1,17 +1,17 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from "react";
 // import ModalImage from '../../components/ModalImage';
 // import actaImage from '../../assets/acta.jpg';
-import LocationSection from './LocationSection';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useGetBallotQuery } from '../../store/ballots/ballotsEndpoints';
-import Graphs from './Graphs';
-import StatisticsBars from './StatisticsBars';
-import SimpleSearchBar from '../../components/SimpleSearchBar';
-import BackButton from '../../components/BackButton';
-import { useDispatch } from 'react-redux';
-import { setCurrentBallot } from '../../store/resultados/resultadosSlice';
-import { useGetAttestationsByBallotIdQuery } from '../../store/attestations/attestationsEndpoints';
-import { getPartyColor } from './partyColors';
+import LocationSection from "./LocationSection";
+import { useParams, useNavigate } from "react-router-dom";
+import { useGetBallotQuery } from "../../store/ballots/ballotsEndpoints";
+import Graphs from "./Graphs";
+import StatisticsBars from "./StatisticsBars";
+import SimpleSearchBar from "../../components/SimpleSearchBar";
+import BackButton from "../../components/BackButton";
+import { useDispatch } from "react-redux";
+import { setCurrentBallot } from "../../store/resultados/resultadosSlice";
+import { useGetAttestationsByBallotIdQuery } from "../../store/attestations/attestationsEndpoints";
+import { getPartyColor } from "./partyColors";
 
 // const ballotData = {
 //   tableNumber: '25548',
@@ -46,7 +46,6 @@ const ResultadosImagen = () => {
     Array<{ name: string; value: any; color: string }>
   >([]);
 
-  // Calculate attestations counts using useMemo for optimization
   const { attestationsInFavor, attestationsAgainst } = useMemo(() => {
     if (!attestationsData) {
       return { attestationsInFavor: 0, attestationsAgainst: 0 };
@@ -63,54 +62,43 @@ const ResultadosImagen = () => {
   }, [attestationsData]);
 
   useEffect(() => {
-    if (currentItem && currentItem.votes) {
-      console.log('current item', currentItem);
-      const formattedPresidentialData =
-        currentItem.votes.parties.partyVotes.map((item: any) => {
-          // Get party color or generate random hex color if not found
-          const partyColor = getPartyColor(item.partyId);
-          const randomColor =
-            '#' + Math.floor(Math.random() * 16777215).toString(16);
-          return {
-            name: item.partyId,
-            value: item.votes,
-            color: partyColor || randomColor, // Use party color, then item color, then random as fallback
-          };
-        });
-      const formattedDeputiesData = currentItem.votes.deputies.partyVotes.map(
-        (item: any) => {
-          // Get party color or generate random hex color if not found
-          const partyColor = getPartyColor(item.partyId);
-          const randomColor =
-            '#' + Math.floor(Math.random() * 16777215).toString(16);
-          return {
-            name: item.partyId,
-            value: item.votes,
-            color: partyColor || randomColor, // Use party color, then item color, then random as fallback
-          };
-        }
-      );
-      setPresidentialData(formattedPresidentialData);
-      setDeputiesData(formattedDeputiesData);
-      const participationData = [
-        {
-          name: 'Válidos',
-          value: currentItem.votes.parties.validVotes || 0,
-          color: '#8cc689', // Green
-        },
-        {
-          name: 'Nulos',
-          value: currentItem.votes.parties.nullVotes || 0,
-          color: '#81858e', // Red
-        },
-        {
-          name: 'Blancos',
-          value: currentItem.votes.parties.blankVotes || 0,
-          color: '#f3f3ce', // Yellow
-        },
-      ];
-      setParticipation(participationData);
-    }
+    if (!currentItem) return;
+
+    const partyVotes = currentItem?.votes?.parties?.partyVotes ?? [];
+    const formattedPresidentialData = partyVotes.map((item: any) => {
+      const partyColor = getPartyColor(item.partyId);
+      const randomColor =
+        "#" + Math.floor(Math.random() * 16777215).toString(16);
+      return {
+        name: item.partyId,
+        value: Number(item.votes ?? 0),
+        color: partyColor || randomColor,
+      };
+    });
+    setPresidentialData(formattedPresidentialData);
+
+    const deputiesVotes = currentItem?.votes?.deputies?.partyVotes ?? [];
+    const formattedDeputiesData = deputiesVotes.map((item: any) => {
+      const partyColor = getPartyColor(item.partyId);
+      const randomColor =
+        "#" + Math.floor(Math.random() * 16777215).toString(16);
+      return {
+        name: item.partyId,
+        value: Number(item.votes ?? 0),
+        color: partyColor || randomColor,
+      };
+    });
+    setDeputiesData(formattedDeputiesData);
+
+    const validVotes = Number(currentItem?.votes?.parties?.validVotes ?? 0);
+    const nullVotes = Number(currentItem?.votes?.parties?.nullVotes ?? 0);
+    const blankVotes = Number(currentItem?.votes?.parties?.blankVotes ?? 0);
+
+    setParticipation([
+      { name: "Válidos", value: validVotes, color: "#8cc689" },
+      { name: "Nulos", value: nullVotes, color: "#81858e" },
+      { name: "Blancos", value: blankVotes, color: "#f3f3ce" },
+    ]);
   }, [currentItem]);
 
   useEffect(() => {
@@ -121,7 +109,7 @@ const ResultadosImagen = () => {
 
   useEffect(() => {
     if (attestationsData) {
-      console.log('Attestations Data:', attestationsData);
+      console.log("Attestations Data:", attestationsData);
     }
   }, [attestationsData]);
 
@@ -206,7 +194,7 @@ const ResultadosImagen = () => {
                       Imagen {id}
                     </h1>
                     <p className="text-gray-300 mt-1 break-words">
-                      Codigo mesa: {currentItem?.tableCode || ''}
+                      Codigo mesa: {currentItem?.tableCode || ""}
                     </p>
                   </div>
                 </div>
@@ -229,13 +217,13 @@ const ResultadosImagen = () => {
                     Ubicación
                   </h3>
                   <LocationSection
-                    department={currentItem?.location.department || ''}
-                    province={currentItem?.location.province || ''}
-                    municipality={currentItem?.location.municipality || ''}
+                    department={currentItem?.location.department || ""}
+                    province={currentItem?.location.province || ""}
+                    municipality={currentItem?.location.municipality || ""}
                     electoralLocation={
-                      currentItem?.location.electoralLocationName || ''
+                      currentItem?.location.electoralLocationName || ""
                     }
-                    electoralSeat={currentItem?.location.electoralSeat || ''}
+                    electoralSeat={currentItem?.location.electoralSeat || ""}
                   />
                 </div>
                 <div className="border border-gray-200 rounded-lg p-6 mb-4 basis-[300px] grow-1 shrink-0">
@@ -249,7 +237,7 @@ const ResultadosImagen = () => {
                           Numero de mesa
                         </h3>
                         <p className="text-base font-normal text-gray-900 leading-relaxed break-words">
-                          {currentItem?.tableNumber || 'N/A'}
+                          {currentItem?.tableNumber || "N/A"}
                         </p>
                       </div>
                     </div>
@@ -259,7 +247,7 @@ const ResultadosImagen = () => {
                           Codigo de mesa
                         </h3>
                         <p className="text-base font-normal text-gray-900 leading-relaxed break-words">
-                          {currentItem?.tableCode || 'N/A'}
+                          {currentItem?.tableCode || "N/A"}
                         </p>
                       </div>
                     </div>
@@ -344,8 +332,8 @@ const ResultadosImagen = () => {
                       {currentItem?.image && (
                         <a
                           href={`https://ipfs.io/ipfs/${currentItem.image.replace(
-                            'ipfs://',
-                            ''
+                            "ipfs://",
+                            ""
                           )}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -408,7 +396,7 @@ const ResultadosImagen = () => {
                   Participación
                 </h3>
                 <StatisticsBars
-                  title='Distribución de votos'
+                  title="Distribución de votos"
                   voteData={participation}
                   processedTables={{ current: 1556, total: 2678 }}
                   totalTables={456}
@@ -426,12 +414,23 @@ const ResultadosImagen = () => {
                   <Graphs data={presidentialData} />
                 </div>
 
-                <div className="border border-gray-200 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                    Resultados Diputados
-                  </h3>
-                  <Graphs data={deputiesData} />
-                </div>
+                {deputiesData.length > 0 ? (
+                  <div className="border border-gray-200 rounded-lg p-4">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                      Resultados Diputados
+                    </h3>
+                    <Graphs data={deputiesData} />
+                  </div>
+                ) : (
+                  <div className="border border-gray-200 rounded-lg p-4">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center">
+                      Resultados Diputados
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      Sin datos para esta imagen/elección.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
