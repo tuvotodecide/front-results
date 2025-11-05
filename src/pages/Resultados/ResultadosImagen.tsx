@@ -12,6 +12,7 @@ import { useDispatch } from "react-redux";
 import { setCurrentBallot } from "../../store/resultados/resultadosSlice";
 import { useGetAttestationsByBallotIdQuery } from "../../store/attestations/attestationsEndpoints";
 import { getPartyColor } from "./partyColors";
+import { useGetConfigurationStatusQuery } from "../../store/configurations/configurationsEndpoints";
 
 // const ballotData = {
 //   tableNumber: '25548',
@@ -24,6 +25,10 @@ const ResultadosImagen = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { data: configData } = useGetConfigurationStatusQuery();
+  const hasActiveConfig = !!configData?.hasActiveConfig;
+  const isPreliminaryPhase = !!configData?.isVotingPeriod;
+  const isFinalPhase = !!configData?.isResultsPeriod;
   const { data: currentItem, isError: isBallotError } = useGetBallotQuery(id!, {
     skip: !id,
   });
@@ -391,47 +396,96 @@ const ResultadosImagen = () => {
                 )}
               </div> */}
               {/* Results Section */}
-              <div className="border border-gray-200 rounded-lg p-6 mb-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  Participación
-                </h3>
-                <StatisticsBars
-                  title="Distribución de votos"
-                  voteData={participation}
-                  processedTables={{ current: 1556, total: 2678 }}
-                  totalTables={456}
-                  totalVoters={1547}
-                  totalActs={596}
-                  totalWitnesses={500}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="border border-gray-200 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                    Resultados Presidenciales
-                  </h3>
-                  <Graphs data={presidentialData} />
-                </div>
-
-                {deputiesData.length > 0 ? (
-                  <div className="border border-gray-200 rounded-lg p-4">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                      Resultados Diputados
-                    </h3>
-                    <Graphs data={deputiesData} />
-                  </div>
-                ) : (
-                  <div className="border border-gray-200 rounded-lg p-4">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center">
-                      Resultados Diputados
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      Sin datos para esta imagen/elección.
+              {configData &&
+              hasActiveConfig &&
+              !isPreliminaryPhase &&
+              !isFinalPhase ? (
+                <div className="border border-gray-200 rounded-lg p-8 text-center">
+                  <p className="text-xl text-gray-600 mb-4">
+                    Los resultados se habilitarán el:
+                  </p>
+                  <div className="mb-2">
+                    <p className="text-2xl text-gray-700 mb-1">
+                      {new Date(
+                        configData.config.resultsStartDateBolivia
+                      ).toLocaleDateString("es-ES", {
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                        timeZone: "America/La_Paz",
+                      })}
+                    </p>
+                    <p className="text-3xl font-bold text-gray-800">
+                      {new Date(
+                        configData.config.resultsStartDateBolivia
+                      ).toLocaleTimeString("es-ES", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        timeZone: "America/La_Paz",
+                      })}
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      (Hora de Bolivia)
                     </p>
                   </div>
-                )}
-              </div>
+                </div>
+              ) : presidentialData.length === 0 ? (
+                <div className="border border-gray-200 rounded-lg p-8 text-center">
+                  <p className="text-xl text-gray-600">Sin datos</p>
+                </div>
+              ) : (
+                <>
+                  {/* Results Section */}
+                  <div className="border border-gray-200 rounded-lg p-6 mb-4">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                      <span>Participación</span>
+                      {isPreliminaryPhase && (
+                        <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
+                          Resultados preliminares
+                        </span>
+                      )}
+                    </h3>
+                    <StatisticsBars
+                      title="Distribución de votos"
+                      voteData={participation}
+                      processedTables={{ current: 1556, total: 2678 }}
+                      totalTables={456}
+                      totalVoters={1547}
+                      totalActs={596}
+                      totalWitnesses={500}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="border border-gray-200 rounded-lg p-4">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <span>Resultados Presidenciales</span>
+                        {isPreliminaryPhase && (
+                          <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
+                            Preliminares
+                          </span>
+                        )}
+                      </h3>
+                      <Graphs data={presidentialData} />
+                    </div>
+
+                    {deputiesData.length > 0 && (
+                      <div className="border border-gray-200 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                          <span>Resultados Diputados</span>
+                          {isPreliminaryPhase && (
+                            <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
+                              Preliminares
+                            </span>
+                          )}
+                        </h3>
+                        <Graphs data={deputiesData} />
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}

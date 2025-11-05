@@ -3,7 +3,10 @@ import { useGetDepartmentsQuery } from "../../store/departments/departmentsEndpo
 import Breadcrumb2 from "../../components/Breadcrumb2";
 import { useSelector } from "react-redux";
 import { selectFilters } from "../../store/resultados/resultadosSlice";
-import { useLazyGetResultsByLocationQuery } from "../../store/resultados/resultadosEndpoints";
+import {
+  useLazyGetLiveResultsByLocationQuery,
+  useLazyGetResultsByLocationQuery,
+} from "../../store/resultados/resultadosEndpoints";
 import Graphs from "./Graphs";
 import StatisticsBars from "./StatisticsBars";
 import TablesSection from "./TablesSection";
@@ -47,8 +50,9 @@ const ResultadosGenerales3 = () => {
     limit: 100,
   });
   const [getResultsByLocation] = useLazyGetResultsByLocationQuery({});
+  const [getLiveResultsByLocation] = useLazyGetLiveResultsByLocationQuery();
   const [getTablesByLocationId] =
-    useLazyGetElectoralTablesByElectoralLocationIdQuery({});
+    useLazyGetElectoralTablesByElectoralLocationIdQuery();
   const { data: configData } = useGetConfigurationStatusQuery();
   const filters = useSelector(selectFilters);
   const [isLoading, setIsLoading] = useState({
@@ -56,44 +60,50 @@ const ResultadosGenerales3 = () => {
     deputies: true,
   });
 
+  const hasActiveConfig = !!configData?.hasActiveConfig;
+  const isPreliminaryPhase = !!configData?.isVotingPeriod;
+  const isFinalPhase = !!configData?.isResultsPeriod;
+
   // useEffect(() => {
   //   // console.log('Current config data:', configData);
   // }, [configData]);
 
   useEffect(() => {
-    // Only make API calls if results period is active
-    if (!configData?.isResultsPeriod) {
+    if (!hasActiveConfig || (!isPreliminaryPhase && !isFinalPhase)) {
+      setPresidentialData([]);
+      setDeputiesData([]);
+      setParticipation([]);
+      setValidTables([]);
+      setIsLoading({ president: false, deputies: false });
       return;
     }
 
-    // console.log('Current filters:', filters);
-    // const cleanedFilters = Object.fromEntries(
-    //   Object.entries(filters).filter(
-    //     ([key, value]) => value !== '' && key !== 'electoralLocation'
-    //   )
-    // );
-    // console.log('Cleaned filters:', cleanedFilters);
-    setIsLoading({
-      president: true,
-      deputies: true,
-    });
-    getResultsByLocation({
+    setIsLoading({ president: true, deputies: true });
+
+    const baseParams = {
       ...filters,
-      electionType: "presidential",
       electionId: electionId ?? undefined,
-    })
+    };
+
+    const fetcher = isFinalPhase
+      ? getResultsByLocation // oficiales
+      : getLiveResultsByLocation; // preliminares
+
+    // PRESIDENTE
+    fetcher({ ...baseParams, electionType: "presidential" })
       .unwrap()
       .then((data) => {
-        // console.log('Fetched presidential data:', data);
-        const formattedData = data.results.map((item: any) => {
-          // Get party color or generate random hex color if not found
+        const formattedData = (data.results ?? []).map((item: any) => {
           const partyColor = getPartyColor(item.partyId);
           const randomColor =
-            "#" + Math.floor(Math.random() * 16777215).toString(16);
+            "#" +
+            Math.floor(Math.random() * 16777215)
+              .toString(16)
+              .padStart(6, "0");
           return {
             name: item.partyId,
             value: item.totalVotes,
-            color: partyColor || randomColor, // Use party color, then random as fallback
+            color: partyColor || randomColor,
           };
         });
         setPresidentialData(formattedData);
@@ -102,78 +112,103 @@ const ResultadosGenerales3 = () => {
           const participationData = [
             {
               name: "Válidos",
-              // value: data.summary?.validVotes || 0,
               value: data.summary.validVotes || 0,
-              color: "#8cc689", // Green
+              color: "#8cc689",
             },
             {
               name: "Nulos",
-              // value: data.summary?.nullVotes || 0,
               value: data.summary.nullVotes || 0,
-              color: "#81858e", // Red
+              color: "#81858e",
             },
             {
               name: "Blancos",
-              // value: data.summary?.blankVotes || 0,
               value: data.summary.blankVotes || 0,
-              color: "#f3f3ce", // Yellow
+              color: "#f3f3ce",
             },
           ];
           const validTableData = [
             {
               name: "Atestiguados",
-              value: data.summary.tablesProcessed,
+              value: data.summary.tablesProcessed ?? 0,
               color: "#8cc689",
             },
             {
               name: "No atestiguados",
-              value: data.summary.totalTables - data.summary.tablesProcessed,
+              value:
+                (data.summary.totalTables ?? 0) -
+                (data.summary.tablesProcessed ?? 0),
               color: "#81858e",
             },
           ];
           setParticipation(participationData);
           setValidTables(validTableData);
+        } else {
+          setParticipation([]);
+          setValidTables([]);
         }
+      })
+      .catch((err) => {
+        console.error("Error obteniendo resultados presidenciales:", err);
+        setPresidentialData([]);
+        setParticipation([]);
+        setValidTables([]);
+      })
+      .finally(() => {
         setIsLoading((prev) => ({ ...prev, president: false }));
       });
-    getResultsByLocation({
-      ...filters,
-      electionType: "deputies",
-      electionId: electionId ?? undefined,
-    })
+
+    // DIPUTADOS
+    fetcher({ ...baseParams, electionType: "deputies" })
       .unwrap()
       .then((data) => {
-        // console.log('Fetched deputies data:', data);
-        const formattedData = data.results.map((item: any) => {
-          // Get party color or generate random hex color if not found
+        const formattedData = (data.results ?? []).map((item: any) => {
           const partyColor = getPartyColor(item.partyId);
           const randomColor =
-            "#" + Math.floor(Math.random() * 16777215).toString(16);
+            "#" +
+            Math.floor(Math.random() * 16777215)
+              .toString(16)
+              .padStart(6, "0");
           return {
             name: item.partyId,
             value: item.totalVotes,
-            color: partyColor || randomColor, // Use party color, then item color, then random as fallback
+            color: partyColor || randomColor,
           };
         });
         setDeputiesData(formattedData);
+      })
+      .catch((err) => {
+        console.error("Error obteniendo resultados diputados:", err);
+        setDeputiesData([]);
+      })
+      .finally(() => {
         setIsLoading((prev) => ({ ...prev, deputies: false }));
       });
-  }, [filters, configData, electionId]);
+  }, [
+    filters,
+    electionId,
+    hasActiveConfig,
+    isPreliminaryPhase,
+    isFinalPhase,
+    getResultsByLocation,
+    getLiveResultsByLocation,
+  ]);
 
   useEffect(() => {
     const electoralLocationId = searchParams.get("electoralLocation");
-    // console.log('Electoral Location ID:', electoralLocationId);
     if (electoralLocationId) {
       getTablesByLocationId(electoralLocationId)
         .unwrap()
         .then((data) => {
           setTablesData(data);
-          // Process tables data if needed
+        })
+        .catch((err) => {
+          console.error("Error obteniendo mesas:", err);
+          setTablesData([]);
         });
     } else {
-      setTablesData([]); // Clear tables data if no location selected
+      setTablesData([]);
     }
-  }, [searchParams]);
+  }, [searchParams, getTablesByLocationId]);
 
   return (
     <div className="outer-container min-h-screen bg-gray-50 py-8">
@@ -187,8 +222,9 @@ const ResultadosGenerales3 = () => {
           </div>
 
           {configData &&
-          !configData.isResultsPeriod &&
-          configData.hasActiveConfig ? (
+          hasActiveConfig &&
+          !isPreliminaryPhase &&
+          !isFinalPhase ? (
             <div className="border border-gray-200 rounded-lg p-8 text-center">
               <p className="text-xl text-gray-600 mb-4">
                 Los resultados se habilitarán el:
@@ -225,25 +261,22 @@ const ResultadosGenerales3 = () => {
             <>
               <div className="border border-gray-200 rounded-lg p-4 mb-4">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  Participación
+                  <span>Participación</span>
+                  {isPreliminaryPhase && (
+                    <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
+                      Resultados preliminares
+                    </span>
+                  )}
                 </h3>
                 <StatisticsBars
                   title="Distribución de votos"
                   voteData={participation}
                   processedTables={{ current: 1556, total: 2678 }}
-                  totalTables={456}
-                  totalVoters={1547}
-                  totalActs={596}
-                  totalWitnesses={500}
                 />
                 <StatisticsBars
                   title="Mesas atestiguadas"
                   voteData={validTables}
                   processedTables={{ current: 1556, total: 2678 }}
-                  totalTables={456}
-                  totalVoters={1547}
-                  totalActs={596}
-                  totalWitnesses={500}
                 />
               </div>
               {presidentialData.length === 0 ? (
@@ -255,20 +288,32 @@ const ResultadosGenerales3 = () => {
                   <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
                     <div className="p-4">
                       <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        Resultados Presidenciales
+                        <span>Resultados Presidenciales</span>
+                        {isPreliminaryPhase && (
+                          <span className="text-xs font-semibold uppercase tracking-wide text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
+                            Preliminares
+                          </span>
+                        )}
                       </h3>
 
                       <Graphs data={presidentialData} />
                     </div>
                   </div>
-                  <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
-                    <div className="p-4">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        Resultados Diputados
-                      </h3>
-                      <Graphs data={deputiesData} />
+                  {deputiesData.length > 0 && (
+                    <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
+                      <div className="p-4">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                          <span>Resultados Diputados</span>
+                          {isPreliminaryPhase && (
+                            <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
+                              Preliminares
+                            </span>
+                          )}
+                        </h3>
+                        <Graphs data={deputiesData} />
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
             </>

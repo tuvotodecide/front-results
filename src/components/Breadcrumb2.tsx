@@ -306,11 +306,7 @@ const Breadcrumb = () => {
       return options.departments;
     }
     const currentPath = pathOverride || selectedPath2;
-    // console.log(
-    //   '%ccurrentPath:',
-    //   'color: blue; font-size: 16px; font-weight: bold;',
-    //   currentPath
-    // );
+
     const idParentOption = currentPath[levelIndex - 1]?.selectedOption?._id;
     // console.log(
     //   '%cParent option ID:',

@@ -12,7 +12,10 @@ import {
   useGetElectoralTableByTableCodeQuery,
   useLazyGetElectoralTablesByElectoralLocationIdQuery,
 } from "../../store/electoralTables/electoralTablesEndpoints";
-import { useLazyGetResultsByLocationQuery } from "../../store/resultados/resultadosEndpoints";
+import {
+  useLazyGetLiveResultsByLocationQuery,
+  useLazyGetResultsByLocationQuery,
+} from "../../store/resultados/resultadosEndpoints";
 import SimpleSearchBar from "../../components/SimpleSearchBar";
 import StatisticsBars from "./StatisticsBars";
 import BackButton from "../../components/BackButton";
@@ -61,10 +64,11 @@ const ResultadosMesa2 = () => {
   const filters = useSelector(selectFilters);
   const filterIds = useSelector(selectFilterIds);
 
-  const [getResultsByLocation] = useLazyGetResultsByLocationQuery({});
-  const [getBallotsByTableCode] = useLazyGetBallotByTableCodeQuery({});
+  const [getResultsByLocation] = useLazyGetResultsByLocationQuery();
+  const [getLiveResultsByLocation] = useLazyGetLiveResultsByLocationQuery();
+  const [getBallotsByTableCode] = useLazyGetBallotByTableCodeQuery();
   const [getTablesByLocationId] =
-    useLazyGetElectoralTablesByElectoralLocationIdQuery({});
+    useLazyGetElectoralTablesByElectoralLocationIdQuery();
 
   const [presidentialData, setPresidentialData] = useState<
     Array<{ name: string; value: number; color: string }>
@@ -96,6 +100,9 @@ const ResultadosMesa2 = () => {
     useState<string[]>([]);
 
   const { data: configData } = useGetConfigurationStatusQuery();
+  const hasActiveConfig = !!configData?.hasActiveConfig;
+  const isPreliminaryPhase = !!configData?.isVotingPeriod;
+  const isFinalPhase = !!configData?.isResultsPeriod;
 
   useGetDepartmentsQuery({
     limit: 100,
@@ -214,102 +221,133 @@ const ResultadosMesa2 = () => {
   }, [mostSupportedBallotData]);
 
   useEffect(() => {
-    if (tableCode && electoralTableData) {
-      getBallotsByTableCode({ tableCode, electionId: electionId ?? undefined })
-        .unwrap()
-        .then((data: any) => {
-          setImages(data);
-          //console.log('Fetched ballots data:', data);
-          // Process the fetched ballots data as needed
-        });
+    if (!tableCode || !electoralTableData) return;
 
-      if (electoralTableData.electoralLocation) {
-        getTablesByLocationId(electoralTableData.electoralLocation._id)
-          .unwrap()
-          .then((data) => {
-            console.log("Fetched other tables data:", data);
-            setOtherTables(
-              data.filter(
-                (table: ElectoralTableType) => table._id !== tableCode
-              )
-            );
-            // Process the fetched tables data as needed
-          });
-      }
-
-      // Only make API calls if results period is active
-      if (!configData?.isResultsPeriod) {
-        return;
-      }
-
-      getResultsByLocation({
-        tableCode,
-        electionType: "presidential",
-        electionId: electionId ?? undefined,
+    getBallotsByTableCode({ tableCode, electionId: electionId ?? undefined })
+      .unwrap()
+      .then((data: any) => {
+        setImages(data);
       })
+      .catch((err) => {
+        console.error("Error obteniendo actas:", err);
+        setImages([]);
+      });
+
+    if (electoralTableData.electoralLocation) {
+      getTablesByLocationId(electoralTableData.electoralLocation._id)
         .unwrap()
         .then((data) => {
-          // console.log('Fetched presidential data:', data);
-          const formattedData = data.results.map((item: any) => {
-            // Get party color or generate random hex color if not found
-            const partyColor = getPartyColor(item.partyId);
-            const randomColor =
-              "#" + Math.floor(Math.random() * 16777215).toString(16);
-            return {
-              name: item.partyId,
-              value: item.totalVotes,
-              color: partyColor || randomColor, // Use party color, then item color, then random as fallback
-            };
-          });
-          setPresidentialData(formattedData);
-
-          if (data.summary) {
-            const participationData = [
-              {
-                name: "Válidos",
-                // value: data.summary?.validVotes || 0,
-                value: data.summary.validVotes || 0,
-                color: "#8cc689", // Green
-              },
-              {
-                name: "Nulos",
-                // value: data.summary?.nullVotes || 0,
-                value: data.summary.nullVotes || 0,
-                color: "#81858e", // Red
-              },
-              {
-                name: "Blancos",
-                // value: data.summary?.blankVotes || 0,
-                value: data.summary.blankVotes || 0,
-                color: "#f3f3ce", // Yellow
-              },
-            ];
-            setParticipation(participationData);
-          }
-        });
-      getResultsByLocation({
-        tableCode,
-        electionType: "deputies",
-        electionId: electionId ?? undefined,
-      })
-        .unwrap()
-        .then((data) => {
-          // console.log('Fetched deputies data:', data);
-          const formattedData = data.results.map((item: any) => {
-            // Get party color or generate random hex color if not found
-            const partyColor = getPartyColor(item.partyId);
-            const randomColor =
-              "#" + Math.floor(Math.random() * 16777215).toString(16);
-            return {
-              name: item.partyId,
-              value: item.totalVotes,
-              color: partyColor || randomColor, // Use party color, then item color, then random as fallback
-            };
-          });
-          setDeputiesData(formattedData);
+          setOtherTables(
+            data.filter((table: ElectoralTableType) => table._id !== tableCode)
+          );
+        })
+        .catch((err) => {
+          console.error("Error obteniendo otras mesas:", err);
+          setOtherTables([]);
         });
     }
-  }, [tableCode, electoralTableData, configData, electionId]);
+
+    if (!hasActiveConfig || (!isPreliminaryPhase && !isFinalPhase)) {
+      setPresidentialData([]);
+      setDeputiesData([]);
+      setParticipation([]);
+      return;
+    }
+
+    const fetcher = isFinalPhase
+      ? getResultsByLocation
+      : getLiveResultsByLocation;
+
+    fetcher({
+      tableCode,
+      electionType: "presidential",
+      electionId: electionId ?? undefined,
+    })
+      .unwrap()
+      .then((data) => {
+        const formattedData = (data.results ?? []).map((item: any) => {
+          const partyColor = getPartyColor(item.partyId);
+          const randomColor =
+            "#" +
+            Math.floor(Math.random() * 16777215)
+              .toString(16)
+              .padStart(6, "0");
+          return {
+            name: item.partyId,
+            value: item.totalVotes,
+            color: partyColor || randomColor,
+          };
+        });
+        setPresidentialData(formattedData);
+
+        if (data.summary) {
+          const participationData = [
+            {
+              name: "Válidos",
+              value: data.summary.validVotes || 0,
+              color: "#8cc689",
+            },
+            {
+              name: "Nulos",
+              value: data.summary.nullVotes || 0,
+              color: "#81858e",
+            },
+            {
+              name: "Blancos",
+              value: data.summary.blankVotes || 0,
+              color: "#f3f3ce",
+            },
+          ];
+          setParticipation(participationData);
+        } else {
+          setParticipation([]);
+        }
+      })
+      .catch((err) => {
+        console.error("Error obteniendo resultados presidenciales:", err);
+        setPresidentialData([]);
+        setParticipation([]);
+      });
+
+    // DIPUTADOS
+    fetcher({
+      tableCode,
+      electionType: "deputies",
+      electionId: electionId ?? undefined,
+    })
+      .unwrap()
+      .then((data) => {
+        const formattedData = (data.results ?? []).map((item: any) => {
+          const partyColor = getPartyColor(item.partyId);
+          const randomColor =
+            "#" +
+            Math.floor(Math.random() * 16777215)
+              .toString(16)
+              .padStart(6, "0");
+          return {
+            name: item.partyId,
+            value: item.totalVotes,
+            color: partyColor || randomColor,
+          };
+        });
+        setDeputiesData(formattedData);
+      })
+      .catch((err) => {
+        console.error("Error obteniendo resultados diputados:", err);
+        setDeputiesData([]);
+      });
+  }, [
+    tableCode,
+    electoralTableData,
+    electionId,
+    hasActiveConfig,
+    isPreliminaryPhase,
+    isFinalPhase,
+    getBallotsByTableCode,
+    getTablesByLocationId,
+    getResultsByLocation,
+    getLiveResultsByLocation,
+  ]);
 
   useEffect(() => {
     if (tableCode) {
@@ -812,14 +850,16 @@ const ResultadosMesa2 = () => {
                               </svg>
                             </div>
                             <p className="text-gray-600 mb-2">
-                              {attestationsData?.data
-                                ? `Se encontraron ${attestationsData.data.length} attestations para ${currentFilter}, pero no contienen datos de ballots válidos`
-                                : `No se encontraron mesas atestiguadas para ${currentFilter}`}
+                              {attestationsData?.data &&
+                              attestationsData.data.length > 0
+                                ? `Se registraron ${attestationsData.data.length} atestiguamientos en ${currentFilter}, pero todavía no están asociados a actas escaneadas.`
+                                : `No se encontraron mesas atestiguadas en ${currentFilter}.`}
                             </p>
                             <p className="text-sm text-gray-500">
-                              {attestationsData?.data
-                                ? "Los datos del backend necesitan ser corregidos para incluir ballotId válidos"
-                                : "Intente seleccionar un filtro territorial diferente"}
+                              {attestationsData?.data &&
+                              attestationsData.data.length > 0
+                                ? "Estamos actualizando la información de estas actas. Vuelva a intentarlo más tarde o pruebe con otro filtro territorial."
+                                : "Pruebe seleccionando otro departamento, provincia o municipio."}
                             </p>
                           </div>
                         );
@@ -1087,8 +1127,9 @@ const ResultadosMesa2 = () => {
                     </div>
                   )}
                   {configData &&
-                  !configData.isResultsPeriod &&
-                  configData.hasActiveConfig ? (
+                  hasActiveConfig &&
+                  !isPreliminaryPhase &&
+                  !isFinalPhase ? (
                     <div className="border border-gray-200 rounded-lg p-8 text-center">
                       <p className="text-xl text-gray-600 mb-4">
                         Los resultados se habilitarán el:

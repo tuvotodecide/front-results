@@ -1,4 +1,4 @@
-import { apiSlice } from '../apiSlice';
+import { apiSlice } from "../apiSlice";
 
 interface GetResultsParams {
   department?: string;
@@ -8,20 +8,27 @@ interface GetResultsParams {
   electoralLocation?: string;
   tableCode?: string;
   electionType?: string;
-  electionId?: string; 
+  electionId?: string;
 }
 
 export const resultadosApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getResultsByLocation: builder.query<any, GetResultsParams>({
       query: (params) => ({
-        url: '/results/by-location',
+        url: "/results/by-location",
         params,
       }),
       keepUnusedDataFor: 60,
     }),
+    getLiveResultsByLocation: builder.query<any, GetResultsParams>({
+      query: (params) => ({
+        url: "/results/live/by-location",
+        params,
+      }),
+      keepUnusedDataFor: 30,
+    }),
     getStatistics: builder.query<any, void>({
-      query: () => '/results/statistics',
+      query: () => "/results/statistics",
       keepUnusedDataFor: 60,
     }),
     getRegistrationProgress: builder.query<any, GetResultsParams>({
@@ -39,4 +46,5 @@ export const {
   useLazyGetResultsByLocationQuery,
   useGetStatisticsQuery,
   useLazyGetRegistrationProgressQuery,
+  useLazyGetLiveResultsByLocationQuery,
 } = resultadosApiSlice;

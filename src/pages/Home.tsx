@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useGetConfigurationStatusQuery } from "../store/configurations/configurationsEndpoints";
-import { useLazyGetResultsByLocationQuery } from "../store/resultados/resultadosEndpoints";
+import {
+  useLazyGetResultsByLocationQuery,
+  useLazyGetLiveResultsByLocationQuery,
+} from "../store/resultados/resultadosEndpoints";
 import { useSelector } from "react-redux";
 import { selectFilters } from "../store/resultados/resultadosSlice";
 import { getPartyColor } from "./Resultados/partyColors";
@@ -21,27 +24,47 @@ const Home: React.FC = () => {
 
   const { data: configData } = useGetConfigurationStatusQuery();
   const [getResultsByLocation] = useLazyGetResultsByLocationQuery();
+  const [getLiveResultsByLocation] = useLazyGetLiveResultsByLocationQuery();
   const filters = useSelector(selectFilters);
 
   const electionId = useElectionId();
+  const hasActiveConfig = !!configData?.hasActiveConfig;
+  const isPreliminaryPhase = !!configData?.isVotingPeriod; // epoca de preliminares
+  const isFinalPhase = !!configData?.isResultsPeriod;
 
   useEffect(() => {
-    if (!configData?.isResultsPeriod) {
+    if (!hasActiveConfig) {
+      setPresidentialData([]);
+      setParticipation([]);
       return;
     }
 
-    // Obtener resultados presidenciales
-    getResultsByLocation({
+    if (!isPreliminaryPhase && !isFinalPhase) {
+      setPresidentialData([]);
+      setParticipation([]);
+      return;
+    }
+
+    const params = {
       ...filters,
       electionType: "presidential",
-      electionId: electionId ?? undefined, // 👈 PASA electionId
-    })
+      electionId: electionId ?? undefined,
+    };
+
+    const fetcher = isFinalPhase
+      ? getResultsByLocation // resultados oficiales
+      : getLiveResultsByLocation; // resultados preliminares
+
+    fetcher(params)
       .unwrap()
       .then((data) => {
-        const formattedData = data.results.map((item: any) => {
+        const formattedData = (data.results ?? []).map((item: any) => {
           const partyColor = getPartyColor(item.partyId);
           const randomColor =
-            "#" + Math.floor(Math.random() * 16777215).toString(16);
+            "#" +
+            Math.floor(Math.random() * 16777215)
+              .toString(16)
+              .padStart(6, "0");
           return {
             name: item.partyId,
             value: item.totalVotes,
@@ -69,12 +92,25 @@ const Home: React.FC = () => {
             },
           ];
           setParticipation(participationData);
+        } else {
+          setParticipation([]);
         }
       })
       .catch((error) => {
         console.log("Error obteniendo resultados:", error);
+        setPresidentialData([]);
+        setParticipation([]);
       });
-  }, [filters, configData, electionId]);
+  }, [
+    filters,
+    electionId,
+    hasActiveConfig,
+    isPreliminaryPhase,
+    isFinalPhase,
+    getResultsByLocation,
+    getLiveResultsByLocation,
+  ]);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section - Más compacto */}
@@ -107,8 +143,9 @@ const Home: React.FC = () => {
           </div> */}
 
           {configData &&
-          !configData.isResultsPeriod &&
-          configData.hasActiveConfig ? (
+          hasActiveConfig &&
+          !isPreliminaryPhase &&
+          !isFinalPhase ? (
             <div className="bg-white border border-gray-300 rounded-xl p-8 text-center shadow-sm">
               <div className="max-w-md mx-auto">
                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -203,7 +240,12 @@ const Home: React.FC = () => {
                           d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
                         ></path>
                       </svg>
-                      Participación Electoral
+                      <span>Participación Electoral</span>
+                      {isPreliminaryPhase && (
+                        <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
+                          Resultados preliminares
+                        </span>
+                      )}
                     </h3>
                     <p className="text-gray-600 mt-1">
                       Distribución de votos válidos, nulos y blancos
@@ -237,7 +279,11 @@ const Home: React.FC = () => {
                           d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                         ></path>
                       </svg>
-                      Resultados Presidenciales
+                      <span>
+                        {isPreliminaryPhase
+                          ? "Resultados Presidenciales (preliminares)"
+                          : "Resultados Presidenciales"}
+                      </span>
                     </h3>
                     <p className="text-gray-600 mt-1">
                       Votos por candidatura presidencial
