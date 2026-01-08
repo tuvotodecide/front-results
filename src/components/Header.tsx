@@ -1,9 +1,9 @@
-import React from 'react';
-import styles from './Header.module.css';
-import { useSelector, useDispatch } from 'react-redux';
-import { selectIsLoggedIn, selectAuth, logOut } from '../store/auth/authSlice';
-import tuvotoDecideImage from '../assets/tuvotodecide.webp';
-// import { Link } from 'react-router-dom';
+import React from "react";
+import styles from "./Header.module.css";
+import { useSelector, useDispatch } from "react-redux";
+import { selectIsLoggedIn, selectAuth, logOut } from "../store/auth/authSlice";
+import tuvotoDecideImage from "../assets/tuvotodecide.webp";
+import { Link, useLocation } from "react-router-dom";
 
 interface HeaderProps {
   toggleSidebar: () => void;
@@ -15,6 +15,8 @@ export const Header: React.FC<HeaderProps> = ({
   isSidebarOpen,
 }) => {
   const isLoggedIn = useSelector(selectIsLoggedIn);
+  const location = useLocation();
+  const isLoginPage = location.pathname === "/login";
   const { user } = useSelector(selectAuth);
   const dispatch = useDispatch();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
@@ -27,9 +29,9 @@ export const Header: React.FC<HeaderProps> = ({
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -40,9 +42,9 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className={styles.header}>
       <a className={styles.logo}>
-        <img 
-          src={tuvotoDecideImage} 
-          alt="Tu voto decide" 
+        <img
+          src={tuvotoDecideImage}
+          alt="Tu voto decide"
           className={styles.logoImage}
         />
         <span className={styles.logoText}>Tu voto decide</span>
@@ -50,22 +52,76 @@ export const Header: React.FC<HeaderProps> = ({
       <div className={styles.headerActions}>
         {isLoggedIn ? (
           <>
-            {' '}
+            {" "}
             <div className={styles.userMenuContainer} ref={menuRef}>
-              <span
-                className={`${styles.userName} ${
-                  isMenuOpen ? styles.active : ''
+              <button
+                className={`${styles.userButton} ${
+                  isMenuOpen ? styles.active : ""
                 }`}
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
               >
-                {user?.name}
-              </span>
+                <div className={styles.avatar}>
+                  
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                </div>
+                <span className={styles.userNameText}>{user?.name}</span>
+                
+                <svg
+                  className={`${styles.chevron} ${
+                    isMenuOpen ? styles.rotate : ""
+                  }`}
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+
               <div
                 className={`${styles.userMenu} ${
-                  isMenuOpen ? styles.show : ''
+                  isMenuOpen ? styles.show : ""
                 }`}
               >
+                <div className={styles.menuHeader}>
+                  <p className={styles.menuEmail}>{user?.email}</p>
+                </div>
                 <button onClick={logout} className={styles.menuItem}>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ marginRight: "8px" }}
+                  >
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                  </svg>
                   Cerrar sesión
                 </button>
               </div>
@@ -73,14 +129,18 @@ export const Header: React.FC<HeaderProps> = ({
           </>
         ) : (
           <>
-            {/* <Link to="/login">Login</Link> */}
-            {/* <Link to="/crearCuenta">Crear Cuenta</Link> */}
+            {!isLoginPage && (
+              <Link to="/login" className={styles.loginButton}>
+                Iniciar Sesión
+              </Link>
+            )}
+            
           </>
         )}
         <button
           className={styles.menuToggle}
           onClick={toggleSidebar}
-          aria-label={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+          aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
         >
           {isSidebarOpen ? (
             <svg

@@ -11,9 +11,18 @@ export interface AuthState {
   } | null;
 }
 
+// const initialState: AuthState = {
+//   token: null,
+//   user: null,
+// };
 const initialState: AuthState = {
-  token: null,
-  user: null,
+  token: 'token-de-prueba', // Al poner algo aquí, el sistema creerá que hay sesión
+  user: { 
+    id: '1', 
+    email: 'admin@correo.com', 
+    name: 'JOSE MENDOZA', // Este nombre verás en el header
+    role: 'admin' 
+  },
 };
 
 export const authSlice = createSlice({

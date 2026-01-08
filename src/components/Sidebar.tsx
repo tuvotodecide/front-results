@@ -1,14 +1,14 @@
-import React, { useEffect } from 'react';
-import { useScreenSize } from '../hooks/useScreenSize';
-import styles from './Sidebar.module.css';
-import { Link } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import { selectIsLoggedIn } from '../store/auth/authSlice';
+import React, { useEffect } from "react";
+import { useScreenSize } from "../hooks/useScreenSize";
+import styles from "./Sidebar.module.css";
+import { Link } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { selectIsLoggedIn } from "../store/auth/authSlice";
 import {
   selectCurrentBallot,
   selectCurrentTable,
   selectQueryParamsResults,
-} from '../store/resultados/resultadosSlice';
+} from "../store/resultados/resultadosSlice";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -31,18 +31,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
 
     const menuLinks = document.querySelectorAll(`.${styles.menuLink}`);
     menuLinks.forEach((link) => {
-      link.addEventListener('click', handleMenuClick);
+      link.addEventListener("click", handleMenuClick);
     });
 
     return () => {
       menuLinks.forEach((link) => {
-        link.removeEventListener('click', handleMenuClick);
+        link.removeEventListener("click", handleMenuClick);
       });
     };
   }, [closeSidebar, isSmallScreen]);
 
   useEffect(() => {
-    console.log('Query Params Results changed:', queryParamsResults);
+    console.log("Query Params Results changed:", queryParamsResults);
   }, [queryParamsResults]);
 
   return (
@@ -70,12 +70,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
           <h3 className={styles.title}>Resultados</h3>
           <ul className={styles.menu}>
             <li className={styles.menuItem}>
-              {' '}
+              {" "}
               <Link
                 to={
                   queryParamsResults
                     ? `/resultados?${queryParamsResults}`
-                    : '/resultados'
+                    : "/resultados"
                 }
                 className={styles.menuLink}
               >
@@ -87,7 +87,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
                 to={
                   currentTable
                     ? `/resultados/mesa/${currentTable}`
-                    : '/resultados/mesa'
+                    : "/resultados/mesa"
                 }
                 className={styles.menuLink}
               >
@@ -99,11 +99,35 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
                 to={
                   currentBallot
                     ? `/resultados/imagen/${currentBallot}`
-                    : '/resultados/imagen'
+                    : "/resultados/imagen"
                 }
                 className={styles.menuLink}
               >
                 <span className={styles.icon}>🖼️</span>Resultados por imagen
+              </Link>
+            </li>
+            <li className={styles.menuItem}>
+              <Link
+                to={
+                  queryParamsResults
+                    ? `/control-personal?${queryParamsResults}`
+                    : "/control-personal"
+                }
+                className={styles.menuLink}
+              >
+                <span className={styles.icon}>👥</span>Participación de personal
+              </Link>
+            </li>
+            <li className={styles.menuItem}>
+              <Link
+                to={
+                  queryParamsResults
+                    ? `/auditoria-tse?${queryParamsResults}`
+                    : "/auditoria-tse"
+                }
+                className={styles.menuLink}
+              >
+                <span className={styles.icon}>🔍</span>Auditoría TSE
               </Link>
             </li>
           </ul>
@@ -113,7 +137,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
             <div className={styles.section}>
               <h3 className={styles.title}>Ubicaciones geográficas</h3>
               <ul className={styles.menu}>
-                {' '}
+                {" "}
                 <li className={styles.menuItem}>
                   <Link to="/departamentos" className={styles.menuLink}>
                     <span className={styles.icon}>⚙️</span>Departamentos
@@ -166,7 +190,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
       </aside>
       {isSmallScreen && (
         <div
-          className={`${styles.overlay} ${isOpen ? styles.active : ''}`}
+          className={`${styles.overlay} ${isOpen ? styles.active : ""}`}
           onClick={closeSidebar}
         ></div>
       )}

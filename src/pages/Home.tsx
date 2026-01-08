@@ -58,6 +58,7 @@ const Home: React.FC = () => {
     fetcher(params)
       .unwrap()
       .then((data) => {
+        console.log("DATOS RECIBIDOS DEL MOCK:", data);
         const formattedData = (data.results ?? []).map((item: any) => {
           const partyColor = getPartyColor(item.partyId);
           const randomColor =

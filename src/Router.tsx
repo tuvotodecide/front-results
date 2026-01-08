@@ -4,6 +4,8 @@ import { useDispatch } from 'react-redux';
 import { setAuth } from './store/auth/authSlice';
 import LoadingSkeleton from './components/LoadingSkeleton';
 import ResultadosGenerales3 from './pages/Resultados/ResultadosGenerales3';
+import ParticipacionPersonal from './pages/Resultados/PersonalParticipation';
+import AuditAndMatch from './pages/Resultados/AuditAndMatch';
 import ResultadosMesa2 from './pages/Resultados/ResultadosMesa2';
 import ResultadosImagen from './pages/Resultados/ResultadosImagen';
 import Departments from './pages/Departments/Departments';
@@ -27,7 +29,8 @@ const Home = React.lazy(() => import('./pages/Home'));
 const Login = React.lazy(() => import('./pages/Auth/Login'));
 const PanelControl = React.lazy(() => import('./pages/PanelControl'));
 
-const CrearCuenta = React.lazy(() => import('./pages/Auth/CrearCuenta'));
+const Register = React.lazy(() => import('./pages/Auth/Register'));
+const WaitingApproval = React.lazy(() => import('./pages/Auth/WaitingApproval'));
 const ProtectedRoutes = React.lazy(() => import('./pages/ProtectedRoutes'));
 const BasicLayout = React.lazy(() => import('./components/BasicLayout'));
 const Partidos = React.lazy(() => import('./pages/Partidos/Partidos'));
@@ -58,9 +61,12 @@ const AppRouter: React.FC = () => {
           <Route element={<BasicLayout />}>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/crearCuenta" element={<CrearCuenta />} />
+            <Route path="/registrarse" element={<Register />} />
+            <Route path="/pendiente" element={<WaitingApproval />} />
             <Route path="/resultados" element={<ResultadosGenerales3 />} />
             <Route path="/resultados/mesa" element={<ResultadosMesa2 />} />
+            <Route path="/control-personal" element={<ParticipacionPersonal />} />
+            <Route path="/auditoria-tse" element={<AuditAndMatch />} />
             <Route
               path="/resultados/mesa/:tableCode"
               element={<ResultadosMesa2 />}

@@ -1045,87 +1045,7 @@ const ResultadosMesa2 = () => {
                       </div>
                     </div>
                   </div>
-                  {otherTables.length > 0 && (
-                    <div className="border border-gray-200 rounded-lg p-6 mb-4">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        Otras mesas del Recinto
-                      </h3>
-                      <div
-                        className={`flex flex-wrap gap-3 ${
-                          !showAllTables
-                            ? "max-h-[calc(3*5.5rem+2*0.75rem)] overflow-hidden"
-                            : ""
-                        }`}
-                      >
-                        {otherTables.map((table) => (
-                          <Link
-                            key={table._id}
-                            to={`/resultados/mesa/${table.tableCode}`}
-                            className="border border-gray-300 rounded-lg p-4 hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200 block flex-shrink-0 w-[calc(20%-0.6rem)] min-w-[120px]"
-                          >
-                            <div className="text-center">
-                              <div className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-1">
-                                Mesa
-                              </div>
-                              <div className="text-lg font-semibold text-gray-900 mb-2">
-                                #{table.tableNumber}
-                              </div>
-                              <div
-                                className="text-xs text-gray-500 break-words truncate"
-                                title={table.tableCode}
-                              >
-                                {table.tableCode}
-                              </div>
-                            </div>
-                          </Link>
-                        ))}
-                      </div>
-                      {otherTables.length > 15 && (
-                        <div className="mt-4 text-center">
-                          <button
-                            onClick={() => setShowAllTables(!showAllTables)}
-                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200"
-                          >
-                            {showAllTables ? (
-                              <>
-                                Mostrar menos
-                                <svg
-                                  className="ml-2 w-4 h-4"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    d="M5 15l7-7 7 7"
-                                  />
-                                </svg>
-                              </>
-                            ) : (
-                              <>
-                                Mostrar todas ({otherTables.length} mesas)
-                                <svg
-                                  className="ml-2 w-4 h-4"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    d="M19 9l-7 7-7-7"
-                                  />
-                                </svg>
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
+
                   {configData &&
                   hasActiveConfig &&
                   !isPreliminaryPhase &&
@@ -1214,6 +1134,87 @@ const ResultadosMesa2 = () => {
                   attestationCases={attestationCases?.ballots || []}
                 />
               </div>
+              {otherTables.length > 0 && (
+                <div className="border border-gray-200 rounded-lg p-6 mb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    Otras mesas del Recinto
+                  </h3>
+                  <div
+                    className={`flex flex-wrap gap-3 ${
+                      !showAllTables
+                        ? "max-h-[calc(3*5.5rem+2*0.75rem)] overflow-hidden"
+                        : ""
+                    }`}
+                  >
+                    {otherTables.map((table) => (
+                      <Link
+                        key={table._id}
+                        to={`/resultados/mesa/${table.tableCode}`}
+                        className="border border-gray-300 rounded-lg p-4 hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200 block flex-shrink-0 w-[calc(20%-0.6rem)] min-w-[120px]"
+                      >
+                        <div className="text-center">
+                          <div className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-1">
+                            Mesa
+                          </div>
+                          <div className="text-lg font-semibold text-gray-900 mb-2">
+                            #{table.tableNumber}
+                          </div>
+                          <div
+                            className="text-xs text-gray-500 break-words truncate"
+                            title={table.tableCode}
+                          >
+                            {table.tableCode}
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                  {otherTables.length > 15 && (
+                    <div className="mt-4 text-center">
+                      <button
+                        onClick={() => setShowAllTables(!showAllTables)}
+                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200"
+                      >
+                        {showAllTables ? (
+                          <>
+                            Mostrar menos
+                            <svg
+                              className="ml-2 w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M5 15l7-7 7 7"
+                              />
+                            </svg>
+                          </>
+                        ) : (
+                          <>
+                            Mostrar todas ({otherTables.length} mesas)
+                            <svg
+                              className="ml-2 w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M19 9l-7 7-7-7"
+                              />
+                            </svg>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -322,6 +322,58 @@ const ResultadosImagen = () => {
                       </div>
                     </div>
                   </div>
+                  <div className="mt-6 border-t border-gray-100 pt-4">
+                    <h4 className="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wider">
+                      Detalle de Testigos
+                    </h4>
+                    <div className="max-h-[300px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                      {attestationsData && attestationsData.length > 0 ? (
+                        attestationsData.map((att: any) => (
+                          <div
+                            key={att._id}
+                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 hover:bg-white transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              {/* Icono de usuario o iniciales */}
+                              <div
+                                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white ${
+                                  att.support ? "bg-green-500" : "bg-red-500"
+                                }`}
+                              >
+                                {att.userRole?.charAt(0) || "U"}
+                              </div>
+                              <div>
+                                {/* Aquí puedes poner att.userName si tu API lo tiene, sino el Role o ID */}
+                                <p className="text-sm font-semibold text-gray-800">
+                                  {att.userName ||
+                                    `Usuario #${att._id.slice(-4)}`}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {att.userRole} •{" "}
+                                  {new Date(att.createdAt).toLocaleTimeString()}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span
+                                className={`text-[10px] font-bold px-2 py-1 rounded uppercase ${
+                                  att.support
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-red-100 text-red-700"
+                                }`}
+                              >
+                                {att.support ? "Validado" : "Rechazado"}
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-400 text-center py-4 italic">
+                          No hay registros detallados disponibles.
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Smart Contracts Section - Minimalist */}

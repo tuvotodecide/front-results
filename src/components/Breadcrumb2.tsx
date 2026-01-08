@@ -421,6 +421,20 @@ const Breadcrumb = () => {
     );
     setFilteredOptions(internalFilteredOptions);
   };
+  useEffect(() => {
+  dispatch(setQueryParamsResults(searchParams.toString()));
+  
+  if (!isInitialized && searchParams.size > 0 && selectedPath2.length === 0) {
+    // ... (Mantener tu lógica existente de carga desde URL) ...
+    setIsInitialized(true);
+  } else if (!isInitialized) {
+    // CAMBIO AQUÍ: Si entramos a /resultados sin parámetros, 
+    // mostramos automáticamente el nivel de Departamentos
+    selectLevel(0);
+    setShowCurrentLevel(true);
+    setIsInitialized(true);
+  }
+}, [searchParams, isInitialized, departments]);
 
   return (
     <div className="mx-auto pb-6">
