@@ -28,28 +28,28 @@ export const configurationsApiSlice = apiSlice.injectEndpoints({
       keepUnusedDataFor: 60,
       providesTags: (_result, _error) => [{ type: "Configurations" as const }],
     }),
-    // getConfigurationStatus: builder.query<ConfigurationStatusType, void>({
-    //   query: () => `/elections/config/status`,
-    //   keepUnusedDataFor: 60,
-    //   providesTags: (_result, _error) => [{ type: 'Configurations' as const }],
-    // }),
-    getConfigurationStatus: builder.query<any, void>({
-      async queryFn() {
-        return {
-          data: {
-            hasActiveConfig: true,
-            isVotingPeriod: true, // true = Resultados Preliminares (TREP)
-            isResultsPeriod: false, // true = Resultados Oficiales (Cómputo)
-            config: {
-              id: "eleccion-bolivia-2025",
-              name: "Elecciones Generales 2025",
-              resultsStartDateBolivia: "2025-10-18T18:00:00.000Z", // Fecha futura para probar el reloj
-              status: "active",
-            },
-          },
-        };
-      },
+    getConfigurationStatus: builder.query<ConfigurationStatusType, void>({
+      query: () => `/elections/config/status`,
+      keepUnusedDataFor: 60,
+      providesTags: (_result, _error) => [{ type: 'Configurations' as const }],
     }),
+    // getConfigurationStatus: builder.query<any, void>({
+    //   async queryFn() {
+    //     return {
+    //       data: {
+    //         hasActiveConfig: true,
+    //         isVotingPeriod: true, // true = Resultados Preliminares (TREP)
+    //         isResultsPeriod: false, // true = Resultados Oficiales (Cómputo)
+    //         config: {
+    //           id: "eleccion-bolivia-2025",
+    //           name: "Elecciones Generales 2025",
+    //           resultsStartDateBolivia: "2025-10-18T18:00:00.000Z", // Fecha futura para probar el reloj
+    //           status: "active",
+    //         },
+    //       },
+    //     };
+    //   },
+    // }),
     createConfiguration: builder.mutation<
       ConfigurationType,
       CreateConfigurationType

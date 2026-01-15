@@ -102,7 +102,7 @@ const ResultadosGenerales3 = () => {
               .padStart(6, "0");
           return {
             name: item.partyId,
-            value: item.totalVotes,
+            value: Number(item.totalVotes) || 0,
             color: partyColor || randomColor,
           };
         });
@@ -170,7 +170,7 @@ const ResultadosGenerales3 = () => {
               .padStart(6, "0");
           return {
             name: item.partyId,
-            value: item.totalVotes,
+            value: Number(item.totalVotes) || 0,
             color: partyColor || randomColor,
           };
         });

@@ -1,16 +1,22 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Search, X } from 'lucide-react';
+import React, { useState, useRef, useEffect } from "react";
+import { Search, X } from "lucide-react";
 
 interface SearchBarProps {
   className?: string;
   onSearch?: (query: string) => void;
+  inputDataCy?: string;
+  submitDataCy?: string;
+  clearDataCy?: string;
 }
 
 export default function SimpleSearchBar({
   className,
   onSearch,
+  inputDataCy = "image-search-input",
+  submitDataCy = "image-search-submit",
+  clearDataCy = "image-search-clear",
 }: SearchBarProps) {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -20,7 +26,7 @@ export default function SimpleSearchBar({
   }, [query]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && onSearch) {
+    if (e.key === "Enter" && onSearch) {
       onSearch(query);
     }
   };
@@ -37,11 +43,11 @@ export default function SimpleSearchBar({
   // };
 
   const clearQuery = () => {
-    setQuery('');
+    setQuery("");
   };
 
   return (
-    <div className={`${className ?? ''}`}>
+    <div className={`${className ?? ""}`}>
       {/* Unified Search Block */}
       <div className="relative w-full box-border">
         {/* Search Bar */}
@@ -49,6 +55,7 @@ export default function SimpleSearchBar({
           <div className="flex items-center">
             {/* Search Icon */}
             <button
+              data-cy={submitDataCy}
               onClick={handleSearchClick}
               className="pl-4 pr-3 hover:bg-gray-200 rounded-l-[26px] transition-colors"
             >
@@ -58,6 +65,7 @@ export default function SimpleSearchBar({
             {/* Input Field */}
             <input
               ref={inputRef}
+              data-cy={inputDataCy}
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -69,6 +77,7 @@ export default function SimpleSearchBar({
             {/* Clear Button */}
             {query && (
               <button
+                data-cy={clearDataCy}
                 onClick={clearQuery}
                 className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 transition-colors hover:bg-gray-200 rounded-full"
               >

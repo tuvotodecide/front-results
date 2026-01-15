@@ -4,6 +4,7 @@ import {
   createApi,
   fetchBaseQuery,
 } from "@reduxjs/toolkit/query/react";
+import { logOut } from "./auth/authSlice";
 // import { RootState } from './index';
 
 const { VITE_BASE_API_URL } = import.meta.env;
@@ -31,8 +32,6 @@ const needsElectionId = (path: string) => {
     p.startsWith("/geographic/electoral-tables/attested-only")
   );
 };
-
-
 
 const baseQueryWrapper = async (
   args: string | FetchArgs,
@@ -62,8 +61,10 @@ const baseQueryWrapper = async (
 
   // const result = await baseQuery(args, api, extraOptions);
   if (result.error?.status === 401) {
-    // api.dispatch(logOut());
-    console.log("Unauthorized, logout");
+    api.dispatch(logOut());
+    if (typeof window !== "undefined") {
+      window.location.assign("/login");
+    }
   }
   return result;
 };

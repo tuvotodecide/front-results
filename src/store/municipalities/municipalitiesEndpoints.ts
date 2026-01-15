@@ -29,44 +29,44 @@ export const municipalitiesApiSlice = apiSlice.injectEndpoints({
       keepUnusedDataFor: 60,
       providesTags: () => [{ type: "Municipalities" as const, id: "LIST" }],
     }),
-    // getMunicipalitiesByProvinceId: builder.query<
-    //   MunicipalityByProvinceType[],
-    //   string
-    // >({
-    //   query: (provinceId) => ({
-    //     url: '/geographic/municipalities/by-province/' + provinceId,
-    //   }),
-    //   keepUnusedDataFor: 300,
-    //   providesTags: (_result, _error, provinceId) => [
-    //     { type: 'Municipalities' as const, id: provinceId },
-    //   ],
-    // }),
-    getMunicipalitiesByProvinceId: builder.query<any, string>({
-      async queryFn(provinceId) {
-        const municipalities =
-          provinceId === "prov-1"
-            ? [
-                { _id: "muni-1", name: "La Paz" },
-                { _id: "muni-2", name: "El Alto" },
-                { _id: "muni-3", name: "Palca" },
-              ]
-            : [{ _id: "muni-other", name: "Municipio de prueba" }];
-
-        return { data: municipalities };
-      },
+    getMunicipalitiesByProvinceId: builder.query<
+      MunicipalityByProvinceType[],
+      string
+    >({
+      query: (provinceId) => ({
+        url: '/geographic/municipalities/by-province/' + provinceId,
+      }),
+      keepUnusedDataFor: 300,
+      providesTags: (_result, _error, provinceId) => [
+        { type: 'Municipalities' as const, id: provinceId },
+      ],
     }),
-    // getMunicipality: builder.query<MunicipalitiesType, string>({
-    //   query: (id) => `/geographic/municipalities/${id}`,
-    //   keepUnusedDataFor: 60,
-    //   providesTags: (_result, _error, id) => [
-    //     { type: "Municipalities" as const, id },
-    //   ],
+    // getMunicipalitiesByProvinceId: builder.query<any, string>({
+    //   async queryFn(provinceId) {
+    //     const municipalities =
+    //       provinceId === "prov-1"
+    //         ? [
+    //             { _id: "muni-1", name: "La Paz" },
+    //             { _id: "muni-2", name: "El Alto" },
+    //             { _id: "muni-3", name: "Palca" },
+    //           ]
+    //         : [{ _id: "muni-other", name: "Municipio de prueba" }];
+
+    //     return { data: municipalities };
+    //   },
     // }),
-    getMunicipality: builder.query<any, string>({
-  async queryFn(id) {
-    return { data: { _id: id, name: "La Paz" } };
-  }
-}),
+    getMunicipality: builder.query<MunicipalitiesType, string>({
+      query: (id) => `/geographic/municipalities/${id}`,
+      keepUnusedDataFor: 60,
+      providesTags: (_result, _error, id) => [
+        { type: "Municipalities" as const, id },
+      ],
+    }),
+    // getMunicipality: builder.query<any, string>({
+    //   async queryFn(id) {
+    //     return { data: { _id: id, name: "La Paz" } };
+    //   },
+    // }),
     createMunicipality: builder.mutation<
       MunicipalitiesType,
       CreateMunicipalityType

@@ -35,10 +35,10 @@ const ResultadosImagen = () => {
   const { data: attestationsData } = useGetAttestationsByBallotIdQuery(id!, {
     skip: !id,
   });
-
   const handleSearch = (searchTerm: string) => {
-    if (!searchTerm) return;
-    navigate(`/resultados/imagen/${searchTerm}`);
+    const term = (searchTerm || "").trim();
+    if (!term) return;
+    navigate(`/resultados/imagen/${term}`);
   };
 
   const [presidentialData, setPresidentialData] = useState<
@@ -158,7 +158,10 @@ const ResultadosImagen = () => {
             </div>
           </div>
         ) : isBallotError ? (
-          <div className="bg-white rounded-lg shadow-md py-16 px-8 border border-red-200">
+          <div
+            data-cy="ballot-not-found"
+            className="bg-white rounded-lg shadow-md py-16 px-8 border border-red-200"
+          >
             <div className="flex flex-col items-center justify-center text-center">
               <div className="bg-red-50 rounded-full p-4 mb-4">
                 <svg
@@ -388,6 +391,7 @@ const ResultadosImagen = () => {
                     <div className="grid grid-cols-1 gap-2">
                       {currentItem?.image && (
                         <a
+                          data-cy="ipfs-image-link"
                           href={`https://ipfs.io/ipfs/${currentItem.image.replace(
                             "ipfs://",
                             ""
@@ -401,6 +405,7 @@ const ResultadosImagen = () => {
                       )}
                       {currentItem?.ipfsUri && (
                         <a
+                          data-cy="link-metadata"
                           href={currentItem.ipfsUri}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -411,6 +416,7 @@ const ResultadosImagen = () => {
                       )}
                       {currentItem?.recordId && (
                         <a
+                          data-cy="link-nft"
                           href={`${BASE_NFT_URL}${currentItem.recordId}`}
                           target="_blank"
                           rel="noopener noreferrer"

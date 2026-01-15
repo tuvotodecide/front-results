@@ -29,42 +29,42 @@ export const electoralSeatsApiSlice = apiSlice.injectEndpoints({
       keepUnusedDataFor: 60,
       providesTags: () => [{ type: "ElectoralSeats" as const, id: "LIST" }],
     }),
-    // getElectoralSeatsByMunicipalityId: builder.query<
-    //   ElectoralSeatByMunicipalityType[],
-    //   string
-    // >({
-    //   query: (municipalityId) => ({
-    //     url: '/geographic/electoral-seats/by-municipality/' + municipalityId,
-    //   }),
-    //   keepUnusedDataFor: 300,
-    //   providesTags: (_result, _error, municipalityId) => [
-    //     { type: 'ElectoralSeats' as const, id: municipalityId },
-    //   ],
-    // }),
-    getElectoralSeatsByMunicipalityId: builder.query<any, string>({
-      async queryFn(municipalityId) {
-        const seats =
-          municipalityId === "muni-1"
-            ? [
-                { _id: "seat-1", name: "Zona Central" },
-                { _id: "seat-2", name: "Sopocachi" },
-              ]
-            : [{ _id: "seat-other", name: "Asiento de prueba" }];
-        return { data: seats };
-      },
+    getElectoralSeatsByMunicipalityId: builder.query<
+      ElectoralSeatByMunicipalityType[],
+      string
+    >({
+      query: (municipalityId) => ({
+        url: '/geographic/electoral-seats/by-municipality/' + municipalityId,
+      }),
+      keepUnusedDataFor: 300,
+      providesTags: (_result, _error, municipalityId) => [
+        { type: 'ElectoralSeats' as const, id: municipalityId },
+      ],
     }),
-    // getElectoralSeat: builder.query<ElectoralSeatsType, string>({
-    //   query: (id) => `/geographic/electoral-seats/${id}`,
-    //   keepUnusedDataFor: 60,
-    //   providesTags: (_result, _error, id) => [
-    //     { type: "ElectoralSeats" as const, id },
-    //   ],
+    // getElectoralSeatsByMunicipalityId: builder.query<any, string>({
+    //   async queryFn(municipalityId) {
+    //     const seats =
+    //       municipalityId === "muni-1"
+    //         ? [
+    //             { _id: "seat-1", name: "Zona Central" },
+    //             { _id: "seat-2", name: "Sopocachi" },
+    //           ]
+    //         : [{ _id: "seat-other", name: "Asiento de prueba" }];
+    //     return { data: seats };
+    //   },
     // }),
-    getElectoralSeat: builder.query<any, string>({
-      async queryFn(id) {
-        return { data: { _id: id, name: "Zona Central" } };
-      },
+    getElectoralSeat: builder.query<ElectoralSeatsType, string>({
+      query: (id) => `/geographic/electoral-seats/${id}`,
+      keepUnusedDataFor: 60,
+      providesTags: (_result, _error, id) => [
+        { type: "ElectoralSeats" as const, id },
+      ],
     }),
+    // getElectoralSeat: builder.query<any, string>({
+    //   async queryFn(id) {
+    //     return { data: { _id: id, name: "Zona Central" } };
+    //   },
+    // }),
     createElectoralSeat: builder.mutation<
       ElectoralSeatsType,
       CreateElectoralSeatType

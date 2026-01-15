@@ -77,7 +77,10 @@ const Register: React.FC = () => {
         </div>
 
         {serverErrors.length > 0 && (
-          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-lg text-sm">
+          <div
+            data-cy="register-server-errors"
+            className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-lg text-sm"
+          >
             <h2 className="font-bold mb-1">Hubo un problema:</h2>
             <ul className="list-disc pl-5">
               {serverErrors.map((error, index) => (
@@ -104,6 +107,7 @@ const Register: React.FC = () => {
                 Nombre completo
               </label>
               <Field
+                data-cy="register-name"
                 name="name"
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#459151] focus:border-transparent outline-none transition-all"
               />
@@ -120,6 +124,7 @@ const Register: React.FC = () => {
               </label>
               <Field
                 name="email"
+                data-cy="register-email"
                 type="email"
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#459151] focus:border-transparent outline-none transition-all"
               />
@@ -136,6 +141,7 @@ const Register: React.FC = () => {
               </label>
               <div className="relative">
                 <Field
+                  data-cy="register-password"
                   name="password"
                   type={showPassword ? "text" : "password"}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#459151] focus:border-transparent outline-none transition-all"
@@ -162,6 +168,7 @@ const Register: React.FC = () => {
               <div className="relative">
                 <Field
                   name="confirmPassword"
+                  data-cy="register-confirm-password"
                   type={showPassword ? "text" : "password"}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#459151] focus:border-transparent outline-none transition-all"
                 />
@@ -183,6 +190,7 @@ const Register: React.FC = () => {
             <div className="pt-4 space-y-3">
               <LoadingButton
                 type="submit"
+                data-cy="register-submit"
                 isLoading={isSubmitting}
                 style={{ backgroundColor: "#459151" }}
                 className="w-full text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-[#459151]/20 active:scale-[0.98]"

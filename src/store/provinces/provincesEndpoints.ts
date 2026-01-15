@@ -28,42 +28,42 @@ export const provincesApiSlice = apiSlice.injectEndpoints({
       keepUnusedDataFor: 60,
       providesTags: () => [{ type: "Provinces" as const, id: "LIST" }],
     }),
-    // getProvincesByDepartmentId: builder.query<ProvincesType[], string>({
-    //   query: (departmentId) => ({
-    //     url: '/geographic/provinces/by-department/' + departmentId,
-    //   }),
-    //   keepUnusedDataFor: 300,
-    //   providesTags: (_result, _error, departmentId) => [
-    //     { type: 'Provinces' as const, id: departmentId },
-    //   ],
-    // }),
-    getProvincesByDepartmentId: builder.query<any, string>({
-      async queryFn(departmentId) {
-        // Simulamos provincias solo para La Paz (dept-1) para el ejemplo
-        const provinces =
-          departmentId === "dept-1"
-            ? [
-                { _id: "prov-1", name: "Murillo" },
-                { _id: "prov-2", name: "Omasuyos" },
-                { _id: "prov-3", name: "Ingavi" },
-              ]
-            : [{ _id: "prov-other", name: "Provincia de prueba" }];
+    getProvincesByDepartmentId: builder.query<ProvincesType[], string>({
+      query: (departmentId) => ({
+        url: '/geographic/provinces/by-department/' + departmentId,
+      }),
+      keepUnusedDataFor: 300,
+      providesTags: (_result, _error, departmentId) => [
+        { type: 'Provinces' as const, id: departmentId },
+      ],
+    }),
+    // getProvincesByDepartmentId: builder.query<any, string>({
+    //   async queryFn(departmentId) {
+    //     // Simulamos provincias solo para La Paz (dept-1) para el ejemplo
+    //     const provinces =
+    //       departmentId === "dept-1"
+    //         ? [
+    //             { _id: "prov-1", name: "Murillo" },
+    //             { _id: "prov-2", name: "Omasuyos" },
+    //             { _id: "prov-3", name: "Ingavi" },
+    //           ]
+    //         : [{ _id: "prov-other", name: "Provincia de prueba" }];
 
-        return { data: provinces };
-      },
-    }),
-    // getProvince: builder.query<ProvincesType, string>({
-    //   query: (id) => `/geographic/provinces/${id}`,
-    //   keepUnusedDataFor: 60,
-    //   providesTags: (_result, _error, id) => [
-    //     { type: "Provinces" as const, id },
-    //   ],
+    //     return { data: provinces };
+    //   },
     // }),
-    getProvince: builder.query<any, string>({
-      async queryFn(id) {
-        return { data: { _id: id, name: "Murillo" } };
-      },
+    getProvince: builder.query<ProvincesType, string>({
+      query: (id) => `/geographic/provinces/${id}`,
+      keepUnusedDataFor: 60,
+      providesTags: (_result, _error, id) => [
+        { type: "Provinces" as const, id },
+      ],
     }),
+    // getProvince: builder.query<any, string>({
+    //   async queryFn(id) {
+    //     return { data: { _id: id, name: "Murillo" } };
+    //   },
+    // }),
     createProvince: builder.mutation<ProvincesType, CreateProvinceType>({
       query: (body) => ({
         url: "/geographic/provinces",

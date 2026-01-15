@@ -3,7 +3,7 @@ import { useScreenSize } from "../hooks/useScreenSize";
 import styles from "./Sidebar.module.css";
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { selectIsLoggedIn } from "../store/auth/authSlice";
+import { selectAuth, selectIsLoggedIn } from "../store/auth/authSlice";
 import {
   selectCurrentBallot,
   selectCurrentTable,
@@ -17,10 +17,14 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
   const { isSmallScreen } = useScreenSize();
+  const { user } = useSelector(selectAuth);
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const currentTable = useSelector(selectCurrentTable);
   const currentBallot = useSelector(selectCurrentBallot);
   const queryParamsResults = useSelector(selectQueryParamsResults);
+
+  const role = user?.role || "publico";
+  const isApproved = user?.isApproved || false;
 
   React.useEffect(() => {
     const handleMenuClick = () => {
@@ -58,7 +62,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
                   <span className={styles.icon}>📚</span>Inicio
                 </Link>
               </li>
-              {isLoggedIn && (
+              {isLoggedIn && role === "superadmin" && (
                 <li className={styles.menuItem}>
                   <Link to="/panel" className={styles.menuLink}>
                     <span className={styles.icon}>⚙️</span>Panel
@@ -106,33 +110,41 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
                 <span className={styles.icon}>🖼️</span>Resultados por imagen
               </Link>
             </li>
-            <li className={styles.menuItem}>
-              <Link
-                to={
-                  queryParamsResults
-                    ? `/control-personal?${queryParamsResults}`
-                    : "/control-personal"
-                }
-                className={styles.menuLink}
-              >
-                <span className={styles.icon}>👥</span>Participación de personal
-              </Link>
-            </li>
-            <li className={styles.menuItem}>
-              <Link
-                to={
-                  queryParamsResults
-                    ? `/auditoria-tse?${queryParamsResults}`
-                    : "/auditoria-tse"
-                }
-                className={styles.menuLink}
-              >
-                <span className={styles.icon}>🔍</span>Auditoría TSE
-              </Link>
-            </li>
+            {isLoggedIn &&
+              isApproved &&
+              (role === "alcalde" ||
+                role === "gobernador") && (
+                <>
+                  <li className={styles.menuItem}>
+                    <Link
+                      to={
+                        queryParamsResults
+                          ? `/control-personal?${queryParamsResults}`
+                          : "/control-personal"
+                      }
+                      className={styles.menuLink}
+                    >
+                      <span className={styles.icon}>👥</span>Participación de
+                      personal
+                    </Link>
+                  </li>
+                  <li className={styles.menuItem}>
+                    <Link
+                      to={
+                        queryParamsResults
+                          ? `/auditoria-tse?${queryParamsResults}`
+                          : "/auditoria-tse"
+                      }
+                      className={styles.menuLink}
+                    >
+                      <span className={styles.icon}>🔍</span>Auditoría TSE
+                    </Link>
+                  </li>
+                </>
+              )}
           </ul>
         </div>
-        {isLoggedIn && (
+        {isLoggedIn && role === "superadmin" && (
           <>
             <div className={styles.section}>
               <h3 className={styles.title}>Ubicaciones geográficas</h3>

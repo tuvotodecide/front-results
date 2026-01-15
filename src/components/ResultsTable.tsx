@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 interface GraphData {
   name: string;
@@ -11,7 +11,20 @@ interface ResultsTableProps {
 }
 
 const ResultsTable: React.FC<ResultsTableProps> = ({ resultsData }) => {
-  const total = resultsData.reduce((acc, item) => acc + item.value, 0);
+  const safeNumber = (n: any) => {
+    const v = Number(n);
+    return Number.isFinite(v) ? v : 0;
+  };
+  const totalVotes = resultsData.reduce(
+    (sum, row) => sum + safeNumber(row.value),
+    0
+  );
+
+  const percent = (value: any) => {
+    const v = safeNumber(value);
+    if (totalVotes <= 0) return 0;
+    return (v / totalVotes) * 100;
+  };
 
   return (
     <div className="w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm overflow-x-auto">
@@ -50,8 +63,11 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ resultsData }) => {
                 {result.value?.toLocaleString()}
               </td>
               <td className="px-6 py-4 text-base text-slate-900 text-right tabular-nums">
-                <span className="inline-flex items-center justify-end min-w-[65px] font-semibold">
-                  {((result.value / total) * 100).toFixed(2)}%
+                <span
+                  data-cy="results-percentage"
+                  className="inline-flex items-center justify-end min-w-[65px] font-semibold"
+                >
+                  {percent(result.value).toFixed(2)}%
                 </span>
               </td>
             </tr>
@@ -62,11 +78,14 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ resultsData }) => {
               Total
             </td>
             <td className="px-6 py-4 text-base font-bold text-slate-800 text-right tabular-nums">
-              {total.toLocaleString()}
+              {totalVotes.toLocaleString()}
             </td>
             <td className="px-6 py-4 text-base font-bold text-slate-800 text-right tabular-nums">
-              <span className="inline-flex items-center justify-end min-w-[65px]">
-                100%
+              <span
+                data-cy="results-total-percentage"
+                className="inline-flex items-center justify-end min-w-[65px]"
+              >
+                {(totalVotes > 0 ? 100 : 0).toFixed(2)}%
               </span>
             </td>
           </tr>

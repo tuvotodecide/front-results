@@ -40,6 +40,7 @@ export default function ElectionSelector() {
     <div className="inline-flex items-center gap-2">
       <span className="text-sm text-gray-600">Elección:</span>
       <select
+        data-cy="election-select"
         value={selectedId ?? ""}
         onChange={onChange}
         className="border rounded px-2 py-1 text-sm  w-auto"

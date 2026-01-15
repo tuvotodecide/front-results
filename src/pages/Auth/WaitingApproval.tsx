@@ -31,7 +31,7 @@ const WaitingApproval: React.FC = () => {
 
         <div className="pt-6 border-t border-gray-100">
           <Link
-            to="/login"
+            to="/"
             style={{ backgroundColor: "#459151" }}
             className="block w-full text-white font-bold py-3 rounded-xl transition-all shadow-md hover:brightness-110 active:scale-[0.98]"
           >

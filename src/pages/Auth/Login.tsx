@@ -5,17 +5,51 @@ import * as Yup from "yup";
 import { useNavigate, useLocation } from "react-router-dom";
 // import { useLoginUserMutation } from '../../store/auth/authEndpoints';
 import tuvotoDecideImage from "../../assets/tuvotodecide.webp";
-import { setAuth } from "../../store/auth/authSlice";
+import { selectAuth, setAuth } from "../../store/auth/authSlice";
 import LoadingButton from "../../components/LoadingButton";
 import { Link } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 const Login: React.FC = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const [showPassword, setShowPassword] = useState(false);
-  // const [loginUser] = useLoginUserMutation();
   const location = useLocation();
+  const { user, token } = useSelector(selectAuth);
+  const [showPassword, setShowPassword] = useState(false);
   const initialValues = { email: "", password: "" };
+  // const [loginUser] = useLoginUserMutation();
+
+  useEffect(() => {
+    if (user && token) {
+          if (!user.isApproved) {
+        navigate("/pendiente", { replace: true });
+        return;
+      }
+
+
+      const from = (location.state as any)?.from as string | undefined;
+      if (from && from !== "/login") {
+        navigate(from, { replace: true });
+        return;
+      }
+
+
+      if (user.role === "publico") {
+        navigate("/", { replace: true });
+      } else if (user.role === "alcalde" && user.municipalityId) {
+        navigate(
+          `/resultados?department=${user.departmentId}&municipality=${user.municipalityId}`,
+          { replace: true }
+        );
+      } else if (user.role === "gobernador" && user.departmentId) {
+        navigate(`/resultados?department=${user.departmentId}`, {
+          replace: true,
+        });
+      } else {
+        navigate("/resultados", { replace: true });
+      }
+    }
+  }, [user, token, navigate, location]);
 
   const validationSchema = Yup.object({
     email: Yup.string()
@@ -27,6 +61,51 @@ const Login: React.FC = () => {
   });
   const onSubmit = (values: typeof initialValues) => {
     console.log("Form data", values);
+
+    let mockUser = null;
+
+    // SIMULACIÓN DE ROLES (MOCK)
+    if (values.email === "admin@test.com") {
+      mockUser = {
+        id: "1",
+        role: "superadmin",
+        name: "ADMINISTRADOR CENTRAL",
+        email: values.email,
+        isApproved: true,
+      };
+    } else if (values.email === "alcalde@test.com") {
+      mockUser = {
+        id: "2",
+        role: "alcalde",
+        name: "ALCALDE LA PAZ",
+        email: values.email,
+        isApproved: true,
+        departmentId: "6740f90766c62c3e1e2474f8", // ID Real de tu BD para La Paz
+        departmentName: "La Paz",
+        municipalityId: "674100be66c62c3e1e247b97", // ID Real de tu BD para Municipio LP
+        municipalityName: "La Paz",
+      };
+    } else if (values.email === "gober@test.com") {
+      mockUser = {
+        id: "3",
+        role: "gobernador",
+        name: "GOBERNADOR COCHABAMBA",
+        email: values.email,
+        isApproved: true,
+        departmentId: "6740f90766c62c3e1e2474f7", // ID Real Cochabamba
+        departmentName: "Cochabamba",
+      };
+    } else if (values.email === "pendiente@test.com") {
+      mockUser = {
+        id: "4",
+        role: "alcalde",
+        name: "USUARIO PENDIENTE",
+        email: values.email,
+        isApproved: false,
+        departmentId: "6740f90766c62c3e1e2474f8",
+        departmentName: "La Paz",
+      };
+    }
     // loginUser(values)
     //   .unwrap()
     //   .then((response) => {
@@ -37,33 +116,31 @@ const Login: React.FC = () => {
     //   .catch((error) => {
     //     console.log('Error', error);
     //   });
-    if (values.email === "admin" && values.password === "admin321") {
-      dispatch(
-        setAuth({
-          access_token: "fake_token",
-          user: { id: 1, role: "admin", name: "admin", ...values },
-        })
+    if (mockUser) {
+      dispatch(setAuth({ access_token: "fake_token", user: mockUser }));
+    } else {
+      alert(
+        "Credenciales incorrectas. Prueba: admin@test.com, alcalde@test.com, gober@test.com, pendiente@test.com"
       );
-      navigate("/panel");
     }
   };
 
-  useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user") ?? "{}");
-    const token = localStorage.getItem("token");
-    console.log("protected route useeffect", user, token);
-    if (user && token) {
-      console.log("user and token found in local storage");
-      dispatch(setAuth({ access_token: token, user: user }));
-      if (location.state?.from === "ProtectedComponent") {
-        console.log("redirecting to protected component");
-        navigate(-1);
-        return;
-      }
-      console.log("redirecting to panel");
-      navigate("/panel");
-    }
-  }, []);
+  // useEffect(() => {
+  //   const user = JSON.parse(localStorage.getItem("user") ?? "{}");
+  //   const token = localStorage.getItem("token");
+  //   console.log("protected route useeffect", user, token);
+  //   if (user && token) {
+  //     console.log("user and token found in local storage");
+  //     dispatch(setAuth({ access_token: token, user: user }));
+  //     if (location.state?.from === "ProtectedComponent") {
+  //       console.log("redirecting to protected component");
+  //       navigate(-1);
+  //       return;
+  //     }
+  //     console.log("redirecting to panel");
+  //     navigate("/panel");
+  //   }
+  // }, []);
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-64px)] bg-[#459151] px-4">
@@ -94,6 +171,7 @@ const Login: React.FC = () => {
               </label>
               <Field
                 name="email"
+                data-cy="login-email"
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#459151] focus:border-transparent outline-none transition-all placeholder:text-gray-300"
               />
               <ErrorMessage
@@ -110,6 +188,7 @@ const Login: React.FC = () => {
               <div className="relative">
                 <Field
                   type={showPassword ? "text" : "password"}
+                  data-cy="login-password"
                   name="password"
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#459151] focus:border-transparent outline-none transition-all"
                 />
@@ -166,6 +245,7 @@ const Login: React.FC = () => {
             <div className="pt-2">
               <LoadingButton
                 type="submit"
+                data-cy="login-submit"
                 style={{ backgroundColor: "#459151" }}
                 className="w-full text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-[#459151]/20 hover:brightness-110 active:scale-[0.98]"
               >

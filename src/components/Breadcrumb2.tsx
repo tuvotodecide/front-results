@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import styles from "./Breadcrumb.module.css";
 import { ChevronRight } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
@@ -29,6 +29,8 @@ import {
   setQueryParamsResults,
 } from "../store/resultados/resultadosSlice";
 import ElectionSelector from "./ElectionSelector";
+import { selectAuth } from "../store/auth/authSlice";
+import { RootState } from "../store";
 
 interface LevelOption {
   _id: string;
@@ -78,6 +80,7 @@ const breadcrumbLevels = [
 ];
 const Breadcrumb = () => {
   const dispatch = useDispatch();
+  const { user } = useSelector(selectAuth);
   const [searchParams, setSearchParams] = useSearchParams();
   const [getDepartment] = useLazyGetDepartmentQuery();
   const [getProvince] = useLazyGetProvinceQuery();
@@ -101,6 +104,13 @@ const Breadcrumb = () => {
     electoralLocations: [],
   });
   const [selectedPath2, setSelectedPath2] = useState<PathItem2[]>([]);
+
+  const role = user?.role || "publico";
+  const startLevel = role === "alcalde" ? 2 : role === "gobernador" ? 0 : -1;
+
+  const selectedElectionId = useSelector(
+    (s: RootState) => s.election.selectedElectionId
+  );
   const [selectedLevel, setSelectedLevel] = useState<SelectedLevel | null>(
     null
   );
@@ -141,6 +151,29 @@ const Breadcrumb = () => {
   // }, [selectedLevel, searchTerm]);
 
   // Function to build query parameters from selectedPath2
+  const prevElectionIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    // evitar disparar en el primer render
+    if (prevElectionIdRef.current === null) {
+      prevElectionIdRef.current = selectedElectionId ?? null;
+      return;
+    }
+
+    // si cambió la elección => limpiar
+    if (prevElectionIdRef.current !== (selectedElectionId ?? null)) {
+      prevElectionIdRef.current = selectedElectionId ?? null;
+
+      // Limpia redux + path
+      clearSelectedPath();
+
+      // Abre primer nivel para elegir de nuevo (solo para publico/superadmin)
+      if (role === "superadmin" || role === "publico") {
+        selectLevel(0);
+        setShowCurrentLevel(true);
+      }
+    }
+  }, [selectedElectionId]);
   const buildQueryParams = (path: PathItem2[]) => {
     const params = new URLSearchParams();
     path.forEach((item) => {
@@ -150,6 +183,85 @@ const Breadcrumb = () => {
     });
     return params;
   };
+
+  useEffect(() => {
+    if (isInitialized || !user) return;
+
+    if (role === "alcalde" && user.municipalityId) {
+      const forcedPath: PathItem2[] = [
+        {
+          id: "department",
+          title: "Departamento",
+          selectedOption: {
+            _id: user.departmentId!,
+            name: user.departmentName!,
+          },
+        },
+        {
+          id: "province",
+          title: "Provincia",
+          selectedOption: { _id: "", name: "-" },
+        },
+        {
+          id: "municipality",
+          title: "Municipio",
+          selectedOption: {
+            _id: user.municipalityId!,
+            name: user.municipalityName!,
+          },
+        },
+      ];
+
+      setSelectedPath2(forcedPath);
+
+      dispatch(
+        setFilters({
+          department: user.departmentName,
+          municipality: user.municipalityName,
+        })
+      );
+
+      dispatch(
+        setFilterIds({
+          departmentId: user.departmentId,
+          municipalityId: user.municipalityId,
+        })
+      );
+
+      // IMPORTANTE: abrir el siguiente nivel correcto (Asiento Electoral)
+      selectLevel(3, forcedPath);
+      setShowCurrentLevel(true);
+
+      setIsInitialized(true);
+      return;
+    }
+
+    if (role === "gobernador" && user.departmentId) {
+      const forcedPath: PathItem2[] = [
+        {
+          id: "department",
+          title: "Departamento",
+          selectedOption: {
+            _id: user.departmentId!,
+            name: user.departmentName!,
+          },
+        },
+      ];
+
+      setSelectedPath2(forcedPath);
+      dispatch(setFilters({ department: user.departmentName }));
+      dispatch(setFilterIds({ departmentId: user.departmentId }));
+
+      // Abrir siguiente nivel (Provincia)
+      selectLevel(1, forcedPath);
+      setShowCurrentLevel(true);
+
+      setIsInitialized(true);
+      return;
+    }
+
+    // superadmin/publico: NO marcar initialized aquí
+  }, [user, role, isInitialized, dispatch]);
 
   // Update URL whenever selectedPath2 changes
   useEffect(() => {
@@ -166,80 +278,149 @@ const Breadcrumb = () => {
       //   'color: blue; font-size: 16px; font-weight: bold;',
       //   Object.fromEntries(searchParams.entries())
       // );
-      const {
-        department: departmentId,
-        province: provinceId,
-        municipality: municipalityId,
-        electoralSeat: electoralSeatId,
-        electoralLocation: electoralLocationId,
-      } = Object.fromEntries(searchParams.entries());
+      const fetchers = [
+        { key: "department", index: 0, fetch: getDepartment },
+        { key: "province", index: 1, fetch: getProvince },
+        { key: "municipality", index: 2, fetch: getMunicipality },
+        { key: "electoralSeat", index: 3, fetch: getElectoralSeat },
+        { key: "electoralLocation", index: 4, fetch: getElectoralLocation },
+      ];
 
-      const promises = [];
-      if (departmentId) {
-        promises.push(getDepartment(departmentId));
-        if (provinceId) {
-          promises.push(getProvince(provinceId));
-          if (municipalityId) {
-            promises.push(getMunicipality(municipalityId));
-            if (electoralSeatId) {
-              promises.push(getElectoralSeat(electoralSeatId));
-              if (electoralLocationId) {
-                promises.push(getElectoralLocation(electoralLocationId));
-              }
-            }
-          }
-        }
-      }
+      const promises = fetchers
+        .filter((f) =>
+          Boolean((Object.fromEntries(searchParams.entries()) as any)[f.key])
+        )
+        .map((f) => {
+          const id = (Object.fromEntries(searchParams.entries()) as any)[f.key];
+          return f.fetch(id).then((resp: any) => ({
+            index: f.index,
+            key: f.key,
+            data: resp.data,
+          }));
+        });
 
       if (promises.length > 0) {
         Promise.allSettled(promises).then((results) => {
-          const newPath: PathItem2[] = [];
-          for (let index = 0; index < results.length; index++) {
-            const result = results[index];
-            if (result.status === "fulfilled" && result.value.data) {
-              const level = breadcrumbLevels[index];
-              const { _id, name } = result.value.data;
-              newPath.push({
+          const map = new Map<number, PathItem2>();
+
+          results.forEach((r) => {
+            if (r.status === "fulfilled" && r.value?.data?._id) {
+              const level = breadcrumbLevels[r.value.index];
+              map.set(r.value.index, {
                 ...level,
                 selectedOption: {
-                  _id: _id,
-                  name: name,
+                  _id: r.value.data._id,
+                  name: r.value.data.name,
                 },
               });
-            } else {
-              break;
             }
+          });
+
+          // Construir path en orden
+          const newPath: PathItem2[] = [];
+          for (let i = 0; i < breadcrumbLevels.length; i++) {
+            const item = map.get(i);
+            if (item) newPath.push(item);
           }
+
+          // Caso especial: si hay municipality pero no province (típico de alcalde),
+          // insertamos placeholder province para mantener índices consistentes.
+          const hasMunicipality = map.get(2);
+          const hasProvince = map.get(1);
+          const hasDepartment = map.get(0);
+
+          if (hasDepartment && hasMunicipality && !hasProvince) {
+            const dept = map.get(0)!;
+            const mun = map.get(2)!;
+            const forced: PathItem2[] = [
+              dept,
+              {
+                ...breadcrumbLevels[1],
+                selectedOption: { _id: "", name: "—" },
+              },
+              mun,
+            ];
+            setSelectedPath2(forced);
+            const filters = forced.reduce((acc, item) => {
+              acc[item.id] = item.selectedOption?.name || "";
+              return acc;
+            }, {} as Record<string, string>);
+            const filterIds = forced.reduce((acc, item) => {
+              acc[item.id + "Id"] = item.selectedOption?._id || "";
+              return acc;
+            }, {} as Record<string, string>);
+            dispatch(setFilters(filters));
+            dispatch(setFilterIds(filterIds));
+            selectLevel(3, forced);
+            setShowCurrentLevel(true);
+            return;
+          }
+
           setSelectedPath2(newPath);
+
           const filters = newPath.reduce((acc, item) => {
             acc[item.id] = item.selectedOption?.name || "";
             return acc;
           }, {} as Record<string, string>);
+
           const filterIds = newPath.reduce((acc, item) => {
             acc[item.id + "Id"] = item.selectedOption?._id || "";
             return acc;
           }, {} as Record<string, string>);
+
           dispatch(setFilters(filters));
           dispatch(setFilterIds(filterIds));
+          const nextIndex = newPath.length; // el siguiente nivel a seleccionar
+          if (nextIndex < breadcrumbLevels.length) {
+            selectLevel(nextIndex, newPath);
+            setShowCurrentLevel(true);
+          } else {
+            setShowCurrentLevel(false);
+          }
         });
       }
+
       setIsInitialized(true);
     } else if (!isInitialized) {
+      if (role === "superadmin" || role === "publico") {
+        selectLevel(0);
+        setShowCurrentLevel(true);
+      }
       setIsInitialized(true);
     }
-  }, [searchParams, isInitialized]);
-
+  }, [searchParams, isInitialized, role, dispatch]);
   useEffect(() => {
     if (departments && departments.length > 0) {
+      const mapped = departments.map((dept) => ({
+        _id: dept._id,
+        name: dept.name,
+      }));
+
       setOptions((prev) => ({
         ...prev,
-        departments: departments.map((dept) => ({
-          _id: dept._id,
-          name: dept.name,
-        })),
+        departments: mapped,
       }));
+
+      // Si ya estamos mostrando el nivel 0 (Departamento) y está vacío,
+      // refrescar selectedLevel y filteredOptions para que aparezcan opciones.
+      setSelectedLevel((prev) => {
+        if (!prev) return prev;
+        if (prev.index !== 0) return prev;
+
+        // actualiza options del nivel
+        return {
+          ...prev,
+          options: mapped,
+        };
+      });
+
+      // refrescar lo que se renderiza
+      if (selectedLevel?.index === 0) {
+        setFilteredOptions(mapped);
+      }
     }
-  }, [departments]);
+    // ojo: incluimos selectedLevel para que el if (selectedLevel?.index === 0) funcione
+  }, [departments, selectedLevel?.index]);
 
   const handleOptionClick = (
     optionIndex: number,
@@ -402,12 +583,31 @@ const Breadcrumb = () => {
   };
 
   const clearSelectedPath = () => {
-    setSelectedPath2([]);
-    setShowCurrentLevel(false);
-    setSelectedLevel(null);
-    setFilteredOptions([]);
-    dispatch(setFilters({}));
-    dispatch(setFilterIds({}));
+    if (role === "superadmin" || role === "publico") {
+      setSelectedPath2([]);
+      dispatch(setFilters({}));
+      dispatch(setFilterIds({}));
+
+      selectLevel(0);
+      setShowCurrentLevel(true);
+    } else {
+      // tu lógica actual para alcalde/gobernador...
+      const basePath = selectedPath2.slice(0, startLevel + 1);
+      setSelectedPath2(basePath);
+
+      if (role === "alcalde") {
+        dispatch(
+          setFilters({
+            department: user?.departmentName,
+            municipality: user?.municipalityName,
+          })
+        );
+      } else {
+        dispatch(setFilters({ department: user?.departmentName }));
+      }
+
+      setShowCurrentLevel(false);
+    }
   };
   // Show the next breadcrumb level form when "ver más" is clicked
   // const handleShowNextLevel = async () => {
@@ -421,56 +621,52 @@ const Breadcrumb = () => {
     );
     setFilteredOptions(internalFilteredOptions);
   };
-  useEffect(() => {
-  dispatch(setQueryParamsResults(searchParams.toString()));
-  
-  if (!isInitialized && searchParams.size > 0 && selectedPath2.length === 0) {
-    // ... (Mantener tu lógica existente de carga desde URL) ...
-    setIsInitialized(true);
-  } else if (!isInitialized) {
-    // CAMBIO AQUÍ: Si entramos a /resultados sin parámetros, 
-    // mostramos automáticamente el nivel de Departamentos
-    selectLevel(0);
-    setShowCurrentLevel(true);
-    setIsInitialized(true);
-  }
-}, [searchParams, isInitialized, departments]);
 
   return (
     <div className="mx-auto pb-6">
       {/* Breadcrumb Navigation */}
       <div className="bg-gray-50 rounded-lg flex items-center justify-between">
         <nav className="flex items-center gap-x-1.5 text-sm w-full flex-nowrap overflow-x-auto">
-          <button
-            onClick={() => resetPath()}
-            className="flex flex-col items-start text-black group min-w-[120px] border border-gray-300 p-2 rounded hover:bg-blue-100"
-          >
-            <div className="text-xs text-gray-500 font-medium mb-1">País</div>
-            <div className="flex items-center">
-              <span className="font-medium">Bolivia</span>
-            </div>
-          </button>
+          {(role === "superadmin" || role === "publico") && (
+            <button
+              onClick={() => resetPath()}
+              className="flex flex-col items-start text-black group min-w-[120px] border border-gray-300 p-2 rounded hover:bg-blue-100"
+            >
+              <div className="text-xs text-gray-500 font-medium mb-1">País</div>
+              <div className="flex items-center">
+                <span className="font-medium">Bolivia</span>
+              </div>
+            </button>
+          )}
           {selectedPath2.length > 0 && (
             <ChevronRight className="w-4 h-4 text-gray-400 mt-1" />
           )}
-          {selectedPath2.map((pathItem, index) => (
-            <React.Fragment key={index}>
-              <button
-                onClick={() => handleBreadcrumbClick(pathItem, index)}
-                className="flex flex-col items-start text-black group min-w-[120px] border border-gray-300 p-2 rounded hover:bg-blue-100 "
-              >
-                <div className="text-xs text-gray-500 font-medium mb-1">
-                  {pathItem.title}
-                </div>
-                <div className="font-medium">
-                  {pathItem?.selectedOption?.name}
-                </div>
-              </button>
-              {index < selectedPath2.length - 1 && (
+          {selectedPath2.map((pathItem, index) => {
+            if (role === "alcalde" && index < 2) return null;
+            return (
+              <React.Fragment key={index}>
+                {((role === "alcalde" && index > 2) ||
+                  (role !== "alcalde" && index > 0)) && (
+                  <ChevronRight className="w-4 h-4 text-gray-400 mt-1" />
+                )}
+                <button
+                  data-cy={`${pathItem.id}-select`}
+                  onClick={() => handleBreadcrumbClick(pathItem, index)}
+                  className="flex flex-col items-start text-black group min-w-[120px] border border-gray-300 p-2 rounded hover:bg-blue-100 "
+                >
+                  <div className="text-xs text-gray-500 font-medium mb-1">
+                    {pathItem.title}
+                  </div>
+                  <div className="font-medium">
+                    {pathItem?.selectedOption?.name}
+                  </div>
+                </button>
+                {/* {index < selectedPath2.length - 1 && (
                 <ChevronRight className="w-4 h-4 text-gray-400 mt-1" />
-              )}
-            </React.Fragment>
-          ))}
+                )} */}
+              </React.Fragment>
+            );
+          })}
           <div className="ml-auto flex items-center gap-2 shrink-0">
             {/* <button
               className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500 transition-colors duration-200 shrink-0"
@@ -481,6 +677,7 @@ const Breadcrumb = () => {
             </button> */}
             <ElectionSelector />
             <button
+              data-cy="filters-reset"
               className="ml-2 px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
               onClick={clearSelectedPath}
             >
@@ -545,9 +742,13 @@ const Breadcrumb = () => {
 
             {!isLoadingOptions && selectedLevel?.options && (
               <div className={styles["animate-fadeInUp"]}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div
+                  data-cy="level-options"
+                  className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"
+                >
                   {filteredOptions.map((option, index) => (
                     <button
+                      data-cy={`option-${selectedLevel.index}-${option._id}`}
                       key={index}
                       onClick={() =>
                         handleOptionClick(selectedLevel.index, option)

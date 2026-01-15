@@ -37,13 +37,22 @@ StatisticsBarsProps) => {
   //   ? ((processedTables.current / processedTables.total) * 100).toFixed(1)
   //   : 0;
 
-  const totalVotes = voteData.reduce((sum, item) => sum + item.value, 0);
+  const totalVotes = voteData.reduce(
+    (sum, item) => sum + (Number(item.value) || 0),
+    0
+  );
 
   // Compute percentage for each vote type
-  const voteDataWithPercentage = voteData.map((item) => ({
-    ...item,
-    percentage: ((item.value / totalVotes) * 100).toFixed(1),
-  }));
+
+  const voteDataWithPercentage = voteData.map((item) => {
+    const v = Number(item.value) || 0;
+    const pct = totalVotes > 0 ? (v / totalVotes) * 100 : 0;
+    return {
+      ...item,
+      value: v,
+      percentage: pct.toFixed(2), // <-- 2 decimales
+    };
+  });
 
   // Cards data
   // const cardsData = [
@@ -59,10 +68,10 @@ StatisticsBarsProps) => {
   // }, []);
 
   const formatNumber = (num: number) => {
-    return num?.toLocaleString('es-ES');
+    return num?.toLocaleString("es-ES");
   };
   return (
-    <div>
+    <div data-cy="statsbars">
       {/* cards section */}
       {/* <div className="flex flex-wrap gap-4 pb-4 overflow-hidden">
         {cardsData.map(
@@ -141,7 +150,7 @@ StatisticsBarsProps) => {
                   className="h-full flex transition-all duration-500 ease-out"
                   style={{
                     // width: animationComplete ? '100%' : '0%',
-                    width: '100%',
+                    width: "100%",
                   }}
                 >
                   {/* Vote type sections within the full area */}
@@ -151,7 +160,7 @@ StatisticsBarsProps) => {
                       className="h-full transition-all duration-1500 ease-out first:rounded-l-full last:rounded-r-full"
                       style={{
                         backgroundColor: item.color,
-                        border: '1px solid rgba(0, 0, 0, 0.4)',
+                        border: "1px solid rgba(0, 0, 0, 0.4)",
                         width: `${item.percentage}%`,
                         transitionDelay: `${index * 200 + 400}ms`,
                       }}
@@ -168,7 +177,7 @@ StatisticsBarsProps) => {
                   <div
                     className="w-3 h-3 rounded-full mr-2 flex-shrink-0"
                     style={{
-                      border: '1px solid rgba(0, 0, 0, 0.4)',
+                      border: "1px solid rgba(0, 0, 0, 0.4)",
                       backgroundColor: item.color,
                     }}
                   ></div>
@@ -177,7 +186,8 @@ StatisticsBarsProps) => {
                       {item.name}
                     </span>
                     <span className="text-slate-600 ml-1 whitespace-nowrap">
-                      {item.percentage}% ({formatNumber(item.value)})
+                      <span data-cy="vote-percentage">{item.percentage}%</span>{" "}
+                      ({formatNumber(item.value)})
                     </span>
                   </div>
                 </div>

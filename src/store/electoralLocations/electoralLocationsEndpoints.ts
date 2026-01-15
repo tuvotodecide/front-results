@@ -29,46 +29,46 @@ export const electoralLocationsApiSlice = apiSlice.injectEndpoints({
       keepUnusedDataFor: 60,
       providesTags: () => [{ type: "ElectoralLocations" as const, id: "LIST" }],
     }),
-    // getElectoralLocationsByElectoralSeatId: builder.query<
-    //   ElectoralLocationByElectoralSeatType[],
-    //   string
-    // >({
-    //   query: (electoralSeatId) => ({
-    //     url:
-    //       '/geographic/electoral-locations/by-electoral-seat/' +
-    //       electoralSeatId,
-    //   }),
-    //   keepUnusedDataFor: 300,
-    //   providesTags: (_result, _error, electoralSeatId) => [
-    //     { type: 'ElectoralLocations' as const, id: electoralSeatId },
-    //   ],
-    // }),
-    getElectoralLocationsByElectoralSeatId: builder.query<any, string>({
-      async queryFn(electoralSeatId) {
-        const locations =
-          electoralSeatId === "seat-1"
-            ? [
-                {
-                  _id: "loc-1",
-                  name: "Colegio Don Bosco",
-                  address: "Av. 16 de Julio",
-                },
-                {
-                  _id: "loc-2",
-                  name: "Escuela México",
-                  address: "Calle México",
-                },
-              ]
-            : [
-                {
-                  _id: "loc-other",
-                  name: "Recinto de prueba",
-                  address: "Dirección conocida",
-                },
-              ];
-        return { data: locations };
-      },
+    getElectoralLocationsByElectoralSeatId: builder.query<
+      ElectoralLocationByElectoralSeatType[],
+      string
+    >({
+      query: (electoralSeatId) => ({
+        url:
+          '/geographic/electoral-locations/by-electoral-seat/' +
+          electoralSeatId,
+      }),
+      keepUnusedDataFor: 300,
+      providesTags: (_result, _error, electoralSeatId) => [
+        { type: 'ElectoralLocations' as const, id: electoralSeatId },
+      ],
     }),
+    // getElectoralLocationsByElectoralSeatId: builder.query<any, string>({
+    //   async queryFn(electoralSeatId) {
+    //     const locations =
+    //       electoralSeatId === "seat-1"
+    //         ? [
+    //             {
+    //               _id: "loc-1",
+    //               name: "Colegio Don Bosco",
+    //               address: "Av. 16 de Julio",
+    //             },
+    //             {
+    //               _id: "loc-2",
+    //               name: "Escuela México",
+    //               address: "Calle México",
+    //             },
+    //           ]
+    //         : [
+    //             {
+    //               _id: "loc-other",
+    //               name: "Recinto de prueba",
+    //               address: "Dirección conocida",
+    //             },
+    //           ];
+    //     return { data: locations };
+    //   },
+    // }),
     // getElectoralLocation: builder.query<ElectoralLocationsType, string>({
     //   query: (id) => `/geographic/electoral-locations/${id}`,
     //   keepUnusedDataFor: 60,

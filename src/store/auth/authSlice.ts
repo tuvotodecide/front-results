@@ -1,5 +1,5 @@
-import { createSlice } from '@reduxjs/toolkit';
-import { RootState } from '../index';
+import { createSlice } from "@reduxjs/toolkit";
+import { RootState } from "../index";
 
 export interface AuthState {
   token: string | null;
@@ -7,40 +7,39 @@ export interface AuthState {
     id: string;
     email: string;
     name: string;
-    role: string;
+    role: "superadmin" | "alcalde" | "gobernador" | "publico";
+    isApproved: boolean;
+    restrictedId?: string;
+    departmentId?: string;
+    departmentName?: string;
+    municipalityId?: string;
+    municipalityName?: string;
+    status?: "ACTIVE" | "PENDING" | "REJECTED" | "INACTIVE";
   } | null;
 }
 
-// const initialState: AuthState = {
-//   token: null,
-//   user: null,
-// };
 const initialState: AuthState = {
-  token: 'token-de-prueba', // Al poner algo aquí, el sistema creerá que hay sesión
-  user: { 
-    id: '1', 
-    email: 'admin@correo.com', 
-    name: 'JOSE MENDOZA', // Este nombre verás en el header
-    role: 'admin' 
-  },
+  token: localStorage.getItem("token"),
+  user: JSON.parse(localStorage.getItem("user") ?? "null"),
 };
 
 export const authSlice = createSlice({
-  name: 'auth',
+  name: "auth",
   initialState,
   reducers: {
     setAuth: (state, action) => {
       const { access_token, user } = action.payload;
       state.token = access_token;
       state.user = user;
-      window.localStorage.setItem('user', JSON.stringify(user));
-      window.localStorage.setItem('token', access_token);
+      window.localStorage.setItem("user", JSON.stringify(user));
+      window.localStorage.setItem("token", access_token);
     },
     logOut: (state) => {
       state.token = null;
       state.user = null;
-      localStorage.removeItem('user');
-      localStorage.removeItem('token');
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+      localStorage.removeItem("selectedElectionId");
     },
   },
 });
@@ -52,3 +51,5 @@ export const selectAuth = (state: RootState) => state.auth;
 export const selectIsLoggedIn = (state: RootState) => {
   return Boolean(state.auth.token && state.auth.user);
 };
+
+export default authSlice;
