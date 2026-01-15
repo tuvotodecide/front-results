@@ -5,22 +5,22 @@ import {
   fetchBaseQuery,
 } from "@reduxjs/toolkit/query/react";
 import { logOut } from "./auth/authSlice";
-// import { RootState } from './index';
 
-const { VITE_BASE_API_URL } = import.meta.env;
+const { VITE_BASE_API_URL, VITE_API_KEY } = import.meta.env;
 const baseApiUrl = VITE_BASE_API_URL || "http://localhost:3000/api/v1";
 
 const baseQuery = fetchBaseQuery({
   baseUrl: baseApiUrl,
-  // prepareHeaders: (headers, { getState }) => {
-  //   const state: RootState = getState() as RootState;
-  //   const token = state.auth.token;
-  //   headers.set('Accept', 'application/json');
-  //   if (token) {
-  //     headers.set('Authorization', `Bearer ${token}`);
-  //   }
-  //   return headers;
-  // },
+
+  prepareHeaders: (headers, { getState }) => {
+    const state = getState() as any;
+    const token = state.auth.token;
+    headers.set("Accept", "application/json");
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+    return headers;
+  },
 });
 
 const needsElectionId = (path: string) => {
@@ -48,7 +48,15 @@ const baseQueryWrapper = async (
   let adjusted: FetchArgs =
     typeof args === "string" ? { url: args } : { ...args };
 
-  // Solo añadimos electionId a endpoints que lo requieren
+  const method = adjusted.method?.toUpperCase();
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(method || "")) {
+    const apiKey = VITE_API_KEY || "";
+    adjusted.headers = {
+      ...((adjusted.headers as Record<string, string>) || {}),
+      "x-api-key": apiKey,
+    };
+  }
+
   const urlPath = typeof args === "string" ? args : (args.url as string);
   if (eid && needsElectionId(urlPath)) {
     const prevParams = (adjusted.params as Record<string, any>) || {};
@@ -59,7 +67,6 @@ const baseQueryWrapper = async (
 
   const result = await baseQuery(adjusted, api, extraOptions);
 
-  // const result = await baseQuery(args, api, extraOptions);
   if (result.error?.status === 401) {
     api.dispatch(logOut());
     if (typeof window !== "undefined") {
