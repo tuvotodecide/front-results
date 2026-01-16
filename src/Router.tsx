@@ -31,6 +31,9 @@ const PanelControl = React.lazy(() => import("./pages/PanelControl"));
 const Rejected = React.lazy(() => import("./pages/Auth/Rejected"));
 
 const Register = React.lazy(() => import("./pages/Auth/Register"));
+const VerifyEmail = React.lazy(() => import("./pages/Auth/VerifyEmail"));
+const ForgotPassword = React.lazy(() => import("./pages/Auth/ForgotPassword"));
+const ResetPassword = React.lazy(() => import("./pages/Auth/ResetPassword"));
 const WaitingApproval = React.lazy(
   () => import("./pages/Auth/WaitingApproval")
 );
@@ -69,6 +72,9 @@ const AppRouter: React.FC = () => {
             <Route path="/rechazado" element={<Rejected />} />
             <Route path="/resultados" element={<ResultadosGenerales3 />} />
             <Route path="/resultados/mesa" element={<ResultadosMesa2 />} />
+            <Route path="/verificar-correo" element={<VerifyEmail />} />
+            <Route path="/recuperar" element={<ForgotPassword />} />
+            <Route path="/reset" element={<ResetPassword />} />
 
             <Route
               path="/resultados/mesa/:tableCode"

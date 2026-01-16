@@ -6,6 +6,10 @@ import { useNavigate, useLocation } from "react-router-dom";
 // import { useLoginUserMutation } from '../../store/auth/authEndpoints';
 import tuvotoDecideImage from "../../assets/tuvotodecide.webp";
 import { selectAuth, setAuth } from "../../store/auth/authSlice";
+import {
+  useLoginUserMutation,
+  useLazyGetProfileQuery,
+} from "../../store/auth/authEndpoints";
 import LoadingButton from "../../components/LoadingButton";
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -17,22 +21,30 @@ const Login: React.FC = () => {
   const { user, token } = useSelector(selectAuth);
   const [showPassword, setShowPassword] = useState(false);
   const initialValues = { email: "", password: "" };
+  const [loginUser] = useLoginUserMutation();
+  const [triggerProfile] = useLazyGetProfileQuery();
+
+  const mapBackendRole = (
+    role: string
+  ): "alcalde" | "gobernador" | "publico" | "superadmin" => {
+    if (role === "MAYOR") return "alcalde";
+    if (role === "GOVERNOR") return "gobernador";
+    return "publico";
+  };
   // const [loginUser] = useLoginUserMutation();
 
   useEffect(() => {
     if (user && token) {
-          if (!user.isApproved) {
+      if (!user.isApproved) {
         navigate("/pendiente", { replace: true });
         return;
       }
-
 
       const from = (location.state as any)?.from as string | undefined;
       if (from && from !== "/login") {
         navigate(from, { replace: true });
         return;
       }
-
 
       if (user.role === "publico") {
         navigate("/", { replace: true });
@@ -56,72 +68,154 @@ const Login: React.FC = () => {
       .email("Correo electrónico inválido")
       .required("El correo es obligatorio"),
     password: Yup.string()
-      .min(6, "Mínimo 6 caracteres")
+      .min(6, "Mínimo 8 caracteres")
       .required("La contraseña es obligatoria"),
   });
-  const onSubmit = (values: typeof initialValues) => {
-    console.log("Form data", values);
+  // const onSubmit = (values: typeof initialValues) => {
+  //   console.log("Form data", values);
 
-    let mockUser = null;
+  //   let mockUser = null;
 
-    // SIMULACIÓN DE ROLES (MOCK)
-    if (values.email === "admin@test.com") {
-      mockUser = {
-        id: "1",
-        role: "superadmin",
-        name: "ADMINISTRADOR CENTRAL",
+  //   // SIMULACIÓN DE ROLES (MOCK)
+  //   if (values.email === "admin@test.com") {
+  //     mockUser = {
+  //       id: "1",
+  //       role: "superadmin",
+  //       name: "ADMINISTRADOR CENTRAL",
+  //       email: values.email,
+  //       isApproved: true,
+  //     };
+  //   } else if (values.email === "alcalde@test.com") {
+  //     mockUser = {
+  //       id: "2",
+  //       role: "alcalde",
+  //       name: "ALCALDE LA PAZ",
+  //       email: values.email,
+  //       isApproved: true,
+  //       departmentId: "6740f90766c62c3e1e2474f8", // ID Real de tu BD para La Paz
+  //       departmentName: "La Paz",
+  //       municipalityId: "674100be66c62c3e1e247b97", // ID Real de tu BD para Municipio LP
+  //       municipalityName: "La Paz",
+  //     };
+  //   } else if (values.email === "gober@test.com") {
+  //     mockUser = {
+  //       id: "3",
+  //       role: "gobernador",
+  //       name: "GOBERNADOR COCHABAMBA",
+  //       email: values.email,
+  //       isApproved: true,
+  //       departmentId: "6740f90766c62c3e1e2474f7", // ID Real Cochabamba
+  //       departmentName: "Cochabamba",
+  //     };
+  //   } else if (values.email === "pendiente@test.com") {
+  //     mockUser = {
+  //       id: "4",
+  //       role: "alcalde",
+  //       name: "USUARIO PENDIENTE",
+  //       email: values.email,
+  //       isApproved: false,
+  //       departmentId: "6740f90766c62c3e1e2474f8",
+  //       departmentName: "La Paz",
+  //     };
+  //   }
+  //   // loginUser(values)
+  //   //   .unwrap()
+  //   //   .then((response) => {
+  //   //     dispatch(setAuth(response));
+  //   //     navigate('/panel');
+  //   //     console.log('Login successful', response);
+  //   //   })
+  //   //   .catch((error) => {
+  //   //     console.log('Error', error);
+  //   //   });
+  //   if (mockUser) {
+  //     dispatch(setAuth({ access_token: "fake_token", user: mockUser }));
+  //   } else {
+  //     alert(
+  //       "Credenciales incorrectas. Prueba: admin@test.com, alcalde@test.com, gober@test.com, pendiente@test.com"
+  //     );
+  //   }
+  // };
+
+  const onSubmit = async (values: typeof initialValues) => {
+    try {
+      // 1) login
+      const res = await loginUser(values).unwrap();
+      // res: { accessToken, role, active }
+
+      const access_token = res.accessToken as string;
+      const isApproved = Boolean(res.active);
+      const role = mapBackendRole(res.role);
+
+      // Si por alguna razón viniera inactive (tu backend lo bloquea antes),
+      // mantenemos el comportamiento consistente
+      if (!isApproved) {
+        dispatch(
+          setAuth({
+            access_token,
+            user: {
+              id: "pending",
+              email: values.email,
+              name: "PENDIENTE",
+              role,
+              isApproved: false,
+              status: "PENDING",
+            },
+          })
+        );
+        navigate("/pendiente", { replace: true });
+        return;
+      }
+
+      // 2) profile (para traer territorio del JWT)
+      let profile: any = null;
+      try {
+        profile = await triggerProfile().unwrap();
+      } catch {
+        // si falla, igual puedes dejarlo entrar a /resultados genérico
+        profile = null;
+      }
+
+      const user = {
+        id: profile?.sub ?? "unknown",
         email: values.email,
+        name: "Usuario",
+        role,
         isApproved: true,
+        departmentId: profile?.votingDepartmentId,
+        municipalityId: profile?.votingMunicipalityId,
+        status: "ACTIVE" as const,
       };
-    } else if (values.email === "alcalde@test.com") {
-      mockUser = {
-        id: "2",
-        role: "alcalde",
-        name: "ALCALDE LA PAZ",
-        email: values.email,
-        isApproved: true,
-        departmentId: "6740f90766c62c3e1e2474f8", // ID Real de tu BD para La Paz
-        departmentName: "La Paz",
-        municipalityId: "674100be66c62c3e1e247b97", // ID Real de tu BD para Municipio LP
-        municipalityName: "La Paz",
-      };
-    } else if (values.email === "gober@test.com") {
-      mockUser = {
-        id: "3",
-        role: "gobernador",
-        name: "GOBERNADOR COCHABAMBA",
-        email: values.email,
-        isApproved: true,
-        departmentId: "6740f90766c62c3e1e2474f7", // ID Real Cochabamba
-        departmentName: "Cochabamba",
-      };
-    } else if (values.email === "pendiente@test.com") {
-      mockUser = {
-        id: "4",
-        role: "alcalde",
-        name: "USUARIO PENDIENTE",
-        email: values.email,
-        isApproved: false,
-        departmentId: "6740f90766c62c3e1e2474f8",
-        departmentName: "La Paz",
-      };
-    }
-    // loginUser(values)
-    //   .unwrap()
-    //   .then((response) => {
-    //     dispatch(setAuth(response));
-    //     navigate('/panel');
-    //     console.log('Login successful', response);
-    //   })
-    //   .catch((error) => {
-    //     console.log('Error', error);
-    //   });
-    if (mockUser) {
-      dispatch(setAuth({ access_token: "fake_token", user: mockUser }));
-    } else {
-      alert(
-        "Credenciales incorrectas. Prueba: admin@test.com, alcalde@test.com, gober@test.com, pendiente@test.com"
-      );
+
+      dispatch(setAuth({ access_token, user }));
+    } catch (error: any) {
+      const msg =
+        error?.data?.message || error?.message || "No se pudo iniciar sesión";
+
+      const msgStr = typeof msg === "string" ? msg.toLowerCase() : "";
+
+      localStorage.setItem("pendingEmail", values.email);
+
+      if (
+        msgStr.includes("no ha sido verificado") ||
+        msgStr.includes("no verificado")
+      ) {
+        localStorage.setItem("pendingReason", "VERIFY_EMAIL");
+        navigate("/pendiente", { replace: true });
+        return;
+      }
+
+      if (
+        msgStr.includes("inactivo") ||
+        msgStr.includes("no está activo") ||
+        msgStr.includes("usuario inactivo")
+      ) {
+        localStorage.setItem("pendingReason", "SUPERADMIN_APPROVAL");
+        navigate("/pendiente", { replace: true });
+        return;
+      }
+
+      alert(typeof msg === "string" ? msg : "No se pudo iniciar sesión");
     }
   };
 
@@ -268,6 +362,14 @@ const Login: React.FC = () => {
                 className="inline-block w-full py-3 border-2 font-bold rounded-xl transition-all hover:bg-[#459151]/5 active:scale-[0.98]"
               >
                 Crear cuenta
+              </Link>
+            </div>
+            <div className="text-right -mt-2">
+              <Link
+                to="/recuperar"
+                className="text-sm font-semibold text-gray-500 hover:text-[#459151]"
+              >
+                ¿Olvidaste tu contraseña?
               </Link>
             </div>
           </Form>

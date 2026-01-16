@@ -112,8 +112,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
             </li>
             {isLoggedIn &&
               isApproved &&
-              (role === "alcalde" ||
-                role === "gobernador") && (
+              (role === "alcalde" || role === "gobernador") && (
                 <>
                   <li className={styles.menuItem}>
                     <Link
