@@ -74,7 +74,7 @@ const AppRouter: React.FC = () => {
             <Route path="/resultados/mesa" element={<ResultadosMesa2 />} />
             <Route path="/verificar-correo" element={<VerifyEmail />} />
             <Route path="/recuperar" element={<ForgotPassword />} />
-            <Route path="/reset" element={<ResetPassword />} />
+            <Route path="/restablecer" element={<ResetPassword />} />
 
             <Route
               path="/resultados/mesa/:tableCode"

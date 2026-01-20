@@ -5,7 +5,6 @@ import { selectDepartments } from "../store/departments/departmentsSlice";
 import { useLazyGetProvincesByDepartmentIdQuery } from "../store/provinces/provincesEndpoints";
 import { useLazyGetMunicipalitiesByProvinceIdQuery } from "../store/municipalities/municipalitiesEndpoints";
 
-
 type Mode = "GOVERNOR" | "MAYOR";
 type LevelOption = { _id: string; name: string };
 
@@ -27,11 +26,12 @@ export default function ScopePicker({ mode, value, onChange }: Props) {
   const departmentsRaw = useSelector(selectDepartments) as any[];
   const departments: LevelOption[] = useMemo(
     () => (departmentsRaw || []).map((d) => ({ _id: d._id, name: d.name })),
-    [departmentsRaw]
+    [departmentsRaw],
   );
 
   const [getProvincesByDepartmentId] = useLazyGetProvincesByDepartmentIdQuery();
-  const [getMunicipalitiesByProvinceId] = useLazyGetMunicipalitiesByProvinceIdQuery();
+  const [getMunicipalitiesByProvinceId] =
+    useLazyGetMunicipalitiesByProvinceIdQuery();
 
   const [provinces, setProvinces] = useState<LevelOption[]>([]);
   const [municipalities, setMunicipalities] = useState<LevelOption[]>([]);
@@ -46,7 +46,14 @@ export default function ScopePicker({ mode, value, onChange }: Props) {
     if (!value.departmentId) return departments;
     if (!value.provinceId) return provinces;
     return municipalities;
-  }, [mode, departments, provinces, municipalities, value.departmentId, value.provinceId]);
+  }, [
+    mode,
+    departments,
+    provinces,
+    municipalities,
+    value.departmentId,
+    value.provinceId,
+  ]);
 
   const fuse = useMemo(() => {
     return new Fuse(currentList, { keys: ["name"], threshold: 0.35 });
@@ -81,7 +88,9 @@ export default function ScopePicker({ mode, value, onChange }: Props) {
       }
       setLoading(true);
       try {
-        const resp = await getProvincesByDepartmentId(value.departmentId).unwrap();
+        const resp = await getProvincesByDepartmentId(
+          value.departmentId,
+        ).unwrap();
         setProvinces(resp);
         setMunicipalities([]);
       } finally {
@@ -101,7 +110,9 @@ export default function ScopePicker({ mode, value, onChange }: Props) {
       }
       setLoading(true);
       try {
-        const resp = await getMunicipalitiesByProvinceId(value.provinceId).unwrap();
+        const resp = await getMunicipalitiesByProvinceId(
+          value.provinceId,
+        ).unwrap();
         setMunicipalities(resp);
       } finally {
         setLoading(false);
@@ -140,13 +151,35 @@ export default function ScopePicker({ mode, value, onChange }: Props) {
     });
   };
 
+  const getNameById = (list: LevelOption[], id?: string) =>
+    (id && list.find((x) => x._id === id)?.name) || "—";
+
+  const selectedDepartmentName = useMemo(
+    () => getNameById(departments, value.departmentId),
+    [departments, value.departmentId],
+  );
+
+  const selectedProvinceName = useMemo(
+    () => getNameById(provinces, value.provinceId),
+    [provinces, value.provinceId],
+  );
+
+  const selectedMunicipalityName = useMemo(
+    () => getNameById(municipalities, value.municipalityId),
+    [municipalities, value.municipalityId],
+  );
+
   const canBack = mode === "MAYOR" && (value.departmentId || value.provinceId);
   const back = () => {
     setSearch("");
     if (mode !== "MAYOR") return;
 
     if (value.provinceId) {
-      onChange({ departmentId: value.departmentId, provinceId: "", municipalityId: "" });
+      onChange({
+        departmentId: value.departmentId,
+        provinceId: "",
+        municipalityId: "",
+      });
       return;
     }
     onChange({ departmentId: "", provinceId: "", municipalityId: "" });
@@ -170,7 +203,6 @@ export default function ScopePicker({ mode, value, onChange }: Props) {
           </button>
         )}
       </div>
-
       <div className="mt-3">
         <input
           value={search}
@@ -179,13 +211,14 @@ export default function ScopePicker({ mode, value, onChange }: Props) {
           className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#459151]"
         />
       </div>
-
       <div className="mt-3">
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <div className="flex items-center space-x-2">
               <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-[#459151]"></div>
-              <span className="text-gray-600 font-medium">Cargando opciones...</span>
+              <span className="text-gray-600 font-medium">
+                Cargando opciones...
+              </span>
             </div>
           </div>
         ) : (
@@ -197,7 +230,9 @@ export default function ScopePicker({ mode, value, onChange }: Props) {
                 onClick={() => onPick(o)}
                 className="p-3 text-left border border-gray-200 rounded-lg hover:bg-green-50 hover:border-green-300 transition"
               >
-                <div className="text-sm font-medium text-gray-800">{o.name}</div>
+                <div className="text-sm font-medium text-gray-800">
+                  {o.name}
+                </div>
               </button>
             ))}
             {filtered.length === 0 && (
@@ -208,17 +243,30 @@ export default function ScopePicker({ mode, value, onChange }: Props) {
           </div>
         )}
       </div>
-
-      {/* Resumen simple */}
+      Resumen simple
       <div className="mt-4 text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg p-3">
         <div className="font-semibold mb-1">Resumen</div>
         {mode === "GOVERNOR" ? (
-          <div>Departamento: {value.departmentId ? "Seleccionado" : "—"}</div>
+          <div>
+            Departamento:{" "}
+            <span className="font-semibold text-gray-900">
+              {selectedDepartmentName}
+            </span>
+          </div>
         ) : (
           <div>
-            Departamento: {value.departmentId ? "Seleccionado" : "—"} · Provincia:{" "}
-            {value.provinceId ? "Seleccionada" : "—"} · Municipio:{" "}
-            {value.municipalityId ? "Seleccionado" : "—"}
+            Departamento:{" "}
+            <span className="font-semibold text-gray-900">
+              {selectedDepartmentName}
+            </span>{" "}
+            · Provincia:{" "}
+            <span className="font-semibold text-gray-900">
+              {selectedProvinceName}
+            </span>{" "}
+            · Municipio:{" "}
+            <span className="font-semibold text-gray-900">
+              {selectedMunicipalityName}
+            </span>
           </div>
         )}
       </div>

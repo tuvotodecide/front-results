@@ -56,7 +56,7 @@ const Register: React.FC = () => {
   }
 
   const validationSchema = Yup.object({
-    dni: Yup.string().trim().required("El DNI es obligatorio"),
+    dni: Yup.string().trim().required("El carnet es obligatorio"),
     name: Yup.string().trim().required("El nombre completo es obligatorio"),
     email: Yup.string()
       .trim()
@@ -187,7 +187,7 @@ const Register: React.FC = () => {
                 <RoleTypeWatcher />
                 <div className="flex flex-col">
                   <label className="text-sm font-semibold text-gray-700 mb-1 ml-1">
-                    DNI
+                    Carnet
                   </label>
                   <Field
                     name="dni"

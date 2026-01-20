@@ -1,16 +1,18 @@
 import { selectAuth } from "../store/auth/authSlice";
 import { useSelector } from "react-redux";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { useMyContract } from "../hooks/useMyContract";
 
 export default function ProtectedRoutes() {
   const { user, token } = useSelector(selectAuth);
   const location = useLocation();
+  const { hasContract } = useMyContract();
 
   if (!user || !token) {
     const from = `${location.pathname}${location.search}`;
     return <Navigate to="/login" state={{ from }} replace />;
   }
-  const status = user.status ?? (user.isApproved ? "ACTIVE" : "PENDING");
+  const status = user.status ?? (user.active ? "ACTIVE" : "PENDING");
 
   if (status === "PENDING") {
     return <Navigate to="/pendiente" replace />;
@@ -34,15 +36,14 @@ export default function ProtectedRoutes() {
   ];
 
   const isAdminPath = adminPaths.some((path) =>
-    location.pathname.startsWith(path)
+    location.pathname.startsWith(path),
   );
 
-  if (isAdminPath && user.role !== "superadmin") {
+  if (isAdminPath && user.role !== "SUPERADMIN") {
     return <Navigate to="/resultados" replace />;
   }
 
-  const isRestrictedRole =
-    user.role === "alcalde" || user.role === "gobernador";
+  const isRestrictedRole = user.role === "MAYOR" || user.role === "GOVERNOR";
   const allowedForRestricted =
     location.pathname.startsWith("/control-personal") ||
     location.pathname.startsWith("/auditoria-tse");
@@ -53,3 +54,44 @@ export default function ProtectedRoutes() {
 
   return <Outlet />;
 }
+
+
+
+
+
+
+
+
+// import { useMyContract } from '../hooks/useMyContract';
+
+// export default function ProtectedRoutes() {
+//   const { user, token } = useSelector(selectAuth);
+//   const location = useLocation();
+//   const { hasContract } = useMyContract();
+
+//   // ... validaciones actuales (user, token, status)
+
+//   // ← NUEVO: Si es MAYOR/GOVERNOR y va a control-personal/auditoria, validar contrato
+//   const requiresContract =
+//     location.pathname.startsWith('/control-personal') ||
+//     location.pathname.startsWith('/auditoria-tse');
+
+//   if (
+//     isRestrictedRole &&
+//     requiresContract &&
+//     !hasContract
+//   ) {
+//     return (
+//       <Navigate
+//         to="/resultados"
+//         state={{
+//           error:
+//             'No tiene un contrato activo. Contacte al administrador para habilitar su acceso.',
+//         }}
+//         replace
+//       />
+//     );
+//   }
+
+//   return <Outlet />;
+// }

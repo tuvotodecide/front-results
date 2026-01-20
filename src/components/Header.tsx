@@ -105,7 +105,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className={styles.menuHeader}>
                   <p className={styles.menuEmail}>{user?.email}</p>
                 </div>
-                <button onClick={logout} className={styles.menuItem}>
+                <button data-cy="logout-button" onClick={logout} className={styles.menuItem}>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="16"

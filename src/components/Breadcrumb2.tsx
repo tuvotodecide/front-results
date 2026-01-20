@@ -31,6 +31,7 @@ import {
 import ElectionSelector from "./ElectionSelector";
 import { selectAuth } from "../store/auth/authSlice";
 import { RootState } from "../store";
+import { useMyContract } from "../hooks/useMyContract";
 
 interface LevelOption {
   _id: string;
@@ -81,6 +82,7 @@ const breadcrumbLevels = [
 const Breadcrumb = () => {
   const dispatch = useDispatch();
   const { user } = useSelector(selectAuth);
+  const { hasContract, contract } = useMyContract();
   const [searchParams, setSearchParams] = useSearchParams();
   const [getDepartment] = useLazyGetDepartmentQuery();
   const [getProvince] = useLazyGetProvinceQuery();
@@ -106,13 +108,13 @@ const Breadcrumb = () => {
   const [selectedPath2, setSelectedPath2] = useState<PathItem2[]>([]);
 
   const role = user?.role || "publico";
-  const startLevel = role === "alcalde" ? 2 : role === "gobernador" ? 0 : -1;
+  const startLevel = role === "MAYOR" ? 2 : role === "GOVERNOR" ? 0 : -1;
 
   const selectedElectionId = useSelector(
-    (s: RootState) => s.election.selectedElectionId
+    (s: RootState) => s.election.selectedElectionId,
   );
   const [selectedLevel, setSelectedLevel] = useState<SelectedLevel | null>(
-    null
+    null,
   );
   // State to control visibility of the current level selection section
   const [showCurrentLevel, setShowCurrentLevel] = useState(false);
@@ -167,8 +169,8 @@ const Breadcrumb = () => {
       // Limpia redux + path
       clearSelectedPath();
 
-      // Abre primer nivel para elegir de nuevo (solo para publico/superadmin)
-      if (role === "superadmin" || role === "publico") {
+      // Abre primer nivel para elegir de nuevo (solo para publico/SUPERADMIN)
+      if (role === "SUPERADMIN" || role === "publico") {
         selectLevel(0);
         setShowCurrentLevel(true);
       }
@@ -187,7 +189,78 @@ const Breadcrumb = () => {
   useEffect(() => {
     if (isInitialized || !user) return;
 
-    if (role === "alcalde" && user.municipalityId) {
+    if (hasContract && contract) {
+      if (contract.role === "MAYOR" && contract.territory.municipalityId) {
+        const forcedPath: PathItem2[] = [
+          {
+            id: "department",
+            title: "Departamento",
+            selectedOption: {
+              _id: contract.territory.departmentId!,
+              name: contract.territory.departmentName!,
+            },
+          },
+          {
+            id: "province",
+            title: "Provincia",
+            selectedOption: { _id: "", name: "-" },
+          },
+          {
+            id: "municipality",
+            title: "Municipio",
+            selectedOption: {
+              _id: contract.territory.municipalityId!,
+              name: contract.territory.municipalityName!,
+            },
+          },
+        ];
+
+        setSelectedPath2(forcedPath);
+        dispatch(
+          setFilters({
+            department: contract.territory.departmentName,
+            municipality: contract.territory.municipalityName,
+          }),
+        );
+        dispatch(
+          setFilterIds({
+            departmentId: contract.territory.departmentId,
+            municipalityId: contract.territory.municipalityId,
+          }),
+        );
+
+        selectLevel(3, forcedPath);
+        setShowCurrentLevel(true);
+        setIsInitialized(true);
+        return;
+      }
+
+      if (contract.role === "GOVERNOR" && contract.territory.departmentId) {
+        const forcedPath: PathItem2[] = [
+          {
+            id: "department",
+            title: "Departamento",
+            selectedOption: {
+              _id: contract.territory.departmentId!,
+              name: contract.territory.departmentName!,
+            },
+          },
+        ];
+
+        setSelectedPath2(forcedPath);
+        dispatch(setFilters({ department: contract.territory.departmentName }));
+        dispatch(
+          setFilterIds({ departmentId: contract.territory.departmentId }),
+        );
+
+        selectLevel(1, forcedPath);
+        setShowCurrentLevel(true);
+        setIsInitialized(true);
+        return;
+      }
+    }
+
+    if (role === "MAYOR" && user.municipalityId) {
       const forcedPath: PathItem2[] = [
         {
           id: "department",
@@ -218,14 +291,14 @@ const Breadcrumb = () => {
         setFilters({
           department: user.departmentName,
           municipality: user.municipalityName,
-        })
+        }),
       );
 
       dispatch(
         setFilterIds({
           departmentId: user.departmentId,
           municipalityId: user.municipalityId,
-        })
+        }),
       );
 
       // IMPORTANTE: abrir el siguiente nivel correcto (Asiento Electoral)
@@ -236,7 +309,7 @@ const Breadcrumb = () => {
       return;
     }
 
-    if (role === "gobernador" && user.departmentId) {
+    if (role === "GOVERNOR" && user.departmentId) {
       const forcedPath: PathItem2[] = [
         {
           id: "department",
@@ -260,7 +333,7 @@ const Breadcrumb = () => {
       return;
     }
 
-    // superadmin/publico: NO marcar initialized aquí
+    // SUPERADMIN/publico: NO marcar initialized aquí
   }, [user, role, isInitialized, dispatch]);
 
   // Update URL whenever selectedPath2 changes
@@ -288,7 +361,7 @@ const Breadcrumb = () => {
 
       const promises = fetchers
         .filter((f) =>
-          Boolean((Object.fromEntries(searchParams.entries()) as any)[f.key])
+          Boolean((Object.fromEntries(searchParams.entries()) as any)[f.key]),
         )
         .map((f) => {
           const id = (Object.fromEntries(searchParams.entries()) as any)[f.key];
@@ -323,7 +396,7 @@ const Breadcrumb = () => {
             if (item) newPath.push(item);
           }
 
-          // Caso especial: si hay municipality pero no province (típico de alcalde),
+          // Caso especial: si hay municipality pero no province (típico de MAYOR),
           // insertamos placeholder province para mantener índices consistentes.
           const hasMunicipality = map.get(2);
           const hasProvince = map.get(1);
@@ -341,14 +414,20 @@ const Breadcrumb = () => {
               mun,
             ];
             setSelectedPath2(forced);
-            const filters = forced.reduce((acc, item) => {
-              acc[item.id] = item.selectedOption?.name || "";
-              return acc;
-            }, {} as Record<string, string>);
-            const filterIds = forced.reduce((acc, item) => {
-              acc[item.id + "Id"] = item.selectedOption?._id || "";
-              return acc;
-            }, {} as Record<string, string>);
+            const filters = forced.reduce(
+              (acc, item) => {
+                acc[item.id] = item.selectedOption?.name || "";
+                return acc;
+              },
+              {} as Record<string, string>,
+            );
+            const filterIds = forced.reduce(
+              (acc, item) => {
+                acc[item.id + "Id"] = item.selectedOption?._id || "";
+                return acc;
+              },
+              {} as Record<string, string>,
+            );
             dispatch(setFilters(filters));
             dispatch(setFilterIds(filterIds));
             selectLevel(3, forced);
@@ -358,15 +437,21 @@ const Breadcrumb = () => {
 
           setSelectedPath2(newPath);
 
-          const filters = newPath.reduce((acc, item) => {
-            acc[item.id] = item.selectedOption?.name || "";
-            return acc;
-          }, {} as Record<string, string>);
+          const filters = newPath.reduce(
+            (acc, item) => {
+              acc[item.id] = item.selectedOption?.name || "";
+              return acc;
+            },
+            {} as Record<string, string>,
+          );
 
-          const filterIds = newPath.reduce((acc, item) => {
-            acc[item.id + "Id"] = item.selectedOption?._id || "";
-            return acc;
-          }, {} as Record<string, string>);
+          const filterIds = newPath.reduce(
+            (acc, item) => {
+              acc[item.id + "Id"] = item.selectedOption?._id || "";
+              return acc;
+            },
+            {} as Record<string, string>,
+          );
 
           dispatch(setFilters(filters));
           dispatch(setFilterIds(filterIds));
@@ -382,7 +467,7 @@ const Breadcrumb = () => {
 
       setIsInitialized(true);
     } else if (!isInitialized) {
-      if (role === "superadmin" || role === "publico") {
+      if (role === "SUPERADMIN" || role === "publico") {
         selectLevel(0);
         setShowCurrentLevel(true);
       }
@@ -424,7 +509,7 @@ const Breadcrumb = () => {
 
   const handleOptionClick = (
     optionIndex: number,
-    optionClicked: LevelOption
+    optionClicked: LevelOption,
   ) => {
     // Then update any item that matches the optionId with the clicked option
     const newPath: PathItem2[] = selectedPath2.slice(0, optionIndex);
@@ -435,14 +520,20 @@ const Breadcrumb = () => {
       selectedOption: optionClicked,
     };
     newPath.push(newItem);
-    const filters = newPath.reduce((acc, item) => {
-      acc[item.id] = item.selectedOption?.name || "";
-      return acc;
-    }, {} as Record<string, string>);
-    const filterIds = newPath.reduce((acc, item) => {
-      acc[item.id + "Id"] = item.selectedOption?._id || "";
-      return acc;
-    }, {} as Record<string, string>);
+    const filters = newPath.reduce(
+      (acc, item) => {
+        acc[item.id] = item.selectedOption?.name || "";
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
+    const filterIds = newPath.reduce(
+      (acc, item) => {
+        acc[item.id + "Id"] = item.selectedOption?._id || "";
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
     dispatch(setFilters(filters));
     dispatch(setFilterIds(filterIds));
 
@@ -460,7 +551,7 @@ const Breadcrumb = () => {
 
   const selectLevel = async (
     levelIndex: number,
-    pathOverride?: PathItem2[]
+    pathOverride?: PathItem2[],
   ) => {
     const item = breadcrumbLevels[levelIndex];
     setIsLoadingOptions(true);
@@ -481,7 +572,7 @@ const Breadcrumb = () => {
   };
   const getOptionsForLevel = async (
     levelIndex: number,
-    pathOverride?: PathItem2[]
+    pathOverride?: PathItem2[],
   ): Promise<LevelOption[]> => {
     if (levelIndex === 0) {
       return options.departments;
@@ -516,9 +607,8 @@ const Breadcrumb = () => {
         // GET provinces based on selected department
         return resp;
       case 2:
-        const municipalitiesResp = await getMunicipalitiesByProvinceId(
-          idParentOption
-        ).unwrap();
+        const municipalitiesResp =
+          await getMunicipalitiesByProvinceId(idParentOption).unwrap();
         // console.log(
         //   '%cMunicipalities fetched for province:',
         //   'color: green; font-size: 16px; font-weight: bold;',
@@ -526,9 +616,8 @@ const Breadcrumb = () => {
         // );
         return municipalitiesResp;
       case 3:
-        const electoralSeatsResp = await getElectoralSeatsByMunicipalityId(
-          idParentOption
-        ).unwrap();
+        const electoralSeatsResp =
+          await getElectoralSeatsByMunicipalityId(idParentOption).unwrap();
         // console.log(
         //   '%cElectoral seats fetched for municipality:',
         //   'color: green; font-size: 16px; font-weight: bold;',
@@ -583,7 +672,7 @@ const Breadcrumb = () => {
   };
 
   const clearSelectedPath = () => {
-    if (role === "superadmin" || role === "publico") {
+    if (role === "SUPERADMIN" || role === "publico") {
       setSelectedPath2([]);
       dispatch(setFilters({}));
       dispatch(setFilterIds({}));
@@ -591,16 +680,16 @@ const Breadcrumb = () => {
       selectLevel(0);
       setShowCurrentLevel(true);
     } else {
-      // tu lógica actual para alcalde/gobernador...
+      // tu lógica actual para MAYOR/gobernador...
       const basePath = selectedPath2.slice(0, startLevel + 1);
       setSelectedPath2(basePath);
 
-      if (role === "alcalde") {
+      if (role === "MAYOR") {
         dispatch(
           setFilters({
             department: user?.departmentName,
             municipality: user?.municipalityName,
-          })
+          }),
         );
       } else {
         dispatch(setFilters({ department: user?.departmentName }));
@@ -617,7 +706,7 @@ const Breadcrumb = () => {
   const handleSearch = (query: string) => {
     const internalFilteredOptions = filterOptions(
       selectedLevel?.options || [],
-      query
+      query,
     );
     setFilteredOptions(internalFilteredOptions);
   };
@@ -627,7 +716,7 @@ const Breadcrumb = () => {
       {/* Breadcrumb Navigation */}
       <div className="bg-gray-50 rounded-lg flex items-center justify-between">
         <nav className="flex items-center gap-x-1.5 text-sm w-full flex-nowrap overflow-x-auto">
-          {(role === "superadmin" || role === "publico") && (
+          {(role === "SUPERADMIN" || role === "publico") && (
             <button
               onClick={() => resetPath()}
               className="flex flex-col items-start text-black group min-w-[120px] border border-gray-300 p-2 rounded hover:bg-blue-100"
@@ -642,11 +731,11 @@ const Breadcrumb = () => {
             <ChevronRight className="w-4 h-4 text-gray-400 mt-1" />
           )}
           {selectedPath2.map((pathItem, index) => {
-            if (role === "alcalde" && index < 2) return null;
+            if (role === "MAYOR" && index < 2) return null;
             return (
               <React.Fragment key={index}>
-                {((role === "alcalde" && index > 2) ||
-                  (role !== "alcalde" && index > 0)) && (
+                {((role === "MAYOR" && index > 2) ||
+                  (role !== "MAYOR" && index > 0)) && (
                   <ChevronRight className="w-4 h-4 text-gray-400 mt-1" />
                 )}
                 <button
@@ -717,6 +806,8 @@ const Breadcrumb = () => {
             className={`flex items-center mb-4 justify-between flex-wrap ${styles["suggestions-title-container"]}`}
           >
             <SimpleSearchBar
+              inputDataCy="table-search-input" // ← AGREGAR en el lugar donde buscas mesas
+              submitDataCy="table-search-submit"
               className={styles["search-bar"]}
               onSearch={handleSearch}
             />

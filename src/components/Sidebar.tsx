@@ -24,7 +24,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
   const queryParamsResults = useSelector(selectQueryParamsResults);
 
   const role = user?.role || "publico";
-  const isApproved = user?.isApproved || false;
+  const isApproved = !!user?.active;
 
   React.useEffect(() => {
     const handleMenuClick = () => {
@@ -62,7 +62,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
                   <span className={styles.icon}>📚</span>Inicio
                 </Link>
               </li>
-              {isLoggedIn && role === "superadmin" && (
+              {isLoggedIn && role === "SUPERADMIN" && (
                 <li className={styles.menuItem}>
                   <Link to="/panel" className={styles.menuLink}>
                     <span className={styles.icon}>⚙️</span>Panel
@@ -112,7 +112,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
             </li>
             {isLoggedIn &&
               isApproved &&
-              (role === "alcalde" || role === "gobernador") && (
+              (role === "MAYOR" || role === "GOVERNOR") && (
                 <>
                   <li className={styles.menuItem}>
                     <Link
@@ -143,7 +143,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
               )}
           </ul>
         </div>
-        {isLoggedIn && role === "superadmin" && (
+        {isLoggedIn && role === "SUPERADMIN" && (
           <>
             <div className={styles.section}>
               <h3 className={styles.title}>Ubicaciones geográficas</h3>

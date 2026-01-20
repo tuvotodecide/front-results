@@ -127,7 +127,7 @@ StatisticsBarsProps) => {
       <div className="mb-2">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2 gap-2">
           <h2 className="text-md text-slate-600">{title}</h2>
-          <span className="text-md text-slate-600">
+          <span data-cy="total-votes" className="text-md text-slate-600">
             Total: {formatNumber(totalVotes)}
           </span>
         </div>

@@ -7,8 +7,8 @@ export interface AuthState {
     id: string;
     email: string;
     name: string;
-    role: "superadmin" | "alcalde" | "gobernador" | "publico";
-    isApproved: boolean;
+    role: "SUPERADMIN" | "MAYOR" | "GOVERNOR" | "publico";
+    active: boolean;
     restrictedId?: string;
     departmentId?: string;
     departmentName?: string;
@@ -17,10 +17,34 @@ export interface AuthState {
     status?: "ACTIVE" | "PENDING" | "REJECTED" | "INACTIVE";
   } | null;
 }
+const normalizeRole = (role: any) => {
+  const r = String(role || "").toUpperCase();
+
+  if (r === "ALCALDE" || r === "MAYOR") return "MAYOR";
+  if (r === "GOBERNADOR" || r === "GOVERNOR") return "GOVERNOR";
+  if (r === "SUPERADMIN") return "SUPERADMIN";
+  return "publico";
+};
+
+const normalizeUser = (u: any): AuthState["user"] => {
+  if (!u) return null;
+
+  return {
+    ...u,
+    role: normalizeRole(u.role),
+    active: typeof u.active === "boolean" ? u.active : !!u.isApproved,
+  };
+};
+let rawUser: any = null;
+try {
+  rawUser = JSON.parse(localStorage.getItem("user") ?? "null");
+} catch {
+  rawUser = null;
+}
 
 const initialState: AuthState = {
   token: localStorage.getItem("token"),
-  user: JSON.parse(localStorage.getItem("user") ?? "null"),
+  user: rawUser ? normalizeUser(rawUser) : null,
 };
 
 export const authSlice = createSlice({
@@ -28,11 +52,19 @@ export const authSlice = createSlice({
   initialState,
   reducers: {
     setAuth: (state, action) => {
-      const { access_token, user } = action.payload;
-      state.token = access_token;
+      const token =
+        action.payload?.accessToken ??
+        action.payload?.access_token ??
+        action.payload?.token ??
+        null;
+
+      const user = normalizeUser(action.payload?.user);
+
+      state.token = token;
       state.user = user;
-      window.localStorage.setItem("user", JSON.stringify(user));
-      window.localStorage.setItem("token", access_token);
+
+      if (user) localStorage.setItem("user", JSON.stringify(user));
+      if (token) localStorage.setItem("token", token);
     },
     logOut: (state) => {
       state.token = null;
@@ -40,6 +72,8 @@ export const authSlice = createSlice({
       localStorage.removeItem("user");
       localStorage.removeItem("token");
       localStorage.removeItem("selectedElectionId");
+      localStorage.removeItem("pendingEmail");
+      localStorage.removeItem("pendingReason");
     },
   },
 });

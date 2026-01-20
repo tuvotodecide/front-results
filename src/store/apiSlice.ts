@@ -25,10 +25,13 @@ const baseQuery = fetchBaseQuery({
 
 const needsElectionId = (path: string) => {
   const p = path.startsWith("/") ? path : `/${path}`;
+  if (p.startsWith("/auth")) return false;
   return (
     p.startsWith("/results") ||
     p.startsWith("/attestations") ||
     p.startsWith("/ballots") ||
+    p.startsWith("/geographic/electoral-") ||
+    p.startsWith("/geographic/electoral_") ||
     p.startsWith("/geographic/electoral-tables/attested-only")
   );
 };
@@ -36,7 +39,7 @@ const needsElectionId = (path: string) => {
 const baseQueryWrapper = async (
   args: string | FetchArgs,
   api: BaseQueryApi,
-  extraOptions: {}
+  extraOptions: {},
 ) => {
   const state = api.getState() as any;
   const eid =
@@ -48,14 +51,6 @@ const baseQueryWrapper = async (
   let adjusted: FetchArgs =
     typeof args === "string" ? { url: args } : { ...args };
 
-  const method = adjusted.method?.toUpperCase();
-  if (["POST", "PUT", "PATCH", "DELETE"].includes(method || "")) {
-    const apiKey = VITE_API_KEY || "";
-    adjusted.headers = {
-      ...((adjusted.headers as Record<string, string>) || {}),
-      "x-api-key": apiKey,
-    };
-  }
 
   const urlPath = typeof args === "string" ? args : (args.url as string);
   if (eid && needsElectionId(urlPath)) {
@@ -94,6 +89,7 @@ export const apiSlice = createApi({
     "Configurations",
     "PoliticalParties",
     "Attestations",
+    "ClientReports",
   ],
   endpoints: () => ({}),
 });

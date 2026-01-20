@@ -232,7 +232,7 @@ const ResultadosGenerales3 = () => {
               <div className="mb-2">
                 <p className="text-2xl text-gray-700 mb-1">
                   {new Date(
-                    configData.config.resultsStartDateBolivia
+                    configData.config.resultsStartDateBolivia,
                   ).toLocaleDateString("es-ES", {
                     weekday: "long",
                     year: "numeric",
@@ -243,7 +243,7 @@ const ResultadosGenerales3 = () => {
                 </p>
                 <p className="text-3xl font-bold text-gray-800">
                   {new Date(
-                    configData.config.resultsStartDateBolivia
+                    configData.config.resultsStartDateBolivia,
                   ).toLocaleTimeString("es-ES", {
                     hour: "2-digit",
                     minute: "2-digit",
@@ -285,7 +285,10 @@ const ResultadosGenerales3 = () => {
                 </div>
               ) : (
                 <div className="w-full flex flex-wrap gap-4">
-                  <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
+                  <div
+                    data-cy="presidential-results"
+                    className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0"
+                  >
                     <div className="p-4">
                       <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         <span>Resultados Presidenciales</span>
@@ -300,7 +303,10 @@ const ResultadosGenerales3 = () => {
                     </div>
                   </div>
                   {deputiesData.length > 0 && (
-                    <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
+                    <div
+                      data-cy="deputies-results"
+                      className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0"
+                    >
                       <div className="p-4">
                         <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                           <span>Resultados Diputados</span>

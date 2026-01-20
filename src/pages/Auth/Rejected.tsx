@@ -1,13 +1,35 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import tuvotoDecideImage from "../../assets/tuvotodecide.webp";
+import { useSelector } from "react-redux";
+import { selectAuth, selectIsLoggedIn } from "../../store/auth/authSlice";
 
 const Rejected: React.FC = () => {
+  const navigate = useNavigate();
+  const { user } = useSelector(selectAuth);
+  const isLoggedIn = useSelector(selectIsLoggedIn);
+
+  useEffect(() => {
+    // si no está loggeado, no tiene contexto -> login
+    if (!isLoggedIn) {
+      navigate("/login", { replace: true });
+      return;
+    }
+
+    // si está activo, no tiene sentido estar en rechazado
+    if (user?.active) {
+      navigate("/resultados", { replace: true });
+    }
+  }, [isLoggedIn, user?.active, navigate]);
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-64px)] bg-[#459151] px-4">
       <div className="w-full max-w-[450px] p-8 sm:p-10 bg-white rounded-2xl shadow-xl border border-gray-100 text-center">
         <div className="flex flex-col items-center mb-6">
-          <img src={tuvotoDecideImage} alt="Logo" className="h-20 w-auto mb-6" />
+          <img
+            src={tuvotoDecideImage}
+            alt="Logo"
+            className="h-20 w-auto mb-6"
+          />
 
           <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-4 border border-red-100">
             <svg

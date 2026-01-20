@@ -11,7 +11,7 @@ const initialState: ElectionsState = {
 };
 
 export const electionsSlice = createSlice({
-  name: 'elections',
+  name: 'election',
   initialState,
   reducers: {
     setSelectedElection: (

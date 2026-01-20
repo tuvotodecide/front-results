@@ -9,28 +9,43 @@ import {
   hydrateElectionFromStorage,
   setSelectedElection,
 } from "../store/election/electionSlice";
+import { useMyContract } from "../hooks/useMyContract";
 
 export default function ElectionSelector() {
   const dispatch = useDispatch();
   const { data: configs } = useGetConfigurationsQuery();
   const { data: status } = useGetConfigurationStatusQuery();
   const selectedId = useSelector(
-    (s: RootState) => s.election.selectedElectionId
+    (s: RootState) => s.election.selectedElectionId,
   );
+  const { hasContract, contract } = useMyContract();
 
   useEffect(() => {
     dispatch(hydrateElectionFromStorage());
   }, [dispatch]);
 
   useEffect(() => {
+    if (hasContract && contract?.electionId) {
+      dispatch(
+        setSelectedElection({
+          id: contract.electionId,
+          name:
+            configs?.find((c) => c.id === contract.electionId)?.name ?? null,
+        }),
+      );
+      return;
+    }
     if (!selectedId && status?.config?.id) {
       dispatch(
-        setSelectedElection({ id: status.config.id, name: status.config.name })
+        setSelectedElection({ id: status.config.id, name: status.config.name }),
       );
     }
-  }, [dispatch, selectedId, status]);
+  }, [dispatch, selectedId, status, hasContract, contract, configs]);
 
   const onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (hasContract) {
+      return;
+    }
     const id = e.target.value || null;
     const name = configs?.find((c) => c.id === id)?.name ?? null;
     dispatch(setSelectedElection({ id, name }));
@@ -43,7 +58,10 @@ export default function ElectionSelector() {
         data-cy="election-select"
         value={selectedId ?? ""}
         onChange={onChange}
-        className="border rounded px-2 py-1 text-sm  w-auto"
+        disabled={hasContract}
+        className={`border rounded px-2 py-1 text-sm w-auto ${
+          hasContract ? "bg-gray-100 cursor-not-allowed" : ""
+        }`}
       >
         {status?.config?.id && (
           <option value={status.config.id}>

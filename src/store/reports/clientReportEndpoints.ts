@@ -2,6 +2,23 @@ import { apiSlice } from "../apiSlice";
 
 export type GroupBy = "delegate" | "location" | "table";
 
+export interface MyActiveContractResponse {
+  hasContract: boolean;
+  contract?: {
+    id: string;
+    electionId: string; // ← IMPORTANTE
+    role: "MAYOR" | "GOVERNOR";
+    territory: {
+      type: "municipality" | "department";
+      departmentId?: string;
+      departmentName?: string;
+      municipalityId?: string;
+      municipalityName?: string;
+    };
+    active: boolean;
+  };
+}
+
 export interface MyContractResponse {
   hasContract: boolean;
   contract?: {
@@ -38,12 +55,32 @@ export interface ExecutiveSummaryResponse {
   };
 }
 
+export interface DelegateActivityTableRow {
+  tableCode: string;
+  location?: string;
+  delegatesCount: number;
+  totalAttestations: number;
+  support: number;
+  against: number;
+  firstAttestation?: string;
+  lastAttestation?: string;
+
+  ballotIds?: string[];
+  ballotsCount?: number;
+}
+
 export interface DelegateActivityResponse {
   groupBy: GroupBy;
-  // si groupBy=delegate:
+
+  // solo en groupBy=delegate (tu backend lo manda)
   totalDelegates?: number;
   activeDelegates?: number;
-  data: any[]; // lo tipas luego si quieres, por ahora no te frena
+
+  // groupBy=table o location: tu backend manda data
+  totalTables?: number;
+  totalLocations?: number;
+
+  data: any[];
 }
 
 export const clientReportsApi = apiSlice.injectEndpoints({
@@ -66,6 +103,11 @@ export const clientReportsApi = apiSlice.injectEndpoints({
       }),
       providesTags: ["ClientReports"],
     }),
+    
+    getMyActiveContract: builder.query<MyActiveContractResponse, {}>({
+      query: () => `/client-reports/my-active-contract`,
+      providesTags: ["ClientReports"],
+    }),
 
     getDelegateActivity: builder.query<
       DelegateActivityResponse,
@@ -82,6 +124,7 @@ export const clientReportsApi = apiSlice.injectEndpoints({
 
 export const {
   useGetMyContractQuery,
+  useGetMyActiveContractQuery,
   useGetExecutiveSummaryQuery,
   useGetDelegateActivityQuery,
 } = clientReportsApi;

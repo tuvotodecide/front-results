@@ -69,24 +69,24 @@ export const electoralLocationsApiSlice = apiSlice.injectEndpoints({
     //     return { data: locations };
     //   },
     // }),
-    // getElectoralLocation: builder.query<ElectoralLocationsType, string>({
-    //   query: (id) => `/geographic/electoral-locations/${id}`,
-    //   keepUnusedDataFor: 60,
-    //   providesTags: (_result, _error, id) => [
-    //     { type: "ElectoralLocations" as const, id },
-    //   ],
-    // }),
-    getElectoralLocation: builder.query<any, string>({
-      async queryFn(id) {
-        return {
-          data: {
-            _id: id,
-            name: "Colegio Don Bosco",
-            address: "Av. 16 de Julio",
-          },
-        };
-      },
+    getElectoralLocation: builder.query<ElectoralLocationsType, string>({
+      query: (id) => `/geographic/electoral-locations/${id}`,
+      keepUnusedDataFor: 60,
+      providesTags: (_result, _error, id) => [
+        { type: "ElectoralLocations" as const, id },
+      ],
     }),
+    // getElectoralLocation: builder.query<any, string>({
+    //   async queryFn(id) {
+    //     return {
+    //       data: {
+    //         _id: id,
+    //         name: "Colegio Don Bosco",
+    //         address: "Av. 16 de Julio",
+    //       },
+    //     };
+    //   },
+    // }),
     createElectoralLocation: builder.mutation<
       ElectoralLocationsType,
       CreateElectoralLocationType

@@ -23,7 +23,7 @@ const Modal2: React.FC<PropsWithChildren<ModalProps>> = ({
   showClose = true,
   size = "md",
   className = "",
-  type,
+  type = "info",
   children,
 }) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -32,29 +32,23 @@ const Modal2: React.FC<PropsWithChildren<ModalProps>> = ({
     const dialog = dialogRef.current;
     if (!dialog) return;
 
-    if (isOpen) {
-      dialog.showModal();
-    } else {
-      dialog.close();
-    }
+    if (isOpen) dialog.showModal();
+    else dialog.close();
   }, [isOpen]);
 
-  const handleClose = () => {
-    onClose();
-  };
+  const handleClose = () => onClose();
 
   const handleClickOutside = (event: React.MouseEvent<HTMLDialogElement>) => {
     const rect = dialogRef.current?.getBoundingClientRect();
-    if (rect) {
-      const isInDialog =
-        rect.top <= event.clientY &&
-        event.clientY <= rect.bottom &&
-        rect.left <= event.clientX &&
-        event.clientX <= rect.right;
-      if (!isInDialog) {
-        handleClose();
-      }
-    }
+    if (!rect) return;
+
+    const isInDialog =
+      rect.top <= event.clientY &&
+      event.clientY <= rect.bottom &&
+      rect.left <= event.clientX &&
+      event.clientX <= rect.right;
+
+    if (!isInDialog) handleClose();
   };
 
   const sizeClasses = {
@@ -63,71 +57,104 @@ const Modal2: React.FC<PropsWithChildren<ModalProps>> = ({
     lg: "max-w-lg",
     xl: "max-w-xl",
   };
-  const getStatusIcon = () => {
-    if (!type) return null;
 
-    const iconClasses =
-      "w-8 h-8 inline-flex items-center justify-center mr-3 rounded-full p-1.5";
+  const stylesByType = {
+    success: {
+      headerBg: "bg-green-50",
+      border: "border-green-100",
+      iconBg: "bg-green-100",
+      iconText: "text-green-600",
+      accent: "bg-green-500",
+    },
+    error: {
+      headerBg: "bg-red-50",
+      border: "border-red-100",
+      iconBg: "bg-red-100",
+      iconText: "text-red-600",
+      accent: "bg-red-500",
+    },
+    info: {
+      headerBg: "bg-blue-50",
+      border: "border-blue-100",
+      iconBg: "bg-blue-100",
+      iconText: "text-blue-600",
+      accent: "bg-blue-500",
+    },
+  } as const;
 
-    switch (type) {
-      case "success":
-        return (
-          <div className={`${iconClasses} bg-green-100`}>
-            <CheckCircleIcon className="text-green-600 w-full h-full" />
-          </div>
-        );
-      case "error":
-        return (
-          <div className={`${iconClasses} bg-red-100`}>
-            <ExclamationCircleIcon className="text-red-600 w-full h-full" />
-          </div>
-        );
-      case "info":
-        return (
-          <div className={`${iconClasses} bg-blue-100`}>
-            <InformationCircleIcon className="text-blue-600 w-full h-full" />
-          </div>
-        );
-      default:
-        return null;
-    }
+  const ui = stylesByType[type];
+
+  const StatusIcon = () => {
+    const base =
+      "w-9 h-9 inline-flex items-center justify-center rounded-full p-2";
+    if (type === "success")
+      return (
+        <div className={`${base} ${ui.iconBg}`}>
+          <CheckCircleIcon className={`${ui.iconText} w-full h-full`} />
+        </div>
+      );
+    if (type === "error")
+      return (
+        <div className={`${base} ${ui.iconBg}`}>
+          <ExclamationCircleIcon className={`${ui.iconText} w-full h-full`} />
+        </div>
+      );
+    return (
+      <div className={`${base} ${ui.iconBg}`}>
+        <InformationCircleIcon className={`${ui.iconText} w-full h-full`} />
+      </div>
+    );
   };
 
   return (
     <dialog
       ref={dialogRef}
       onClick={handleClickOutside}
-      className="backdrop:bg-gray-900/20 backdrop:backdrop-blur-[2px] p-0 bg-transparent m-auto rounded-lg overflow-hidden w-[95vw] sm:w-full"
+      onCancel={(e) => {
+        e.preventDefault(); // evita que el dialog se cierre "solo" sin pasar por onClose
+        handleClose();
+      }}
+      className="backdrop:bg-gray-900/40 backdrop:backdrop-blur-[3px] p-0 bg-transparent m-auto w-[95vw] sm:w-full"
     >
       <div
-        className={`bg-white ${sizeClasses[size]} w-full max-h-[90vh] overflow-y-auto overscroll-contain mx-auto ${className}`}
+        className={`bg-white ${sizeClasses[size]} w-full mx-auto rounded-2xl overflow-hidden border shadow-2xl ${ui.border} ${className}`}
       >
-        <div className="relative">
-          {" "}
-          {showClose && (
-            <button
-              onClick={handleClose}
-              className="absolute right-4 top-0 h-[60px] flex items-center text-gray-500 hover:text-gray-700 transition-colors z-10"
-            >
-              <XMarkIcon className="w-6 h-6" />
-            </button>
-          )}
-          {title && (
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                {getStatusIcon()}
-                {title}
-              </h3>
-            </div>
-          )}
+        {/* Accent bar */}
+        <div className={`h-1.5 ${ui.accent}`} />
+
+        {/* Header */}
+        {(title || showClose) && (
           <div
-            className={`p-6 ${
-              !title && showClose ? "pt-12" : !title ? "pt-4" : ""
-            }`}
+            className={`relative px-6 py-4 ${ui.headerBg} border-b ${ui.border}`}
           >
-            {children}
+            {showClose && (
+              <button
+                onClick={handleClose}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full
+                           flex items-center justify-center text-gray-500 hover:text-gray-800
+                           hover:bg-white/60 transition-colors"
+                aria-label="Cerrar"
+                type="button"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            )}
+
+            {title && (
+              <div className="flex items-center gap-3 pr-12">
+                <StatusIcon />
+                <div>
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 leading-tight">
+                    {title}
+                  </h3>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        )}
+
+        {/* Body */}
+        <div className="px-6 py-5">{children}</div>
       </div>
     </dialog>
   );
