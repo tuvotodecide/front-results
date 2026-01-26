@@ -82,6 +82,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
                     : "/resultados"
                 }
                 className={styles.menuLink}
+                data-cy="res-gen"
               >
                 <span className={styles.icon}>📊</span>Resultados generales
               </Link>

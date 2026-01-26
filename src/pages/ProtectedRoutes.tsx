@@ -6,7 +6,6 @@ import { useMyContract } from "../hooks/useMyContract";
 export default function ProtectedRoutes() {
   const { user, token } = useSelector(selectAuth);
   const location = useLocation();
-  const { hasContract } = useMyContract();
 
   if (!user || !token) {
     const from = `${location.pathname}${location.search}`;

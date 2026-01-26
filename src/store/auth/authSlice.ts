@@ -1,5 +1,14 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { RootState } from "../index";
+import { jwtDecode } from "jwt-decode";
+type JwtPayload = {
+  sub?: string;
+  dni?: string;
+  role?: string;
+  active?: boolean;
+  votingDepartmentId?: string;
+  votingMunicipalityId?: string;
+};
 
 export interface AuthState {
   token: string | null;
@@ -17,6 +26,14 @@ export interface AuthState {
     status?: "ACTIVE" | "PENDING" | "REJECTED" | "INACTIVE";
   } | null;
 }
+const decodeToken = (token: string | null): JwtPayload | null => {
+  if (!token) return null;
+  try {
+    return jwtDecode<JwtPayload>(token);
+  } catch {
+    return null;
+  }
+};
 const normalizeRole = (role: any) => {
   const r = String(role || "").toUpperCase();
 
@@ -29,10 +46,20 @@ const normalizeRole = (role: any) => {
 const normalizeUser = (u: any): AuthState["user"] => {
   if (!u) return null;
 
+  const role = normalizeRole(u.role);
+
   return {
-    ...u,
-    role: normalizeRole(u.role),
+    id: u.id ?? u._id ?? "",
+    email: u.email ?? "",
+    name: u.name ?? "",
+    role,
     active: typeof u.active === "boolean" ? u.active : !!u.isApproved,
+    restrictedId: u.restrictedId,
+    departmentId: u.departmentId,
+    departmentName: u.departmentName,
+    municipalityId: u.municipalityId,
+    municipalityName: u.municipalityName,
+    status: u.status,
   };
 };
 let rawUser: any = null;
@@ -57,8 +84,41 @@ export const authSlice = createSlice({
         action.payload?.access_token ??
         action.payload?.token ??
         null;
+      const decoded = decodeToken(token);
 
-      const user = normalizeUser(action.payload?.user);
+      let user = normalizeUser(action.payload?.user);
+      if (!user && decoded?.sub) {
+        user = {
+          id: decoded.sub,
+          email: "",
+          name: "",
+          role: normalizeRole(decoded.role),
+          active: !!decoded.active,
+        };
+      }
+      if (user && decoded) {
+        const role = normalizeRole(decoded.role ?? user.role);
+
+        if (
+          role === "GOVERNOR" &&
+          !user.departmentId &&
+          decoded.votingDepartmentId
+        ) {
+          user.departmentId = decoded.votingDepartmentId;
+        }
+
+        if (
+          role === "MAYOR" &&
+          !user.municipalityId &&
+          decoded.votingMunicipalityId
+        ) {
+          user.municipalityId = decoded.votingMunicipalityId;
+        }
+
+        // // opcional: también sincroniza active/role desde token si confías en eso para UI
+        // user.role = role;
+        // if (typeof decoded.active === "boolean") user.active = decoded.active;
+      }
 
       state.token = token;
       state.user = user;

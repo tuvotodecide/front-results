@@ -142,17 +142,17 @@ const VerifyEmail: React.FC = () => {
         </div>
 
         <div className="pt-6 border-t border-gray-100 space-y-3">
-          <Link
+          {/* <Link
             to="/pendiente"
             className="block w-full text-white font-bold py-3 rounded-xl transition-all shadow-md hover:brightness-110 active:scale-[0.98]"
             style={{ backgroundColor: "#459151" }}
           >
             Ver estado (Pendiente)
-          </Link>
+          </Link> */}
 
           <Link
             to="/login"
-            className="block w-full py-3 border-2 border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 transition-all active:scale-[0.98]"
+            className="block w-full py-3 border-2 border-gray-200 text-g<ray-600 font-bold rounded-xl hover:bg-gray-50 transition-all active:scale-[0.98]"
           >
             Ir a Iniciar sesión
           </Link>

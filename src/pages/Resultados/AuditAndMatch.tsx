@@ -13,16 +13,23 @@ import {
 import Breadcrumb2 from "../../components/Breadcrumb2";
 import { useGetAuditoriaTSEQuery } from "../../store/personal/personalEndpoints";
 import { selectFilters } from "../../store/resultados/resultadosSlice";
+import { useGetConfigurationStatusQuery } from "../../store/configurations/configurationsEndpoints";
+import useElectionId from "../../hooks/useElectionId";
 
 const AuditAndMatch: React.FC = () => {
   const [showDetails, setShowDetails] = useState(false);
   const filters = useSelector(selectFilters);
-  const { data, isLoading } = useGetAuditoriaTSEQuery(filters);
+  const electionId = useElectionId();
+  const { isLoading: isConfigLoading } = useGetConfigurationStatusQuery();
+  const { data, isLoading } = useGetAuditoriaTSEQuery(
+    { ...filters, electionId: electionId || "" },
+    { skip: !electionId },
+  );
   const details = data?.details ?? [];
 
   const summary = useMemo(() => {
     const observadasCalc = details.filter(
-      (r: any) => r.auditoria === "No coincide" || r.auditoria === "Anulada"
+      (r: any) => r.auditoria === "No coincide" || r.auditoria === "Anulada",
     ).length;
 
     const observadas =
@@ -31,9 +38,28 @@ const AuditAndMatch: React.FC = () => {
 
     return { observadas, sinObs, total: details.length };
   }, [data?.observados, details]);
+  if (isConfigLoading) {
+    return (
+      <div className="p-10 text-center">
+        Verificando configuración del sistema...
+      </div>
+    );
+  }
+
+  // 2. No hay elección activa
+  if (!electionId) {
+    return (
+      <div className="p-10 text-center text-slate-600">
+        No hay elección seleccionada o activa en este momento.
+      </div>
+    );
+  }
+
+  // 3. Cargando datos de la auditoría
   if (isLoading) {
     return <div className="p-10 text-center">Cargando auditoría vs TSE...</div>;
   }
+
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">

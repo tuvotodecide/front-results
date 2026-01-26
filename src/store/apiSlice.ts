@@ -6,7 +6,7 @@ import {
 } from "@reduxjs/toolkit/query/react";
 // import { logOut } from "./auth/authSlice";
 
-const { VITE_BASE_API_URL, VITE_API_KEY } = import.meta.env;
+const { VITE_BASE_API_URL } = import.meta.env;
 const baseApiUrl = VITE_BASE_API_URL || "http://localhost:3000/api/v1";
 
 const baseQuery = fetchBaseQuery({
@@ -32,7 +32,9 @@ const needsElectionId = (path: string) => {
     p.startsWith("/ballots") ||
     p.startsWith("/geographic/electoral-") ||
     p.startsWith("/geographic/electoral_") ||
-    p.startsWith("/geographic/electoral-tables/attested-only")
+    p.startsWith("/geographic/electoral-tables/attested-only")||
+    p.startsWith("/client-reports")
+
   );
 };
 
@@ -90,6 +92,7 @@ export const apiSlice = createApi({
     "PoliticalParties",
     "Attestations",
     "ClientReports",
+    "Contracts",
   ],
   endpoints: () => ({}),
 });

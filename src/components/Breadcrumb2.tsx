@@ -106,8 +106,20 @@ const Breadcrumb = () => {
     electoralLocations: [],
   });
   const [selectedPath2, setSelectedPath2] = useState<PathItem2[]>([]);
-
+  console.log(user)
   const role = user?.role || "publico";
+
+  const mayorMissingTerritory =
+    role === "MAYOR" && !hasContract && !user?.municipalityId;
+  const governorMissingTerritory =
+    role === "GOVERNOR" && !hasContract && !user?.departmentId;
+
+  const allowManualPick =
+    role === "SUPERADMIN" ||
+    role === "publico" ||
+    mayorMissingTerritory ||
+    governorMissingTerritory;
+
   const startLevel = role === "MAYOR" ? 2 : role === "GOVERNOR" ? 0 : -1;
 
   const selectedElectionId = useSelector(
@@ -170,7 +182,7 @@ const Breadcrumb = () => {
       clearSelectedPath();
 
       // Abre primer nivel para elegir de nuevo (solo para publico/SUPERADMIN)
-      if (role === "SUPERADMIN" || role === "publico") {
+      if (allowManualPick) {
         selectLevel(0);
         setShowCurrentLevel(true);
       }
@@ -467,7 +479,7 @@ const Breadcrumb = () => {
 
       setIsInitialized(true);
     } else if (!isInitialized) {
-      if (role === "SUPERADMIN" || role === "publico") {
+      if (allowManualPick) {
         selectLevel(0);
         setShowCurrentLevel(true);
       }
@@ -672,7 +684,7 @@ const Breadcrumb = () => {
   };
 
   const clearSelectedPath = () => {
-    if (role === "SUPERADMIN" || role === "publico") {
+    if (allowManualPick) {
       setSelectedPath2([]);
       dispatch(setFilters({}));
       dispatch(setFilterIds({}));
@@ -716,7 +728,7 @@ const Breadcrumb = () => {
       {/* Breadcrumb Navigation */}
       <div className="bg-gray-50 rounded-lg flex items-center justify-between">
         <nav className="flex items-center gap-x-1.5 text-sm w-full flex-nowrap overflow-x-auto">
-          {(role === "SUPERADMIN" || role === "publico") && (
+          {(allowManualPick) && (
             <button
               onClick={() => resetPath()}
               className="flex flex-col items-start text-black group min-w-[120px] border border-gray-300 p-2 rounded hover:bg-blue-100"
