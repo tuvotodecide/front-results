@@ -415,25 +415,35 @@ const ParticipacionPersonal: React.FC = () => {
                       </td>
 
                       <td className="px-6 py-4 text-center text-sm">
-                        {row.ballotsCount > 0 ? (
-                          <Link
-                            data-cy="view-ballots-link"
-                            to={`/control-personal/mesa/${row.tableCode}/actas`}
-                            state={{
-                              ballotIds: row.ballotIds,
-                              location: row.location,
-                              tableCode: row.tableCode,
-                            }}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-600 hover:text-white transition-all group-hover:shadow-md border border-blue-100"
-                          >
-                            <FileText size={16} /> Ver Actas ({row.ballotsCount}
-                            )
-                          </Link>
-                        ) : (
-                          <span className="text-slate-300 italic font-light">
-                            Pendiente
-                          </span>
-                        )}
+                        {(() => {
+                          const ballotsCount =
+                            row.ballotsCount ??
+                            row.ballotIds?.length ??
+                            (row.ballotId ? 1 : 0);
+                          const hasBallots =
+                            (row.ballotsCount ?? 0) > 0 ||
+                            (row.ballotIds?.length ?? 0) > 0 ||
+                            !!row.ballotId;
+
+                          return hasBallots ? (
+                            <Link
+                              data-cy="view-ballots-link"
+                              to={`/resultados/mesa/${row.tableCode}`}
+                              state={{
+                                ballotIds: row.ballotIds,
+                                location: row.location,
+                                tableCode: row.tableCode,
+                              }}
+                              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-600 hover:text-white transition-all group-hover:shadow-md border border-blue-100"
+                            >
+                              <FileText size={16} /> Ver Actas ({ballotsCount})
+                            </Link>
+                          ) : (
+                            <span className="text-slate-300 italic font-light">
+                              Pendiente
+                            </span>
+                          );
+                        })()}
                       </td>
                     </tr>
                   ))}
