@@ -15,7 +15,7 @@ import {
   useGetExecutiveSummaryQuery,
   useGetDelegateActivityQuery,
 } from "../../store/reports/clientReportEndpoints";
-import { useMyContract, ContractStatus } from "../../hooks/useMyContract";
+import { useMyContract } from "../../hooks/useMyContract";
 import useElectionId from "../../hooks/useElectionId";
 
 // Componente para mostrar mensajes de estado
@@ -84,7 +84,6 @@ const ParticipacionPersonal: React.FC = () => {
     contract,
     isLoading: contractCheckLoading,
     isError: contractCheckError,
-    isClient,
   } = useMyContract();
 
   // Obtener electionId (del contrato si existe, o del selector)

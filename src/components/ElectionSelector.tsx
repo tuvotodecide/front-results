@@ -50,7 +50,7 @@ export default function ElectionSelector() {
     }
 
     // Si no hay elección seleccionada, usar la activa del sistema
-    if (!selectedId && status?.config?.id) {
+    if (!selectedId && status?.config?.id && status.config.isActive) {
       dispatch(
         setSelectedElection({
           id: status.config.id,
@@ -108,7 +108,7 @@ export default function ElectionSelector() {
             }`}
           >
             {/* Opción de elección activa del sistema */}
-            {status?.config?.id && (
+            {status?.config?.id && status.config.isActive && (
               <option value={status.config.id}>
                 {status.config.name} (activa)
               </option>
@@ -116,7 +116,9 @@ export default function ElectionSelector() {
 
             {/* Otras configuraciones disponibles */}
             {configs
-              ?.filter((cfg) => cfg.id !== status?.config?.id)
+              ?.filter(
+                (cfg) => cfg.isActive && cfg.id !== status?.config?.id
+              )
               .map((cfg) => (
                 <option key={cfg.id} value={cfg.id}>
                   {cfg.name}
@@ -124,9 +126,10 @@ export default function ElectionSelector() {
               ))}
 
             {/* Si no hay elección activa ni configs, mostrar placeholder */}
-            {!status?.config?.id && (!configs || configs.length === 0) && (
-              <option value="">Sin elecciones disponibles</option>
-            )}
+            {(!status?.config?.id || !status.config.isActive) &&
+              (!configs || configs.filter((cfg) => cfg.isActive).length === 0) && (
+                <option value="">Sin elecciones disponibles</option>
+              )}
           </select>
 
           {/* Indicador de bloqueo para clientes con contrato */}

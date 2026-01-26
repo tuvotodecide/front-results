@@ -120,8 +120,6 @@ const Breadcrumb = () => {
     mayorMissingTerritory ||
     governorMissingTerritory;
 
-  const startLevel = role === "MAYOR" ? 2 : role === "GOVERNOR" ? 0 : -1;
-
   const selectedElectionId = useSelector(
     (s: RootState) => s.election.selectedElectionId,
   );
@@ -196,6 +194,25 @@ const Breadcrumb = () => {
       }
     });
     return params;
+  };
+
+  const applyPathFilters = (path: PathItem2[]) => {
+    const filters = path.reduce(
+      (acc, item) => {
+        acc[item.id] = item.selectedOption?.name || "";
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
+    const filterIds = path.reduce(
+      (acc, item) => {
+        acc[item.id + "Id"] = item.selectedOption?._id || "";
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
+    dispatch(setFilters(filters));
+    dispatch(setFilterIds(filterIds));
   };
 
   useEffect(() => {
@@ -347,6 +364,22 @@ const Breadcrumb = () => {
 
     // SUPERADMIN/publico: NO marcar initialized aquí
   }, [user, role, isInitialized, dispatch]);
+
+  // Resetear todo cuando el usuario cierra sesión
+  const prevUserRef = useRef<typeof user | undefined>(undefined);
+  useEffect(() => {
+    // Si había un usuario antes y ahora no hay (logout)
+    if (prevUserRef.current && !user) {
+      setSelectedPath2([]);
+      dispatch(setFilters({}));
+      dispatch(setFilterIds({}));
+      setSelectedLevel(null);
+      setShowCurrentLevel(false);
+      setIsInitialized(false);
+      setSearchParams({});
+    }
+    prevUserRef.current = user;
+  }, [user, dispatch, setSearchParams]);
 
   // Update URL whenever selectedPath2 changes
   useEffect(() => {
@@ -532,22 +565,7 @@ const Breadcrumb = () => {
       selectedOption: optionClicked,
     };
     newPath.push(newItem);
-    const filters = newPath.reduce(
-      (acc, item) => {
-        acc[item.id] = item.selectedOption?.name || "";
-        return acc;
-      },
-      {} as Record<string, string>,
-    );
-    const filterIds = newPath.reduce(
-      (acc, item) => {
-        acc[item.id + "Id"] = item.selectedOption?._id || "";
-        return acc;
-      },
-      {} as Record<string, string>,
-    );
-    dispatch(setFilters(filters));
-    dispatch(setFilterIds(filterIds));
+    applyPathFilters(newPath);
 
     setSelectedPath2(newPath);
 
@@ -650,39 +668,44 @@ const Breadcrumb = () => {
     }
   };
 
-  const handleBreadcrumbClick = async (pathItem: PathItem2, index: number) => {
-    if (selectedLevel?.id !== pathItem.id && !showCurrentLevel) {
-      setShowCurrentLevel(true);
-    } else if (selectedLevel?.id === pathItem.id) {
-      setShowCurrentLevel(!showCurrentLevel);
+  const handleBreadcrumbClick = async (_pathItem: PathItem2, index: number) => {
+    if (allowManualPick && index < selectedPath2.length - 1) {
+      const trimmedPath = selectedPath2.slice(0, index + 1);
+      setSelectedPath2(trimmedPath);
+      applyPathFilters(trimmedPath);
     }
 
+    // Determinar el nivel base del usuario (el nivel que no puede cambiar)
+    const userBaseLevel = role === "MAYOR" ? 2 : role === "GOVERNOR" ? 0 : -1;
+
+    // Si el usuario hace click en su nivel base y NO puede elegir manualmente,
+    // mostrar el siguiente nivel en lugar del mismo nivel
+    const isClickingBaseLevel = !allowManualPick && index === userBaseLevel;
+    const targetLevelIndex = isClickingBaseLevel ? index + 1 : index;
+    const targetLevel = breadcrumbLevels[targetLevelIndex];
+
+    // Toggle visibility si ya está mostrando el mismo nivel
+    if (selectedLevel?.index === targetLevelIndex) {
+      setShowCurrentLevel(!showCurrentLevel);
+      return;
+    }
+
+    setShowCurrentLevel(true);
     setIsLoadingOptions(true);
 
     try {
-      const levelOptions = await getOptionsForLevel(index);
+      const levelOptions = await getOptionsForLevel(targetLevelIndex);
       setSelectedLevel({
-        ...pathItem,
+        ...targetLevel,
+        selectedOption: null,
         options: levelOptions,
-        index: index,
+        index: targetLevelIndex,
       });
       setFilteredOptions(levelOptions);
     } finally {
       setIsLoadingOptions(false);
     }
   };
-  const resetPath = () => {
-    //setSelectedPath2([]);
-    selectLevel(0);
-
-    if (selectedLevel?.index === 0) {
-      setShowCurrentLevel((prev) => !prev);
-    } else {
-      setShowCurrentLevel(true);
-    }
-    // setSearchParams({});
-  };
-
   const clearSelectedPath = () => {
     if (allowManualPick) {
       setSelectedPath2([]);
@@ -692,23 +715,73 @@ const Breadcrumb = () => {
       selectLevel(0);
       setShowCurrentLevel(true);
     } else {
-      // tu lógica actual para MAYOR/gobernador...
-      const basePath = selectedPath2.slice(0, startLevel + 1);
-      setSelectedPath2(basePath);
-
+      // Lógica para MAYOR/GOVERNOR con territorio asignado
+      // Primero intentamos usar los datos del contrato, si no, los del usuario
       if (role === "MAYOR") {
+        const deptId = hasContract ? contract?.territory.departmentId : user?.departmentId;
+        const deptName = hasContract ? contract?.territory.departmentName : user?.departmentName;
+        const munId = hasContract ? contract?.territory.municipalityId : user?.municipalityId;
+        const munName = hasContract ? contract?.territory.municipalityName : user?.municipalityName;
+
+        const basePath: PathItem2[] = [
+          {
+            id: "department",
+            title: "Departamento",
+            selectedOption: { _id: deptId!, name: deptName! },
+          },
+          {
+            id: "province",
+            title: "Provincia",
+            selectedOption: { _id: "", name: "-" },
+          },
+          {
+            id: "municipality",
+            title: "Municipio",
+            selectedOption: { _id: munId!, name: munName! },
+          },
+        ];
+
+        setSelectedPath2(basePath);
         dispatch(
           setFilters({
-            department: user?.departmentName,
-            municipality: user?.municipalityName,
+            department: deptName,
+            municipality: munName,
           }),
         );
-      } else {
-        dispatch(setFilters({ department: user?.departmentName }));
-      }
+        dispatch(
+          setFilterIds({
+            departmentId: deptId,
+            municipalityId: munId,
+          }),
+        );
 
-      setShowCurrentLevel(false);
+        // Abrir siguiente nivel (Asiento Electoral, índice 3)
+        selectLevel(3, basePath);
+        setShowCurrentLevel(true);
+      } else if (role === "GOVERNOR") {
+        const deptId = hasContract ? contract?.territory.departmentId : user?.departmentId;
+        const deptName = hasContract ? contract?.territory.departmentName : user?.departmentName;
+
+        const basePath: PathItem2[] = [
+          {
+            id: "department",
+            title: "Departamento",
+            selectedOption: { _id: deptId!, name: deptName! },
+          },
+        ];
+
+        setSelectedPath2(basePath);
+        dispatch(setFilters({ department: deptName }));
+        dispatch(setFilterIds({ departmentId: deptId }));
+
+        // Abrir siguiente nivel (Provincia, índice 1)
+        selectLevel(1, basePath);
+        setShowCurrentLevel(true);
+      }
     }
+  };
+  const resetPath = () => {
+    clearSelectedPath();
   };
   // Show the next breadcrumb level form when "ver más" is clicked
   // const handleShowNextLevel = async () => {
