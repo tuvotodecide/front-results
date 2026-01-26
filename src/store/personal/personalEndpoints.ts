@@ -3,7 +3,7 @@ import { apiSlice } from "../apiSlice";
 export const personalApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getParticipacionPersonal: builder.query<any, any>({
-      async queryFn(filters) {
+      async queryFn() {
         // MOCK: Simulamos la lista de personas contratadas vs reporte
         const mockData = [
           {

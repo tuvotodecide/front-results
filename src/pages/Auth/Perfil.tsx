@@ -1,5 +1,4 @@
 
-import React from "react";
 import { useSelector } from "react-redux";
 import { useGetProfileQuery } from "../../store/auth/authEndpoints";
 import { selectAuth } from "../../store/auth/authSlice";

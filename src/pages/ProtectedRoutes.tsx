@@ -1,7 +1,6 @@
 import { selectAuth } from "../store/auth/authSlice";
 import { useSelector } from "react-redux";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useMyContract } from "../hooks/useMyContract";
 
 export default function ProtectedRoutes() {
   const { user, token } = useSelector(selectAuth);
