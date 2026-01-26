@@ -214,11 +214,7 @@ const ResultadosMesa2 = () => {
     // Implement search functionality here
   };
 
-  useEffect(() => {
-    if (mostSupportedBallotData) {
-      console.log("Most Supported Ballot Data:", mostSupportedBallotData);
-    }
-  }, [mostSupportedBallotData]);
+
 
   useEffect(() => {
     if (!tableCode || !electoralTableData) return;
@@ -425,13 +421,6 @@ const ResultadosMesa2 = () => {
 
       const uniqueIds = Array.from(new Set(validBallotIds)).slice(0, 15); // Limit to 15 for performance
 
-      console.log("🎯 Department attestations corrected:", {
-        totalAttestations: departmentAttestationsData.data.length,
-        validBallotIds: validBallotIds.length,
-        uniqueIds: uniqueIds.length,
-        sampleIds: uniqueIds.slice(0, 3),
-      });
-
       setDepartmentUniqueBallotIds(uniqueIds);
     } else {
       setDepartmentUniqueBallotIds([]);
@@ -456,12 +445,6 @@ const ResultadosMesa2 = () => {
 
       const uniqueIds = Array.from(new Set(validBallotIds)).slice(0, 15); // Limit to 15 for performance
 
-      console.log("🏛️ Province attestations:", {
-        totalAttestations: provinceAttestationsData.data.length,
-        validBallotIds: validBallotIds.length,
-        uniqueIds: uniqueIds.length,
-        sampleIds: uniqueIds.slice(0, 3),
-      });
 
       setProvinceUniqueBallotIds(uniqueIds);
     } else {
@@ -487,12 +470,6 @@ const ResultadosMesa2 = () => {
 
       const uniqueIds = Array.from(new Set(validBallotIds)).slice(0, 15); // Limit to 15 for performance
 
-      console.log("🏘️ Municipality attestations:", {
-        totalAttestations: municipalityAttestationsData.data.length,
-        validBallotIds: validBallotIds.length,
-        uniqueIds: uniqueIds.length,
-        sampleIds: uniqueIds.slice(0, 3),
-      });
 
       setMunicipalityUniqueBallotIds(uniqueIds);
     } else {
@@ -535,12 +512,6 @@ const ResultadosMesa2 = () => {
       sourceName = "general";
     }
 
-    console.log("🔄 Processing ballots with priority source:", sourceName, {
-      ballotIdsCount: ballotIdsToCheck.length,
-      ballotsLoaded: ballotsToUse.length,
-      isLoading: isLoadingToUse,
-      hasError: !!errorToUse,
-    });
 
     if (ballotsToUse.length > 0 && !isLoadingToUse && !errorToUse) {
       const convertedTables = ballotsToElectoralTables(ballotsToUse);

@@ -106,7 +106,6 @@ const Breadcrumb = () => {
     electoralLocations: [],
   });
   const [selectedPath2, setSelectedPath2] = useState<PathItem2[]>([]);
-  console.log(user)
   const role = user?.role || "publico";
 
   const mayorMissingTerritory =
@@ -216,7 +215,46 @@ const Breadcrumb = () => {
   };
 
   useEffect(() => {
-    if (isInitialized || !user) return;
+    if (!user) return;
+
+    const mayorNameAvailable = Boolean(
+      (hasContract && contract?.territory.municipalityName) ||
+        user.municipalityName,
+    );
+    const governorNameAvailable = Boolean(
+      (hasContract && contract?.territory.departmentName) ||
+        user.departmentName,
+    );
+
+    const needsMayorInit =
+      role === "MAYOR" &&
+      user.municipalityId &&
+      (selectedPath2.length === 0 ||
+        selectedPath2[2]?.selectedOption?._id !== user.municipalityId);
+    const needsGovernorInit =
+      role === "GOVERNOR" &&
+      user.departmentId &&
+      (selectedPath2.length === 0 ||
+        selectedPath2[0]?.selectedOption?._id !== user.departmentId);
+
+    const needsMayorName =
+      role === "MAYOR" &&
+      user.municipalityId &&
+      !selectedPath2[2]?.selectedOption?.name &&
+      mayorNameAvailable;
+    const needsGovernorName =
+      role === "GOVERNOR" &&
+      user.departmentId &&
+      !selectedPath2[0]?.selectedOption?.name &&
+      governorNameAvailable;
+
+    const shouldReinit =
+      !allowManualPick &&
+      (needsMayorInit ||
+        needsGovernorInit ||
+        needsMayorName ||
+        needsGovernorName);
+    if (isInitialized && !shouldReinit) return;
 
     if (hasContract && contract) {
       if (contract.role === "MAYOR" && contract.territory.municipalityId) {
@@ -363,7 +401,16 @@ const Breadcrumb = () => {
     }
 
     // SUPERADMIN/publico: NO marcar initialized aquí
-  }, [user, role, isInitialized, dispatch]);
+  }, [
+    user,
+    role,
+    isInitialized,
+    allowManualPick,
+    selectedPath2,
+    hasContract,
+    contract,
+    dispatch,
+  ]);
 
   // Resetear todo cuando el usuario cierra sesión
   const prevUserRef = useRef<typeof user | undefined>(undefined);
@@ -373,6 +420,7 @@ const Breadcrumb = () => {
       setSelectedPath2([]);
       dispatch(setFilters({}));
       dispatch(setFilterIds({}));
+      dispatch(setQueryParamsResults(""));
       setSelectedLevel(null);
       setShowCurrentLevel(false);
       setIsInitialized(false);
@@ -390,6 +438,9 @@ const Breadcrumb = () => {
   // Initialize from URL parameters only once on mount
   useEffect(() => {
     dispatch(setQueryParamsResults(searchParams.toString()));
+    if (!allowManualPick) {
+      return;
+    }
     if (!isInitialized && searchParams.size > 0 && selectedPath2.length === 0) {
       // console.log(
       //   '%cInitializing from URL params:',
@@ -669,14 +720,18 @@ const Breadcrumb = () => {
   };
 
   const handleBreadcrumbClick = async (_pathItem: PathItem2, index: number) => {
-    if (allowManualPick && index < selectedPath2.length - 1) {
+    // Determinar el nivel base del usuario (el nivel que no puede cambiar)
+    const userBaseLevel = role === "MAYOR" ? 2 : role === "GOVERNOR" ? 0 : -1;
+    let pathOverride: PathItem2[] | undefined;
+    const canTrimToIndex =
+      index < selectedPath2.length - 1 &&
+      (allowManualPick || index >= userBaseLevel);
+    if (canTrimToIndex) {
       const trimmedPath = selectedPath2.slice(0, index + 1);
       setSelectedPath2(trimmedPath);
       applyPathFilters(trimmedPath);
+      pathOverride = trimmedPath;
     }
-
-    // Determinar el nivel base del usuario (el nivel que no puede cambiar)
-    const userBaseLevel = role === "MAYOR" ? 2 : role === "GOVERNOR" ? 0 : -1;
 
     // Si el usuario hace click en su nivel base y NO puede elegir manualmente,
     // mostrar el siguiente nivel en lugar del mismo nivel
@@ -694,7 +749,10 @@ const Breadcrumb = () => {
     setIsLoadingOptions(true);
 
     try {
-      const levelOptions = await getOptionsForLevel(targetLevelIndex);
+      const levelOptions = await getOptionsForLevel(
+        targetLevelIndex,
+        pathOverride,
+      );
       setSelectedLevel({
         ...targetLevel,
         selectedOption: null,
