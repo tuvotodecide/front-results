@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useGetConfigurationStatusQuery } from "../store/configurations/configurationsEndpoints";
 import {
@@ -7,114 +7,263 @@ import {
 } from "../store/resultados/resultadosEndpoints";
 import { useSelector } from "react-redux";
 import { selectFilters } from "../store/resultados/resultadosSlice";
+import { selectAuth, selectIsLoggedIn } from "../store/auth/authSlice";
 import { getPartyColor } from "./Resultados/partyColors";
 import StatisticsBars from "./Resultados/StatisticsBars";
 import Graphs from "./Resultados/Graphs";
 import tuvotoDecideImage from "../assets/tuvotodecide.webp";
+import { ElectionStatusType } from "../types";
 
-import useElectionId from "../hooks/useElectionId";
+interface ElectionResultsData {
+  electionId: string;
+  electionName: string;
+  electionType: string;
+  resultsData: Array<{ name: string; value: number; color: string }>;
+  participationData: Array<{ name: string; value: any; color: string }>;
+  isPreliminary: boolean;
+}
+
+// Component to display results for a single election
+const ElectionResultsCard: React.FC<{
+  election: ElectionStatusType;
+  resultsData: Array<{ name: string; value: number; color: string }>;
+  participationData: Array<{ name: string; value: any; color: string }>;
+}> = ({ election, resultsData, participationData }) => {
+  const isPreliminary = election.isVotingPeriod;
+  const electionTypeLabel = election.type === "municipal"
+    ? "Municipales"
+    : election.type === "departamental"
+      ? "Departamentales"
+      : "Presidenciales";
+
+  return (
+    <div className="space-y-6">
+      {/* Election Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-4 text-white">
+        <h3 className="text-lg font-bold">{election.name}</h3>
+        <p className="text-sm text-blue-100">Elecciones {electionTypeLabel}</p>
+        {isPreliminary && (
+          <span className="inline-block mt-2 text-xs font-semibold uppercase tracking-wide text-orange-200 bg-orange-600 px-2 py-0.5 rounded-full">
+            Resultados preliminares
+          </span>
+        )}
+      </div>
+
+      {/* Participation */}
+      {participationData.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="bg-gradient-to-r from-green-50 to-blue-50 px-6 py-4 border-b border-gray-200">
+            <h4 className="text-lg font-semibold text-gray-900 flex items-center">
+              <svg
+                className="w-5 h-5 text-green-600 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                ></path>
+              </svg>
+              Participación Electoral
+            </h4>
+          </div>
+          <div className="p-4">
+            <StatisticsBars
+              title="Distribución de Votos"
+              voteData={participationData}
+              processedTables={{ current: 0, total: 0 }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Results */}
+      {resultsData.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 px-6 py-4 border-b border-gray-200">
+            <h4 className="text-lg font-semibold text-gray-900 flex items-center">
+              <svg
+                className="w-5 h-5 text-blue-600 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                ></path>
+              </svg>
+              Resultados {electionTypeLabel}
+            </h4>
+          </div>
+          <div className="p-4">
+            <Graphs data={resultsData} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const Home: React.FC = () => {
-  const [presidentialData, setPresidentialData] = useState<
-    Array<{ name: string; value: number; color: string }>
-  >([]);
-  const [participation, setParticipation] = useState<
-    Array<{ name: string; value: any; color: string }>
-  >([]);
+  const [electionResults, setElectionResults] = useState<Map<string, ElectionResultsData>>(new Map());
+  const [loading, setLoading] = useState(false);
 
   const { data: configData } = useGetConfigurationStatusQuery();
   const [getResultsByLocation] = useLazyGetResultsByLocationQuery();
   const [getLiveResultsByLocation] = useLazyGetLiveResultsByLocationQuery();
   const filters = useSelector(selectFilters);
+  const auth = useSelector(selectAuth);
+  const isLoggedIn = useSelector(selectIsLoggedIn);
 
-  const electionId = useElectionId();
-  const hasActiveConfig = !!configData?.hasActiveConfig;
-  const isPreliminaryPhase = !!configData?.isVotingPeriod; // epoca de preliminares
-  const isFinalPhase = !!configData?.isResultsPeriod;
+  // Filter elections based on user role
+  const visibleElections = useMemo(() => {
+    if (!configData?.elections) return [];
 
+    const elections = configData.elections.filter(e => e.isActive);
+
+    // Not logged in or SUPERADMIN: show all elections
+    if (!isLoggedIn || auth.user?.role === "SUPERADMIN") {
+      return elections;
+    }
+
+    // MAYOR: show only municipal elections
+    if (auth.user?.role === "MAYOR") {
+      return elections.filter(e => e.type === "municipal");
+    }
+
+    // GOVERNOR: show only departmental elections
+    if (auth.user?.role === "GOVERNOR") {
+      return elections.filter(e => e.type === "departamental");
+    }
+
+    // Default: show all
+    return elections;
+  }, [configData?.elections, isLoggedIn, auth.user?.role]);
+
+  // Get location filters based on user role
+  const getLocationFilters = useMemo(() => {
+    const baseFilters = { ...filters };
+
+    if (isLoggedIn && auth.user) {
+      // MAYOR: filter by their municipality
+      if (auth.user.role === "MAYOR" && auth.user.municipalityId) {
+        return { ...baseFilters, municipalityId: auth.user.municipalityId };
+      }
+      // GOVERNOR: filter by their department
+      if (auth.user.role === "GOVERNOR" && auth.user.departmentId) {
+        return { ...baseFilters, departmentId: auth.user.departmentId };
+      }
+    }
+
+    return baseFilters;
+  }, [filters, isLoggedIn, auth.user]);
+
+  const hasActiveConfig = visibleElections.length > 0;
+  const showResultsPeriod = visibleElections.some(e => e.isVotingPeriod || e.isResultsPeriod);
+
+  // Fetch results for all visible elections
   useEffect(() => {
-    if (!hasActiveConfig) {
-      setPresidentialData([]);
-      setParticipation([]);
+    if (!hasActiveConfig || !showResultsPeriod) {
+      setElectionResults(new Map());
       return;
     }
 
-    if (!isPreliminaryPhase && !isFinalPhase) {
-      setPresidentialData([]);
-      setParticipation([]);
-      return;
-    }
+    const fetchAllResults = async () => {
+      setLoading(true);
+      const resultsMap = new Map<string, ElectionResultsData>();
 
-    const params = {
-      ...filters,
-      electionType: "presidential",
-      electionId: electionId ?? undefined,
+      for (const election of visibleElections) {
+        if (!election.isVotingPeriod && !election.isResultsPeriod) {
+          continue;
+        }
+
+        const params = {
+          ...getLocationFilters,
+          electionType: election.type,
+          electionId: election.id,
+        };
+
+        const fetcher = election.isResultsPeriod
+          ? getResultsByLocation
+          : getLiveResultsByLocation;
+
+        try {
+          const data = await fetcher(params).unwrap();
+
+          const formattedData = (data.results ?? []).map((item: any) => {
+            const partyColor = getPartyColor(item.partyId);
+            const randomColor =
+              "#" +
+              Math.floor(Math.random() * 16777215)
+                .toString(16)
+                .padStart(6, "0");
+            return {
+              name: item.partyId,
+              value: item.totalVotes,
+              color: partyColor || randomColor,
+            };
+          });
+
+          let participationData: Array<{ name: string; value: any; color: string }> = [];
+          if (data.summary) {
+            participationData = [
+              {
+                name: "Válidos",
+                value: data.summary.validVotes || 0,
+                color: "#8cc689",
+              },
+              {
+                name: "Nulos",
+                value: data.summary.nullVotes || 0,
+                color: "#81858e",
+              },
+              {
+                name: "Blancos",
+                value: data.summary.blankVotes || 0,
+                color: "#f3f3ce",
+              },
+            ];
+          }
+
+          resultsMap.set(election.id, {
+            electionId: election.id,
+            electionName: election.name,
+            electionType: election.type,
+            resultsData: formattedData,
+            participationData,
+            isPreliminary: election.isVotingPeriod,
+          });
+        } catch (error) {
+          console.log(`Error obteniendo resultados para ${election.name}:`, error);
+        }
+      }
+
+      setElectionResults(resultsMap);
+      setLoading(false);
     };
 
-    const fetcher = isFinalPhase
-      ? getResultsByLocation // resultados oficiales
-      : getLiveResultsByLocation; // resultados preliminares
-
-    fetcher(params)
-      .unwrap()
-      .then((data) => {
-      
-        const formattedData = (data.results ?? []).map((item: any) => {
-          const partyColor = getPartyColor(item.partyId);
-          const randomColor =
-            "#" +
-            Math.floor(Math.random() * 16777215)
-              .toString(16)
-              .padStart(6, "0");
-          return {
-            name: item.partyId,
-            value: item.totalVotes,
-            color: partyColor || randomColor,
-          };
-        });
-        setPresidentialData(formattedData);
-
-        if (data.summary) {
-          const participationData = [
-            {
-              name: "Válidos",
-              value: data.summary.validVotes || 0,
-              color: "#8cc689",
-            },
-            {
-              name: "Nulos",
-              value: data.summary.nullVotes || 0,
-              color: "#81858e",
-            },
-            {
-              name: "Blancos",
-              value: data.summary.blankVotes || 0,
-              color: "#f3f3ce",
-            },
-          ];
-          setParticipation(participationData);
-        } else {
-          setParticipation([]);
-        }
-      })
-      .catch((error) => {
-        console.log("Error obteniendo resultados:", error);
-        setPresidentialData([]);
-        setParticipation([]);
-      });
+    fetchAllResults();
   }, [
-    filters,
-    electionId,
+    visibleElections,
+    getLocationFilters,
     hasActiveConfig,
-    isPreliminaryPhase,
-    isFinalPhase,
+    showResultsPeriod,
     getResultsByLocation,
     getLiveResultsByLocation,
   ]);
 
+  // Get the first election for waiting message
+  const firstWaitingElection = visibleElections.find(e => !e.isVotingPeriod && !e.isResultsPeriod);
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section - Más compacto */}
+      {/* Hero Section */}
       <div className="bg-gradient-to-br bg-[#459151] text-white">
         <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
           <div className="text-center">
@@ -125,28 +274,34 @@ const Home: React.FC = () => {
               Plataforma para el control electoral
             </p>
             <p className="mt-2 text-sm sm:text-base font-medium text-blue-200 uppercase tracking-wide">
-              Elecciones generales Bolivia 2025
+              Elecciones Bolivia 2026
             </p>
+            {isLoggedIn && auth.user && (
+              <p className="mt-2 text-sm text-green-200">
+                {auth.user.role === "MAYOR" && auth.user.municipalityName && (
+                  <>Viendo resultados de: {auth.user.municipalityName}</>
+                )}
+                {auth.user.role === "GOVERNOR" && auth.user.departmentName && (
+                  <>Viendo resultados de: {auth.user.departmentName}</>
+                )}
+              </p>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Resultados Electorales Section - Mejorado */}
+      {/* Election Results Section */}
       <div className="bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Resultados en Tiempo Real
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Sigue los resultados preliminares de las elecciones generales conforme se van procesando las actas
-            </p>
-          </div> */}
+          {/* Loading state */}
+          {loading && (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          )}
 
-          {configData &&
-          hasActiveConfig &&
-          !isPreliminaryPhase &&
-          !isFinalPhase ? (
+          {/* No active elections or waiting for results */}
+          {!loading && configData && hasActiveConfig && !showResultsPeriod && firstWaitingElection && (
             <div className="bg-white border border-gray-300 rounded-xl p-8 text-center shadow-sm">
               <div className="max-w-md mx-auto">
                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -170,7 +325,7 @@ const Home: React.FC = () => {
                 <div className="bg-gray-50 rounded-lg p-4 mb-4">
                   <p className="text-2xl text-gray-700 font-medium mb-1">
                     {new Date(
-                      configData.config.resultsStartDateBolivia
+                      firstWaitingElection.resultsStartDateBolivia
                     ).toLocaleDateString("es-ES", {
                       weekday: "long",
                       year: "numeric",
@@ -181,7 +336,7 @@ const Home: React.FC = () => {
                   </p>
                   <p className="text-3xl font-bold text-blue-600">
                     {new Date(
-                      configData.config.resultsStartDateBolivia
+                      firstWaitingElection.resultsStartDateBolivia
                     ).toLocaleTimeString("es-ES", {
                       hour: "2-digit",
                       minute: "2-digit",
@@ -194,7 +349,10 @@ const Home: React.FC = () => {
                 </div>
               </div>
             </div>
-          ) : presidentialData.length === 0 ? (
+          )}
+
+          {/* No data available */}
+          {!loading && (!hasActiveConfig || (electionResults.size === 0 && showResultsPeriod)) && (
             <div className="bg-white border border-gray-300 rounded-xl p-8 text-center shadow-sm">
               <div className="max-w-md mx-auto">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -221,82 +379,30 @@ const Home: React.FC = () => {
                 </p>
               </div>
             </div>
-          ) : (
-            <div className="space-y-8">
-              {/* Participación */}
-              {participation.length > 0 && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="bg-gradient-to-r from-green-50 to-blue-50 px-6 py-4 border-b border-gray-200">
-                    <h3 className="text-xl font-semibold text-gray-900 flex items-center">
-                      <svg
-                        className="w-6 h-6 text-green-600 mr-3"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                        ></path>
-                      </svg>
-                      <span>Participación Electoral</span>
-                      {isPreliminaryPhase && (
-                        <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
-                          Resultados preliminares
-                        </span>
-                      )}
-                    </h3>
-                    <p className="text-gray-600 mt-1">
-                      Distribución de votos válidos, nulos y blancos
-                    </p>
-                  </div>
-                  <div className="p-6">
-                    <StatisticsBars
-                      title="Distribución de Votos"
-                      voteData={participation}
-                      processedTables={{ current: 0, total: 0 }}
+          )}
+
+          {/* Display results for each election */}
+          {!loading && electionResults.size > 0 && (
+            <div className="space-y-12">
+              {/* Grid for multiple elections */}
+              <div className={`grid gap-8 ${visibleElections.length > 1 ? 'lg:grid-cols-2' : 'grid-cols-1'}`}>
+                {visibleElections.map((election) => {
+                  const results = electionResults.get(election.id);
+                  if (!results || (results.resultsData.length === 0 && results.participationData.length === 0)) {
+                    return null;
+                  }
+                  return (
+                    <ElectionResultsCard
+                      key={election.id}
+                      election={election}
+                      resultsData={results.resultsData}
+                      participationData={results.participationData}
                     />
-                  </div>
-                </div>
-              )}
+                  );
+                })}
+              </div>
 
-              {/* Resultados Presidenciales */}
-              {presidentialData.length > 0 && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 px-6 py-4 border-b border-gray-200">
-                    <h3 className="text-xl font-semibold text-gray-900 flex items-center">
-                      <svg
-                        className="w-6 h-6 text-blue-600 mr-3"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                        ></path>
-                      </svg>
-                      <span>
-                        {isPreliminaryPhase
-                          ? "Resultados Presidenciales (preliminares)"
-                          : "Resultados Presidenciales"}
-                      </span>
-                    </h3>
-                    <p className="text-gray-600 mt-1">
-                      Votos por candidatura presidencial
-                    </p>
-                  </div>
-                  <div className="p-6">
-                    <Graphs data={presidentialData} />
-                  </div>
-                </div>
-              )}
-
-              {/* Botón para ver más detalles */}
+              {/* Button to see detailed results */}
               <div className="text-center">
                 <Link
                   to="/resultados"
@@ -323,7 +429,7 @@ const Home: React.FC = () => {
         </div>
       </div>
 
-      {/* Mobile App Download Section - Mejorado */}
+      {/* Mobile App Download Section */}
       <div className="bg-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-gradient-to-r bg-[#459151] rounded-2xl overflow-hidden shadow-xl">

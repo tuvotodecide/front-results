@@ -34,12 +34,23 @@ export interface ConfigurationType {
   updatedAt: string;
 }
 
-// Interface for configuration status response from the server
-export interface ConfigurationStatusType {
+// Election type with period flags
+export interface ElectionStatusType extends ConfigurationType {
+  type: 'municipal' | 'departamental' | 'presidential';
+  round: number;
   isVotingPeriod: boolean;
   isResultsPeriod: boolean;
-  hasActiveConfig: boolean;
+}
+
+// Interface for configuration status response from the server
+export interface ConfigurationStatusType {
+  hasActiveConfigs: boolean;
   currentTime: string;
   currentTimeBolivia: string;
-  config: ConfigurationType;
+  elections: ElectionStatusType[];
+  // Legacy single config support (backward compatibility)
+  isVotingPeriod?: boolean;
+  isResultsPeriod?: boolean;
+  hasActiveConfig?: boolean;
+  config?: ConfigurationType;
 }

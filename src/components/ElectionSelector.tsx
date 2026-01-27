@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   useGetConfigurationsQuery,
@@ -25,6 +25,14 @@ export default function ElectionSelector() {
   const { status: contractStatus, contract, isClient, elections } =
     useMyContract();
 
+  // Get active elections from new API format
+  const activeElections = useMemo(() => {
+    return status?.elections?.filter(e => e.isActive) ?? [];
+  }, [status?.elections]);
+
+  // First active election (for auto-selection)
+  const firstActiveElection = activeElections[0] ?? null;
+
   // Hidratar elección del localStorage al inicio
   useEffect(() => {
     dispatch(hydrateElectionFromStorage());
@@ -49,19 +57,19 @@ export default function ElectionSelector() {
       return;
     }
 
-    // Si no hay elección seleccionada, usar la activa del sistema
-    if (!selectedId && status?.config?.id && status.config.isActive) {
+    // Si no hay elección seleccionada, usar la primera activa del sistema
+    if (!selectedId && firstActiveElection) {
       dispatch(
         setSelectedElection({
-          id: status.config.id,
-          name: status.config.name,
+          id: firstActiveElection.id,
+          name: firstActiveElection.name,
         })
       );
     }
   }, [
     dispatch,
     selectedId,
-    status,
+    firstActiveElection,
     contractStatus,
     contract,
     configs,
@@ -107,17 +115,17 @@ export default function ElectionSelector() {
                 : "hover:border-gray-400"
             }`}
           >
-            {/* Opción de elección activa del sistema */}
-            {status?.config?.id && status.config.isActive && (
-              <option value={status.config.id}>
-                {status.config.name} (activa)
+            {/* Elecciones activas del sistema */}
+            {activeElections.map((election) => (
+              <option key={election.id} value={election.id}>
+                {election.name} (activa)
               </option>
-            )}
+            ))}
 
-            {/* Otras configuraciones disponibles */}
+            {/* Otras configuraciones disponibles que no están en activeElections */}
             {configs
               ?.filter(
-                (cfg) => cfg.isActive && cfg.id !== status?.config?.id
+                (cfg) => cfg.isActive && !activeElections.some(e => e.id === cfg.id)
               )
               .map((cfg) => (
                 <option key={cfg.id} value={cfg.id}>
@@ -125,8 +133,8 @@ export default function ElectionSelector() {
                 </option>
               ))}
 
-            {/* Si no hay elección activa ni configs, mostrar placeholder */}
-            {(!status?.config?.id || !status.config.isActive) &&
+            {/* Si no hay elecciones disponibles */}
+            {activeElections.length === 0 &&
               (!configs || configs.filter((cfg) => cfg.isActive).length === 0) && (
                 <option value="">Sin elecciones disponibles</option>
               )}

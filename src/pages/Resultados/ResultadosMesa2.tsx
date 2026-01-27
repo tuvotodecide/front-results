@@ -21,7 +21,7 @@ import StatisticsBars from "./StatisticsBars";
 import BackButton from "../../components/BackButton";
 import { useLazyGetBallotByTableCodeQuery } from "../../store/ballots/ballotsEndpoints";
 import { BallotType, ElectoralTableType } from "../../types";
-import { useGetConfigurationStatusQuery } from "../../store/configurations/configurationsEndpoints";
+import useElectionConfig from "../../hooks/useElectionConfig";
 import { setCurrentTable } from "../../store/resultados/resultadosSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { getPartyColor } from "./partyColors";
@@ -99,10 +99,7 @@ const ResultadosMesa2 = () => {
   const [municipalityUniqueBallotIds, setMunicipalityUniqueBallotIds] =
     useState<string[]>([]);
 
-  const { data: configData } = useGetConfigurationStatusQuery();
-  const hasActiveConfig = !!configData?.hasActiveConfig;
-  const isPreliminaryPhase = !!configData?.isVotingPeriod;
-  const isFinalPhase = !!configData?.isResultsPeriod;
+  const { election, hasActiveConfig, isVotingPeriod: isPreliminaryPhase, isResultsPeriod: isFinalPhase } = useElectionConfig();
 
   useGetDepartmentsQuery({
     limit: 100,
@@ -256,7 +253,7 @@ const ResultadosMesa2 = () => {
 
     fetcher({
       tableCode,
-      electionType: "presidential",
+      electionType: election?.type ?? "presidential",
       electionId: electionId ?? undefined,
     })
       .unwrap()
@@ -336,6 +333,7 @@ const ResultadosMesa2 = () => {
     tableCode,
     electoralTableData,
     electionId,
+    election,
     hasActiveConfig,
     isPreliminaryPhase,
     isFinalPhase,
@@ -1017,7 +1015,7 @@ const ResultadosMesa2 = () => {
                     </div>
                   </div>
 
-                  {configData &&
+                  {election &&
                   hasActiveConfig &&
                   !isPreliminaryPhase &&
                   !isFinalPhase ? (
@@ -1028,7 +1026,7 @@ const ResultadosMesa2 = () => {
                       <div className="mb-2">
                         <p className="text-2xl text-gray-700 mb-1">
                           {new Date(
-                            configData.config.resultsStartDateBolivia
+                            election.resultsStartDateBolivia
                           ).toLocaleDateString("es-ES", {
                             weekday: "long",
                             year: "numeric",
@@ -1039,7 +1037,7 @@ const ResultadosMesa2 = () => {
                         </p>
                         <p className="text-3xl font-bold text-gray-800">
                           {new Date(
-                            configData.config.resultsStartDateBolivia
+                            election.resultsStartDateBolivia
                           ).toLocaleTimeString("es-ES", {
                             hour: "2-digit",
                             minute: "2-digit",

@@ -13,10 +13,10 @@ import TablesSection from "./TablesSection";
 import { useLazyGetElectoralTablesByElectoralLocationIdQuery } from "../../store/electoralTables/electoralTablesEndpoints";
 import { useSearchParams } from "react-router-dom";
 import { ElectoralTableType } from "../../types";
-import { useGetConfigurationStatusQuery } from "../../store/configurations/configurationsEndpoints";
 import { getPartyColor } from "./partyColors";
 import LoadingSkeleton from "../../components/LoadingSkeleton";
 import useElectionId from "../../hooks/useElectionId";
+import useElectionConfig from "../../hooks/useElectionConfig";
 
 // const combinedData = [
 //   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -53,16 +53,12 @@ const ResultadosGenerales3 = () => {
   const [getLiveResultsByLocation] = useLazyGetLiveResultsByLocationQuery();
   const [getTablesByLocationId] =
     useLazyGetElectoralTablesByElectoralLocationIdQuery();
-  const { data: configData } = useGetConfigurationStatusQuery();
+  const { election, hasActiveConfig, isVotingPeriod: isPreliminaryPhase, isResultsPeriod: isFinalPhase } = useElectionConfig();
   const filters = useSelector(selectFilters);
   const [isLoading, setIsLoading] = useState({
     president: true,
     deputies: true,
   });
-
-  const hasActiveConfig = !!configData?.hasActiveConfig;
-  const isPreliminaryPhase = !!configData?.isVotingPeriod;
-  const isFinalPhase = !!configData?.isResultsPeriod;
 
   // useEffect(() => {
   //   // console.log('Current config data:', configData);
@@ -89,8 +85,8 @@ const ResultadosGenerales3 = () => {
       ? getResultsByLocation // oficiales
       : getLiveResultsByLocation; // preliminares
 
-    // PRESIDENTE
-    fetcher({ ...baseParams, electionType: "presidential" })
+    // Tipo de elección (municipal, departamental, presidential)
+    fetcher({ ...baseParams, electionType: election?.type ?? "presidential" })
       .unwrap()
       .then((data) => {
         const formattedData = (data.results ?? []).map((item: any) => {
@@ -186,6 +182,7 @@ const ResultadosGenerales3 = () => {
   }, [
     filters,
     electionId,
+    election,
     hasActiveConfig,
     isPreliminaryPhase,
     isFinalPhase,
@@ -221,7 +218,7 @@ const ResultadosGenerales3 = () => {
             <Breadcrumb2 />
           </div>
 
-          {configData &&
+          {election &&
           hasActiveConfig &&
           !isPreliminaryPhase &&
           !isFinalPhase ? (
@@ -232,7 +229,7 @@ const ResultadosGenerales3 = () => {
               <div className="mb-2">
                 <p className="text-2xl text-gray-700 mb-1">
                   {new Date(
-                    configData.config.resultsStartDateBolivia,
+                    election.resultsStartDateBolivia,
                   ).toLocaleDateString("es-ES", {
                     weekday: "long",
                     year: "numeric",
@@ -243,7 +240,7 @@ const ResultadosGenerales3 = () => {
                 </p>
                 <p className="text-3xl font-bold text-gray-800">
                   {new Date(
-                    configData.config.resultsStartDateBolivia,
+                    election.resultsStartDateBolivia,
                   ).toLocaleTimeString("es-ES", {
                     hour: "2-digit",
                     minute: "2-digit",

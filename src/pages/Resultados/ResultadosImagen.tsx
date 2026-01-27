@@ -12,7 +12,7 @@ import { useDispatch } from "react-redux";
 import { setCurrentBallot } from "../../store/resultados/resultadosSlice";
 import { useGetAttestationsByBallotIdQuery } from "../../store/attestations/attestationsEndpoints";
 import { getPartyColor } from "./partyColors";
-import { useGetConfigurationStatusQuery } from "../../store/configurations/configurationsEndpoints";
+import useElectionConfig from "../../hooks/useElectionConfig";
 
 // const ballotData = {
 //   tableNumber: '25548',
@@ -25,10 +25,7 @@ const ResultadosImagen = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { data: configData } = useGetConfigurationStatusQuery();
-  const hasActiveConfig = !!configData?.hasActiveConfig;
-  const isPreliminaryPhase = !!configData?.isVotingPeriod;
-  const isFinalPhase = !!configData?.isResultsPeriod;
+  const { election, hasActiveConfig, isVotingPeriod: isPreliminaryPhase, isResultsPeriod: isFinalPhase } = useElectionConfig();
   const { data: currentItem, isError: isBallotError } = useGetBallotQuery(id!, {
     skip: !id,
   });
@@ -454,7 +451,7 @@ const ResultadosImagen = () => {
                 )}
               </div> */}
               {/* Results Section */}
-              {configData &&
+              {election &&
               hasActiveConfig &&
               !isPreliminaryPhase &&
               !isFinalPhase ? (
@@ -465,7 +462,7 @@ const ResultadosImagen = () => {
                   <div className="mb-2">
                     <p className="text-2xl text-gray-700 mb-1">
                       {new Date(
-                        configData.config.resultsStartDateBolivia
+                        election.resultsStartDateBolivia
                       ).toLocaleDateString("es-ES", {
                         weekday: "long",
                         year: "numeric",
@@ -476,7 +473,7 @@ const ResultadosImagen = () => {
                     </p>
                     <p className="text-3xl font-bold text-gray-800">
                       {new Date(
-                        configData.config.resultsStartDateBolivia
+                        election.resultsStartDateBolivia
                       ).toLocaleTimeString("es-ES", {
                         hour: "2-digit",
                         minute: "2-digit",
