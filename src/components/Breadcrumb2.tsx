@@ -27,6 +27,7 @@ import {
   setFilters,
   setFilterIds,
   setQueryParamsResults,
+  selectQueryParamsResults,
 } from "../store/resultados/resultadosSlice";
 import ElectionSelector from "./ElectionSelector";
 import { selectAuth } from "../store/auth/authSlice";
@@ -82,6 +83,7 @@ const breadcrumbLevels = [
 const Breadcrumb = () => {
   const dispatch = useDispatch();
   const { user } = useSelector(selectAuth);
+  const queryParamsResults = useSelector(selectQueryParamsResults);
   const { hasContract, contract } = useMyContract();
   const [searchParams, setSearchParams] = useSearchParams();
   const [getDepartment] = useLazyGetDepartmentQuery();
@@ -213,38 +215,60 @@ const Breadcrumb = () => {
     dispatch(setFilters(filters));
     dispatch(setFilterIds(filterIds));
   };
+  const isSamePath = (a: PathItem2[], b: PathItem2[]) => {
+    if (a.length !== b.length) return false;
+    return a.every((item, idx) => {
+      const other = b[idx];
+      return (
+        item.id === other.id &&
+        item.selectedOption?._id === other.selectedOption?._id &&
+        item.selectedOption?.name === other.selectedOption?.name
+      );
+    });
+  };
 
   useEffect(() => {
     if (!user) return;
 
+    const territoryDepartmentId = hasContract
+      ? contract?.territory.departmentId
+      : user.departmentId;
+    const territoryDepartmentName = hasContract
+      ? contract?.territory.departmentName
+      : user.departmentName;
+    const territoryMunicipalityId = hasContract
+      ? contract?.territory.municipalityId
+      : user.municipalityId;
+    const territoryMunicipalityName = hasContract
+      ? contract?.territory.municipalityName
+      : user.municipalityName;
+
     const mayorNameAvailable = Boolean(
-      (hasContract && contract?.territory.municipalityName) ||
-        user.municipalityName,
+      territoryMunicipalityName,
     );
     const governorNameAvailable = Boolean(
-      (hasContract && contract?.territory.departmentName) ||
-        user.departmentName,
+      territoryDepartmentName,
     );
 
     const needsMayorInit =
       role === "MAYOR" &&
-      user.municipalityId &&
+      territoryMunicipalityId &&
       (selectedPath2.length === 0 ||
-        selectedPath2[2]?.selectedOption?._id !== user.municipalityId);
+        selectedPath2[2]?.selectedOption?._id !== territoryMunicipalityId);
     const needsGovernorInit =
       role === "GOVERNOR" &&
-      user.departmentId &&
+      territoryDepartmentId &&
       (selectedPath2.length === 0 ||
-        selectedPath2[0]?.selectedOption?._id !== user.departmentId);
+        selectedPath2[0]?.selectedOption?._id !== territoryDepartmentId);
 
     const needsMayorName =
       role === "MAYOR" &&
-      user.municipalityId &&
+      territoryMunicipalityId &&
       !selectedPath2[2]?.selectedOption?.name &&
       mayorNameAvailable;
     const needsGovernorName =
       role === "GOVERNOR" &&
-      user.departmentId &&
+      territoryDepartmentId &&
       !selectedPath2[0]?.selectedOption?.name &&
       governorNameAvailable;
 
@@ -257,14 +281,19 @@ const Breadcrumb = () => {
     if (isInitialized && !shouldReinit) return;
 
     if (hasContract && contract) {
-      if (contract.role === "MAYOR" && contract.territory.municipalityId) {
+      if (contract.role === "MAYOR" && territoryMunicipalityId) {
+        const deptId = contract.territory.departmentId ?? user.departmentId;
+        const deptName = contract.territory.departmentName ?? user.departmentName ?? "";
+        const munId = territoryMunicipalityId;
+        const munName =
+          contract.territory.municipalityName ?? user.municipalityName ?? "";
         const forcedPath: PathItem2[] = [
           {
             id: "department",
             title: "Departamento",
             selectedOption: {
-              _id: contract.territory.departmentId!,
-              name: contract.territory.departmentName!,
+              _id: deptId!,
+              name: deptName,
             },
           },
           {
@@ -276,23 +305,30 @@ const Breadcrumb = () => {
             id: "municipality",
             title: "Municipio",
             selectedOption: {
-              _id: contract.territory.municipalityId!,
-              name: contract.territory.municipalityName!,
+              _id: munId!,
+              name: munName,
             },
           },
         ];
 
+        if (isSamePath(selectedPath2, forcedPath)) {
+          if (!isInitialized) {
+            setIsInitialized(true);
+          }
+          return;
+        }
+
         setSelectedPath2(forcedPath);
         dispatch(
           setFilters({
-            department: contract.territory.departmentName,
-            municipality: contract.territory.municipalityName,
+            department: deptName,
+            municipality: munName,
           }),
         );
         dispatch(
           setFilterIds({
-            departmentId: contract.territory.departmentId,
-            municipalityId: contract.territory.municipalityId,
+            departmentId: deptId,
+            municipalityId: munId,
           }),
         );
 
@@ -302,22 +338,31 @@ const Breadcrumb = () => {
         return;
       }
 
-      if (contract.role === "GOVERNOR" && contract.territory.departmentId) {
+      if (contract.role === "GOVERNOR" && territoryDepartmentId) {
+        const deptId = territoryDepartmentId;
+        const deptName = contract.territory.departmentName ?? user.departmentName ?? "";
         const forcedPath: PathItem2[] = [
           {
             id: "department",
             title: "Departamento",
             selectedOption: {
-              _id: contract.territory.departmentId!,
-              name: contract.territory.departmentName!,
+              _id: deptId!,
+              name: deptName,
             },
           },
         ];
 
+        if (isSamePath(selectedPath2, forcedPath)) {
+          if (!isInitialized) {
+            setIsInitialized(true);
+          }
+          return;
+        }
+
         setSelectedPath2(forcedPath);
-        dispatch(setFilters({ department: contract.territory.departmentName }));
+        dispatch(setFilters({ department: deptName }));
         dispatch(
-          setFilterIds({ departmentId: contract.territory.departmentId }),
+          setFilterIds({ departmentId: deptId }),
         );
 
         selectLevel(1, forcedPath);
@@ -435,17 +480,22 @@ const Breadcrumb = () => {
     setSearchParams(params);
   }, [selectedPath2, setSearchParams]);
 
+  const searchParamsString = searchParams.toString();
+
   // Initialize from URL parameters only once on mount
   useEffect(() => {
-    dispatch(setQueryParamsResults(searchParams.toString()));
+    if (queryParamsResults !== searchParamsString) {
+      dispatch(setQueryParamsResults(searchParamsString));
+    }
     if (!allowManualPick) {
       return;
     }
-    if (!isInitialized && searchParams.size > 0 && selectedPath2.length === 0) {
+    const paramsSnapshot = new URLSearchParams(searchParamsString);
+    if (!isInitialized && paramsSnapshot.size > 0 && selectedPath2.length === 0) {
       // console.log(
       //   '%cInitializing from URL params:',
       //   'color: blue; font-size: 16px; font-weight: bold;',
-      //   Object.fromEntries(searchParams.entries())
+      //   Object.fromEntries(paramsSnapshot.entries())
       // );
       const fetchers = [
         { key: "department", index: 0, fetch: getDepartment },
@@ -457,10 +507,10 @@ const Breadcrumb = () => {
 
       const promises = fetchers
         .filter((f) =>
-          Boolean((Object.fromEntries(searchParams.entries()) as any)[f.key]),
+          Boolean((Object.fromEntries(paramsSnapshot.entries()) as any)[f.key]),
         )
         .map((f) => {
-          const id = (Object.fromEntries(searchParams.entries()) as any)[f.key];
+          const id = (Object.fromEntries(paramsSnapshot.entries()) as any)[f.key];
           return f.fetch(id).then((resp: any) => ({
             index: f.index,
             key: f.key,
@@ -569,7 +619,15 @@ const Breadcrumb = () => {
       }
       setIsInitialized(true);
     }
-  }, [searchParams, isInitialized, role, dispatch]);
+  }, [
+    searchParamsString,
+    queryParamsResults,
+    allowManualPick,
+    isInitialized,
+    selectedPath2.length,
+    role,
+    dispatch,
+  ]);
   useEffect(() => {
     if (departments && departments.length > 0) {
       const mapped = departments.map((dept) => ({

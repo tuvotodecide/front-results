@@ -199,6 +199,9 @@ const Login: React.FC = () => {
         return;
       }
 
+      // Guardar token antes de pedir el profile (para que se envÃ­e Authorization)
+      dispatch(setAuth({ access_token }));
+
       // 2) profile (para traer territorio del JWT)
       let profile: any = null;
       try {

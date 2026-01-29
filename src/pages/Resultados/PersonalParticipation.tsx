@@ -129,8 +129,7 @@ const ParticipacionPersonal: React.FC = () => {
     { skip: !shouldLoadData || !contractResp?.hasContract }
   );
 
-  const loading =
-    contractCheckLoading || contractLoading || summaryLoading || tablesLoading;
+  const loading = contractCheckLoading || contractLoading;
 
   const tables = useMemo(() => {
     const arr = tablesResp?.data ?? [];
@@ -269,8 +268,8 @@ const ParticipacionPersonal: React.FC = () => {
     );
   }
 
-  // Estado: Error cargando datos
-  if (contractError || summaryError || tablesError) {
+  // Estado: Error cargando contrato
+  if (contractError) {
     return (
       <StatusMessage
         icon={<AlertTriangle size={32} className="text-red-600" />}
@@ -318,27 +317,40 @@ const ParticipacionPersonal: React.FC = () => {
 
         {/* Card de Resumen */}
         <div className="bg-white rounded-xl shadow-md p-8 text-center border border-gray-100 mb-8">
-          <h2 className="text-xl md:text-2xl text-gray-700 leading-relaxed">
-            De las personas autorizadas participaron
-            <span className="mx-2 inline-block px-4 py-1 bg-green-100 text-green-700 font-bold rounded-full">
-              {resumenUI.participaron}
-            </span>
-            y
-            <span className="mx-2 inline-block px-4 py-1 bg-red-100 text-red-700 font-bold rounded-full">
-              {resumenUI.faltantes}
-            </span>
-            no.
-          </h2>
+          {summaryLoading ? (
+            <div className="text-center text-slate-500">
+              <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-3 text-slate-400" />
+              <p className="text-sm">Cargando resumen ejecutivo...</p>
+            </div>
+          ) : summaryError ? (
+            <div className="text-center text-amber-600 text-sm">
+              No se pudo cargar el resumen ejecutivo. Intenta recargar.
+            </div>
+          ) : (
+            <>
+              <h2 className="text-xl md:text-2xl text-gray-700 leading-relaxed">
+                De las personas autorizadas participaron
+                <span className="mx-2 inline-block px-4 py-1 bg-green-100 text-green-700 font-bold rounded-full">
+                  {resumenUI.participaron}
+                </span>
+                y
+                <span className="mx-2 inline-block px-4 py-1 bg-red-100 text-red-700 font-bold rounded-full">
+                  {resumenUI.faltantes}
+                </span>
+                no.
+              </h2>
 
-          <div className="mt-3 text-sm text-slate-500">
-            Tasa de participación:{" "}
-            <span className="font-semibold">{resumenUI.tasa}</span>
-            {resumenUI.total > 0 && (
-              <span className="ml-2">
-                (de {resumenUI.total} delegados autorizados)
-              </span>
-            )}
-          </div>
+              <div className="mt-3 text-sm text-slate-500">
+                Tasa de participacion:{" "}
+                <span className="font-semibold">{resumenUI.tasa}</span>
+                {resumenUI.total > 0 && (
+                  <span className="ml-2">
+                    (de {resumenUI.total} delegados autorizados)
+                  </span>
+                )}
+              </div>
+            </>
+          )}
 
           <button
             onClick={() => setShowDetails(!showDetails)}
@@ -385,6 +397,26 @@ const ParticipacionPersonal: React.FC = () => {
                 </thead>
 
                 <tbody className="divide-y divide-slate-50">
+                  {tablesLoading ? (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="px-6 py-10 text-center text-slate-400"
+                      >
+                        Cargando reporte por mesa...
+                      </td>
+                    </tr>
+                  ) : tablesError ? (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="px-6 py-10 text-center text-amber-600"
+                      >
+                        No se pudo cargar el reporte por mesa. Intenta recargar.
+                      </td>
+                    </tr>
+                  ) : (
+                    <>
                   {tables.map((row: any) => (
                     <tr
                       key={row.tableCode}
@@ -458,7 +490,11 @@ const ParticipacionPersonal: React.FC = () => {
                       </td>
                     </tr>
                   )}
-                </tbody>
+                
+                    </>
+                  )}
+
+</tbody>
               </table>
             </div>
           </div>

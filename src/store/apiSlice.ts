@@ -26,6 +26,7 @@ const baseQuery = fetchBaseQuery({
 const needsElectionId = (path: string) => {
   const p = path.startsWith("/") ? path : `/${path}`;
   if (p.startsWith("/auth")) return false;
+  if (p.startsWith("/client-reports/my-active-contract")) return false;
   return (
     p.startsWith("/results") ||
     p.startsWith("/attestations") ||

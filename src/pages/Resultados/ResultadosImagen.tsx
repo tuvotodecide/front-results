@@ -222,13 +222,13 @@ const ResultadosImagen = () => {
                     Ubicación
                   </h3>
                   <LocationSection
-                    department={currentItem?.location.department || ""}
-                    province={currentItem?.location.province || ""}
-                    municipality={currentItem?.location.municipality || ""}
+                    department={currentItem?.location?.department || ""}
+                    province={currentItem?.location?.province || ""}
+                    municipality={currentItem?.location?.municipality || ""}
                     electoralLocation={
-                      currentItem?.location.electoralLocationName || ""
+                      currentItem?.location?.electoralLocationName || ""
                     }
-                    electoralSeat={currentItem?.location.electoralSeat || ""}
+                    electoralSeat={currentItem?.location?.electoralSeat || ""}
                   />
                 </div>
                 <div className="border border-gray-200 rounded-lg p-6 mb-4 basis-[300px] grow-1 shrink-0">
