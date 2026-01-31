@@ -2,6 +2,9 @@ import React from "react";
 import styles from "./Header.module.css";
 import { useSelector, useDispatch } from "react-redux";
 import { selectIsLoggedIn, selectAuth, logOut } from "../store/auth/authSlice";
+import { resetResults } from "../store/resultados/resultadosSlice";
+import { clearSelectedElection } from "../store/election/electionSlice";
+import { apiSlice } from "../store/apiSlice";
 import tuvotoDecideImage from "../assets/tuvotodecide.webp";
 import { Link, useLocation } from "react-router-dom";
 
@@ -37,6 +40,9 @@ export const Header: React.FC<HeaderProps> = ({
 
   const logout = () => {
     dispatch(logOut());
+    dispatch(resetResults());
+    dispatch(clearSelectedElection());
+    dispatch(apiSlice.util.resetApiState());
     setIsMenuOpen(false);
   };
   return (

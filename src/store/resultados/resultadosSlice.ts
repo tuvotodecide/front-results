@@ -64,6 +64,7 @@ export const resultsSlice = createSlice({
     setQueryParamsResults: (state, action) => {
       state.queryParamsResults = action.payload;
     },
+    resetResults: () => initialState,
   },
 });
 
@@ -83,6 +84,7 @@ export const {
   setCurrentTable,
   setCurrentBallot,
   setQueryParamsResults,
+  resetResults,
 } = resultsSlice.actions;
 // export const { setRecintos } = actasSlice.actions;
 // export const selectAuth = (state: RootState) => state.auth;

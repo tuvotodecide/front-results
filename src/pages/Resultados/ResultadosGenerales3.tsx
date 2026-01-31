@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useGetDepartmentsQuery } from "../../store/departments/departmentsEndpoints";
 import Breadcrumb2 from "../../components/Breadcrumb2";
 import { useSelector } from "react-redux";
-import { selectFilters } from "../../store/resultados/resultadosSlice";
+import {
+  selectFilters,
+  selectFilterIds,
+} from "../../store/resultados/resultadosSlice";
 import {
   useLazyGetLiveResultsByLocationQuery,
   useLazyGetResultsByLocationQuery,
@@ -17,6 +20,8 @@ import { getPartyColor } from "./partyColors";
 import LoadingSkeleton from "../../components/LoadingSkeleton";
 import useElectionId from "../../hooks/useElectionId";
 import useElectionConfig from "../../hooks/useElectionConfig";
+import { selectAuth } from "../../store/auth/authSlice";
+import { useMyContract } from "../../hooks/useMyContract";
 
 // const combinedData = [
 //   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -55,10 +60,72 @@ const ResultadosGenerales3 = () => {
     useLazyGetElectoralTablesByElectoralLocationIdQuery();
   const { election, hasActiveConfig, isVotingPeriod: isPreliminaryPhase, isResultsPeriod: isFinalPhase } = useElectionConfig();
   const filters = useSelector(selectFilters);
+  const filterIds = useSelector(selectFilterIds);
+  const { user } = useSelector(selectAuth);
+  const { status: contractStatus, contract } = useMyContract();
   const [isLoading, setIsLoading] = useState({
     president: true,
     deputies: true,
   });
+
+  const role = user?.role ?? "publico";
+  const isRestrictedRole = role === "MAYOR" || role === "GOVERNOR";
+  const territoryDepartmentId =
+    contract?.territory.departmentId ?? user?.departmentId;
+  const territoryMunicipalityId =
+    contract?.territory.municipalityId ?? user?.municipalityId;
+  const hasRestrictedScope =
+    (role === "MAYOR" && !!territoryMunicipalityId) ||
+    (role === "GOVERNOR" && !!territoryDepartmentId);
+  const hasAnyFilterId = Boolean(
+    filterIds.departmentId ||
+      filterIds.provinceId ||
+      filterIds.municipalityId ||
+      filterIds.electoralSeatId ||
+      filterIds.electoralLocationId,
+  );
+  const shouldDelayForContract =
+    isRestrictedRole && contractStatus === "loading" && !hasRestrictedScope;
+  const shouldBlockForMissingScope =
+    isRestrictedRole && !hasRestrictedScope && !hasAnyFilterId;
+
+  const locationParams = useMemo(() => {
+    const params = {
+      department: filterIds.departmentId || filters.department || "",
+      province: filterIds.provinceId || filters.province || "",
+      municipality: filterIds.municipalityId || filters.municipality || "",
+      electoralSeat: filterIds.electoralSeatId || filters.electoralSeat || "",
+      electoralLocation:
+        filterIds.electoralLocationId || filters.electoralLocation || "",
+    };
+
+    if (role === "MAYOR") {
+      if (territoryDepartmentId) {
+        params.department = territoryDepartmentId;
+      }
+      if (territoryMunicipalityId) {
+        params.municipality = territoryMunicipalityId;
+      }
+    } else if (role === "GOVERNOR" && territoryDepartmentId) {
+      params.department = territoryDepartmentId;
+    }
+
+    return params;
+  }, [
+    filterIds.departmentId,
+    filterIds.provinceId,
+    filterIds.municipalityId,
+    filterIds.electoralSeatId,
+    filterIds.electoralLocationId,
+    filters.department,
+    filters.province,
+    filters.municipality,
+    filters.electoralSeat,
+    filters.electoralLocation,
+    role,
+    territoryDepartmentId,
+    territoryMunicipalityId,
+  ]);
 
   // useEffect(() => {
   //   // console.log('Current config data:', configData);
@@ -74,10 +141,28 @@ const ResultadosGenerales3 = () => {
       return;
     }
 
+    if (shouldDelayForContract) {
+      setPresidentialData([]);
+      setDeputiesData([]);
+      setParticipation([]);
+      setValidTables([]);
+      setIsLoading({ president: true, deputies: true });
+      return;
+    }
+
+    if (shouldBlockForMissingScope) {
+      setPresidentialData([]);
+      setDeputiesData([]);
+      setParticipation([]);
+      setValidTables([]);
+      setIsLoading({ president: false, deputies: false });
+      return;
+    }
+
     setIsLoading({ president: true, deputies: true });
 
     const baseParams = {
-      ...filters,
+      ...locationParams,
       electionId: electionId ?? undefined,
     };
 
@@ -180,12 +265,14 @@ const ResultadosGenerales3 = () => {
         setIsLoading((prev) => ({ ...prev, deputies: false }));
       });
   }, [
-    filters,
+    locationParams,
     electionId,
     election,
     hasActiveConfig,
     isPreliminaryPhase,
     isFinalPhase,
+    shouldDelayForContract,
+    shouldBlockForMissingScope,
     getResultsByLocation,
     getLiveResultsByLocation,
   ]);

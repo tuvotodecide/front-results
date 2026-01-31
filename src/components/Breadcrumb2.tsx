@@ -1033,7 +1033,7 @@ const Breadcrumb = () => {
             )}
 
             {!isLoadingOptions && selectedLevel?.options && (
-              <div className={styles["animate-fadeInUp"]}>
+              <div className={styles.optionsScroll}>
                 <div
                   data-cy="level-options"
                   className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"
@@ -1045,8 +1045,7 @@ const Breadcrumb = () => {
                       onClick={() =>
                         handleOptionClick(selectedLevel.index, option)
                       }
-                      className={`p-3 text-left border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${styles["animate-fadeInStagger"]}`}
-                      style={{ animationDelay: `${index * 50}ms` }}
+                      className="p-3 text-left border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <div className="font-medium text-gray-800">
                         {option.name}

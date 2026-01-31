@@ -45,6 +45,13 @@
   opacity: 0; /* Start invisible */
 }
 
+.optionsScroll {
+  max-height: min(40vh, 360px);
+  overflow-y: auto;
+  padding-right: 6px;
+  scrollbar-gutter: stable;
+}
+
 .suggestions-title-container {
   justify-content: space-between;
 }
@@ -60,5 +67,9 @@
     width: 100%;
     margin-top: 10px;
     order: 3;
+  }
+
+  .optionsScroll {
+    max-height: 45vh;
   }
 }

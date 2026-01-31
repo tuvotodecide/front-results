@@ -84,6 +84,7 @@ const ResultadosMesa2 = () => {
     []
   );
   const [images, setImages] = useState<BallotType[]>([]);
+  const [resultsLoading, setResultsLoading] = useState(false);
   const [showAllTables, setShowAllTables] = useState(false);
   const [showAllFilteredTables, setShowAllFilteredTables] = useState(false);
   const [attestedTables, setAttestedTables] = useState<ElectoralTableType[]>(
@@ -213,9 +214,9 @@ const ResultadosMesa2 = () => {
 
 
 
+  // Cargar actas por tableCode (independiente de electoralTableData)
   useEffect(() => {
-    if (!tableCode || !electoralTableData) return;
-
+    if (!tableCode) return;
     getBallotsByTableCode({ tableCode, electionId: electionId ?? undefined })
       .unwrap()
       .then((data: any) => {
@@ -225,6 +226,10 @@ const ResultadosMesa2 = () => {
         console.error("Error obteniendo actas:", err);
         setImages([]);
       });
+  }, [tableCode, electionId, getBallotsByTableCode]);
+
+  useEffect(() => {
+    if (!tableCode || !electoralTableData) return;
 
     if (electoralTableData.electoralLocation) {
       getTablesByLocationId(electoralTableData.electoralLocation._id)
@@ -901,33 +906,56 @@ const ResultadosMesa2 = () => {
             </div>
           </div>
         ) : isElectoralTableError ? (
-          <div className="bg-white rounded-lg shadow-md py-16 px-8 border border-red-200">
-            <div className="flex flex-col items-center justify-center text-center">
-              <div className="bg-red-50 rounded-full p-4 mb-4">
-                <svg
-                  className="w-12 h-12 text-red-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"
-                  />
-                </svg>
+          <div className="bg-white rounded-lg shadow-md border border-gray-200">
+            {/* Header con info básica del tableCode */}
+            <div className="bg-gray-800 text-white p-6 rounded-t-lg">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-4">
+                  <BackButton className="text-white hover:text-gray-300" />
+                  <div>
+                    <h1 className="text-2xl md:text-3xl font-semibold">
+                      Mesa {tableCode}
+                    </h1>
+                    <p className="text-gray-300 mt-1">
+                      Datos geográficos no disponibles
+                    </p>
+                  </div>
+                </div>
+                <SimpleSearchBar
+                  className="shrink-1 ml-auto"
+                  onSearch={handleSearch}
+                />
               </div>
-              <h1 className="text-2xl md:text-3xl font-semibold text-gray-700 mb-4">
-                No se encontró la mesa "{tableCode}"
-              </h1>
-              <p className="text-lg text-gray-500 mb-8">
-                Por favor, verifique el código e intente con una mesa diferente
-              </p>
-              <SimpleSearchBar
-                className="w-full max-w-md"
-                onSearch={handleSearch}
-              />
+            </div>
+
+            <div className="inner-container">
+              {/* Mostrar imágenes de actas si existen */}
+              {images.length > 0 ? (
+                <div className="border border-gray-200 rounded-lg p-4 mt-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    Imágenes de Actas
+                  </h3>
+                  <ImagesSection
+                    images={images}
+                    mostSupportedBallot={mostSupportedBallotData}
+                    attestationCases={attestationCases?.ballots || []}
+                  />
+                </div>
+              ) : (
+                <div className="py-16 px-8 text-center">
+                  <div className="bg-amber-50 rounded-full p-4 mb-4 inline-block">
+                    <svg className="w-12 h-12 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-xl font-semibold text-gray-700 mb-2">
+                    No se encontraron datos detallados para la mesa "{tableCode}"
+                  </h2>
+                  <p className="text-gray-500">
+                    La mesa electoral no tiene información geográfica registrada ni actas disponibles.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         ) : (
@@ -1078,15 +1106,15 @@ const ResultadosMesa2 = () => {
                             <Graphs data={presidentialData} />
                           </div>
                         </div>
-                        <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
+                        {/* <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
                           <div className="p-4">
                             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                               Resultados Diputados
                             </h3>
                             <Graphs data={deputiesData} />
-                            {/* {selectedOption.id === 'images' && <ImagesSection />} */}
+                           
                           </div>
-                        </div>
+                        </div> */}
                       </div>
                     </>
                   )}

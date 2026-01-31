@@ -109,34 +109,49 @@ const ParticipacionPersonal: React.FC = () => {
     { skip: !shouldLoadData }
   );
 
-  // 2) Resumen ejecutivo
+  // 2) Resumen ejecutivo — en paralelo con my-contract (no esperamos hasContract)
   const {
     data: summaryResp,
     isLoading: summaryLoading,
     isError: summaryError,
   } = useGetExecutiveSummaryQuery(
     { electionId: effectiveElectionId || "" },
-    { skip: !shouldLoadData || !contractResp?.hasContract }
+    { skip: !shouldLoadData }
   );
 
-  // 3) Actividad por mesa
+  // 3) Actividad por mesa — en paralelo con my-contract
   const {
     data: tablesResp,
     isLoading: tablesLoading,
     isError: tablesError,
   } = useGetDelegateActivityQuery(
     { electionId: effectiveElectionId || "", groupBy: "table" },
-    { skip: !shouldLoadData || !contractResp?.hasContract }
+    { skip: !shouldLoadData }
   );
 
-  const loading = contractCheckLoading || contractLoading;
+  // Esperar a que el contrato y el resumen carguen antes de mostrar la vista
+  const loading =
+    contractCheckLoading ||
+    contractLoading ||
+    (shouldLoadData && !summaryResp && !summaryError);
 
-  const tables = useMemo(() => {
-    const arr = tablesResp?.data ?? [];
-    return [...arr].sort(
-      (a: any, b: any) =>
-        (b.totalAttestations || 0) - (a.totalAttestations || 0)
-    );
+  // Aplanar attestationDetails de todas las mesas en filas individuales
+  const attestationRows = useMemo(() => {
+    const rows: any[] = [];
+    (tablesResp?.data ?? []).forEach((table: any) => {
+      (table.attestationDetails ?? []).forEach((att: any) => {
+        rows.push({
+          delegateName: att.delegateName || att.dni || "Sin nombre",
+          location: table.location || "Sin ubicación",
+          tableNumber: table.tableNumber,
+          tableCode: table.tableCode,
+          ballotId: att.ballotId || table.ballotId,
+          support: att.support,
+          attestedAt: att.attestedAt,
+        });
+      });
+    });
+    return rows;
   }, [tablesResp?.data]);
 
   const resumenUI = useMemo(() => {
@@ -316,9 +331,9 @@ const ParticipacionPersonal: React.FC = () => {
         </div>
 
         {/* Card de Resumen */}
-        <div className="bg-white rounded-xl shadow-md p-8 text-center border border-gray-100 mb-8">
+        <div data-cy="summary-card" className="bg-white rounded-xl shadow-md p-8 text-center border border-gray-100 mb-8">
           {summaryLoading ? (
-            <div className="text-center text-slate-500">
+            <div data-cy="summary-loading" className="text-center text-slate-500">
               <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-3 text-slate-400" />
               <p className="text-sm">Cargando resumen ejecutivo...</p>
             </div>
@@ -327,9 +342,9 @@ const ParticipacionPersonal: React.FC = () => {
               No se pudo cargar el resumen ejecutivo. Intenta recargar.
             </div>
           ) : (
-            <>
+            <div data-cy="summary-loaded">
               <h2 className="text-xl md:text-2xl text-gray-700 leading-relaxed">
-                De las personas autorizadas participaron
+                De las personas autorizadas  y designadas como delegados participaron
                 <span className="mx-2 inline-block px-4 py-1 bg-green-100 text-green-700 font-bold rounded-full">
                   {resumenUI.participaron}
                 </span>
@@ -349,10 +364,11 @@ const ParticipacionPersonal: React.FC = () => {
                   </span>
                 )}
               </div>
-            </>
+            </div>
           )}
 
           <button
+            data-cy="toggle-table-btn"
             onClick={() => setShowDetails(!showDetails)}
             className="mt-10 inline-flex items-center gap-2 px-8 py-3 bg-[#459151] text-white font-bold rounded-xl hover:opacity-90 transition-all shadow-lg shadow-slate-200 active:scale-95"
           >
@@ -378,20 +394,20 @@ const ParticipacionPersonal: React.FC = () => {
               >
                 <thead>
                   <tr className="bg-slate-50">
-                    <th className="px-6 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
+                    <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
+                      Delegado
+                    </th>
+                    <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
                       Recinto
                     </th>
-                    <th className="px-6 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 text-center">
-                      Mesa
+                    <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 text-center">
+                      Nro. Mesa
                     </th>
-                    <th className="px-6 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 text-center">
-                      Atestiguamientos
+                    <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 text-center">
+                      Apoyo
                     </th>
-                    <th className="px-6 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 text-center">
-                      Delegados activos
-                    </th>
-                    <th className="px-6 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 text-center">
-                      Acciones
+                    <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 text-center">
+                      Acta
                     </th>
                   </tr>
                 </thead>
@@ -417,84 +433,78 @@ const ParticipacionPersonal: React.FC = () => {
                     </tr>
                   ) : (
                     <>
-                  {tables.map((row: any) => (
-                    <tr
-                      key={row.tableCode}
-                      className="hover:bg-slate-50/80 transition-colors group"
-                    >
-                      <td className="px-6 py-4">
-                        <span className="text-sm font-semibold text-slate-700">
-                          {row.location || "Sin ubicación"}
-                        </span>
-                      </td>
-
-                      <td className="px-6 py-4 text-center">
-                        <span className="inline-block px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-md">
-                          {row.tableCode}
-                        </span>
-                      </td>
-
-                      <td className="px-6 py-4 text-center">
-                        <span className="text-sm font-semibold text-slate-700">
-                          {row.totalAttestations ?? 0}
-                        </span>
-                      </td>
-
-                      <td className="px-6 py-4 text-center">
-                        <span className="text-sm text-slate-600">
-                          {row.delegatesCount ?? 0}
-                        </span>
-                      </td>
-
-                      <td className="px-6 py-4 text-center text-sm">
-                        {(() => {
-                          const ballotsCount =
-                            row.ballotsCount ??
-                            row.ballotIds?.length ??
-                            (row.ballotId ? 1 : 0);
-                          const hasBallots =
-                            (row.ballotsCount ?? 0) > 0 ||
-                            (row.ballotIds?.length ?? 0) > 0 ||
-                            !!row.ballotId;
-
-                          return hasBallots ? (
-                            <Link
-                              data-cy="view-ballots-link"
-                              to={`/resultados/mesa/${row.tableCode}`}
-                              state={{
-                                ballotIds: row.ballotIds,
-                                location: row.location,
-                                tableCode: row.tableCode,
-                              }}
-                              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-600 hover:text-white transition-all group-hover:shadow-md border border-blue-100"
-                            >
-                              <FileText size={16} /> Ver Actas ({ballotsCount})
-                            </Link>
-                          ) : (
-                            <span className="text-slate-300 italic font-light">
-                              Pendiente
+                      {attestationRows.map((row: any, idx: number) => (
+                        <tr
+                          key={`${row.tableCode}-${row.delegateName}-${idx}`}
+                          className="hover:bg-slate-50/80 transition-colors group"
+                        >
+                          <td className="px-4 py-4">
+                            <span className="text-sm font-semibold text-slate-700">
+                              {row.delegateName}
                             </span>
-                          );
-                        })()}
-                      </td>
-                    </tr>
-                  ))}
+                          </td>
 
-                  {tables.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="px-6 py-10 text-center text-slate-400"
-                      >
-                        No hay registros de actividad para esta elección.
-                      </td>
-                    </tr>
-                  )}
-                
+                          <td className="px-4 py-4">
+                            <span className="text-sm text-slate-600">
+                              {row.location}
+                            </span>
+                          </td>
+
+                          <td className="px-4 py-4 text-center">
+                            <span className="inline-block px-3 py-1 bg-green-50 text-green-700 text-sm font-bold rounded-md">
+                              #{row.tableNumber || "—"}
+                            </span>
+                          </td>
+
+                          <td className="px-4 py-4 text-center">
+                            {row.support ? (
+                              <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
+                                A favor
+                              </span>
+                            ) : (
+                              <span className="inline-block px-3 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full">
+                                En contra
+                              </span>
+                            )}
+                          </td>
+
+                          <td className="px-4 py-4 text-center text-sm">
+                            {row.ballotId ? (
+                              <Link
+                                data-cy="view-ballots-link"
+                                to={`/resultados/mesa/${row.tableCode}`}
+                                state={{
+                                  ballotId: row.ballotId,
+                                  location: row.location,
+                                  tableCode: row.tableCode,
+                                  tableNumber: row.tableNumber,
+                                }}
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-600 hover:text-white transition-all group-hover:shadow-md border border-blue-100"
+                              >
+                                <FileText size={16} /> Ver Acta
+                              </Link>
+                            ) : (
+                              <span className="text-slate-300 italic font-light">
+                                Sin acta
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+
+                      {attestationRows.length === 0 && (
+                        <tr>
+                          <td
+                            colSpan={5}
+                            className="px-6 py-10 text-center text-slate-400"
+                          >
+                            No hay registros de actividad para esta elección.
+                          </td>
+                        </tr>
+                      )}
                     </>
                   )}
-
-</tbody>
+                </tbody>
               </table>
             </div>
           </div>
