@@ -3,14 +3,15 @@ import { useNavigate } from "react-router-dom";
 
 interface BackButtonProps {
   className?: string;
+  to?: string;
 }
 
-const BackButton: React.FC<BackButtonProps> = ({ className = "" }) => {
+const BackButton: React.FC<BackButtonProps> = ({ className = "", to }) => {
   const navigate = useNavigate();
 
   return (
     <button
-      onClick={() => navigate(-1)}
+      onClick={() => (to ? navigate(to) : navigate(-1))}
       className={`p-2 rounded-full hover:bg-gray-100 transition-colors duration-200 ${className}`}
       title="Volver"
     >

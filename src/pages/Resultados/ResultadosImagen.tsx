@@ -13,6 +13,7 @@ import { setCurrentBallot } from "../../store/resultados/resultadosSlice";
 import { useGetAttestationsByBallotIdQuery } from "../../store/attestations/attestationsEndpoints";
 import { getPartyColor } from "./partyColors";
 import useElectionConfig from "../../hooks/useElectionConfig";
+import { getResultsLabels } from "./resultsLabels";
 
 // const ballotData = {
 //   tableNumber: '25548',
@@ -26,6 +27,7 @@ const ResultadosImagen = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { election, hasActiveConfig, isVotingPeriod: isPreliminaryPhase, isResultsPeriod: isFinalPhase } = useElectionConfig();
+  const resultsLabels = getResultsLabels(election?.type);
   const { data: currentItem, isError: isBallotError } = useGetBallotQuery(id!, {
     skip: !id,
   });
@@ -193,7 +195,10 @@ const ResultadosImagen = () => {
             <div className="bg-gray-800 text-white p-6 rounded-t-lg">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div className="flex items-center gap-4 min-w-0 flex-1">
-                  <BackButton className="text-white hover:text-gray-300 flex-shrink-0" />
+                  <BackButton
+                    className="text-white hover:text-gray-300 flex-shrink-0"
+                    to="/resultados/imagen"
+                  />
                   <div className="min-w-0 flex-1">
                     <h1 className="text-2xl md:text-3xl font-semibold break-words">
                       Imagen {id}
@@ -515,7 +520,7 @@ const ResultadosImagen = () => {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div className="border border-gray-200 rounded-lg p-4">
                       <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        <span>Resultados Presidenciales</span>
+                        <span>{resultsLabels.primary}</span>
                         {isPreliminaryPhase && (
                           <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
                             Preliminares
@@ -528,7 +533,7 @@ const ResultadosImagen = () => {
                     {deputiesData.length > 0 && (
                       <div className="border border-gray-200 rounded-lg p-4">
                         <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                          <span>Resultados Diputados</span>
+                          <span>{resultsLabels.secondary}</span>
                           {isPreliminaryPhase && (
                             <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
                               Preliminares

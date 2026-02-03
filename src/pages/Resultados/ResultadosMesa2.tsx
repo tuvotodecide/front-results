@@ -38,6 +38,7 @@ import { useGetDepartmentsQuery } from "../../store/departments/departmentsEndpo
 import TablesSection from "./TablesSection";
 import { useMultipleBallots } from "../../hooks/useMultipleBallots";
 import { ballotsToElectoralTables } from "../../utils/ballotToElectoralTable";
+import { getResultsLabels } from "./resultsLabels";
 import {
   selectFilters,
   selectFilterIds,
@@ -101,6 +102,7 @@ const ResultadosMesa2 = () => {
     useState<string[]>([]);
 
   const { election, hasActiveConfig, isVotingPeriod: isPreliminaryPhase, isResultsPeriod: isFinalPhase } = useElectionConfig();
+  const resultsLabels = getResultsLabels(election?.type);
 
   useGetDepartmentsQuery({
     limit: 100,
@@ -120,6 +122,7 @@ const ResultadosMesa2 = () => {
     // error: electoralTableError,
     isError: isElectoralTableError,
     isLoading: isElectoralTableLoading,
+    isFetching: isElectoralTableFetching,
   } = useGetElectoralTableByTableCodeQuery(tableCode || "", {
     skip: !tableCode, // Skip the query if tableCode is falsy
   });
@@ -249,6 +252,7 @@ const ResultadosMesa2 = () => {
       setPresidentialData([]);
       setDeputiesData([]);
       setParticipation([]);
+      setResultsLoading(false);
       return;
     }
 
@@ -256,13 +260,20 @@ const ResultadosMesa2 = () => {
       ? getResultsByLocation
       : getLiveResultsByLocation;
 
-    fetcher({
+    let isActive = true;
+    setResultsLoading(true);
+    setPresidentialData([]);
+    setDeputiesData([]);
+    setParticipation([]);
+
+    const presidentialPromise = fetcher({
       tableCode,
       electionType: election?.type ?? "presidential",
       electionId: electionId ?? undefined,
     })
       .unwrap()
       .then((data) => {
+        if (!isActive) return;
         const formattedData = (data.results ?? []).map((item: any) => {
           const partyColor = getPartyColor(item.partyId);
           const randomColor =
@@ -281,7 +292,7 @@ const ResultadosMesa2 = () => {
         if (data.summary) {
           const participationData = [
             {
-              name: "Válidos",
+              name: "V?lidos",
               value: data.summary.validVotes || 0,
               color: "#8cc689",
             },
@@ -302,19 +313,20 @@ const ResultadosMesa2 = () => {
         }
       })
       .catch((err) => {
+        if (!isActive) return;
         console.error("Error obteniendo resultados presidenciales:", err);
         setPresidentialData([]);
         setParticipation([]);
       });
 
-    // DIPUTADOS
-    fetcher({
+    const deputiesPromise = fetcher({
       tableCode,
       electionType: "deputies",
       electionId: electionId ?? undefined,
     })
       .unwrap()
       .then((data) => {
+        if (!isActive) return;
         const formattedData = (data.results ?? []).map((item: any) => {
           const partyColor = getPartyColor(item.partyId);
           const randomColor =
@@ -331,9 +343,21 @@ const ResultadosMesa2 = () => {
         setDeputiesData(formattedData);
       })
       .catch((err) => {
+        if (!isActive) return;
         console.error("Error obteniendo resultados diputados:", err);
         setDeputiesData([]);
       });
+
+    Promise.allSettled([presidentialPromise, deputiesPromise]).finally(() => {
+      if (isActive) {
+        setResultsLoading(false);
+      }
+    });
+
+    return () => {
+      isActive = false;
+    };
+
   }, [
     tableCode,
     electoralTableData,
@@ -644,7 +668,7 @@ const ResultadosMesa2 = () => {
             ) : (
               <>
                 {/* Search section */}
-                <div className="bg-white rounded-lg shadow-md py-16 px-8 border border-gray-200 mt-6">
+                {/* <div className="bg-white rounded-lg shadow-md py-16 px-8 border border-gray-200 mt-6">
                   <div className="flex flex-col items-center justify-center text-center">
                     <div className="bg-gray-100 rounded-full p-4 mb-4">
                       <svg
@@ -673,7 +697,7 @@ const ResultadosMesa2 = () => {
                       onSearch={handleSearch}
                     />
                   </div>
-                </div>
+                </div> */}
 
                 {/* Attested tables section */}
                 {(uniqueBallotIds.length > 0 ||
@@ -852,7 +876,7 @@ const ResultadosMesa2 = () => {
               </>
             )}
           </div>
-        ) : isElectoralTableLoading ? (
+        ) : isElectoralTableLoading || isElectoralTableFetching ? (
           <div className="bg-white rounded-lg shadow-md border border-gray-200">
             {/* Header Skeleton */}
             <div className="bg-gray-800 p-6 rounded-t-lg">
@@ -911,7 +935,10 @@ const ResultadosMesa2 = () => {
             <div className="bg-gray-800 text-white p-6 rounded-t-lg">
               <div className="flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-4">
-                  <BackButton className="text-white hover:text-gray-300" />
+                  <BackButton
+                    className="text-white hover:text-gray-300"
+                    to="/resultados/mesa"
+                  />
                   <div>
                     <h1 className="text-2xl md:text-3xl font-semibold">
                       Mesa {tableCode}
@@ -964,7 +991,10 @@ const ResultadosMesa2 = () => {
             <div className="bg-gray-800 text-white p-6 rounded-t-lg">
               <div className="flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-4">
-                  <BackButton className="text-white hover:text-gray-300" />
+                  <BackButton
+                    className="text-white hover:text-gray-300"
+                    to="/resultados/mesa"
+                  />
                   <div>
                     <h1 className="text-2xl md:text-3xl font-semibold">
                       {electoralTableData
@@ -1077,6 +1107,13 @@ const ResultadosMesa2 = () => {
                         </p>
                       </div>
                     </div>
+                  ) : resultsLoading ? (
+                    <div className="border border-gray-200 rounded-lg p-8 text-center">
+                      <div className="inline-flex items-center gap-3 text-gray-600">
+                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
+                        <span>Cargando resultados...</span>
+                      </div>
+                    </div>
                   ) : presidentialData.length === 0 ? (
                     <div className="border border-gray-200 rounded-lg p-8 text-center">
                       <p className="text-xl text-gray-600">Sin datos</p>
@@ -1101,7 +1138,7 @@ const ResultadosMesa2 = () => {
                         <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
                           <div className="p-4">
                             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                              Resultados Presidenciales
+                              {resultsLabels.primary}
                             </h3>
                             <Graphs data={presidentialData} />
                           </div>
@@ -1109,7 +1146,7 @@ const ResultadosMesa2 = () => {
                         {/* <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
                           <div className="p-4">
                             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                              Resultados Diputados
+                              {resultsLabels.secondary}
                             </h3>
                             <Graphs data={deputiesData} />
                            
