@@ -77,6 +77,7 @@ const ResultadosMesa2 = () => {
   const [deputiesData, setDeputiesData] = useState<
     Array<{ name: string; value: number; color: string }>
   >([]);
+  console.log(deputiesData)
   const [participation, setParticipation] = useState<
     Array<{ name: string; value: any; color: string }>
   >([]);
