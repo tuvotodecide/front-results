@@ -36,7 +36,7 @@ import { useCountedBallots } from "../../hooks/useCountedBallots";
 import { getResultsLabels } from "./resultsLabels";
 import {
   selectFilters,
-  selectFilterIds,
+  // selectFilterIds,
 } from "../../store/resultados/resultadosSlice";
 import useElectionId from "../../hooks/useElectionId";
 
@@ -58,7 +58,7 @@ const ResultadosMesa2 = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const filters = useSelector(selectFilters);
-  const filterIds = useSelector(selectFilterIds);
+  // const filterIds = useSelector(selectFilterIds);
 
   const [getResultsByLocation] = useLazyGetResultsByLocationQuery();
   const [getLiveResultsByLocation] = useLazyGetLiveResultsByLocationQuery();
