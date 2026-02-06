@@ -140,10 +140,16 @@ const ParticipacionPersonal: React.FC = () => {
     const rows: any[] = [];
     (tablesResp?.data ?? []).forEach((table: any) => {
       (table.attestationDetails ?? []).forEach((att: any) => {
+        // Extraer número de mesa del tableCode (últimos 2 dígitos)
+        const extractedTableNumber = table.tableCode
+          ? table.tableCode.slice(-2).replace(/^0+/, '') || '1'
+          : null;
+
         rows.push({
-          delegateName: att.delegateName || att.dni || "Sin nombre",
+          delegateDni: att.dni || "Sin CI",
+          delegateName: att.delegateName || "Sin nombre",
           location: table.location || "Sin ubicación",
-          tableNumber: table.tableNumber,
+          tableNumber: table.tableNumber || extractedTableNumber,
           tableCode: table.tableCode,
           ballotId: att.ballotId || table.ballotId,
           support: att.support,
@@ -395,6 +401,9 @@ const ParticipacionPersonal: React.FC = () => {
                 <thead>
                   <tr className="bg-slate-50">
                     <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
+                      CI
+                    </th>
+                    <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
                       Delegado
                     </th>
                     <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
@@ -402,9 +411,6 @@ const ParticipacionPersonal: React.FC = () => {
                     </th>
                     <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 text-center">
                       Nro. Mesa
-                    </th>
-                    <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 text-center">
-                      Apoyo
                     </th>
                     <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 text-center">
                       Acta
@@ -416,7 +422,7 @@ const ParticipacionPersonal: React.FC = () => {
                   {tablesLoading ? (
                     <tr>
                       <td
-                        colSpan={5}
+                        colSpan={6}
                         className="px-6 py-10 text-center text-slate-400"
                       >
                         Cargando reporte por mesa...
@@ -425,7 +431,7 @@ const ParticipacionPersonal: React.FC = () => {
                   ) : tablesError ? (
                     <tr>
                       <td
-                        colSpan={5}
+                        colSpan={6}
                         className="px-6 py-10 text-center text-amber-600"
                       >
                         No se pudo cargar el reporte por mesa. Intenta recargar.
@@ -435,11 +441,17 @@ const ParticipacionPersonal: React.FC = () => {
                     <>
                       {attestationRows.map((row: any, idx: number) => (
                         <tr
-                          key={`${row.tableCode}-${row.delegateName}-${idx}`}
+                          key={`${row.tableCode}-${row.delegateDni}-${idx}`}
                           className="hover:bg-slate-50/80 transition-colors group"
                         >
                           <td className="px-4 py-4">
                             <span className="text-sm font-semibold text-slate-700">
+                              {row.delegateDni}
+                            </span>
+                          </td>
+
+                          <td className="px-4 py-4">
+                            <span className="text-sm text-slate-600">
                               {row.delegateName}
                             </span>
                           </td>
@@ -454,18 +466,6 @@ const ParticipacionPersonal: React.FC = () => {
                             <span className="inline-block px-3 py-1 bg-green-50 text-green-700 text-sm font-bold rounded-md">
                               #{row.tableNumber || "—"}
                             </span>
-                          </td>
-
-                          <td className="px-4 py-4 text-center">
-                            {row.support ? (
-                              <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
-                                A favor
-                              </span>
-                            ) : (
-                              <span className="inline-block px-3 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full">
-                                En contra
-                              </span>
-                            )}
                           </td>
 
                           <td className="px-4 py-4 text-center text-sm">
@@ -495,7 +495,7 @@ const ParticipacionPersonal: React.FC = () => {
                       {attestationRows.length === 0 && (
                         <tr>
                           <td
-                            colSpan={5}
+                            colSpan={6}
                             className="px-6 py-10 text-center text-slate-400"
                           >
                             No hay registros de actividad para esta elección.

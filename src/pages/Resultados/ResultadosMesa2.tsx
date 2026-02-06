@@ -140,8 +140,8 @@ const ResultadosMesa2 = () => {
 
   // Cargar actas por tableCode (independiente de electoralTableData)
   useEffect(() => {
-    if (!tableCode) return;
-    getBallotsByTableCode({ tableCode, electionId: electionId ?? undefined })
+    if (!tableCode || !electionId) return;
+    getBallotsByTableCode({ tableCode, electionId })
       .unwrap()
       .then((data: any) => {
         setImages(data);
