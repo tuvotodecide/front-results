@@ -322,7 +322,7 @@ const ResultadosMesa2 = () => {
 
     const deputiesPromise = fetcher({
       tableCode,
-      electionType: "deputies",
+      electionType: election?.type ?? "deputies",
       electionId: electionId ?? undefined,
     })
       .unwrap()

@@ -186,7 +186,7 @@ const ResultadosGenerales3 = () => {
       }, true);
       const deputiesRequest = fetcher({
         ...baseParams,
-        electionType: "deputies",
+        electionType: election?.type ?? "deputies",
       }, true);
 
       presidentRequest
