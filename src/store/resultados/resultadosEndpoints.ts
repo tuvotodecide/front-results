@@ -11,6 +11,25 @@ interface GetResultsParams {
   electionId?: string;
 }
 
+interface GetCountedBallotsParams {
+  electionType: string;
+  electionId?: string;
+  department?: string;
+  province?: string;
+  municipality?: string;
+  page?: number;
+  limit?: number;
+}
+
+interface CountedBallotsResponse {
+  data: any[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  mode: string;
+}
+
 export const resultadosApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getResultsByLocation: builder.query<any, GetResultsParams>({
@@ -88,6 +107,22 @@ export const resultadosApiSlice = apiSlice.injectEndpoints({
       }),
       keepUnusedDataFor: 60,
     }),
+    // Obtener ballots que cuentan en resultados LIVE (preliminares)
+    getLiveCountedBallots: builder.query<CountedBallotsResponse, GetCountedBallotsParams>({
+      query: (params) => ({
+        url: "/results/live/ballots",
+        params,
+      }),
+      keepUnusedDataFor: 30,
+    }),
+    // Obtener ballots que cuentan en resultados FINALES
+    getFinalCountedBallots: builder.query<CountedBallotsResponse, GetCountedBallotsParams>({
+      query: (params) => ({
+        url: "/results/final/ballots",
+        params,
+      }),
+      keepUnusedDataFor: 60,
+    }),
   }),
 });
 
@@ -97,4 +132,9 @@ export const {
   useGetStatisticsQuery,
   useLazyGetRegistrationProgressQuery,
   useLazyGetLiveResultsByLocationQuery,
+  // Nuevos hooks para ballots que cuentan
+  useGetLiveCountedBallotsQuery,
+  useLazyGetLiveCountedBallotsQuery,
+  useGetFinalCountedBallotsQuery,
+  useLazyGetFinalCountedBallotsQuery,
 } = resultadosApiSlice;
