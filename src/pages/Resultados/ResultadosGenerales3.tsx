@@ -212,7 +212,7 @@ const ResultadosGenerales3 = () => {
           if (data.summary) {
             const participationData = [
               {
-                name: "VÃ¡lidos",
+                name: "Válidos",
                 value: data.summary.validVotes || 0,
                 color: "#8cc689",
               },

@@ -129,6 +129,15 @@ const ParticipacionPersonal: React.FC = () => {
     { skip: !shouldLoadData }
   );
 
+  // 4) Actividad por delegado — para ver quiénes NO han votado
+  const {
+    data: delegatesResp,
+    isLoading: delegatesLoading,
+  } = useGetDelegateActivityQuery(
+    { electionId: effectiveElectionId || "", groupBy: "delegate" },
+    { skip: !shouldLoadData }
+  );
+
   // Esperar a que el contrato y el resumen carguen antes de mostrar la vista
   const loading =
     contractCheckLoading ||
@@ -170,6 +179,12 @@ const ParticipacionPersonal: React.FC = () => {
       tasa: summaryResp?.summary?.participationRate ?? "0%",
     };
   }, [summaryResp]);
+
+  // Delegados que NO han votado
+  const delegadosSinVotar = useMemo(() => {
+    if (!delegatesResp?.data) return [];
+    return delegatesResp.data.filter((d: any) => d.totalAttestations === 0);
+  }, [delegatesResp?.data]);
 
   // Obtener nombre del territorio
   const territoryName = contract?.territory
@@ -392,31 +407,38 @@ const ParticipacionPersonal: React.FC = () => {
 
         {/* Tabla por mesa */}
         {showDetails && (
-          <div className="bg-white rounded-lg shadow-xl overflow-hidden border border-gray-200 animate-fadeIn">
-            <div className="overflow-x-auto">
-              <table
-                data-cy="participation-table"
-                className="w-full text-left border-separate border-spacing-0"
-              >
-                <thead>
-                  <tr className="bg-slate-50">
-                    <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
-                      CI
-                    </th>
-                    <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
-                      Delegado
-                    </th>
-                    <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
-                      Recinto
-                    </th>
-                    <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 text-center">
-                      Nro. Mesa
-                    </th>
-                    <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 text-center">
-                      Acta
-                    </th>
-                  </tr>
-                </thead>
+          <div className="space-y-8 animate-fadeIn">
+            {/* Delegados que SÍ votaron */}
+            <div className="bg-white rounded-lg shadow-xl overflow-hidden border border-gray-200">
+              <div className="bg-green-50 px-6 py-4 border-b border-green-100">
+                <h3 className="text-lg font-bold text-green-800">
+                  Delegados que participaron ({attestationRows.length} registros)
+                </h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table
+                  data-cy="participation-table"
+                  className="w-full text-left border-separate border-spacing-0"
+                >
+                  <thead>
+                    <tr className="bg-slate-50">
+                      <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
+                        CI
+                      </th>
+                      <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
+                        Delegado
+                      </th>
+                      <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
+                        Recinto
+                      </th>
+                      <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 text-center">
+                        Nro. Mesa
+                      </th>
+                      <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 text-center">
+                        Acta
+                      </th>
+                    </tr>
+                  </thead>
 
                 <tbody className="divide-y divide-slate-50">
                   {tablesLoading ? (
@@ -507,6 +529,64 @@ const ParticipacionPersonal: React.FC = () => {
                 </tbody>
               </table>
             </div>
+          </div>
+
+          {/* Delegados que NO han votado */}
+          {!delegatesLoading && delegadosSinVotar.length > 0 && (
+            <div className="bg-white rounded-lg shadow-xl overflow-hidden border border-red-200">
+              <div className="bg-red-50 px-6 py-4 border-b border-red-100">
+                <h3 className="text-lg font-bold text-red-800">
+                  Delegados que NO participaron ({delegadosSinVotar.length})
+                </h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-separate border-spacing-0">
+                  <thead>
+                    <tr className="bg-slate-50">
+                      <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
+                        CI
+                      </th>
+                      <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
+                        Nombre
+                      </th>
+                      <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
+                        Teléfono
+                      </th>
+                      <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
+                        Email
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {delegadosSinVotar.map((d: any) => (
+                      <tr key={d.dni} className="hover:bg-red-50/50 transition-colors">
+                        <td className="px-4 py-4">
+                          <span className="text-sm font-semibold text-slate-700">
+                            {d.dni}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className="text-sm text-slate-600">
+                            {d.name || "Sin nombre"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className="text-sm text-slate-600">
+                            {d.phone || "—"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className="text-sm text-slate-600">
+                            {d.email || "—"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
           </div>
         )}
       </div>
