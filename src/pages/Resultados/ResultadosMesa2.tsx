@@ -213,7 +213,7 @@ const ResultadosMesa2 = () => {
         if (data.summary) {
           const participationData = [
             {
-              name: "V?lidos",
+              name: "Válidos",
               value: data.summary.validVotes || 0,
               color: "#8cc689",
             },
