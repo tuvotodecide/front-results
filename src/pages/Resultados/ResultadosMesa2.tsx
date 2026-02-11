@@ -72,20 +72,25 @@ const ResultadosMesa2 = () => {
   const [deputiesData, setDeputiesData] = useState<
     Array<{ name: string; value: number; color: string }>
   >([]);
-  console.log(deputiesData)
+  console.log(deputiesData);
   const [participation, setParticipation] = useState<
     Array<{ name: string; value: any; color: string }>
   >([]);
   const [otherTables, setOtherTables] = useState<ElectoralTableType[]>([]);
   const [filteredTables, setFilteredTables] = useState<ElectoralTableType[]>(
-    []
+    [],
   );
   const [images, setImages] = useState<BallotType[]>([]);
   const [resultsLoading, setResultsLoading] = useState(false);
   const [showAllTables, setShowAllTables] = useState(false);
   const [showAllFilteredTables, setShowAllFilteredTables] = useState(false);
 
-  const { election, hasActiveConfig, isVotingPeriod: isPreliminaryPhase, isResultsPeriod: isFinalPhase } = useElectionConfig();
+  const {
+    election,
+    hasActiveConfig,
+    isVotingPeriod: isPreliminaryPhase,
+    isResultsPeriod: isFinalPhase,
+  } = useElectionConfig();
 
   // Hook para obtener las mesas que cuentan en resultados (consistente con by-location)
   const {
@@ -94,7 +99,7 @@ const ResultadosMesa2 = () => {
     isError: countedBallotsError,
     total: countedBallotsTotal,
   } = useCountedBallots({
-    electionType: election?.type ?? 'presidential',
+    electionType: election?.type ?? "presidential",
     electionId: electionId ?? undefined,
     department: filters.department,
     province: filters.province,
@@ -102,7 +107,8 @@ const ResultadosMesa2 = () => {
     page: 1,
     limit: 20,
     isLiveMode: isPreliminaryPhase && !isFinalPhase,
-    skip: !!tableCode || !hasActiveConfig || (!isPreliminaryPhase && !isFinalPhase),
+    skip:
+      !!tableCode || !hasActiveConfig || (!isPreliminaryPhase && !isFinalPhase),
   });
   const resultsLabels = getResultsLabels(election?.type);
 
@@ -112,11 +118,11 @@ const ResultadosMesa2 = () => {
   const { data: mostSupportedBallotData } =
     useGetMostSupportedBallotByTableCodeQuery(
       { tableCode: tableCode || "", electionId: electionId ?? undefined },
-      { skip: !tableCode }
+      { skip: !tableCode },
     );
   const { data: attestationCases } = useGetAttestationCasesByTableCodeQuery(
     { tableCode: tableCode || "", electionId: electionId ?? undefined },
-    { skip: !tableCode }
+    { skip: !tableCode },
   );
 
   const {
@@ -135,8 +141,6 @@ const ResultadosMesa2 = () => {
     // console.log('Search term:', searchTerm);
     // Implement search functionality here
   };
-
-
 
   // Cargar actas por tableCode (independiente de electoralTableData)
   useEffect(() => {
@@ -160,7 +164,7 @@ const ResultadosMesa2 = () => {
         .unwrap()
         .then((data) => {
           setOtherTables(
-            data.filter((table: ElectoralTableType) => table._id !== tableCode)
+            data.filter((table: ElectoralTableType) => table._id !== tableCode),
           );
         })
         .catch((err) => {
@@ -278,7 +282,6 @@ const ResultadosMesa2 = () => {
     return () => {
       isActive = false;
     };
-
   }, [
     tableCode,
     electoralTableData,
@@ -326,10 +329,10 @@ const ResultadosMesa2 = () => {
 
         {!tableCode ? (
           <div className="inner-container bg-gray-50 border border-gray-200 rounded-lg">
-            {/* Territorial Filters Section */}
-            <div className="">
-              <Breadcrumb2 />
-            </div>
+             {/* Territorial Filters Section */}
+             <div className="">
+              <Breadcrumb2 autoOpen={false} />
+             </div>
 
             {/* Tables List Section */}
             {filteredTables.length > 0 ? (
@@ -417,7 +420,7 @@ const ResultadosMesa2 = () => {
             ) : (
               <>
                 {/* Search section */}
-                {/* <div className="bg-white rounded-lg shadow-md py-16 px-8 border border-gray-200 mt-6">
+                <div className="bg-white rounded-lg shadow-md py-16 px-8 border border-gray-200 mt-6">
                   <div className="flex flex-col items-center justify-center text-center">
                     <div className="bg-gray-100 rounded-full p-4 mb-4">
                       <svg
@@ -446,14 +449,16 @@ const ResultadosMesa2 = () => {
                       onSearch={handleSearch}
                     />
                   </div>
-                </div> */}
+                </div>
 
                 {/* Mesas que cuentan en resultados */}
-                {(hasActiveConfig && (isPreliminaryPhase || isFinalPhase)) && (
+                {hasActiveConfig && (isPreliminaryPhase || isFinalPhase) && (
                   <div className="bg-gray-50 rounded-lg shadow-sm p-4 mt-6">
                     <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
                       {(() => {
-                        const modeLabel = isPreliminaryPhase ? "Preliminares" : "Finales";
+                        const modeLabel = isPreliminaryPhase
+                          ? "Preliminares"
+                          : "Finales";
                         if (filters.municipality) {
                           return `Mesas con Resultados ${modeLabel} - ${filters.municipality}`;
                         } else if (filters.province) {
@@ -643,15 +648,27 @@ const ResultadosMesa2 = () => {
               ) : (
                 <div className="py-16 px-8 text-center">
                   <div className="bg-amber-50 rounded-full p-4 mb-4 inline-block">
-                    <svg className="w-12 h-12 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
+                    <svg
+                      className="w-12 h-12 text-amber-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"
+                      />
                     </svg>
                   </div>
                   <h2 className="text-xl font-semibold text-gray-700 mb-2">
-                    No se encontraron datos detallados para la mesa "{tableCode}"
+                    No se encontraron datos detallados para la mesa "{tableCode}
+                    "
                   </h2>
                   <p className="text-gray-500">
-                    La mesa electoral no tiene información geográfica registrada ni actas disponibles.
+                    La mesa electoral no tiene información geográfica registrada
+                    ni actas disponibles.
                   </p>
                 </div>
               )}
@@ -756,7 +773,7 @@ const ResultadosMesa2 = () => {
                       <div className="mb-2">
                         <p className="text-2xl text-gray-700 mb-1">
                           {new Date(
-                            election.resultsStartDateBolivia
+                            election.resultsStartDateBolivia,
                           ).toLocaleDateString("es-ES", {
                             weekday: "long",
                             year: "numeric",
@@ -767,7 +784,7 @@ const ResultadosMesa2 = () => {
                         </p>
                         <p className="text-3xl font-bold text-gray-800">
                           {new Date(
-                            election.resultsStartDateBolivia
+                            election.resultsStartDateBolivia,
                           ).toLocaleTimeString("es-ES", {
                             hour: "2-digit",
                             minute: "2-digit",

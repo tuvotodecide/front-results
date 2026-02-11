@@ -80,7 +80,15 @@ const breadcrumbLevels = [
     title: "Recinto Electoral",
   },
 ];
-const Breadcrumb = () => {
+type Breadcrumb2Props = {
+  /**
+   * If `true` (default), the component auto-opens the level selector during
+   * initialization flows. If `false`, it stays closed until the user opens it.
+   */
+  autoOpen?: boolean;
+};
+
+const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
   const dispatch = useDispatch();
   const { user } = useSelector(selectAuth);
   const queryParamsResults = useSelector(selectQueryParamsResults);
@@ -178,13 +186,7 @@ const Breadcrumb = () => {
       prevElectionIdRef.current = selectedElectionId ?? null;
 
       // Limpia redux + path
-      clearSelectedPath();
-
-      // Abre primer nivel para elegir de nuevo (solo para publico/SUPERADMIN)
-      if (allowManualPick) {
-        selectLevel(0);
-        setShowCurrentLevel(true);
-      }
+      clearSelectedPath({ open: autoOpen });
     }
   }, [selectedElectionId]);
   const buildQueryParams = (path: PathItem2[]) => {
@@ -333,7 +335,7 @@ const Breadcrumb = () => {
         );
 
         selectLevel(3, forcedPath);
-        setShowCurrentLevel(true);
+        if (autoOpen) setShowCurrentLevel(true);
         setIsInitialized(true);
         return;
       }
@@ -366,7 +368,7 @@ const Breadcrumb = () => {
         );
 
         selectLevel(1, forcedPath);
-        setShowCurrentLevel(true);
+        if (autoOpen) setShowCurrentLevel(true);
         setIsInitialized(true);
         return;
       }
@@ -415,7 +417,7 @@ const Breadcrumb = () => {
 
       // IMPORTANTE: abrir el siguiente nivel correcto (Asiento Electoral)
       selectLevel(3, forcedPath);
-      setShowCurrentLevel(true);
+      if (autoOpen) setShowCurrentLevel(true);
 
       setIsInitialized(true);
       return;
@@ -439,7 +441,7 @@ const Breadcrumb = () => {
 
       // Abrir siguiente nivel (Provincia)
       selectLevel(1, forcedPath);
-      setShowCurrentLevel(true);
+      if (autoOpen) setShowCurrentLevel(true);
 
       setIsInitialized(true);
       return;
@@ -577,7 +579,7 @@ const Breadcrumb = () => {
             dispatch(setFilters(filters));
             dispatch(setFilterIds(filterIds));
             selectLevel(3, forced);
-            setShowCurrentLevel(true);
+            if (autoOpen) setShowCurrentLevel(true);
             return;
           }
 
@@ -604,7 +606,7 @@ const Breadcrumb = () => {
           const nextIndex = newPath.length; // el siguiente nivel a seleccionar
           if (nextIndex < breadcrumbLevels.length) {
             selectLevel(nextIndex, newPath);
-            setShowCurrentLevel(true);
+            if (autoOpen) setShowCurrentLevel(true);
           } else {
             setShowCurrentLevel(false);
           }
@@ -615,7 +617,7 @@ const Breadcrumb = () => {
     } else if (!isInitialized) {
       if (allowManualPick) {
         selectLevel(0);
-        setShowCurrentLevel(true);
+        if (autoOpen) setShowCurrentLevel(true);
       }
       setIsInitialized(true);
     }
@@ -822,14 +824,15 @@ const Breadcrumb = () => {
       setIsLoadingOptions(false);
     }
   };
-  const clearSelectedPath = () => {
+  const clearSelectedPath = (opts?: { open?: boolean }) => {
+    const open = opts?.open ?? true;
     if (allowManualPick) {
       setSelectedPath2([]);
       dispatch(setFilters({}));
       dispatch(setFilterIds({}));
 
       selectLevel(0);
-      setShowCurrentLevel(true);
+      setShowCurrentLevel(open);
     } else {
       // Lógica para MAYOR/GOVERNOR con territorio asignado
       // Primero intentamos usar los datos del contrato, si no, los del usuario
@@ -873,7 +876,7 @@ const Breadcrumb = () => {
 
         // Abrir siguiente nivel (Asiento Electoral, índice 3)
         selectLevel(3, basePath);
-        setShowCurrentLevel(true);
+        setShowCurrentLevel(open);
       } else if (role === "GOVERNOR") {
         const deptId = hasContract ? contract?.territory.departmentId : user?.departmentId;
         const deptName = hasContract ? contract?.territory.departmentName : user?.departmentName;
@@ -892,7 +895,7 @@ const Breadcrumb = () => {
 
         // Abrir siguiente nivel (Provincia, índice 1)
         selectLevel(1, basePath);
-        setShowCurrentLevel(true);
+        setShowCurrentLevel(open);
       }
     }
   };
@@ -969,7 +972,7 @@ const Breadcrumb = () => {
             <button
               data-cy="filters-reset"
               className="ml-2 px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-              onClick={clearSelectedPath}
+              onClick={() => clearSelectedPath()}
             >
               Resetear
             </button>
