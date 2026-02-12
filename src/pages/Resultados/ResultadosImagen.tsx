@@ -14,6 +14,7 @@ import { useGetAttestationsByBallotIdQuery } from "../../store/attestations/atte
 import { getPartyColor } from "./partyColors";
 import useElectionConfig from "../../hooks/useElectionConfig";
 import { getResultsLabels } from "./resultsLabels";
+import { FIVE_MINUTES_MS } from "../../utils/electionAutoRefreshWindow";
 
 // const ballotData = {
 //   tableNumber: '25548',
@@ -26,13 +27,27 @@ const ResultadosImagen = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { election, hasActiveConfig, isVotingPeriod: isPreliminaryPhase, isResultsPeriod: isFinalPhase } = useElectionConfig();
+  const {
+    election,
+    hasActiveConfig,
+    isVotingPeriod: isPreliminaryPhase,
+    isResultsPeriod: isFinalPhase,
+    isAutoRefreshWindow,
+  } = useElectionConfig();
   const resultsLabels = getResultsLabels(election?.type);
   const { data: currentItem, isError: isBallotError } = useGetBallotQuery(id!, {
     skip: !id,
+    pollingInterval: isAutoRefreshWindow ? FIVE_MINUTES_MS : 0,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+    skipPollingIfUnfocused: true,
   });
   const { data: attestationsData } = useGetAttestationsByBallotIdQuery(id!, {
     skip: !id,
+    pollingInterval: isAutoRefreshWindow ? FIVE_MINUTES_MS : 0,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+    skipPollingIfUnfocused: true,
   });
   const handleSearch = (searchTerm: string) => {
     const term = (searchTerm || "").trim();

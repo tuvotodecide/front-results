@@ -39,6 +39,8 @@ import {
   // selectFilterIds,
 } from "../../store/resultados/resultadosSlice";
 import useElectionId from "../../hooks/useElectionId";
+import useAutoRefreshTick from "../../hooks/useAutoRefreshTick";
+import { FIVE_MINUTES_MS } from "../../utils/electionAutoRefreshWindow";
 
 // const combinedData = [
 //   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -90,6 +92,7 @@ const ResultadosMesa2 = () => {
     hasActiveConfig,
     isVotingPeriod: isPreliminaryPhase,
     isResultsPeriod: isFinalPhase,
+    isAutoRefreshWindow,
   } = useElectionConfig();
 
   // Hook para obtener las mesas que cuentan en resultados (consistente con by-location)
@@ -107,10 +110,15 @@ const ResultadosMesa2 = () => {
     page: 1,
     limit: 20,
     isLiveMode: isPreliminaryPhase && !isFinalPhase,
+    enablePolling: isAutoRefreshWindow,
     skip:
       !!tableCode || !hasActiveConfig || (!isPreliminaryPhase && !isFinalPhase),
   });
   const resultsLabels = getResultsLabels(election?.type);
+  const refreshTick = useAutoRefreshTick({
+    enabled: hasActiveConfig && (isPreliminaryPhase || isFinalPhase) && isAutoRefreshWindow,
+    intervalMs: FIVE_MINUTES_MS,
+  });
 
   useGetDepartmentsQuery({
     limit: 100,
@@ -118,11 +126,23 @@ const ResultadosMesa2 = () => {
   const { data: mostSupportedBallotData } =
     useGetMostSupportedBallotByTableCodeQuery(
       { tableCode: tableCode || "", electionId: electionId ?? undefined },
-      { skip: !tableCode },
+      {
+        skip: !tableCode,
+        pollingInterval: isAutoRefreshWindow ? FIVE_MINUTES_MS : 0,
+        refetchOnFocus: true,
+        refetchOnReconnect: true,
+        skipPollingIfUnfocused: true,
+      },
     );
   const { data: attestationCases } = useGetAttestationCasesByTableCodeQuery(
     { tableCode: tableCode || "", electionId: electionId ?? undefined },
-    { skip: !tableCode },
+    {
+      skip: !tableCode,
+      pollingInterval: isAutoRefreshWindow ? FIVE_MINUTES_MS : 0,
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
+      skipPollingIfUnfocused: true,
+    },
   );
 
   const {
@@ -283,6 +303,7 @@ const ResultadosMesa2 = () => {
       isActive = false;
     };
   }, [
+    refreshTick,
     tableCode,
     electoralTableData,
     electionId,
@@ -290,6 +311,7 @@ const ResultadosMesa2 = () => {
     hasActiveConfig,
     isPreliminaryPhase,
     isFinalPhase,
+    isAutoRefreshWindow,
     getBallotsByTableCode,
     getTablesByLocationId,
     getResultsByLocation,

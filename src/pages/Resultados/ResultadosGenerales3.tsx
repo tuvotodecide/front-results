@@ -23,6 +23,7 @@ import useElectionConfig from "../../hooks/useElectionConfig";
 import { selectAuth } from "../../store/auth/authSlice";
 import { useMyContract } from "../../hooks/useMyContract";
 import { getResultsLabels } from "./resultsLabels";
+import useAutoRefreshTick from "../../hooks/useAutoRefreshTick";
 
 // const combinedData = [
 //   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -59,7 +60,13 @@ const ResultadosGenerales3 = () => {
   const [getLiveResultsByLocation] = useLazyGetLiveResultsByLocationQuery();
   const [getTablesByLocationId] =
     useLazyGetElectoralTablesByElectoralLocationIdQuery();
-  const { election, hasActiveConfig, isVotingPeriod: isPreliminaryPhase, isResultsPeriod: isFinalPhase } = useElectionConfig();
+  const {
+    election,
+    hasActiveConfig,
+    isVotingPeriod: isPreliminaryPhase,
+    isResultsPeriod: isFinalPhase,
+    isAutoRefreshWindow,
+  } = useElectionConfig();
   const resultsLabels = getResultsLabels(election?.type);
   const filters = useSelector(selectFilters);
   const filterIds = useSelector(selectFilterIds);
@@ -91,6 +98,15 @@ const ResultadosGenerales3 = () => {
     isRestrictedRole && contractStatus === "loading" && !hasRestrictedScope;
   const shouldBlockForMissingScope =
     isRestrictedRole && !hasRestrictedScope && !hasAnyFilterId;
+  const refreshTick = useAutoRefreshTick({
+    enabled:
+      hasActiveConfig &&
+      (isPreliminaryPhase || isFinalPhase) &&
+      isAutoRefreshWindow &&
+      !shouldDelayForContract &&
+      !shouldBlockForMissingScope,
+    intervalMs: 5 * 60 * 1000,
+  });
 
   const locationParams = useMemo(() => {
     const params = {
@@ -300,6 +316,7 @@ const ResultadosGenerales3 = () => {
       }
     };
   }, [
+    refreshTick,
     locationParams,
     electionId,
     election,

@@ -1,8 +1,14 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
 import { useGetConfigurationStatusQuery } from '../store/configurations/configurationsEndpoints';
 import { ElectionStatusType } from '../types';
+import {
+  FIVE_MINUTES_MS,
+  ONE_MINUTE_MS,
+  isAnyElectionInAutoRefreshWindow,
+  isElectionInAutoRefreshWindow,
+} from '../utils/electionAutoRefreshWindow';
 
 interface ElectionConfig {
   // The current/selected election configuration
@@ -13,6 +19,7 @@ interface ElectionConfig {
   hasActiveConfig: boolean;
   isVotingPeriod: boolean;
   isResultsPeriod: boolean;
+  isAutoRefreshWindow: boolean;
   // Loading state
   isLoading: boolean;
 }
@@ -24,7 +31,39 @@ interface ElectionConfig {
  */
 export default function useElectionConfig(): ElectionConfig {
   const selectedElectionId = useSelector((s: RootState) => s.election.selectedElectionId);
-  const { data: status, isLoading } = useGetConfigurationStatusQuery();
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const [knownActiveElections, setKnownActiveElections] = useState<ElectionStatusType[]>([]);
+
+  const shouldPollStatus = useMemo(() => {
+    if (selectedElectionId) {
+      const selectedElection =
+        knownActiveElections.find((e) => e.id === selectedElectionId) ?? null;
+      return isElectionInAutoRefreshWindow(selectedElection, nowMs);
+    }
+    return isAnyElectionInAutoRefreshWindow(knownActiveElections, nowMs);
+  }, [knownActiveElections, selectedElectionId, nowMs]);
+
+  const { data: status, isLoading } = useGetConfigurationStatusQuery(undefined, {
+    pollingInterval: shouldPollStatus ? FIVE_MINUTES_MS : 0,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+    skipPollingIfUnfocused: true,
+  });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNowMs(Date.now());
+    }, ONE_MINUTE_MS);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!status?.elections) return;
+    setKnownActiveElections(status.elections.filter((e) => e.isActive));
+  }, [status?.elections]);
 
   return useMemo(() => {
     // No data yet
@@ -35,6 +74,7 @@ export default function useElectionConfig(): ElectionConfig {
         hasActiveConfig: false,
         isVotingPeriod: false,
         isResultsPeriod: false,
+        isAutoRefreshWindow: false,
         isLoading,
       };
     }
@@ -71,7 +111,10 @@ export default function useElectionConfig(): ElectionConfig {
       hasActiveConfig: activeElections.length > 0 || !!status.hasActiveConfig,
       isVotingPeriod: currentElection?.isVotingPeriod ?? status.isVotingPeriod ?? false,
       isResultsPeriod: currentElection?.isResultsPeriod ?? status.isResultsPeriod ?? false,
+      isAutoRefreshWindow: currentElection
+        ? isElectionInAutoRefreshWindow(currentElection, nowMs)
+        : isAnyElectionInAutoRefreshWindow(activeElections, nowMs),
       isLoading,
     };
-  }, [status, selectedElectionId, isLoading]);
+  }, [status, selectedElectionId, isLoading, nowMs]);
 }

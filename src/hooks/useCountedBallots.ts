@@ -5,6 +5,7 @@ import {
 } from '../store/resultados/resultadosEndpoints';
 import { ballotsToElectoralTables } from '../utils/ballotToElectoralTable';
 import { ElectoralTableType } from '../types';
+import { FIVE_MINUTES_MS } from '../utils/electionAutoRefreshWindow';
 
 interface UseCountedBallotsParams {
   electionType: string;
@@ -16,6 +17,7 @@ interface UseCountedBallotsParams {
   limit?: number;
   isLiveMode: boolean;
   skip?: boolean;
+  enablePolling?: boolean;
 }
 
 interface UseCountedBallotsResult {
@@ -44,6 +46,7 @@ export const useCountedBallots = ({
   limit = 20,
   isLiveMode,
   skip = false,
+  enablePolling = false,
 }: UseCountedBallotsParams): UseCountedBallotsResult => {
   // Query params
   const queryParams = {
@@ -63,6 +66,10 @@ export const useCountedBallots = ({
     isError: liveError,
   } = useGetLiveCountedBallotsQuery(queryParams, {
     skip: skip || !isLiveMode || !electionType,
+    pollingInterval: enablePolling ? FIVE_MINUTES_MS : 0,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+    skipPollingIfUnfocused: true,
   });
 
   const {
@@ -71,6 +78,10 @@ export const useCountedBallots = ({
     isError: finalError,
   } = useGetFinalCountedBallotsQuery(queryParams, {
     skip: skip || isLiveMode || !electionType,
+    pollingInterval: enablePolling ? FIVE_MINUTES_MS : 0,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+    skipPollingIfUnfocused: true,
   });
 
   // Select the appropriate data based on mode

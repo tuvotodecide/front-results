@@ -13,6 +13,12 @@ import StatisticsBars from "./Resultados/StatisticsBars";
 import Graphs from "./Resultados/Graphs";
 import tuvotoDecideImage from "../assets/tuvotodecide.webp";
 import { ElectionStatusType } from "../types";
+import useAutoRefreshTick from "../hooks/useAutoRefreshTick";
+import {
+  FIVE_MINUTES_MS,
+  ONE_MINUTE_MS,
+  isAnyElectionInAutoRefreshWindow,
+} from "../utils/electionAutoRefreshWindow";
 
 interface ElectionResultsData {
   electionId: string;
@@ -113,8 +119,14 @@ const ElectionResultsCard: React.FC<{
 const Home: React.FC = () => {
   const [electionResults, setElectionResults] = useState<Map<string, ElectionResultsData>>(new Map());
   const [loading, setLoading] = useState(false);
+  const [shouldPollConfigStatus, setShouldPollConfigStatus] = useState(false);
 
-  const { data: configData } = useGetConfigurationStatusQuery();
+  const { data: configData } = useGetConfigurationStatusQuery(undefined, {
+    pollingInterval: shouldPollConfigStatus ? FIVE_MINUTES_MS : 0,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+    skipPollingIfUnfocused: true,
+  });
   const [getResultsByLocation] = useLazyGetResultsByLocationQuery();
   const [getLiveResultsByLocation] = useLazyGetLiveResultsByLocationQuery();
   const filters = useSelector(selectFilters);
@@ -166,6 +178,22 @@ const Home: React.FC = () => {
 
   const hasActiveConfig = visibleElections.length > 0;
   const showResultsPeriod = visibleElections.some(e => e.isVotingPeriod || e.isResultsPeriod);
+  const windowClockTick = useAutoRefreshTick({
+    enabled: true,
+    intervalMs: ONE_MINUTE_MS,
+  });
+  const isAutoRefreshWindow = useMemo(
+    () => isAnyElectionInAutoRefreshWindow(visibleElections),
+    [visibleElections, windowClockTick],
+  );
+  const refreshTick = useAutoRefreshTick({
+    enabled: isAutoRefreshWindow,
+    intervalMs: FIVE_MINUTES_MS,
+  });
+
+  useEffect(() => {
+    setShouldPollConfigStatus(isAutoRefreshWindow);
+  }, [isAutoRefreshWindow]);
 
   // Fetch results for all visible elections
   useEffect(() => {
@@ -250,6 +278,7 @@ const Home: React.FC = () => {
 
     fetchAllResults();
   }, [
+    refreshTick,
     visibleElections,
     getLocationFilters,
     hasActiveConfig,
