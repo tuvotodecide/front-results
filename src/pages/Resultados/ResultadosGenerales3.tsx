@@ -146,6 +146,26 @@ const ResultadosGenerales3 = () => {
     territoryMunicipalityId,
   ]);
 
+  const primaryElectionType = useMemo(() => {
+    if (election?.type === "municipal" || election?.type === "mayor") {
+      return "municipal";
+    }
+    if (election?.type === "departamental" || election?.type === "governor") {
+      return "departamental";
+    }
+    return "presidential";
+  }, [election?.type]);
+
+  const secondaryElectionType = useMemo(() => {
+    if (election?.type === "municipal" || election?.type === "mayor") {
+      return "council";
+    }
+    if (election?.type === "departamental" || election?.type === "governor") {
+      return "assembly";
+    }
+    return "deputies";
+  }, [election?.type]);
+
   // useEffect(() => {
   //   // console.log('Current config data:', configData);
   // }, [configData]);
@@ -198,12 +218,11 @@ const ResultadosGenerales3 = () => {
       // Tipo de elecciÃ³n (municipal, departamental, presidential)
       const presidentRequest = fetcher({
         ...baseParams,
-        electionType: election?.type ?? "presidential",
+        electionType: primaryElectionType,
       }, true);
       const deputiesRequest = fetcher({
         ...baseParams,
-        // electionType: election?.type ?? "deputies",
-        electionType: "deputies",
+        electionType: secondaryElectionType,
       }, true);
 
       presidentRequest
@@ -325,6 +344,8 @@ const ResultadosGenerales3 = () => {
     isFinalPhase,
     shouldDelayForContract,
     shouldBlockForMissingScope,
+    primaryElectionType,
+    secondaryElectionType,
     getResultsByLocation,
     getLiveResultsByLocation,
   ]);
