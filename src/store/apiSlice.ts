@@ -4,21 +4,20 @@ import {
   createApi,
   fetchBaseQuery,
 } from "@reduxjs/toolkit/query/react";
+import { RootState } from "./index";
 // import { logOut } from "./auth/authSlice";
 
 const { VITE_BASE_API_URL } = import.meta.env;
-const baseApiUrl = VITE_BASE_API_URL || "http://localhost:3000/api/v1";
+const baseApiUrl = (VITE_BASE_API_URL as string) || "http://localhost:3000/api/v1";
 
 const baseQuery = fetchBaseQuery({
   baseUrl: baseApiUrl,
+  credentials: "include", // Permite el envío de cookies HttpOnly
 
-  prepareHeaders: (headers, { getState }) => {
-    const state = getState() as any;
-    const token = state.auth.token;
+  prepareHeaders: (headers) => {
+    // Eliminamos la lectura manual del token desde el estado para Authorization header,
+    // ya que ahora delegamos la seguridad a las Cookies HttpOnly gestionadas por el navegador.
     headers.set("Accept", "application/json");
-    if (token) {
-      headers.set("Authorization", `Bearer ${token}`);
-    }
     return headers;
   },
 });
@@ -33,7 +32,7 @@ const needsElectionId = (path: string) => {
     p.startsWith("/ballots") ||
     p.startsWith("/geographic/electoral-") ||
     p.startsWith("/geographic/electoral_") ||
-    p.startsWith("/geographic/electoral-tables/attested-only")||
+    p.startsWith("/geographic/electoral-tables/attested-only") ||
     p.startsWith("/client-reports")
 
   );
@@ -44,9 +43,9 @@ const baseQueryWrapper = async (
   api: BaseQueryApi,
   extraOptions: {},
 ) => {
-  const state = api.getState() as any;
+  const state = api.getState() as RootState;
   const eid =
-    state?.election?.selectedElectionId ??
+    state.election.selectedElectionId ??
     (typeof localStorage !== "undefined"
       ? localStorage.getItem("selectedElectionId")
       : null);
@@ -57,7 +56,7 @@ const baseQueryWrapper = async (
 
   const urlPath = typeof args === "string" ? args : (args.url as string);
   if (eid && needsElectionId(urlPath)) {
-    const prevParams = (adjusted.params as Record<string, any>) || {};
+    const prevParams = (adjusted.params as Record<string, string | number | boolean | undefined>) || {};
     if (!("electionId" in prevParams)) {
       adjusted.params = { ...prevParams, electionId: eid };
     }

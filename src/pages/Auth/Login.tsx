@@ -173,48 +173,44 @@ const Login: React.FC = () => {
     try {
       // 1) login
       const res = await loginUser(values).unwrap();
-      // res: { accessToken, role, active }
+      // res: { accessToken, role, active, user }
 
-      const access_token = res.accessToken as string;
+      // Nota: El accessToken ya no se extrae para localStorage.
+      // El navegador lo gestiona automáticamente vía Cookies HttpOnly (Set-Cookie).
+
       const isApproved = Boolean(res.active);
       const role = mapBackendRole(res.role);
 
-      // Si por alguna razón viniera inactive (tu backend lo bloquea antes),
-      // mantenemos el comportamiento consistente
+      // Si por alguna razón viniera inactive, mantenemos el comportamiento consistente
       if (!isApproved) {
         dispatch(
           setAuth({
-            access_token,
             user: {
-              id: "pending",
+              ...res.user,
               email: values.email,
-              name: "PENDIENTE",
               role,
               active: false,
               status: "PENDING",
             },
-          }),
+          })
         );
         navigate("/pendiente", { replace: true });
         return;
       }
 
-      // Guardar token antes de pedir el profile (para que se envÃ­e Authorization)
-      dispatch(setAuth({ access_token }));
-
-      // 2) profile (para traer territorio del JWT)
+      // Login exitoso
+      // 2) Intentar obtener el perfil para detalles geográficos
       let profile: any = null;
       try {
         profile = await triggerProfile().unwrap();
       } catch {
-        // si falla, igual puedes dejarlo entrar a /resultados genérico
         profile = null;
       }
 
-      const user = {
-        id: profile?.sub ?? "unknown",
+      const user = res.user || {
+        id: profile?.id ?? profile?.sub ?? "unknown",
         email: values.email,
-        name: "Usuario",
+        name: profile?.name ?? "Usuario",
         role,
         active: true,
         departmentId: profile?.votingDepartmentId,
@@ -222,7 +218,7 @@ const Login: React.FC = () => {
         status: "ACTIVE" as const,
       };
 
-      dispatch(setAuth({ access_token, user }));
+      dispatch(setAuth({ user }));
     } catch (error: any) {
       const msg =
         error?.data?.message || error?.message || "No se pudo iniciar sesión";

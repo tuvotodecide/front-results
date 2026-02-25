@@ -1,14 +1,22 @@
+import {
+  UserProfile,
+  LoginResponse,
+  RegisterRequest,
+  ForgotPasswordRequest,
+  ResetPasswordRequest,
+  VerifyEmailResponse
+} from "../../types";
 import { apiSlice } from "../apiSlice";
 
 export const authApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    getProfile: builder.query<any, void>({
+    getProfile: builder.query<UserProfile, void>({
       query: () => "/auth/profile",
       keepUnusedDataFor: 60,
       providesTags: () => ["Profile"],
     }),
 
-    createUser: builder.mutation<any, any>({
+    createUser: builder.mutation<any, RegisterRequest>({
       query: (user) => ({
         url: "/auth/register",
         method: "POST",
@@ -16,7 +24,7 @@ export const authApiSlice = apiSlice.injectEndpoints({
       }),
     }),
 
-    loginUser: builder.mutation<any, { email: string; password: string }>({
+    loginUser: builder.mutation<LoginResponse, { email: string; password: string }>({
       query: (data) => ({
         url: "/auth/login",
         method: "POST",
@@ -24,7 +32,7 @@ export const authApiSlice = apiSlice.injectEndpoints({
       }),
     }),
 
-    forgotPassword: builder.mutation<any, { email: string }>({
+    forgotPassword: builder.mutation<any, ForgotPasswordRequest>({
       query: (data) => ({
         url: "/auth/forgot-password",
         method: "POST",
@@ -32,7 +40,7 @@ export const authApiSlice = apiSlice.injectEndpoints({
       }),
     }),
 
-    resetPassword: builder.mutation<any, { token: string; password: string }>({
+    resetPassword: builder.mutation<any, ResetPasswordRequest>({
       query: (data) => ({
         url: "/auth/reset-password",
         method: "POST",
@@ -40,7 +48,7 @@ export const authApiSlice = apiSlice.injectEndpoints({
       }),
     }),
 
-    verifyEmail: builder.query<any, { token: string }>({
+    verifyEmail: builder.query<VerifyEmailResponse, { token: string }>({
       query: ({ token }) => ({
         url: `/auth/verify-email`,
         method: "GET",

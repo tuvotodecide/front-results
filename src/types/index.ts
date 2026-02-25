@@ -12,3 +12,6 @@ export * from './configurations';
 export * from './politicalParties';
 export * from './attestations';
 export * from './modalview';
+export * from './personal';
+export * from './auth';
+export * from './resultados';

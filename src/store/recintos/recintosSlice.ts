@@ -1,8 +1,9 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { RecintoElectoral } from '../../types';
 
 export interface RecintosState {
-  recintos: any[];
-  recinto: any | null;
+  recintos: RecintoElectoral[];
+  recinto: RecintoElectoral | null;
 }
 
 const initialState: RecintosState = {
@@ -14,8 +15,11 @@ export const recintosSlice = createSlice({
   name: 'recintos',
   initialState,
   reducers: {
-    setRecintos: (state, action) => {
+    setRecintos: (state, action: PayloadAction<RecintoElectoral[]>) => {
       state.recintos = action.payload;
+    },
+    setRecinto: (state, action: PayloadAction<RecintoElectoral | null>) => {
+      state.recinto = action.payload;
     },
   },
 });

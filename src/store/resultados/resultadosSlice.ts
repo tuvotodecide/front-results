@@ -1,22 +1,26 @@
-  import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+
+export interface ResultsFilters {
+  department: string;
+  province: string;
+  municipality: string;
+  electoralLocation: string;
+  electoralSeat: string;
+}
+
+export interface ResultsFilterIds {
+  departmentId: string;
+  provinceId: string;
+  municipalityId: string;
+  electoralLocationId: string;
+  electoralSeatId: string;
+}
 
 export interface ResultsState {
-  recintos: any[];
+  recintos: any[]; // Mantener any[] si no hay tipo específico aún
   recinto: any | null;
-  filters: {
-    department: string;
-    province: string;
-    municipality: string;
-    electoralLocation: string;
-    electoralSeat: string;
-  };
-  filterIds: {
-    departmentId: string;
-    provinceId: string;
-    municipalityId: string;
-    electoralLocationId: string;
-    electoralSeatId: string;
-  };
+  filters: ResultsFilters;
+  filterIds: ResultsFilterIds;
   currentTable: string | null;
   currentBallot: string | null;
   queryParamsResults: string;
@@ -48,20 +52,19 @@ export const resultsSlice = createSlice({
   name: 'results',
   initialState,
   reducers: {
-    setFilters: (state, action) => {
-      // console.log('setFilters action payload:', action.payload);
+    setFilters: (state, action: PayloadAction<ResultsFilters>) => {
       state.filters = action.payload;
     },
-    setFilterIds: (state, action) => {
+    setFilterIds: (state, action: PayloadAction<ResultsFilterIds>) => {
       state.filterIds = action.payload;
     },
-    setCurrentTable: (state, action) => {
+    setCurrentTable: (state, action: PayloadAction<string | null>) => {
       state.currentTable = action.payload;
     },
-    setCurrentBallot: (state, action) => {
+    setCurrentBallot: (state, action: PayloadAction<string | null>) => {
       state.currentBallot = action.payload;
     },
-    setQueryParamsResults: (state, action) => {
+    setQueryParamsResults: (state, action: PayloadAction<string>) => {
       state.queryParamsResults = action.payload;
     },
     resetResults: () => initialState,

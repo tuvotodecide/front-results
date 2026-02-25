@@ -1,8 +1,9 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { DepartmentType } from '../../types';
 
 export interface departmentsState {
-  departments: any[];
-  department: any | null;
+  departments: DepartmentType[];
+  department: DepartmentType | null;
 }
 
 const initialState: departmentsState = {
@@ -14,8 +15,11 @@ export const departmentsSlice = createSlice({
   name: 'departments',
   initialState,
   reducers: {
-    setDepartments: (state, action) => {
+    setDepartments: (state, action: PayloadAction<DepartmentType[]>) => {
       state.departments = action.payload;
+    },
+    setDepartment: (state, action: PayloadAction<DepartmentType | null>) => {
+      state.department = action.payload;
     },
   },
 });

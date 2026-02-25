@@ -1,40 +1,27 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from "../index";
-import { jwtDecode } from "jwt-decode";
-type JwtPayload = {
-  sub?: string;
-  dni?: string;
-  role?: string;
-  active?: boolean;
-  votingDepartmentId?: string;
-  votingMunicipalityId?: string;
-};
+import { LoginResponse } from "../../types";
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: "SUPERADMIN" | "MAYOR" | "GOVERNOR" | "publico";
+  active: boolean;
+  restrictedId?: string;
+  departmentId?: string;
+  departmentName?: string;
+  municipalityId?: string;
+  municipalityName?: string;
+  status?: "ACTIVE" | "PENDING" | "REJECTED" | "INACTIVE";
+}
 
 export interface AuthState {
   token: string | null;
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    role: "SUPERADMIN" | "MAYOR" | "GOVERNOR" | "publico";
-    active: boolean;
-    restrictedId?: string;
-    departmentId?: string;
-    departmentName?: string;
-    municipalityId?: string;
-    municipalityName?: string;
-    status?: "ACTIVE" | "PENDING" | "REJECTED" | "INACTIVE";
-  } | null;
+  user: User | null;
 }
-const decodeToken = (token: string | null): JwtPayload | null => {
-  if (!token) return null;
-  try {
-    return jwtDecode<JwtPayload>(token);
-  } catch {
-    return null;
-  }
-};
-const normalizeRole = (role: any) => {
+// jwt-decode removed as it's no longer needed for HttpOnly flow
+const normalizeRole = (role: string | null | undefined) => {
   const r = String(role || "").toUpperCase();
 
   if (r === "ALCALDE" || r === "MAYOR") return "MAYOR";
@@ -43,7 +30,7 @@ const normalizeRole = (role: any) => {
   return "publico";
 };
 
-const normalizeUser = (u: any): AuthState["user"] => {
+const normalizeUser = (u: any): User | null => {
   if (!u) return null;
 
   const role = normalizeRole(u.role);
@@ -54,14 +41,15 @@ const normalizeUser = (u: any): AuthState["user"] => {
     name: u.name ?? "",
     role,
     active: typeof u.active === "boolean" ? u.active : !!u.isApproved,
-    restrictedId: u.restrictedId,
-    departmentId: u.departmentId,
-    departmentName: u.departmentName,
-    municipalityId: u.municipalityId,
-    municipalityName: u.municipalityName,
-    status: u.status,
+    restrictedId: u.restrictedId as string,
+    departmentId: u.departmentId as string,
+    departmentName: u.departmentName as string,
+    municipalityId: u.municipalityId as string,
+    municipalityName: u.municipalityName as string,
+    status: u.status as User["status"],
   };
 };
+
 let rawUser: any = null;
 try {
   rawUser = JSON.parse(localStorage.getItem("user") ?? "null");
@@ -70,7 +58,7 @@ try {
 }
 
 const initialState: AuthState = {
-  token: localStorage.getItem("token"),
+  token: null, // El token ahora reside en una Cookie HttpOnly, invisible para JS
   user: rawUser ? normalizeUser(rawUser) : null,
 };
 
@@ -78,59 +66,22 @@ export const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    setAuth: (state, action) => {
-      const token =
-        action.payload?.accessToken ??
-        action.payload?.access_token ??
-        action.payload?.token ??
-        null;
-      const decoded = decodeToken(token);
+    setAuth: (state, action: PayloadAction<Partial<LoginResponse> & { user?: any }>) => {
+      // Ya no almacenamos el accessToken en el estado ni en localStorage.
+      // El navegador se encarga de enviarlo automáticamente si el servidor configuró Set-Cookie.
+      const user = normalizeUser(action.payload?.user);
 
-      let user = normalizeUser(action.payload?.user);
-      if (!user && decoded?.sub) {
-        user = {
-          id: decoded.sub,
-          email: "",
-          name: "",
-          role: normalizeRole(decoded.role),
-          active: !!decoded.active,
-        };
-      }
-      if (user && decoded) {
-        const role = normalizeRole(decoded.role ?? user.role);
-
-        if (
-          role === "GOVERNOR" &&
-          !user.departmentId &&
-          decoded.votingDepartmentId
-        ) {
-          user.departmentId = decoded.votingDepartmentId;
-        }
-
-        if (
-          role === "MAYOR" &&
-          !user.municipalityId &&
-          decoded.votingMunicipalityId
-        ) {
-          user.municipalityId = decoded.votingMunicipalityId;
-        }
-
-        // // opcional: también sincroniza active/role desde token si confías en eso para UI
-        // user.role = role;
-        // if (typeof decoded.active === "boolean") user.active = decoded.active;
-      }
-
-      state.token = token;
       state.user = user;
 
-      if (user) localStorage.setItem("user", JSON.stringify(user));
-      if (token) localStorage.setItem("token", token);
+      if (user) {
+        localStorage.setItem("user", JSON.stringify(user));
+      }
     },
     logOut: (state) => {
       state.token = null;
       state.user = null;
       localStorage.removeItem("user");
-      localStorage.removeItem("token");
+      // El logout debería invocar un endpoint que limpie la cookie en el server
       localStorage.removeItem("selectedElectionId");
       localStorage.removeItem("pendingEmail");
       localStorage.removeItem("pendingReason");
@@ -143,7 +94,9 @@ export const selectAuth = (state: RootState) => state.auth;
 
 // Selector to check if user is logged in
 export const selectIsLoggedIn = (state: RootState) => {
-  return Boolean(state.auth.token && state.auth.user);
+  // Ahora la sesión se valida por la presencia del usuario.
+  // La validación real ocurre en el servidor via Cookies.
+  return Boolean(state.auth.user);
 };
 
 export default authSlice;
