@@ -3,10 +3,12 @@ import { useSelector } from "react-redux";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 export default function ProtectedRoutes() {
-  const { user, token } = useSelector(selectAuth);
+  const { user } = useSelector(selectAuth);
   const location = useLocation();
 
-  if (!user || !token) {
+  // Con HttpOnly Cookies, el token puede no estar en Redux tras un refresh, 
+  // pero el user sí está persistido en localStorage.
+  if (!user) {
     const from = `${location.pathname}${location.search}`;
     return <Navigate to="/login" state={{ from }} replace />;
   }
@@ -42,11 +44,16 @@ export default function ProtectedRoutes() {
   }
 
   const isRestrictedRole = user.role === "MAYOR" || user.role === "GOVERNOR";
-  const allowedForRestricted =
-    location.pathname.startsWith("/control-personal") ||
-    location.pathname.startsWith("/auditoria-tse");
+  const allowedPaths = [
+    "/resultados",
+    "/control-personal",
+    "/auditoria-tse",
+    "/perfil"
+  ];
+  const isAllowedPath = allowedPaths.some(path => location.pathname.startsWith(path));
 
-  if (isRestrictedRole && !allowedForRestricted) {
+  // Si es un rol restringido y la ruta no está permitida para ellos
+  if (isRestrictedRole && !isAllowedPath) {
     return <Navigate to="/resultados" replace />;
   }
 

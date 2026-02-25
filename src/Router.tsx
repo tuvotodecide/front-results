@@ -48,10 +48,9 @@ const AppRouter: React.FC = () => {
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user") ?? "null");
-    const token = localStorage.getItem("token");
-    if (user && token) {
-      dispatch(setAuth({ access_token: token, user }));
-      // console.log('User data:', user);
+    // Con HttpOnly cookies, el token ya no está en localStorage
+    if (user) {
+      dispatch(setAuth({ user }));
     }
     setIsAuthLoading(false);
   }, [dispatch]);

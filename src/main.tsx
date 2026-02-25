@@ -6,10 +6,10 @@ import { Provider } from "react-redux";
 import store from "./store";
 
 async function prepareApp() {
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     const { worker } = await import('./mocks/browser')
     return worker.start({
-      onUnhandledRequest: 'bypass', // Permite que peticiones no mockeadas sigan normales
+      onUnhandledRequest: 'bypass',
     })
   }
 }

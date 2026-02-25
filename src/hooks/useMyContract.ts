@@ -42,7 +42,7 @@ export interface UseMyContractResult {
 export function useMyContract(): UseMyContractResult {
   const { user, token } = useSelector(selectAuth);
 
-  const isLoggedIn = !!token && !!user;
+  const isLoggedIn = !!user;
   const isClient =
     isLoggedIn && (user?.role === "MAYOR" || user?.role === "GOVERNOR");
 

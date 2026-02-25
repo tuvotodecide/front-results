@@ -1,13 +1,29 @@
 import { http, HttpResponse } from 'msw';
 
-const API_BASE_URL = 'https://backresultados.tuvotodecide.com/api/v1';
-
 export const handlers = [
     // Handler para Login Mock (Intercepta las credenciales de prueba)
-    http.post(`${API_BASE_URL}/auth/login`, async ({ request }) => {
+    http.post('*/auth/login', async ({ request }) => {
         const body = (await request.json()) as any;
 
+        // Solo interceptamos si la contraseña es la de prueba
         if (body.password === 'test1234') {
+            if (body.email === 'admin@test.com') {
+                const user = {
+                    id: 'mock-admin-id',
+                    name: 'ADMINISTRADOR CENTRAL',
+                    email: 'admin@test.com',
+                    role: 'SUPERADMIN',
+                    status: 'ACTIVE',
+                    active: true,
+                };
+                return HttpResponse.json({
+                    accessToken: 'mock-access-token-admin',
+                    role: 'SUPERADMIN',
+                    active: true,
+                    user,
+                });
+            }
+
             if (body.email === 'alcalde@test.com') {
                 const user = {
                     id: 'mock-alcalde-lp',
@@ -46,13 +62,12 @@ export const handlers = [
             }
         }
 
-        // Si no son credenciales de prueba, devolvemos una señal para que MSW no haga nada
-        // y la petición siga su curso real a la red
+        // Si no coincide con los mocks de prueba, MSW deja que la petición vaya a la API REAL
         return undefined;
     }),
 
-    // Mock para Participación Personal (que antes estaba en queryFn)
-    http.get(`${API_BASE_URL}/personal/participacion`, () => {
+    // Mock para Participación Personal
+    http.get('*/personal/participacion', () => {
         return HttpResponse.json({
             summary: { contratados: 83, participaron: 73, faltantes: 10 },
             details: [

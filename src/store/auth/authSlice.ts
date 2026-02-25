@@ -26,7 +26,7 @@ const normalizeRole = (role: string | null | undefined) => {
 
   if (r === "ALCALDE" || r === "MAYOR") return "MAYOR";
   if (r === "GOBERNADOR" || r === "GOVERNOR") return "GOVERNOR";
-  if (r === "SUPERADMIN") return "SUPERADMIN";
+  if (r === "SUPERADMIN" || r === "ADMIN" || r === "ADMINISTRADOR") return "SUPERADMIN";
   return "publico";
 };
 
@@ -70,8 +70,10 @@ export const authSlice = createSlice({
       // Ya no almacenamos el accessToken en el estado ni en localStorage.
       // El navegador se encarga de enviarlo automáticamente si el servidor configuró Set-Cookie.
       const user = normalizeUser(action.payload?.user);
+      const token = action.payload?.accessToken || action.payload?.access_token || null;
 
       state.user = user;
+      state.token = token; // Se guarda solo en memoria (Redux), no en LocalStorage
 
       if (user) {
         localStorage.setItem("user", JSON.stringify(user));
