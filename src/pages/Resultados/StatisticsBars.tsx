@@ -14,7 +14,7 @@ interface ProcessedTables {
 interface StatisticsBarsProps {
   title: string;
   voteData: VoteData[];
-  processedTables: ProcessedTables;
+  processedTables?: ProcessedTables;
   totalTables?: number; // Optional prop for total tables
   totalVoters?: number; // Optional prop for total voters
   totalActs?: number; // Optional prop for total acts
@@ -25,11 +25,11 @@ const StatisticsBars = ({
   title,
   voteData = [],
 }: // processedTables = { current: 0, total: 0 },
-// totalTables = 0,
-// totalVoters = 0,
-// totalActs = 0,
-// totalWitnesses = 0,
-StatisticsBarsProps) => {
+  // totalTables = 0,
+  // totalVoters = 0,
+  // totalActs = 0,
+  // totalWitnesses = 0,
+  StatisticsBarsProps) => {
   // const [animationComplete, setAnimationComplete] = useState(false);
 
   // Data from the image
