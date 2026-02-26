@@ -1,13 +1,12 @@
 import { selectAuth } from "../store/auth/authSlice";
 import { useSelector } from "react-redux";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { getRoleConfig } from "../config/rolePermissions";
 
 export default function ProtectedRoutes() {
   const { user } = useSelector(selectAuth);
   const location = useLocation();
 
-  // Con HttpOnly Cookies, el token puede no estar en Redux tras un refresh, 
-  // pero el user sí está persistido en localStorage.
   if (!user) {
     const from = `${location.pathname}${location.search}`;
     return <Navigate to="/login" state={{ from }} replace />;
@@ -22,50 +21,20 @@ export default function ProtectedRoutes() {
     return <Navigate to="/rechazado" replace />;
   }
 
-  const adminPaths = [
-    "/panel",
-    "/departamentos",
-    "/provincias",
-    "/municipios",
-    "/asientos-electorales",
-    "/recintos-electorales",
-    "/mesas",
-    "/configuraciones",
-    "/partidos",
-    "/partidos-politicos",
-  ];
+  const roleConfig = getRoleConfig(user.role);
 
-  const isAdminPath = adminPaths.some((path) =>
-    location.pathname.startsWith(path),
-  );
+  // Si tiene "*" en allowedPaths, tiene acceso total (ej. SUPERADMIN)
+  const hasFullAccess = roleConfig.allowedPaths.includes("*");
 
-  if (isAdminPath && user.role !== "SUPERADMIN") {
-    return <Navigate to="/resultados" replace />;
-  }
-
-  const isRestrictedRole = user.role === "MAYOR" || user.role === "GOVERNOR";
-  const allowedPaths = [
-    "/resultados",
-    "/control-personal",
-    "/auditoria-tse",
-    "/perfil"
-  ];
-  const isAllowedPath = allowedPaths.some(path => location.pathname.startsWith(path));
-
-  // Si es un rol restringido y la ruta no está permitida para ellos
-  if (isRestrictedRole && !isAllowedPath) {
-    return <Navigate to="/resultados" replace />;
+  if (!hasFullAccess) {
+    const isAllowed = roleConfig.allowedPaths.some(path => location.pathname.startsWith(path));
+    if (!isAllowed) {
+      return <Navigate to="/resultados" replace />;
+    }
   }
 
   return <Outlet />;
 }
-
-
-
-
-
-
-
 
 // import { useMyContract } from '../hooks/useMyContract';
 

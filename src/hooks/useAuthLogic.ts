@@ -8,6 +8,7 @@ import {
     useLazyGetProfileQuery,
 } from "../store/auth/authEndpoints";
 import { ModalState } from "../types";
+import { getRoleConfig } from "../config/rolePermissions";
 
 export const useAuthLogic = () => {
     const dispatch = useDispatch();
@@ -62,20 +63,8 @@ export const useAuthLogic = () => {
                 return;
             }
 
-            if (user.role === "publico") {
-                navigate("/", { replace: true });
-            } else if (user.role === "MAYOR" && user.municipalityId) {
-                navigate(
-                    `/resultados?department=${user.departmentId}&municipality=${user.municipalityId}`,
-                    { replace: true },
-                );
-            } else if (user.role === "GOVERNOR" && user.departmentId) {
-                navigate(`/resultados?department=${user.departmentId}`, {
-                    replace: true,
-                });
-            } else {
-                navigate("/resultados", { replace: true });
-            }
+            const config = getRoleConfig(user.role);
+            navigate(config.homePath(user), { replace: true });
         }
     }, [user, navigate, location]);
 
