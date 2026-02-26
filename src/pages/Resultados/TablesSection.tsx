@@ -1,15 +1,13 @@
 import { Link } from 'react-router-dom';
-import { ElectoralTableType } from '../../types';
 
-interface Mesa {
-  number: number;
-  code: string;
-  status: 'unprocessed' | 'processed' | 'dispute';
-  photoCount?: number; // Number of photos of the electoral sheet
+export interface MesaSummary {
+  _id: string;
+  tableNumber: string;
+  tableCode: string;
 }
 
 interface TablesSectionProps {
-  tables?: ElectoralTableType[];
+  tables?: MesaSummary[];
 }
 
 const TablesSection = ({ tables = [] }: TablesSectionProps) => {
@@ -25,7 +23,7 @@ const TablesSection = ({ tables = [] }: TablesSectionProps) => {
   //   { number: 8, code: 'ERTERT', status: 'unprocessed' },
   // ];
 
-  const getCardStyle = (status: Mesa['status']) => {
+  const getCardStyle = (status: 'unprocessed' | 'processed' | 'dispute') => {
     const baseStyle = {
       width: '100%',
       maxWidth: '280px',
@@ -58,7 +56,7 @@ const TablesSection = ({ tables = [] }: TablesSectionProps) => {
     return baseStyle;
   };
 
-  const getStatusIndicatorStyle = (status: Mesa['status']) => {
+  const getStatusIndicatorStyle = (status: 'unprocessed' | 'processed' | 'dispute') => {
     const baseStyle = {
       width: '8px',
       height: '8px',
@@ -87,7 +85,7 @@ const TablesSection = ({ tables = [] }: TablesSectionProps) => {
     }
   };
 
-  const getStatusText = (status: Mesa['status']) => {
+  const getStatusText = (status: 'unprocessed' | 'processed' | 'dispute') => {
     switch (status) {
       case 'processed':
         return 'Procesada';

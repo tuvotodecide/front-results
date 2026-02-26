@@ -1,7 +1,14 @@
-import { RecintoElectoral } from "../types/recintos";
+export interface RecintoSummary {
+  _id: string;
+  code: string;
+  department: string;
+  municipality: string;
+  province: string;
+  totalTables: number;
+}
 
 interface RecintoTableProps {
-  data?: RecintoElectoral[];
+  data?: RecintoSummary[];
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
 }

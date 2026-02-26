@@ -1,24 +1,23 @@
 import {
   AttestationsBallotType,
-  BallotType,
   MostSupportedBallotType,
 } from '../../types';
 import { useMemo } from 'react';
 
-// interface Image {
-//   id: number;
-//   number: number;
-//   code: string;
-//   status: 'unprocessed' | 'processed' | 'dispute';
-//   person: string;
-//   date: string;
-//   imageCode: string;
-//   votesInFavor: number;
-//   votesAgainst: number;
-// }
+export interface BallotSummary {
+  _id: string;
+  image: string;
+  version: number | string;
+  recordId: string;
+  ipfsUri: string;
+  supports?: {
+    users: number;
+    juries: number;
+  } | null;
+}
 
 interface ImagesSectionProps {
-  images: BallotType[];
+  images: BallotSummary[];
   mostSupportedBallot?: MostSupportedBallotType | null | undefined;
   attestationCases?: AttestationsBallotType[];
 }
@@ -44,7 +43,7 @@ const ImagesSection = ({
     });
   }, [images, attestationCases]);
 
-  const getImageUrl = (image: BallotType) => {
+  const getImageUrl = (image: BallotSummary) => {
     const baseUrl = 'https://ipfs.io/ipfs/';
     const ipfsHash = image.image.replace('ipfs://', '');
     return `${baseUrl}${ipfsHash}`;
