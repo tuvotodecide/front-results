@@ -7,7 +7,7 @@ import {
     useLoginUserMutation,
     useLazyGetProfileQuery,
 } from "../store/auth/authEndpoints";
-import { ModalState } from "../types";
+import { ModalState, UserProfile } from "../types";
 import { getRoleConfig } from "../config/rolePermissions";
 import { storageService } from "../services/storage.service";
 
@@ -88,12 +88,13 @@ export const useAuthLogic = () => {
                 dispatch(
                     setAuth({
                         user: {
-                            ...(res.user || {}),
+                            ...((res.user as any) || {}),
+                            sub: res.user?.sub || "unknown",
                             email: values.email,
                             role,
                             active: false,
                             status: "PENDING",
-                        },
+                        } as UserProfile,
                     })
                 );
                 navigate("/pendiente", { replace: true });
@@ -107,10 +108,10 @@ export const useAuthLogic = () => {
                 profile = null;
             }
 
-            const userProfile = res.user || {
-                id: profile?.id ?? profile?.sub ?? "unknown",
+            const userProfile: UserProfile = (res.user as UserProfile) || {
+                sub: (profile?.id ?? profile?.sub ?? "unknown") as string,
                 email: values.email,
-                name: profile?.name ?? "Usuario",
+                name: (profile?.name ?? "Usuario") as string,
                 role,
                 active: true,
                 departmentId: profile?.votingDepartmentId,
