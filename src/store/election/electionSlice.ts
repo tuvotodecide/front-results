@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { storageService } from '../../services/storage.service';
 
 export interface ElectionsState {
   selectedElectionId: string | null;
@@ -21,24 +22,24 @@ export const electionsSlice = createSlice({
       state.selectedElectionId = action.payload.id;
       state.selectedElectionName = action.payload.name;
       if (action.payload.id) {
-        localStorage.setItem('selectedElectionId', action.payload.id);
-        localStorage.setItem('selectedElectionName', action.payload.name ?? '');
+        storageService.setItem('selectedElectionId', action.payload.id);
+        storageService.setItem('selectedElectionName', action.payload.name ?? '');
       } else {
-        localStorage.removeItem('selectedElectionId');
-        localStorage.removeItem('selectedElectionName');
+        storageService.removeItem('selectedElectionId');
+        storageService.removeItem('selectedElectionName');
       }
     },
     hydrateElectionFromStorage: (state) => {
-      const id = localStorage.getItem('selectedElectionId');
-      const name = localStorage.getItem('selectedElectionName');
+      const id = storageService.getItem('selectedElectionId');
+      const name = storageService.getItem('selectedElectionName');
       state.selectedElectionId = id || null;
       state.selectedElectionName = name || null;
     },
     clearSelectedElection: (state) => {
       state.selectedElectionId = null;
       state.selectedElectionName = null;
-      localStorage.removeItem('selectedElectionId');
-      localStorage.removeItem('selectedElectionName');
+      storageService.removeItem('selectedElectionId');
+      storageService.removeItem('selectedElectionName');
     },
   },
 });

@@ -12,6 +12,7 @@ import { useFormikContext } from "formik";
 import Modal2 from "../../components/Modal2";
 import { useGetDepartmentsQuery } from "../../store/departments/departmentsEndpoints";
 import { ModalState } from "../../types";
+import { storageService } from "../../services/storage.service";
 
 interface FormValues {
   dni: string;
@@ -127,8 +128,8 @@ const Register: React.FC = () => {
 
     try {
       await createUser(payload).unwrap();
-      localStorage.setItem("pendingEmail", payload.email);
-      localStorage.setItem("pendingReason", "VERIFY_EMAIL");
+      storageService.setItem("pendingEmail", payload.email);
+      storageService.setItem("pendingReason", "VERIFY_EMAIL");
       navigate("/pendiente", { replace: true });
     } catch (error: any) {
       const msg = error?.data?.message;
@@ -314,11 +315,10 @@ const Register: React.FC = () => {
                           setFieldValue("scopeProvinceId", "");
                           setFieldValue("scopeMunicipalityId", "");
                         }}
-                        className={`py-3 rounded-xl border font-semibold transition ${
-                          values.roleType === "MAYOR"
-                            ? "border-[#459151] bg-green-50 text-[#459151]"
-                            : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                        }`}
+                        className={`py-3 rounded-xl border font-semibold transition ${values.roleType === "MAYOR"
+                          ? "border-[#459151] bg-green-50 text-[#459151]"
+                          : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                          }`}
                       >
                         Alcalde (Municipio)
                       </button>
@@ -333,11 +333,10 @@ const Register: React.FC = () => {
                           setFieldValue("scopeProvinceId", "");
                           setFieldValue("scopeMunicipalityId", "");
                         }}
-                        className={`py-3 rounded-xl border font-semibold transition ${
-                          values.roleType === "GOVERNOR"
-                            ? "border-[#459151] bg-green-50 text-[#459151]"
-                            : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                        }`}
+                        className={`py-3 rounded-xl border font-semibold transition ${values.roleType === "GOVERNOR"
+                          ? "border-[#459151] bg-green-50 text-[#459151]"
+                          : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                          }`}
                       >
                         Gobernador (Departamento)
                       </button>

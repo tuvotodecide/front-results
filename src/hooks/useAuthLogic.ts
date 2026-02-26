@@ -9,6 +9,7 @@ import {
 } from "../store/auth/authEndpoints";
 import { ModalState } from "../types";
 import { getRoleConfig } from "../config/rolePermissions";
+import { storageService } from "../services/storage.service";
 
 export const useAuthLogic = () => {
     const dispatch = useDispatch();
@@ -123,13 +124,13 @@ export const useAuthLogic = () => {
                 error?.data?.message || error?.message || "No se pudo iniciar sesión";
             const msgStr = typeof msg === "string" ? msg.toLowerCase() : "";
 
-            localStorage.setItem("pendingEmail", values.email);
+            storageService.setItem("pendingEmail", values.email);
 
             if (
                 msgStr.includes("no ha sido verificado") ||
                 msgStr.includes("no verificado")
             ) {
-                localStorage.setItem("pendingReason", "VERIFY_EMAIL");
+                storageService.setItem("pendingReason", "VERIFY_EMAIL");
                 navigate("/pendiente", { replace: true });
                 return;
             }
@@ -139,7 +140,7 @@ export const useAuthLogic = () => {
                 msgStr.includes("no está activo") ||
                 msgStr.includes("usuario inactivo")
             ) {
-                localStorage.setItem("pendingReason", "SUPERADMIN_APPROVAL");
+                storageService.setItem("pendingReason", "SUPERADMIN_APPROVAL");
                 navigate("/pendiente", { replace: true });
                 return;
             }

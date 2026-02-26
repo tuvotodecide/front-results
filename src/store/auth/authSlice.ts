@@ -1,6 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from "../index";
 import { LoginResponse, UserProfile } from "../../types";
+import { storageService } from "../../services/storage.service";
 
 export interface User {
   id: string;
@@ -50,12 +51,7 @@ const normalizeUser = (u: any): User | null => {
   };
 };
 
-let rawUser: any = null;
-try {
-  rawUser = JSON.parse(localStorage.getItem("user") ?? "null");
-} catch {
-  rawUser = null;
-}
+const rawUser = storageService.getItem<any>("user");
 
 const initialState: AuthState = {
   token: null, // El token ahora reside en una Cookie HttpOnly, invisible para JS
@@ -76,17 +72,17 @@ export const authSlice = createSlice({
       state.token = token; // Se guarda solo en memoria (Redux), no en LocalStorage
 
       if (user) {
-        localStorage.setItem("user", JSON.stringify(user));
+        storageService.setItem("user", user);
       }
     },
     logOut: (state) => {
       state.token = null;
       state.user = null;
-      localStorage.removeItem("user");
+      storageService.removeItem("user");
       // El logout debería invocar un endpoint que limpie la cookie en el server
-      localStorage.removeItem("selectedElectionId");
-      localStorage.removeItem("pendingEmail");
-      localStorage.removeItem("pendingReason");
+      storageService.removeItem("selectedElectionId");
+      storageService.removeItem("pendingEmail");
+      storageService.removeItem("pendingReason");
     },
   },
 });

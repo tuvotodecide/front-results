@@ -7,6 +7,9 @@ import {
 import { RootState } from "./index";
 import { logOut } from "./auth/authSlice";
 
+import { storageService } from "../services/storage.service";
+import { navigationService } from "../services/navigation.service";
+
 const { VITE_BASE_API_URL } = import.meta.env;
 const baseApiUrl = (VITE_BASE_API_URL as string) || "http://localhost:3000/api/v1";
 
@@ -46,9 +49,7 @@ const baseQueryWrapper = async (
   const state = api.getState() as RootState;
   const eid =
     state.election.selectedElectionId ??
-    (typeof localStorage !== "undefined"
-      ? localStorage.getItem("selectedElectionId")
-      : null);
+    storageService.getItem("selectedElectionId");
 
   let adjusted: FetchArgs =
     typeof args === "string" ? { url: args } : { ...args };
@@ -66,8 +67,8 @@ const baseQueryWrapper = async (
 
   if (result.error?.status === 401) {
     api.dispatch(logOut());
-    if (typeof window !== "undefined" && window.location.pathname !== "/login") {
-      window.location.assign("/login");
+    if (navigationService.getPathname() !== "/login") {
+      navigationService.assign("/login");
     }
   }
   return result;

@@ -3,14 +3,15 @@ import { Link, useNavigate } from "react-router-dom";
 import tuvotoDecideImage from "../../assets/tuvotodecide.webp";
 import { useSelector } from "react-redux";
 import { selectAuth, selectIsLoggedIn } from "../../store/auth/authSlice";
+import { storageService } from "../../services/storage.service";
 
 const WaitingApproval: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useSelector(selectAuth);
   const isLoggedIn = useSelector(selectIsLoggedIn);
-  const pendingEmail = localStorage.getItem("pendingEmail") || "";
+  const pendingEmail = storageService.getItem<string>("pendingEmail") || "";
   const pendingReason =
-    localStorage.getItem("pendingReason") || "SUPERADMIN_APPROVAL";
+    storageService.getItem<string>("pendingReason") || "SUPERADMIN_APPROVAL";
 
   useEffect(() => {
     // Si está loggeado y ya está activo -> no tiene sentido estar aquí
@@ -26,8 +27,8 @@ const WaitingApproval: React.FC = () => {
   }, [isLoggedIn, user?.active, pendingEmail, navigate]);
 
   const goLogin = () => {
-    localStorage.removeItem("pendingEmail");
-    localStorage.removeItem("pendingReason");
+    storageService.removeItem("pendingEmail");
+    storageService.removeItem("pendingReason");
     navigate("/login", { replace: true });
   };
 

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { setAuth } from "./store/auth/authSlice";
+import { storageService } from "./services/storage.service";
 import LoadingSkeleton from "./components/LoadingSkeleton";
 import ResultadosGenerales3 from "./pages/Resultados/ResultadosGenerales3";
 import ParticipacionPersonal from "./pages/Resultados/PersonalParticipation";
@@ -47,7 +48,7 @@ const AppRouter: React.FC = () => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user") ?? "null");
+    const user = storageService.getItem<any>("user");
     // Con HttpOnly cookies, el token ya no está en localStorage
     if (user) {
       dispatch(setAuth({ user }));

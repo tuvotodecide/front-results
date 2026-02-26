@@ -17,6 +17,7 @@ import {
 } from "../../store/reports/clientReportEndpoints";
 import { useMyContract } from "../../hooks/useMyContract";
 import useElectionId from "../../hooks/useElectionId";
+import { navigationService } from "../../services/navigation.service";
 
 // Componente para mostrar mensajes de estado
 interface StatusMessageProps {
@@ -268,7 +269,7 @@ const ParticipacionPersonal: React.FC = () => {
         description="No pudimos verificar tu contrato. Por favor verifica tu conexión a internet e intenta nuevamente."
         action={{
           label: "Reintentar",
-          onClick: () => window.location.reload(),
+          onClick: () => navigationService.reload(),
         }}
         variant="error"
       />
@@ -313,7 +314,7 @@ const ParticipacionPersonal: React.FC = () => {
         description="Ocurrió un error cargando los datos del reporte. Esto puede ser un problema temporal con el servidor."
         action={{
           label: "Reintentar",
-          onClick: () => window.location.reload(),
+          onClick: () => navigationService.reload(),
         }}
         variant="error"
       />
@@ -440,153 +441,153 @@ const ParticipacionPersonal: React.FC = () => {
                     </tr>
                   </thead>
 
-                <tbody className="divide-y divide-slate-50">
-                  {tablesLoading ? (
-                    <tr>
-                      <td
-                        colSpan={6}
-                        className="px-6 py-10 text-center text-slate-400"
-                      >
-                        Cargando reporte por mesa...
-                      </td>
-                    </tr>
-                  ) : tablesError ? (
-                    <tr>
-                      <td
-                        colSpan={6}
-                        className="px-6 py-10 text-center text-amber-600"
-                      >
-                        No se pudo cargar el reporte por mesa. Intenta recargar.
-                      </td>
-                    </tr>
-                  ) : (
-                    <>
-                      {attestationRows.map((row: any, idx: number) => (
-                        <tr
-                          key={`${row.tableCode}-${row.delegateDni}-${idx}`}
-                          className="hover:bg-slate-50/80 transition-colors group"
-                        >
-                          <td className="px-4 py-4">
-                            <span className="text-sm font-semibold text-slate-700">
-                              {row.delegateDni}
-                            </span>
-                          </td>
-
-                          <td className="px-4 py-4">
-                            <span className="text-sm text-slate-600">
-                              {row.delegateName}
-                            </span>
-                          </td>
-
-                          <td className="px-4 py-4">
-                            <span className="text-sm text-slate-600">
-                              {row.location}
-                            </span>
-                          </td>
-
-                          <td className="px-4 py-4 text-center">
-                            <span className="inline-block px-3 py-1 bg-green-50 text-green-700 text-sm font-bold rounded-md">
-                              #{row.tableNumber || "—"}
-                            </span>
-                          </td>
-
-                          <td className="px-4 py-4 text-center text-sm">
-                            {row.ballotId ? (
-                              <Link
-                                data-cy="view-ballots-link"
-                                to={`/resultados/mesa/${row.tableCode}`}
-                                state={{
-                                  ballotId: row.ballotId,
-                                  location: row.location,
-                                  tableCode: row.tableCode,
-                                  tableNumber: row.tableNumber,
-                                }}
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-600 hover:text-white transition-all group-hover:shadow-md border border-blue-100"
-                              >
-                                <FileText size={16} /> Ver Acta
-                              </Link>
-                            ) : (
-                              <span className="text-slate-300 italic font-light">
-                                Sin acta
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-
-                      {attestationRows.length === 0 && (
-                        <tr>
-                          <td
-                            colSpan={6}
-                            className="px-6 py-10 text-center text-slate-400"
-                          >
-                            No hay registros de actividad para esta elección.
-                          </td>
-                        </tr>
-                      )}
-                    </>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Delegados que NO han votado */}
-          {!delegatesLoading && delegadosSinVotar.length > 0 && (
-            <div className="bg-white rounded-lg shadow-xl overflow-hidden border border-red-200">
-              <div className="bg-red-50 px-6 py-4 border-b border-red-100">
-                <h3 className="text-lg font-bold text-red-800">
-                  Delegados que NO participaron ({delegadosSinVotar.length})
-                </h3>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-separate border-spacing-0">
-                  <thead>
-                    <tr className="bg-slate-50">
-                      <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
-                        CI
-                      </th>
-                      <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
-                        Nombre
-                      </th>
-                      <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
-                        Teléfono
-                      </th>
-                      <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
-                        Email
-                      </th>
-                    </tr>
-                  </thead>
                   <tbody className="divide-y divide-slate-50">
-                    {delegadosSinVotar.map((d: any) => (
-                      <tr key={d.dni} className="hover:bg-red-50/50 transition-colors">
-                        <td className="px-4 py-4">
-                          <span className="text-sm font-semibold text-slate-700">
-                            {d.dni}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className="text-sm text-slate-600">
-                            {d.name || "Sin nombre"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className="text-sm text-slate-600">
-                            {d.phone || "—"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className="text-sm text-slate-600">
-                            {d.email || "—"}
-                          </span>
+                    {tablesLoading ? (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="px-6 py-10 text-center text-slate-400"
+                        >
+                          Cargando reporte por mesa...
                         </td>
                       </tr>
-                    ))}
+                    ) : tablesError ? (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="px-6 py-10 text-center text-amber-600"
+                        >
+                          No se pudo cargar el reporte por mesa. Intenta recargar.
+                        </td>
+                      </tr>
+                    ) : (
+                      <>
+                        {attestationRows.map((row: any, idx: number) => (
+                          <tr
+                            key={`${row.tableCode}-${row.delegateDni}-${idx}`}
+                            className="hover:bg-slate-50/80 transition-colors group"
+                          >
+                            <td className="px-4 py-4">
+                              <span className="text-sm font-semibold text-slate-700">
+                                {row.delegateDni}
+                              </span>
+                            </td>
+
+                            <td className="px-4 py-4">
+                              <span className="text-sm text-slate-600">
+                                {row.delegateName}
+                              </span>
+                            </td>
+
+                            <td className="px-4 py-4">
+                              <span className="text-sm text-slate-600">
+                                {row.location}
+                              </span>
+                            </td>
+
+                            <td className="px-4 py-4 text-center">
+                              <span className="inline-block px-3 py-1 bg-green-50 text-green-700 text-sm font-bold rounded-md">
+                                #{row.tableNumber || "—"}
+                              </span>
+                            </td>
+
+                            <td className="px-4 py-4 text-center text-sm">
+                              {row.ballotId ? (
+                                <Link
+                                  data-cy="view-ballots-link"
+                                  to={`/resultados/mesa/${row.tableCode}`}
+                                  state={{
+                                    ballotId: row.ballotId,
+                                    location: row.location,
+                                    tableCode: row.tableCode,
+                                    tableNumber: row.tableNumber,
+                                  }}
+                                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-600 hover:text-white transition-all group-hover:shadow-md border border-blue-100"
+                                >
+                                  <FileText size={16} /> Ver Acta
+                                </Link>
+                              ) : (
+                                <span className="text-slate-300 italic font-light">
+                                  Sin acta
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+
+                        {attestationRows.length === 0 && (
+                          <tr>
+                            <td
+                              colSpan={6}
+                              className="px-6 py-10 text-center text-slate-400"
+                            >
+                              No hay registros de actividad para esta elección.
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
-          )}
+
+            {/* Delegados que NO han votado */}
+            {!delegatesLoading && delegadosSinVotar.length > 0 && (
+              <div className="bg-white rounded-lg shadow-xl overflow-hidden border border-red-200">
+                <div className="bg-red-50 px-6 py-4 border-b border-red-100">
+                  <h3 className="text-lg font-bold text-red-800">
+                    Delegados que NO participaron ({delegadosSinVotar.length})
+                  </h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-separate border-spacing-0">
+                    <thead>
+                      <tr className="bg-slate-50">
+                        <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
+                          CI
+                        </th>
+                        <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
+                          Nombre
+                        </th>
+                        <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
+                          Teléfono
+                        </th>
+                        <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
+                          Email
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {delegadosSinVotar.map((d: any) => (
+                        <tr key={d.dni} className="hover:bg-red-50/50 transition-colors">
+                          <td className="px-4 py-4">
+                            <span className="text-sm font-semibold text-slate-700">
+                              {d.dni}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="text-sm text-slate-600">
+                              {d.name || "Sin nombre"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="text-sm text-slate-600">
+                              {d.phone || "—"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="text-sm text-slate-600">
+                              {d.email || "—"}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
