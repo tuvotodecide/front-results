@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from "../index";
-import { LoginResponse } from "../../types";
+import { LoginResponse, UserProfile } from "../../types";
 
 export interface User {
   id: string;
@@ -36,15 +36,15 @@ const normalizeUser = (u: any): User | null => {
   const role = normalizeRole(u.role);
 
   return {
-    id: u.id ?? u._id ?? "",
-    email: u.email ?? "",
-    name: u.name ?? "",
+    id: (u.id || u.sub || u._id || "") as string,
+    email: (u.email || "") as string,
+    name: (u.name || "") as string,
     role,
     active: typeof u.active === "boolean" ? u.active : !!u.isApproved,
     restrictedId: u.restrictedId as string,
-    departmentId: u.departmentId as string,
+    departmentId: (u.departmentId || u.votingDepartmentId) as string,
     departmentName: u.departmentName as string,
-    municipalityId: u.municipalityId as string,
+    municipalityId: (u.municipalityId || u.votingMunicipalityId) as string,
     municipalityName: u.municipalityName as string,
     status: u.status as User["status"],
   };
@@ -66,7 +66,7 @@ export const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    setAuth: (state, action: PayloadAction<Partial<LoginResponse> & { user?: any }>) => {
+    setAuth: (state, action: PayloadAction<Partial<LoginResponse> & { user?: UserProfile }>) => {
       // Ya no almacenamos el accessToken en el estado ni en localStorage.
       // El navegador se encarga de enviarlo automáticamente si el servidor configuró Set-Cookie.
       const user = normalizeUser(action.payload?.user);

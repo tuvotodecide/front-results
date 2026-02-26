@@ -27,5 +27,11 @@ export interface RegistrationProgress {
 export interface StatisticsResponse {
     totalVotes: number;
     lastUpdate: string;
-    [key: string]: any;
+    counts?: {
+        totalTables: number;
+        processedTables: number;
+        validVotes: number;
+        nullVotes: number;
+        blankVotes: number;
+    };
 }

@@ -1,4 +1,4 @@
-import { ResultsResponse, StatisticsResponse, RegistrationProgress } from "../../types";
+import { ResultsResponse, StatisticsResponse, RegistrationProgress, BallotType } from "../../types";
 import { apiSlice } from "../apiSlice";
 
 interface GetResultsParams {
@@ -23,7 +23,7 @@ interface GetCountedBallotsParams {
 }
 
 interface CountedBallotsResponse {
-  data: any[]; // Se puede tipar más adelante si se conoce la estructura del ballot
+  data: BallotType[];
   total: number;
   page: number;
   limit: number;

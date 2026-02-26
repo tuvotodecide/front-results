@@ -1,8 +1,9 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { ElectoralTablesType } from '../../types';
 
 export interface electoralTablesState {
-  electoralTables: any[];
-  electoralTable: any | null;
+  electoralTables: ElectoralTablesType[];
+  electoralTable: ElectoralTablesType | null;
 }
 
 const initialState: electoralTablesState = {
@@ -14,7 +15,7 @@ export const electoralTablesSlice = createSlice({
   name: 'electoralTables',
   initialState,
   reducers: {
-    setElectoralTables: (state, action) => {
+    setElectoralTables: (state, action: PayloadAction<ElectoralTablesType[]>) => {
       state.electoralTables = action.payload;
     },
   },

@@ -1,8 +1,9 @@
 import { createSlice } from '@reduxjs/toolkit';
+import { AttestationType } from '../../types';
 
 export interface attestationsState {
-  attestations: any[];
-  attestation: any | null;
+  attestations: AttestationType[];
+  attestation: AttestationType | null;
 }
 
 const initialState: attestationsState = {

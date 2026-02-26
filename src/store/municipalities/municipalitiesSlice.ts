@@ -1,8 +1,9 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { MunicipalitiesType } from '../../types';
 
 export interface municipalitiesState {
-  municipalities: any[];
-  municipality: any | null;
+  municipalities: MunicipalitiesType[];
+  municipality: MunicipalitiesType | null;
 }
 
 const initialState: municipalitiesState = {
@@ -14,7 +15,7 @@ export const municipalitiesSlice = createSlice({
   name: 'municipalities',
   initialState,
   reducers: {
-    setMunicipalities: (state, action) => {
+    setMunicipalities: (state, action: PayloadAction<MunicipalitiesType[]>) => {
       state.municipalities = action.payload;
     },
   },

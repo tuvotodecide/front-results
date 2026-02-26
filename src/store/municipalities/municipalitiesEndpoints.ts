@@ -11,7 +11,7 @@ interface QueryMunicipalitiesParams {
   page?: number;
   limit?: number;
   sort?: string;
-  order?: Record<string, any>;
+  order?: Record<string, "asc" | "desc">;
   search?: string;
   active?: boolean;
 }

@@ -1,8 +1,9 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { PoliticalPartiesType } from '../../types';
 
 export interface PartidosState {
-  partidos: any[];
-  partido: any | null;
+  partidos: PoliticalPartiesType[];
+  partido: PoliticalPartiesType | null;
 }
 
 const initialState: PartidosState = {
@@ -14,7 +15,7 @@ export const partidosSlice = createSlice({
   name: 'partidos',
   initialState,
   reducers: {
-    setPartidos: (state, action) => {
+    setPartidos: (state, action: PayloadAction<PoliticalPartiesType[]>) => {
       state.partidos = action.payload;
     },
   },

@@ -2,8 +2,11 @@ import {
   UserProfile,
   LoginResponse,
   RegisterRequest,
+  RegisterResponse,
   ForgotPasswordRequest,
+  ForgotPasswordResponse,
   ResetPasswordRequest,
+  ResetPasswordResponse,
   VerifyEmailResponse
 } from "../../types";
 import { apiSlice } from "../apiSlice";
@@ -16,7 +19,7 @@ export const authApiSlice = apiSlice.injectEndpoints({
       providesTags: () => ["Profile"],
     }),
 
-    createUser: builder.mutation<any, RegisterRequest>({
+    createUser: builder.mutation<RegisterResponse, RegisterRequest>({
       query: (user) => ({
         url: "/auth/register",
         method: "POST",
@@ -32,7 +35,7 @@ export const authApiSlice = apiSlice.injectEndpoints({
       }),
     }),
 
-    forgotPassword: builder.mutation<any, ForgotPasswordRequest>({
+    forgotPassword: builder.mutation<ForgotPasswordResponse, ForgotPasswordRequest>({
       query: (data) => ({
         url: "/auth/forgot-password",
         method: "POST",
@@ -40,7 +43,7 @@ export const authApiSlice = apiSlice.injectEndpoints({
       }),
     }),
 
-    resetPassword: builder.mutation<any, ResetPasswordRequest>({
+    resetPassword: builder.mutation<ResetPasswordResponse, ResetPasswordRequest>({
       query: (data) => ({
         url: "/auth/reset-password",
         method: "POST",

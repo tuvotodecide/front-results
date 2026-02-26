@@ -59,5 +59,9 @@ export interface AttestationCasesType {
   winningBallotId: string | null;
   resolvedAt: string | null;
   ballots: AttestationsBallotType[];
-  summary: Record<string, any>;
+  summary: {
+    totalBallots: number;
+    totalAttestations: number;
+    disputed: boolean;
+  };
 }

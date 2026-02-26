@@ -3,16 +3,18 @@ export interface UserProfile {
     email: string;
     role: string;
     active: boolean;
+    name?: string;
     votingDepartmentId?: string;
     votingMunicipalityId?: string;
-    [key: string]: any;
+    status?: "ACTIVE" | "PENDING" | "REJECTED" | "INACTIVE";
 }
 
 export interface LoginResponse {
     accessToken: string;
+    access_token?: string; // Compatibilidad con snake_case
     role: string;
     active: boolean;
-    [key: string]: any;
+    user?: UserProfile;
 }
 
 export interface RegisterRequest {
@@ -22,11 +24,19 @@ export interface RegisterRequest {
     role?: string;
     departmentId?: string;
     municipalityId?: string;
-    [key: string]: any;
+}
+
+export interface RegisterResponse {
+    message: string;
+    user: UserProfile;
 }
 
 export interface ForgotPasswordRequest {
     email: string;
+}
+
+export interface ForgotPasswordResponse {
+    message: string;
 }
 
 export interface ResetPasswordRequest {
@@ -34,7 +44,10 @@ export interface ResetPasswordRequest {
     password?: string;
 }
 
+export interface ResetPasswordResponse {
+    message: string;
+}
+
 export interface VerifyEmailResponse {
     message: string;
-    [key: string]: any;
 }

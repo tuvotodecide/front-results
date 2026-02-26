@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { RecintoElectoral } from '../../types';
 
 export interface ResultsFilters {
   department: string;
@@ -17,8 +18,8 @@ export interface ResultsFilterIds {
 }
 
 export interface ResultsState {
-  recintos: any[]; // Mantener any[] si no hay tipo específico aún
-  recinto: any | null;
+  recintos: RecintoElectoral[];
+  recinto: RecintoElectoral | null;
   filters: ResultsFilters;
   filterIds: ResultsFilterIds;
   currentTable: string | null;

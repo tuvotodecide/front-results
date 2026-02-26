@@ -11,7 +11,7 @@ interface QueryDepartmentsParams {
   page?: number;
   limit?: number;
   sort?: string;
-  order?: Record<string, any>;
+  order?: Record<string, "asc" | "desc">;
   search?: string;
   active?: boolean;
 }
@@ -40,7 +40,7 @@ export const departmentsApiSlice = apiSlice.injectEndpoints({
         }
       },
     }),
-   
+
     getDepartment: builder.query<DepartmentType, string>({
       query: (id) => `/geographic/departments/${id}`,
       keepUnusedDataFor: 60,
