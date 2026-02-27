@@ -71,55 +71,79 @@ export const useAuthLogic = () => {
 
     const validationSchema = Yup.object({
         email: Yup.string()
-            .email("Correo electrónico inválido")
-            .required("El correo es obligatorio"),
+            .required("El usuario o correo es obligatorio"),
         password: Yup.string()
-            .min(8, "Mínimo 8 caracteres")
+            .min(4, "Mínimo 4 caracteres")
             .required("La contraseña es obligatoria"),
     });
 
     const onSubmit = async (values: typeof initialValues) => {
         try {
             const res = await loginUser(values).unwrap();
-            const isApproved = Boolean(res.active);
-            const role = mapBackendRole(res.role);
 
-            if (!isApproved) {
+            // 1. Robust extraction from login response
+            const rawData = (res as any).data || res;
+            const token = rawData.accessToken || rawData.access_token || rawData.token || (res as any).accessToken || (res as any).token;
+            const role = mapBackendRole(rawData.role || rawData.user?.role);
+
+            // Assume active if login was successful, unless explicitly false
+            const isActive = rawData.active !== false && rawData.isApproved !== false && (rawData.user?.active !== false);
+
+            if (!isActive && role !== "SUPERADMIN") {
                 dispatch(
                     setAuth({
                         user: {
-                            ...((res.user as any) || {}),
-                            sub: res.user?.sub || "unknown",
+                            ...((rawData.user as any) || {}),
+                            sub: rawData.user?.sub || rawData.user?.id || rawData.user?._id || rawData.id || "unknown",
                             email: values.email,
                             role,
                             active: false,
                             status: "PENDING",
                         } as UserProfile,
+                        accessToken: token
                     })
                 );
                 navigate("/pendiente", { replace: true });
                 return;
             }
 
+            // 1) Petición de Login para obtener el Token
+            // Guarda el token primero para habilitar el Bearer en /profile
+            dispatch(setAuth({
+                accessToken: token,
+                token: token
+            }));
+
+            // 2) Petición de Perfil (Profile) inmediata
             let profile: any = null;
             try {
-                profile = await triggerProfile().unwrap();
-            } catch {
-                profile = null;
+                const profileRes = await triggerProfile().unwrap();
+                profile = (profileRes as any).data || profileRes;
+            } catch (e) {
+                console.error("Profile fetch failed, continuing with fallback", e);
             }
 
-            const userProfile: UserProfile = (res.user as UserProfile) || {
-                sub: (profile?.id ?? profile?.sub ?? "unknown") as string,
-                email: values.email,
-                name: (profile?.name ?? "Usuario") as string,
+            // 3) Construcción del Usuario Final (Mismo patrón que el sistema que funciona)
+            const finalUser: UserProfile = {
+                ...(rawData.user || {}),
+                ...(profile || {}),
+                sub: String(profile?.id ?? profile?.sub ?? profile?._id ?? rawData.user?.id ?? rawData.id ?? "unknown"),
+                email: values.email || profile?.email || rawData.user?.email || rawData.email,
+                name: (profile?.name ?? profile?.fullName ?? rawData.user?.name ?? "Usuario") as string,
                 role,
                 active: true,
-                departmentId: profile?.votingDepartmentId,
-                municipalityId: profile?.votingMunicipalityId,
                 status: "ACTIVE" as const,
+                departmentId: profile?.votingDepartmentId || profile?.departmentId || rawData.user?.votingDepartmentId || rawData.user?.departmentId || rawData.departmentId || rawData.votingDepartmentId,
+                municipalityId: profile?.votingMunicipalityId || profile?.municipalityId || rawData.user?.votingMunicipalityId || rawData.user?.municipalityId || rawData.municipalityId || rawData.votingMunicipalityId,
             };
 
-            dispatch(setAuth({ user: userProfile }));
+            // 4) Despacho final completo
+            dispatch(setAuth({
+                user: finalUser,
+                accessToken: token,
+                token: token
+            }));
+
         } catch (error: any) {
             const msg =
                 error?.data?.message || error?.message || "No se pudo iniciar sesión";
@@ -132,17 +156,26 @@ export const useAuthLogic = () => {
                 msgStr.includes("no verificado")
             ) {
                 storageService.setItem("pendingReason", "VERIFY_EMAIL");
-                navigate("/pendiente", { replace: true });
+                openModal({
+                    kind: "error",
+                    title: "No se pudo iniciar sesión",
+                    message: "Te enviamos un enlace de verificación a tu correo. Verifica tu bandeja de entrada.",
+                });
                 return;
             }
 
             if (
                 msgStr.includes("inactivo") ||
                 msgStr.includes("no está activo") ||
-                msgStr.includes("usuario inactivo")
+                msgStr.includes("usuario inactivo") ||
+                msgStr.includes("pendiente de aprobación")
             ) {
                 storageService.setItem("pendingReason", "SUPERADMIN_APPROVAL");
-                navigate("/pendiente", { replace: true });
+                openModal({
+                    kind: "error",
+                    title: "Acceso pendiente",
+                    message: "Un Superadmin debe aprobar tu acceso para habilitar el sistema.",
+                });
                 return;
             }
 

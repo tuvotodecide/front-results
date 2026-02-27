@@ -66,6 +66,62 @@ export const handlers = [
         return undefined;
     }),
 
+    // Mock para Perfil (Evita el 401 al usar tokens de prueba)
+    http.get('*/auth/profile', ({ request }) => {
+        const auth = request.headers.get('Authorization');
+        if (auth?.includes('mock-access-token-admin')) {
+            return HttpResponse.json({
+                data: {
+                    id: 'mock-admin-id',
+                    name: 'ADMINISTRADOR CENTRAL',
+                    email: 'admin@test.com',
+                    role: 'SUPERADMIN',
+                    status: 'ACTIVE',
+                }
+            });
+        }
+        if (auth?.includes('mock-access-token-alcalde')) {
+            return HttpResponse.json({
+                data: {
+                    id: 'mock-alcalde-lp',
+                    name: 'ALCALDE LA PAZ',
+                    email: 'alcalde@test.com',
+                    role: 'MAYOR',
+                    status: 'ACTIVE',
+                    votingDepartmentId: '6740f90766c62c3e1e2474f8',
+                    votingMunicipalityId: '674100be66c62c3e1e247b97',
+                }
+            });
+        }
+        return undefined; // Deja pasar a la API real
+    }),
+
+    // Mock para Partidos Políticos
+    http.get('*/political-parties', ({ request }) => {
+        const auth = request.headers.get('Authorization');
+        if (auth?.includes('mock-access-token')) {
+            return HttpResponse.json([
+                { _id: '1', partyId: 'azul', fullName: 'Partido Azul', shortName: 'PA', color: '#0000FF', active: true },
+                { _id: '2', partyId: 'rojo', fullName: 'Frente Rojo', shortName: 'FR', color: '#FF0000', active: true },
+            ]);
+        }
+        return undefined;
+    }),
+
+    // Mock para Configuración de Elecciones
+    http.get('*/elections/config/status', ({ request }) => {
+        const auth = request.headers.get('Authorization');
+        // Solo mockeamos si hay un token de prueba para no interferir con la visibilidad pública
+        if (auth?.includes('mock-access-token')) {
+            return HttpResponse.json({
+                elections: [
+                    { id: 'eleccion-2025', name: 'Elecciones Generales', type: 'presidential', isActive: true, isVotingPeriod: true }
+                ]
+            });
+        }
+        return undefined;
+    }),
+
     // Mock para Participación Personal
     http.get('*/personal/participacion', () => {
         return HttpResponse.json({
@@ -78,3 +134,4 @@ export const handlers = [
         });
     }),
 ];
+

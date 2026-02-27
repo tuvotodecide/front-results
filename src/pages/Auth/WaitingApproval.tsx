@@ -20,7 +20,7 @@ const WaitingApproval: React.FC = () => {
       return;
     }
 
-    // Si NO está loggeado y NO hay contexto (no viene del flujo)
+    // Si NO está loggeado y NO hay contexto (no viene del flujo de error o login)
     if (!isLoggedIn && !pendingEmail) {
       navigate("/login", { replace: true });
     }

@@ -1,19 +1,27 @@
 export interface UserProfile {
     sub: string;
+    id?: string;
+    _id?: string;
     email: string;
     role: string;
     active: boolean;
+    isApproved?: boolean;
     name?: string;
+    fullName?: string;
     votingDepartmentId?: string;
     votingMunicipalityId?: string;
+    departmentId?: string;
+    municipalityId?: string;
     status?: "ACTIVE" | "PENDING" | "REJECTED" | "INACTIVE";
 }
 
 export interface LoginResponse {
     accessToken: string;
     access_token?: string; // Compatibilidad con snake_case
+    token?: string;
     role: string;
     active: boolean;
+    isApproved?: boolean;
     user?: UserProfile;
 }
 

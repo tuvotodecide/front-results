@@ -8,19 +8,33 @@ import { RootState } from "./index";
 import { logOut } from "./auth/authSlice";
 
 import { storageService } from "../services/storage.service";
-import { navigationService } from "../services/navigation.service";
+
 
 const { VITE_BASE_API_URL } = import.meta.env;
 const baseApiUrl = (VITE_BASE_API_URL as string) || "http://localhost:3000/api/v1";
 
 const baseQuery = fetchBaseQuery({
   baseUrl: baseApiUrl,
-  credentials: "include", // Permite el envío de cookies HttpOnly
+  prepareHeaders: (headers, { getState }) => {
+    const state = getState() as RootState;
+    const token = state.auth.token;
+    const apiKey = import.meta.env.VITE_API_KEY;
 
-  prepareHeaders: (headers) => {
-    // Eliminamos la lectura manual del token desde el estado para Authorization header,
-    // ya que ahora delegamos la seguridad a las Cookies HttpOnly gestionadas por el navegador.
+    // Debug log for troubleshooting auth headers
+    if (import.meta.env.DEV) {
+      console.log(`[API] Path: ${window.location.pathname} | Token present: ${!!token}`);
+    }
+
     headers.set("Accept", "application/json");
+
+    if (token && typeof token === 'string' && token.length > 5) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+
+    if (apiKey) {
+      headers.set("x-api-key", apiKey);
+    }
+
     return headers;
   },
 });
@@ -66,9 +80,12 @@ const baseQueryWrapper = async (
   const result = await baseQuery(adjusted, api, extraOptions);
 
   if (result.error?.status === 401) {
-    api.dispatch(logOut());
-    if (navigationService.getPathname() !== "/login") {
-      navigationService.assign("/login");
+    const isLoginPage = window.location.pathname === "/login";
+    if (!isLoginPage) {
+      api.dispatch(logOut());
+      if (typeof window !== "undefined") {
+        window.location.assign("/login");
+      }
     }
   }
   return result;

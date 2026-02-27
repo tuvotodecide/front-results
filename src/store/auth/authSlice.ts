@@ -52,9 +52,10 @@ const normalizeUser = (u: any): User | null => {
 };
 
 const rawUser = storageService.getItem<any>("user");
+const rawToken = storageService.getItem<string>("token");
 
 const initialState: AuthState = {
-  token: null, // El token ahora reside en una Cookie HttpOnly, invisible para JS
+  token: rawToken,
   user: rawUser ? normalizeUser(rawUser) : null,
 };
 
@@ -63,23 +64,24 @@ export const authSlice = createSlice({
   initialState,
   reducers: {
     setAuth: (state, action: PayloadAction<Partial<LoginResponse> & { user?: UserProfile }>) => {
-      // Ya no almacenamos el accessToken en el estado ni en localStorage.
-      // El navegador se encarga de enviarlo automáticamente si el servidor configuró Set-Cookie.
-      const user = normalizeUser(action.payload?.user);
-      const token = action.payload?.accessToken || action.payload?.access_token || null;
+      const newUser = action.payload?.user ? normalizeUser(action.payload.user) : state.user;
+      const newToken = action.payload?.accessToken || action.payload?.access_token || action.payload?.token || state.token;
 
-      state.user = user;
-      state.token = token; // Se guarda solo en memoria (Redux), no en LocalStorage
+      state.user = newUser;
+      state.token = newToken as string | null;
 
-      if (user) {
-        storageService.setItem("user", user);
+      if (newUser) {
+        storageService.setItem("user", newUser);
+      }
+      if (newToken) {
+        storageService.setItem("token", newToken);
       }
     },
     logOut: (state) => {
       state.token = null;
       state.user = null;
       storageService.removeItem("user");
-      // El logout debería invocar un endpoint que limpie la cookie en el server
+      storageService.removeItem("token");
       storageService.removeItem("selectedElectionId");
       storageService.removeItem("pendingEmail");
       storageService.removeItem("pendingReason");
