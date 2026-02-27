@@ -147,20 +147,20 @@ const ResultadosGenerales3 = () => {
   ]);
 
   const primaryElectionType = useMemo(() => {
-    if (election?.type === "municipal" || election?.type === "mayor") {
+    if (election?.type === "municipal") {
       return "municipal";
     }
-    if (election?.type === "departamental" || election?.type === "governor") {
+    if (election?.type === "departamental") {
       return "departamental";
     }
     return "presidential";
   }, [election?.type]);
 
   const secondaryElectionType = useMemo(() => {
-    if (election?.type === "municipal" || election?.type === "mayor") {
+    if (election?.type === "municipal") {
       return "council";
     }
-    if (election?.type === "departamental" || election?.type === "governor") {
+    if (election?.type === "departamental") {
       return "assembly";
     }
     return "deputies";
