@@ -1,0 +1,221 @@
+// Modal para gestionar candidatos de un partido
+// Basado en captura 03_candidates_modal.png
+
+import React, { useState, useEffect, useRef } from 'react';
+import Modal2 from '../../../components/Modal2';
+import type { Position, CandidateInput, Candidate } from '../types';
+
+interface CandidatesModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (candidates: CandidateInput[]) => Promise<void>;
+  isLoading: boolean;
+  positions: Position[];
+  existingCandidates?: Candidate[];
+  partyName?: string;
+}
+
+interface CandidateFormData {
+  positionId: string;
+  positionName: string;
+  fullName: string;
+  photoBase64?: string;
+  photoPreview?: string;
+}
+
+const CandidatesModal: React.FC<CandidatesModalProps> = ({
+  isOpen,
+  onClose,
+  onSave,
+  isLoading,
+  positions,
+  existingCandidates = [],
+  partyName,
+}) => {
+  const [candidates, setCandidates] = useState<CandidateFormData[]>([]);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // Inicializar formulario según positions y candidatos existentes
+  useEffect(() => {
+    if (isOpen) {
+      const initialCandidates = positions.map((pos) => {
+        const existing = existingCandidates.find((c) => c.positionId === pos.id);
+        return {
+          positionId: pos.id,
+          positionName: pos.name,
+          fullName: existing?.fullName || '',
+          photoBase64: undefined,
+          photoPreview: existing?.photoUrl,
+        };
+      });
+      setCandidates(initialCandidates);
+    }
+  }, [isOpen, positions, existingCandidates]);
+
+  const handleNameChange = (positionId: string, value: string) => {
+    setCandidates((prev) =>
+      prev.map((c) =>
+        c.positionId === positionId ? { ...c, fullName: value } : c
+      )
+    );
+  };
+
+  const handlePhotoSelect = (positionId: string, file: File) => {
+    if (!file.type.startsWith('image/')) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      setCandidates((prev) =>
+        prev.map((c) =>
+          c.positionId === positionId
+            ? { ...c, photoBase64: base64, photoPreview: base64 }
+            : c
+        )
+      );
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const candidateInputs: CandidateInput[] = candidates
+      .filter((c) => c.fullName.trim()) // Solo guardar los que tienen nombre
+      .map((c) => ({
+        positionId: c.positionId,
+        positionName: c.positionName,
+        fullName: c.fullName.trim(),
+        photoBase64: c.photoBase64 || c.photoPreview,
+      }));
+
+    try {
+      await onSave(candidateInputs);
+      onClose();
+    } catch {
+      // Error manejado por el padre
+    }
+  };
+
+  return (
+    <Modal2
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Gestión de Candidatos"
+      size="lg"
+    >
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {partyName && (
+          <p className="text-sm text-gray-500 -mt-2">
+            Partido: <span className="font-medium text-gray-700">{partyName}</span>
+          </p>
+        )}
+
+        {/* Lista de cargos con inputs */}
+        <div className="space-y-4">
+          {candidates.map((candidate) => (
+            <div
+              key={candidate.positionId}
+              className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg"
+            >
+              {/* Nombre del cargo */}
+              <div className="w-32 flex-shrink-0">
+                <span className="font-medium text-gray-700">
+                  {candidate.positionName}
+                </span>
+              </div>
+
+              {/* Input nombre completo */}
+              <div className="flex-1">
+                <input
+                  type="text"
+                  value={candidate.fullName}
+                  onChange={(e) => handleNameChange(candidate.positionId, e.target.value)}
+                  placeholder="Nombre completo"
+                  disabled={isLoading}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#459151] focus:border-[#459151] transition-colors"
+                />
+              </div>
+
+              {/* Botón subir foto */}
+              <div className="flex-shrink-0">
+                <input
+                  ref={(el) => { fileInputRefs.current[candidate.positionId] = el; }}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handlePhotoSelect(candidate.positionId, file);
+                  }}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRefs.current[candidate.positionId]?.click()}
+                  disabled={isLoading}
+                  className="relative w-14 h-14 rounded-full border-2 border-gray-300 hover:border-[#459151] bg-gray-100 overflow-hidden transition-colors group"
+                >
+                  {candidate.photoPreview ? (
+                    <img
+                      src={candidate.photoPreview}
+                      alt="Foto candidato"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <svg
+                      className="w-8 h-8 mx-auto text-gray-400"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                      />
+                    </svg>
+                  )}
+                  {/* Badge + */}
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#459151] text-white rounded-full flex items-center justify-center text-xs font-bold">
+                    +
+                  </span>
+                </button>
+                <p className="text-xs text-gray-500 text-center mt-1">Subir Foto</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {positions.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            No hay cargos definidos. Primero define los cargos en el Paso 1.
+          </div>
+        )}
+
+        {/* Botón guardar */}
+        <div className="pt-2">
+          <button
+            type="submit"
+            disabled={isLoading || positions.length === 0}
+            className="w-full py-4 bg-[#459151] hover:bg-[#3a7a44] text-white font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {isLoading ? (
+              <>
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Guardando...
+              </>
+            ) : (
+              'Guardar Candidatos'
+            )}
+          </button>
+        </div>
+      </form>
+    </Modal2>
+  );
+};
+
+export default CandidatesModal;

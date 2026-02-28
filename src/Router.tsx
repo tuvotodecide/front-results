@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { useDispatch } from "react-redux";
-import { setAuth } from "./store/auth/authSlice";
+import { useDispatch, useSelector } from "react-redux";
+import { setAuth, selectIsLoggedIn } from "./store/auth/authSlice";
 import LoadingSkeleton from "./components/LoadingSkeleton";
 import ResultadosGenerales3 from "./pages/Resultados/ResultadosGenerales3";
 import ParticipacionPersonal from "./pages/Resultados/PersonalParticipation";
@@ -41,6 +41,43 @@ const ProtectedRoutes = React.lazy(() => import("./pages/ProtectedRoutes"));
 const BasicLayout = React.lazy(() => import("./components/BasicLayout"));
 const Partidos = React.lazy(() => import("./pages/Partidos/Partidos"));
 const PartidoForm = React.lazy(() => import("./pages/Partidos/PartidoForm"));
+const PublicLayout = React.lazy(() => import("./components/PublicLayout"));
+const PublicLandingPage = React.lazy(() =>
+  import("./features/publicLanding").then((m) => ({ default: m.PublicLandingPage }))
+);
+const ElectionsPage = React.lazy(() =>
+  import("./features/elections").then((m) => ({ default: m.ElectionsPage }))
+);
+const CreateElectionWizard = React.lazy(() =>
+  import("./features/elections").then((m) => ({ default: m.CreateElectionWizard }))
+);
+const ElectionConfigCargos = React.lazy(() =>
+  import("./features/electionConfig").then((m) => ({ default: m.ElectionConfigCargos }))
+);
+const ElectionConfigPlanchas = React.lazy(() =>
+  import("./features/electionConfig").then((m) => ({ default: m.ElectionConfigPlanchas }))
+);
+
+// Wrapper que decide entre Landing Público o Home según auth
+const LandingOrHomeRoute: React.FC = () => {
+  const isLoggedIn = useSelector(selectIsLoggedIn);
+
+  if (isLoggedIn) {
+    // Usuario autenticado: muestra Home dentro de BasicLayout (con sidebar)
+    return (
+      <BasicLayout>
+        <Home />
+      </BasicLayout>
+    );
+  }
+
+  // Usuario no autenticado: muestra Landing Público con su layout (sin sidebar)
+  return (
+    <PublicLayout>
+      <PublicLandingPage />
+    </PublicLayout>
+  );
+};
 
 const AppRouter: React.FC = () => {
   const dispatch = useDispatch();
@@ -64,8 +101,39 @@ const AppRouter: React.FC = () => {
     <Router>
       <React.Suspense fallback={<LoadingSkeleton />}>
         <Routes>
+          {/* Ruta raíz: Landing público o Home según auth */}
+          <Route path="/" element={<LandingOrHomeRoute />} />
+
+          {/* Rutas de elecciones (sin sidebar, usa PublicLayout interno) */}
+          <Route path="/elections" element={<ElectionsPage />} />
+          <Route
+            path="/elections/new"
+            element={
+              <PublicLayout>
+                <CreateElectionWizard />
+              </PublicLayout>
+            }
+          />
+          {/* Configuración de elección - Paso 1: Cargos */}
+          <Route
+            path="/elections/:electionId/config/cargos"
+            element={
+              <PublicLayout>
+                <ElectionConfigCargos />
+              </PublicLayout>
+            }
+          />
+          {/* Configuración de elección - Paso 2: Planchas */}
+          <Route
+            path="/elections/:electionId/config/planchas"
+            element={
+              <PublicLayout>
+                <ElectionConfigPlanchas />
+              </PublicLayout>
+            }
+          />
+
           <Route element={<BasicLayout />}>
-            <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/registrarse" element={<Register />} />
             <Route path="/pendiente" element={<WaitingApproval />} />
