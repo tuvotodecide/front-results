@@ -7,6 +7,7 @@ interface SearchBarProps {
   inputDataCy?: string;
   submitDataCy?: string;
   clearDataCy?: string;
+  placeholder?: string;
 }
 
 export default function SimpleSearchBar({
@@ -15,6 +16,7 @@ export default function SimpleSearchBar({
   inputDataCy = "image-search-input",
   submitDataCy = "image-search-submit",
   clearDataCy = "image-search-clear",
+  placeholder = "",
 }: SearchBarProps) {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -68,9 +70,13 @@ export default function SimpleSearchBar({
               data-cy={inputDataCy}
               type="text"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setQuery(val);
+                if (onSearch) onSearch(val);
+              }}
               onKeyDown={handleKeyDown}
-              placeholder=""
+              placeholder={placeholder}
               className="flex-1 py-2 px-1 pr-10 text-gray-700 text-lg outline-none bg-transparent w-full"
             />
 

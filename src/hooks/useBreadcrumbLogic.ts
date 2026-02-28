@@ -262,76 +262,90 @@ export const useBreadcrumbLogic = (autoOpen: boolean = true) => {
         if (queryParamsResults !== searchParamsString) {
             dispatch(setQueryParamsResults(searchParamsString));
         }
-        if (!allowManualPick) return;
+    }, [searchParamsString, queryParamsResults, dispatch]);
 
-        const paramsSnapshot = new URLSearchParams(searchParamsString);
-        if (!isInitialized && paramsSnapshot.size > 0 && selectedPath.length === 0) {
-            const fetchers = [
-                { key: "department", index: 0, fetch: getDepartment },
-                { key: "province", index: 1, fetch: getProvince },
-                { key: "municipality", index: 2, fetch: getMunicipality },
-                { key: "electoralSeat", index: 3, fetch: getElectoralSeat },
-                { key: "electoralLocation", index: 4, fetch: getElectoralLocation },
-            ];
+    const prevAllowManualPick = useRef(allowManualPick);
+    useEffect(() => {
+        if (prevAllowManualPick.current !== allowManualPick) {
+            setIsInitialized(false);
+            prevAllowManualPick.current = allowManualPick;
+        }
+    }, [allowManualPick]);
 
-            const promises = fetchers
-                .filter((f) => !!paramsSnapshot.get(f.key))
-                .map((f) => {
-                    const id = paramsSnapshot.get(f.key);
-                    return f.fetch(id!).unwrap().then((data: any) => ({
-                        index: f.index,
-                        key: f.key,
-                        data: data,
-                    }));
-                });
+    useEffect(() => {
+        if (searchParamsString && !isInitialized && allowManualPick) {
+            const paramsSnapshot = new URLSearchParams(searchParamsString);
+            if (paramsSnapshot.size > 0 && selectedPath.length === 0) {
+                const fetchers = [
+                    { key: "department", index: 0, fetch: getDepartment },
+                    { key: "province", index: 1, fetch: getProvince },
+                    { key: "municipality", index: 2, fetch: getMunicipality },
+                    { key: "electoralSeat", index: 3, fetch: getElectoralSeat },
+                    { key: "electoralLocation", index: 4, fetch: getElectoralLocation },
+                ];
 
-            if (promises.length > 0) {
-                Promise.allSettled(promises).then((results) => {
-                    const map = new Map<number, PathItem>();
-                    results.forEach((r) => {
-                        if (r.status === "fulfilled" && r.value?.data?._id) {
-                            const level = BREADCRUMB_LEVELS[r.value.index];
-                            map.set(r.value.index, {
-                                ...level,
-                                selectedOption: { _id: r.value.data._id, name: r.value.data.name },
-                            });
-                        }
+                const promises = fetchers
+                    .filter((f) => !!paramsSnapshot.get(f.key))
+                    .map((f) => {
+                        const id = paramsSnapshot.get(f.key);
+                        return f.fetch(id!).unwrap().then((data: any) => ({
+                            index: f.index,
+                            key: f.key,
+                            data: data,
+                        }));
                     });
 
-                    const newPath: PathItem[] = [];
-                    for (let i = 0; i < BREADCRUMB_LEVELS.length; i++) {
-                        const item = map.get(i);
-                        if (item) newPath.push(item);
-                    }
+                if (promises.length > 0) {
+                    Promise.allSettled(promises).then((results) => {
+                        const map = new Map<number, PathItem>();
+                        results.forEach((r) => {
+                            if (r.status === "fulfilled" && r.value?.data?._id) {
+                                const level = BREADCRUMB_LEVELS[r.value.index];
+                                map.set(r.value.index, {
+                                    ...level,
+                                    selectedOption: { _id: r.value.data._id, name: r.value.data.name },
+                                });
+                            }
+                        });
 
-                    const hasDept = map.get(0);
-                    const hasProv = map.get(1);
-                    const hasMun = map.get(2);
+                        const newPath: PathItem[] = [];
+                        for (let i = 0; i < BREADCRUMB_LEVELS.length; i++) {
+                            const item = map.get(i);
+                            if (item) newPath.push(item);
+                        }
 
-                    if (hasDept && hasMun && !hasProv) {
-                        const forced: PathItem[] = [hasDept, { ...BREADCRUMB_LEVELS[1], selectedOption: { _id: "", name: "-" } }, hasMun];
-                        setSelectedPath(forced);
-                        applyPathFilters(forced);
-                        selectLevel(3, forced);
-                        if (autoOpen) setShowCurrentLevel(true);
-                    } else {
-                        setSelectedPath(newPath);
-                        applyPathFilters(newPath);
-                        const nextIndex = newPath.length;
-                        if (nextIndex < BREADCRUMB_LEVELS.length) {
-                            selectLevel(nextIndex, newPath);
+                        const hasDept = map.get(0);
+                        const hasProv = map.get(1);
+                        const hasMun = map.get(2);
+
+                        if (hasDept && hasMun && !hasProv) {
+                            const forced: PathItem[] = [hasDept, { ...BREADCRUMB_LEVELS[1], selectedOption: { _id: "", name: "-" } }, hasMun];
+                            setSelectedPath(forced);
+                            applyPathFilters(forced);
+                            selectLevel(3, forced);
                             if (autoOpen) setShowCurrentLevel(true);
                         } else {
-                            setShowCurrentLevel(false);
+                            setSelectedPath(newPath);
+                            applyPathFilters(newPath);
+                            const nextIndex = newPath.length;
+                            if (nextIndex < BREADCRUMB_LEVELS.length) {
+                                selectLevel(nextIndex, newPath);
+                                if (autoOpen) setShowCurrentLevel(true);
+                            } else {
+                                setShowCurrentLevel(false);
+                            }
                         }
-                    }
-                });
+                    });
+                }
+                setIsInitialized(true);
             }
-            setIsInitialized(true);
         } else if (!isInitialized) {
             if (allowManualPick) {
                 selectLevel(0);
                 if (autoOpen) setShowCurrentLevel(true);
+            } else {
+                // Forzar la inicializaci├│n de la ruta restringida
+                clearSelectedPath({ open: autoOpen });
             }
             setIsInitialized(true);
         }

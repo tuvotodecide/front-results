@@ -38,6 +38,7 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
           {allowManualPick && (
             <button
               onClick={resetPath}
+              data-cy="country-select"
               className="flex flex-col items-start text-black group min-w-[120px] border border-gray-300 p-2 rounded hover:bg-blue-100"
             >
               <div className="text-xs text-gray-500 font-medium mb-1">País</div>

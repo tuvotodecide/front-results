@@ -1,6 +1,22 @@
 import { http, HttpResponse } from 'msw';
 
 export const handlers = [
+    // Handler para Registro (Intercepta registros de prueba)
+    http.post('*/auth/register', async ({ request }) => {
+        const body = (await request.json()) as any;
+        if (body.email === 'alcalde@test.com' || body.email === 'admin@test.com' || body.email === 'alcalde.lapaz@test.local') {
+            return HttpResponse.json(
+                { message: 'Usuario ya registrado' },
+                { status: 400 }
+            );
+        }
+        return HttpResponse.json({
+            message: 'Registro exitoso',
+            status: 'VERIFY_EMAIL',
+            email: body.email
+        }, { status: 201 });
+    }),
+
     // Handler para Login Mock (Intercepta las credenciales de prueba)
     http.post('*/auth/login', async ({ request }) => {
         const body = (await request.json()) as any;
@@ -32,8 +48,10 @@ export const handlers = [
                     role: 'MAYOR',
                     status: 'ACTIVE',
                     active: true,
-                    departmentId: '6740f90766c62c3e1e2474f8',
-                    municipalityId: '674100be66c62c3e1e247b97',
+                    departmentId: 'dept-lp',
+                    departmentName: 'La Paz',
+                    municipalityId: 'mun-lp',
+                    municipalityName: 'Nuestra Señora de La Paz',
                 };
                 return HttpResponse.json({
                     accessToken: 'mock-access-token-alcalde',
@@ -51,7 +69,8 @@ export const handlers = [
                     role: 'GOVERNOR',
                     status: 'ACTIVE',
                     active: true,
-                    departmentId: '6740f90766c62c3e1e2474f8',
+                    departmentId: 'dept-lp',
+                    departmentName: 'La Paz',
                 };
                 return HttpResponse.json({
                     accessToken: 'mock-access-token-gober',
@@ -132,7 +151,6 @@ export const handlers = [
     // Mock para Configuración de Elecciones
     http.get('*/elections/config/status', ({ request }) => {
         const auth = request.headers.get('Authorization');
-        // Solo mockeamos si hay un token de prueba para no interferir con la visibilidad pública
         if (auth?.includes('mock-access-token')) {
             return HttpResponse.json({
                 elections: [
@@ -141,6 +159,52 @@ export const handlers = [
             });
         }
         return undefined;
+    }),
+
+    http.get('*/elections/config', () => {
+        return HttpResponse.json([
+            {
+                id: 'eleccion-2025',
+                name: 'Elecciones Generales',
+                isActive: true
+            }
+        ]);
+    }),
+
+    // Mock Geográfico
+    http.get('*/geographic/departments', () => {
+        return HttpResponse.json({
+            data: [
+                { _id: 'dept-lp', name: 'La Paz' },
+                { _id: 'dept-cbba', name: 'Cochabamba' },
+                { _id: 'dept-scz', name: 'Santa Cruz' }
+            ],
+            pagination: { page: 1, limit: 10, total: 3, pages: 1 }
+        });
+    }),
+
+    http.get('*/geographic/provinces/by-department/*', () => {
+        return HttpResponse.json([
+            { _id: 'prov-murillo', name: 'Murillo', departmentId: 'dept-lp' }
+        ]);
+    }),
+
+    http.get('*/geographic/municipalities/by-province/*', () => {
+        return HttpResponse.json([
+            { _id: 'mun-lp', name: 'Nuestra Señora de La Paz', provinceId: 'prov-murillo' }
+        ]);
+    }),
+
+    http.get('*/geographic/electoral-seats/by-municipality/*', () => {
+        return HttpResponse.json([
+            { _id: 'seat-lp', name: 'Nuestra Señora de La Paz', municipalityId: 'mun-lp' }
+        ]);
+    }),
+
+    http.get('*/geographic/electoral-locations/by-electoral-seat/*', () => {
+        return HttpResponse.json([
+            { _id: 'loc-lp', name: 'Escuela Bolivia', electoralSeatId: 'seat-lp' }
+        ]);
     }),
 
     // Mock para Participación Personal
@@ -152,6 +216,20 @@ export const handlers = [
                 { _id: "2", recinto: "Col. Simón Bolivar", mesa: "1025", usuario: "---", estado: "Faltante", ballotId: null },
                 { _id: "3", recinto: "Col. Simón Bolivar", mesa: "1026", usuario: "Maria López", estado: "Recibida", ballotId: "b2" },
             ],
+        });
+    }),
+
+    // Mock genérico para resultados (para evitar 404s en filtros)
+    http.get('*/results/*', () => {
+        return HttpResponse.json({
+            results: [],
+            summary: {
+                totalTables: 100,
+                tablesProcessed: 10,
+                validVotes: 1000,
+                nullVotes: 50,
+                blankVotes: 20
+            }
         });
     }),
 ];

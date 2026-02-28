@@ -8,7 +8,7 @@ Cypress.Commands.add('clearSession', () => {
     cy.clearLocalStorage();
 });
 
-Cypress.Commands.add('loginUI', (email: string, password: string) => {
+Cypress.Commands.add('loginUI', (email: string, password: string = 'test1234') => {
     cy.visit('/login');
     cy.get('[data-cy="login-email"]', { timeout: 10000 }).type(email);
     cy.get('[data-cy="login-password"]', { timeout: 10000 }).type(password);
@@ -35,6 +35,6 @@ Cypress.Commands.add('cleanupTestData', () => {
     cy.log('Cleaning up test data');
 });
 
-Cypress.Commands.add('loginUI2', (email: string, password: string) => {
+Cypress.Commands.add('loginUI2', (email: string, password: string = 'test1234') => {
     cy.loginUI(email, password);
 });
