@@ -7,7 +7,7 @@ export const handlers = [
 
         // Solo interceptamos si la contraseña es la de prueba
         if (body.password === 'test1234') {
-            if (body.email === 'admin@test.com') {
+            if (body.email === 'admin@test.com' || body.email === 'admin@local.test') {
                 const user = {
                     id: 'mock-admin-id',
                     name: 'ADMINISTRADOR CENTRAL',
@@ -24,7 +24,7 @@ export const handlers = [
                 });
             }
 
-            if (body.email === 'alcalde@test.com') {
+            if (body.email === 'alcalde@test.com' || body.email === 'alcalde.lapaz@test.local') {
                 const user = {
                     id: 'mock-alcalde-lp',
                     name: 'ALCALDE LA PAZ',
@@ -43,7 +43,7 @@ export const handlers = [
                 });
             }
 
-            if (body.email === 'gobernador@test.com') {
+            if (body.email === 'gobernador@test.com' || body.email === 'gobernador.lapaz@test.local') {
                 const user = {
                     id: 'mock-gober-lp',
                     name: 'GOBERNADOR LA PAZ',
@@ -59,6 +59,27 @@ export const handlers = [
                     active: true,
                     user,
                 });
+            }
+
+            if (body.email === 'pendiente@test.com') {
+                return new HttpResponse(
+                    JSON.stringify({ message: 'Usuario pendiente de aprobación' }),
+                    { status: 401, headers: { 'Content-Type': 'application/json' } }
+                );
+            }
+
+            if (body.email === 'noverificado@test.com') {
+                return new HttpResponse(
+                    JSON.stringify({ message: 'El correo no ha sido verificado' }),
+                    { status: 401, headers: { 'Content-Type': 'application/json' } }
+                );
+            }
+
+            if (body.email === 'rechazado@test.com') {
+                return new HttpResponse(
+                    JSON.stringify({ message: 'Acceso denegado' }),
+                    { status: 403, headers: { 'Content-Type': 'application/json' } }
+                );
             }
         }
 

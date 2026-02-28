@@ -1,0 +1,18 @@
+{
+  "_id": "BALLOT-OK-1",
+  "tableCode": "MESA-123",
+  "tableNumber": "123",
+  "image": "ipfs://QmExampleHashImage",
+  "ipfsUri": "https://ipfs.io/ipfs/QmExampleHashMetadata",
+  "recordId": "12345",
+  "votes": {
+    "parties": {
+      "partyVotes": [],
+      "validVotes": 0,
+      "nullVotes": 0,
+      "blankVotes": 0
+    },
+    "deputies": { "partyVotes": [] }
+  },
+  "location": { "department": "", "province": "", "municipality": "" }
+}

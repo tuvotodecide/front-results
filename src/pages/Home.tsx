@@ -195,6 +195,17 @@ const Home: React.FC = () => {
     setShouldPollConfigStatus(isAutoRefreshWindow);
   }, [isAutoRefreshWindow]);
 
+  // Load results from cache on mount to speed up initial transition
+  useEffect(() => {
+    const cached = localStorage.getItem("home_results_cache");
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        setElectionResults(new Map(Object.entries(parsed)));
+      } catch (e) { console.error("Cache parse error", e); }
+    }
+  }, []);
+
   // Fetch results for all visible elections
   useEffect(() => {
     if (!hasActiveConfig || !showResultsPeriod) {
@@ -203,77 +214,98 @@ const Home: React.FC = () => {
     }
 
     const fetchAllResults = async () => {
-      setLoading(true);
-      const resultsMap = new Map<string, ElectionResultsData>();
-
-      for (const election of visibleElections) {
-        if (!election.isVotingPeriod && !election.isResultsPeriod) {
-          continue;
-        }
-
-        const params = {
-          ...getLocationFilters,
-          electionType: election.type,
-          electionId: election.id,
-        };
-
-        const fetcher = election.isResultsPeriod
-          ? getResultsByLocation
-          : getLiveResultsByLocation;
-
-        try {
-          const data = await fetcher(params).unwrap();
-
-          const formattedData = (data.results ?? []).map((item: any) => {
-            const partyColor = getPartyColor(item.partyId);
-            const randomColor =
-              "#" +
-              Math.floor(Math.random() * 16777215)
-                .toString(16)
-                .padStart(6, "0");
-            return {
-              name: item.partyId,
-              value: item.totalVotes,
-              color: partyColor || randomColor,
-            };
-          });
-
-          let participationData: Array<{ name: string; value: any; color: string }> = [];
-          if (data.summary) {
-            participationData = [
-              {
-                name: "Válidos",
-                value: data.summary.validVotes || 0,
-                color: "#8cc689",
-              },
-              {
-                name: "Nulos",
-                value: data.summary.nullVotes || 0,
-                color: "#81858e",
-              },
-              {
-                name: "Blancos",
-                value: data.summary.blankVotes || 0,
-                color: "#f3f3ce",
-              },
-            ];
-          }
-
-          resultsMap.set(election.id, {
-            electionId: election.id,
-            electionName: election.name,
-            electionType: election.type,
-            resultsData: formattedData,
-            participationData,
-            isPreliminary: election.isVotingPeriod,
-          });
-        } catch (error) {
-          console.log(`Error obteniendo resultados para ${election.name}:`, error);
-        }
+      // Don't show skeleton if we already have data (from cache or previous fetch)
+      if (electionResults.size === 0) {
+        setLoading(true);
       }
 
-      setElectionResults(resultsMap);
-      setLoading(false);
+      try {
+        const promises = visibleElections.map(async (election) => {
+          if (!election.isVotingPeriod && !election.isResultsPeriod) {
+            return null;
+          }
+
+          const params = {
+            ...getLocationFilters,
+            electionType: election.type,
+            electionId: election.id,
+          };
+
+          const fetcher = election.isResultsPeriod
+            ? getResultsByLocation
+            : getLiveResultsByLocation;
+
+          try {
+            const data = await fetcher(params).unwrap();
+
+            const formattedData = (data.results ?? []).map((item: any) => {
+              const partyColor = getPartyColor(item.partyId);
+              const randomColor =
+                "#" +
+                Math.floor(Math.random() * 16777215)
+                  .toString(16)
+                  .padStart(6, "0");
+              return {
+                name: item.partyId,
+                value: item.totalVotes,
+                color: partyColor || randomColor,
+              };
+            });
+
+            let participationData: Array<{ name: string; value: any; color: string }> = [];
+            if (data.summary) {
+              participationData = [
+                {
+                  name: "Válidos",
+                  value: data.summary.validVotes || 0,
+                  color: "#8cc689",
+                },
+                {
+                  name: "Nulos",
+                  value: data.summary.nullVotes || 0,
+                  color: "#81858e",
+                },
+                {
+                  name: "Blancos",
+                  value: data.summary.blankVotes || 0,
+                  color: "#f3f3ce",
+                },
+              ];
+            }
+
+            return {
+              id: election.id,
+              payload: {
+                electionId: election.id,
+                electionName: election.name,
+                electionType: election.type,
+                resultsData: formattedData,
+                participationData,
+                isPreliminary: election.isVotingPeriod,
+              }
+            };
+          } catch (error) {
+            console.error(`Error obteniendo resultados para ${election.name}:`, error);
+            return null;
+          }
+        });
+
+        const results = await Promise.all(promises);
+        const resultsMap = new Map<string, ElectionResultsData>();
+
+        results.forEach(res => {
+          if (res) {
+            resultsMap.set(res.id, res.payload);
+          }
+        });
+
+        setElectionResults(resultsMap);
+        if (resultsMap.size > 0) {
+          localStorage.setItem("home_results_cache", JSON.stringify(Object.fromEntries(resultsMap)));
+        }
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchAllResults();

@@ -1,0 +1,4 @@
+[
+  { "_id": "att-1", "support": true, "userRole": "JURY", "userName": "Ana", "createdAt": "2026-01-10T01:00:00.000Z" },
+  { "_id": "att-2", "support": false, "userRole": "USER", "userName": "Luis", "createdAt": "2026-01-10T01:05:00.000Z" }
+]
