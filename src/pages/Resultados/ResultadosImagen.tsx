@@ -3,7 +3,10 @@ import { useEffect, useState, useMemo } from "react";
 // import actaImage from '../../assets/acta.jpg';
 import LocationSection from "./LocationSection";
 import { useParams, useNavigate } from "react-router-dom";
-import { useGetBallotQuery } from "../../store/ballots/ballotsEndpoints";
+import {
+  useGetBallotByTableCodeQuery,
+  useGetBallotQuery,
+} from "../../store/ballots/ballotsEndpoints";
 import Graphs from "./Graphs";
 import StatisticsBars from "./StatisticsBars";
 import SimpleSearchBar from "../../components/SimpleSearchBar";
@@ -49,6 +52,16 @@ const ResultadosImagen = () => {
     refetchOnReconnect: true,
     skipPollingIfUnfocused: true,
   });
+  const { data: tableBallots } = useGetBallotByTableCodeQuery(
+    { tableCode: currentItem?.tableCode || "" },
+    {
+      skip: !currentItem?.tableCode,
+      pollingInterval: isAutoRefreshWindow ? FIVE_MINUTES_MS : 0,
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
+      skipPollingIfUnfocused: true,
+    }
+  );
   const handleSearch = (searchTerm: string) => {
     const term = (searchTerm || "").trim();
     if (!term) return;
@@ -73,12 +86,11 @@ const ResultadosImagen = () => {
     const inFavor = attestationsData.filter(
       (attestation: any) => attestation.support === true
     ).length;
-    const against = attestationsData.filter(
-      (attestation: any) => attestation.support === false
-    ).length;
+    const totalBallotsForTable = tableBallots?.length ?? 0;
+    const against = Math.max(totalBallotsForTable - 1, 0);
 
     return { attestationsInFavor: inFavor, attestationsAgainst: against };
-  }, [attestationsData]);
+  }, [attestationsData, tableBallots]);
 
   useEffect(() => {
     if (!currentItem) return;
