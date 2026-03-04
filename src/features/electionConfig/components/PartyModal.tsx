@@ -134,6 +134,7 @@ const PartyModal: React.FC<PartyModalProps> = ({
       onClose={onClose}
       title="Datos del Partido"
       size="md"
+      type="plain"
     >
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Nombre del Partido */}
@@ -205,7 +206,10 @@ const PartyModal: React.FC<PartyModalProps> = ({
             Logo
           </label>
           <div
-            onClick={() => fileInputRef.current?.click()}
+            onClick={(e) => {
+              e.stopPropagation();
+              fileInputRef.current?.click();
+            }}
             onDrop={handleDrop}
             onDragOver={(e) => e.preventDefault()}
             className="border-2 border-dashed border-[#459151] rounded-lg p-8 text-center cursor-pointer hover:bg-green-50 transition-colors"
@@ -215,7 +219,7 @@ const PartyModal: React.FC<PartyModalProps> = ({
                 <img
                   src={logoPreview}
                   alt="Logo preview"
-                  className="w-20 h-20 object-contain rounded"
+                  className="w-32 h-32 object-contain rounded"
                 />
                 <p className="text-sm text-gray-500">Click para cambiar</p>
               </div>

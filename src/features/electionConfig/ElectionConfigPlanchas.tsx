@@ -11,7 +11,8 @@ import PartyModal from './components/PartyModal';
 import CandidatesModal from './components/CandidatesModal';
 import { useParties } from './data/usePartyRepository';
 import { usePositions } from './data/usePositionRepository';
-import type { Party, PartyWithCandidates, CandidateInput, CreatePartyPayload } from './types';
+import { usePadron } from './data/usePadronRepository';
+import type { Party, PartyWithCandidates, CandidateInput, CreatePartyPayload, ConfigStep } from './types';
 
 // Mock: obtener título de elección
 const getElectionTitle = (electionId: string): string => {
@@ -97,6 +98,7 @@ const ElectionConfigPlanchas: React.FC = () => {
     deleting,
     savingCandidates,
   } = useParties(actualElectionId);
+  const { isLoaded: isPadronLoaded, validCount, invalidCount } = usePadron(actualElectionId);
 
   // Estados de UI
   const [isPartyModalOpen, setIsPartyModalOpen] = useState(false);
@@ -109,6 +111,8 @@ const ElectionConfigPlanchas: React.FC = () => {
 
   // Verificar si hay al menos 1 partido con candidatos para habilitar "Siguiente"
   const hasPartiesWithCandidates = parties.some((p) => p.candidates.length > 0);
+  const hasPositions = positions.length > 0;
+  const isPadronReady = isPadronLoaded && validCount > 0 && invalidCount === 0;
 
   // Handlers
   const handleCreateParty = () => {
@@ -172,17 +176,24 @@ const ElectionConfigPlanchas: React.FC = () => {
     navigate(`/elections/${actualElectionId}/config/padron`);
   };
 
-  const handleGoToStep1 = () => {
-    navigate(`/elections/${actualElectionId}/config/cargos`);
+  const handleGoToStep = (step: ConfigStep) => {
+    if (step === 1) {
+      navigate(`/elections/${actualElectionId}/config/cargos`);
+      return;
+    }
+    if (step === 2) return;
+    if (step === 3 && hasPartiesWithCandidates) {
+      navigate(`/elections/${actualElectionId}/config/padron`);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="bg-gray-50 min-h-[calc(100vh-64px)] flex flex-col">
       {/* Contenido principal */}
-      <div className="flex-1 py-8">
+      <div className="py-8 flex-1">
         <div className="max-w-5xl mx-auto px-4">
           {/* Título */}
-          <h1 className="text-3xl font-bold text-gray-900 text-center mb-8">
+          <h1 className="text-4xl font-extrabold text-gray-900 text-center mb-8">
             {electionTitle}
           </h1>
 
@@ -190,11 +201,16 @@ const ElectionConfigPlanchas: React.FC = () => {
           <div className="mb-4">
             <ConfigStepsTabs
               currentStep={2}
-              completedSteps={[1]}
-              onStepChange={(step) => {
-                if (step === 1) handleGoToStep1();
+              completedSteps={[
+                ...(hasPositions ? [1] : []),
+                ...(hasPartiesWithCandidates ? [2] : []),
+                ...(isPadronReady ? [3] : []),
+              ]}
+              onStepChange={handleGoToStep}
+              canNavigate={(step) => {
+                if (step === 1 || step === 2) return true;
+                return hasPartiesWithCandidates;
               }}
-              canNavigate={(step) => step === 1 || step === 2}
             />
           </div>
 
@@ -293,6 +309,7 @@ const ElectionConfigPlanchas: React.FC = () => {
         onClose={() => setDeleteConfirm(null)}
         title="Eliminar partido"
         size="sm"
+        type="plain"
       >
         <div className="space-y-4">
           <p className="text-gray-700">

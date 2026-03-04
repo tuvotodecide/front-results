@@ -57,7 +57,7 @@ const ConfigStepsTabs: React.FC<ConfigStepsTabsProps> = ({
             className={`
               inline-flex items-center gap-2 px-6 py-3 rounded-full font-medium text-sm transition-all
               ${status === 'active' && 'bg-[#459151] text-white shadow-md'}
-              ${status === 'completed' && 'bg-gray-100 text-gray-700 border border-gray-200'}
+              ${status === 'completed' && 'bg-green-100 text-green-800 border border-green-200'}
               ${status === 'pending' && 'bg-gray-100 text-gray-500'}
               ${!isClickable ? 'cursor-not-allowed' : 'cursor-pointer hover:shadow-sm'}
             `}

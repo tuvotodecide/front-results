@@ -66,7 +66,7 @@ const mockOtherElections: ActiveElection[] = [
     id: 'other-1',
     title: 'Elección Centro Estudiantes',
     organization: 'Facultad de Ingeniería',
-    status: 'FINALIZADA',
+    status: 'ACTIVA',
     isFeatured: false,
   },
   {

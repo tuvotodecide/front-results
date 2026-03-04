@@ -102,7 +102,8 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title="Gestión de Candidatos"
-      size="lg"
+      size="2xl"
+      type="plain"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         {partyName && (
@@ -151,7 +152,10 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
                 />
                 <button
                   type="button"
-                  onClick={() => fileInputRefs.current[candidate.positionId]?.click()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    fileInputRefs.current[candidate.positionId]?.click();
+                  }}
                   disabled={isLoading}
                   className="relative w-14 h-14 rounded-full border-2 border-gray-300 hover:border-[#459151] bg-gray-100 overflow-hidden transition-colors group"
                 >

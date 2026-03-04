@@ -67,6 +67,7 @@ const AddPositionModal: React.FC<AddPositionModalProps> = ({
       onClose={handleClose}
       title={isEditMode ? 'Editar Cargo' : 'Nuevo Cargo'}
       size="sm"
+      type="plain"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Label */}

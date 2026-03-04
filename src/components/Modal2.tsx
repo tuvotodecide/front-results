@@ -11,9 +11,9 @@ interface ModalProps {
   onClose: () => void;
   title?: string;
   showClose?: boolean;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "xl" | "2xl";
   className?: string;
-  type?: "success" | "error" | "info";
+  type?: "success" | "error" | "info" | "plain";
 }
 
 const Modal2: React.FC<PropsWithChildren<ModalProps>> = ({
@@ -38,17 +38,11 @@ const Modal2: React.FC<PropsWithChildren<ModalProps>> = ({
 
   const handleClose = () => onClose();
 
-  const handleClickOutside = (event: React.MouseEvent<HTMLDialogElement>) => {
-    const rect = dialogRef.current?.getBoundingClientRect();
-    if (!rect) return;
-
-    const isInDialog =
-      rect.top <= event.clientY &&
-      event.clientY <= rect.bottom &&
-      rect.left <= event.clientX &&
-      event.clientX <= rect.right;
-
-    if (!isInDialog) handleClose();
+  const handleBackdropClick = (event: React.MouseEvent<HTMLDialogElement>) => {
+    // Solo cerrar si el click fue directamente en el dialog (backdrop), no en sus hijos
+    if (event.target === dialogRef.current) {
+      handleClose();
+    }
   };
 
   const sizeClasses = {
@@ -56,6 +50,7 @@ const Modal2: React.FC<PropsWithChildren<ModalProps>> = ({
     md: "max-w-md",
     lg: "max-w-lg",
     xl: "max-w-xl",
+    "2xl": "max-w-2xl",
   };
 
   const stylesByType = {
@@ -80,9 +75,17 @@ const Modal2: React.FC<PropsWithChildren<ModalProps>> = ({
       iconText: "text-blue-600",
       accent: "bg-blue-500",
     },
+    plain: {
+      headerBg: "bg-white",
+      border: "border-gray-200",
+      iconBg: "",
+      iconText: "",
+      accent: "",
+    },
   } as const;
 
   const ui = stylesByType[type];
+  const isPlain = type === "plain";
 
   const StatusIcon = () => {
     const base =
@@ -109,7 +112,7 @@ const Modal2: React.FC<PropsWithChildren<ModalProps>> = ({
   return (
     <dialog
       ref={dialogRef}
-      onClick={handleClickOutside}
+      onClick={handleBackdropClick}
       onCancel={(e) => {
         e.preventDefault(); // evita que el dialog se cierre "solo" sin pasar por onClose
         handleClose();
@@ -119,20 +122,20 @@ const Modal2: React.FC<PropsWithChildren<ModalProps>> = ({
       <div
         className={`bg-white ${sizeClasses[size]} w-full mx-auto rounded-2xl overflow-hidden border shadow-2xl ${ui.border} ${className}`}
       >
-        {/* Accent bar */}
-        <div className={`h-1.5 ${ui.accent}`} />
+        {/* Accent bar - only for non-plain types */}
+        {!isPlain && <div className={`h-1.5 ${ui.accent}`} />}
 
         {/* Header */}
         {(title || showClose) && (
           <div
-            className={`relative px-6 py-4 ${ui.headerBg} border-b ${ui.border}`}
+            className={`relative px-6 py-4 ${isPlain ? '' : ui.headerBg} ${isPlain ? '' : `border-b ${ui.border}`}`}
           >
             {showClose && (
               <button
                 onClick={handleClose}
                 className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full
                            flex items-center justify-center text-gray-500 hover:text-gray-800
-                           hover:bg-white/60 transition-colors"
+                           hover:bg-gray-100 transition-colors"
                 aria-label="Cerrar"
                 type="button"
               >
@@ -141,10 +144,10 @@ const Modal2: React.FC<PropsWithChildren<ModalProps>> = ({
             )}
 
             {title && (
-              <div className="flex items-center gap-3 pr-12">
-                <StatusIcon />
+              <div className={`${isPlain ? 'justify-center' : ''} flex items-center gap-3 pr-12`}>
+                {!isPlain && <StatusIcon />}
                 <div>
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 leading-tight">
+                  <h3 className={`text-base sm:text-lg font-semibold text-gray-900 leading-tight ${isPlain ? 'text-center' : ''}`}>
                     {title}
                   </h3>
                 </div>

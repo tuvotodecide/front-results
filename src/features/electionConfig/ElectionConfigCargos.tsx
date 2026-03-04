@@ -9,7 +9,9 @@ import InfoPopover from './components/InfoPopover';
 import PositionsTable from './components/PositionsTable';
 import AddPositionModal from './components/AddPositionModal';
 import { usePositions } from './data/usePositionRepository';
-import type { Position } from './types';
+import { useParties } from './data/usePartyRepository';
+import { usePadron } from './data/usePadronRepository';
+import type { Position, ConfigStep } from './types';
 
 // Mock: obtener título de elección (en producción vendría de API/store)
 const getElectionTitle = (electionId: string): string => {
@@ -42,6 +44,8 @@ const ElectionConfigCargos: React.FC = () => {
     updating,
     deleting,
   } = usePositions(actualElectionId);
+  const { parties } = useParties(actualElectionId);
+  const { isLoaded: isPadronLoaded, validCount, invalidCount } = usePadron(actualElectionId);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingPosition, setEditingPosition] = useState<Position | null>(null);
@@ -49,6 +53,8 @@ const ElectionConfigCargos: React.FC = () => {
 
   const isOperating = creating || updating || deleting;
   const hasPositions = positions.length > 0;
+  const hasPartiesWithCandidates = parties.some((party) => party.candidates.length > 0);
+  const isPadronReady = isPadronLoaded && validCount > 0 && invalidCount === 0;
 
   // Handlers
   const handleAddClick = () => {
@@ -84,13 +90,23 @@ const ElectionConfigCargos: React.FC = () => {
     navigate(`/elections/${actualElectionId}/config/planchas`);
   };
 
+  const handleGoToStep = (step: ConfigStep) => {
+    if (step === 1) return;
+    if (step === 2 && hasPositions) {
+      navigate(`/elections/${actualElectionId}/config/planchas`);
+    }
+    if (step === 3 && hasPositions && hasPartiesWithCandidates) {
+      navigate(`/elections/${actualElectionId}/config/padron`);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="bg-gray-50 min-h-[calc(100vh-64px)] flex flex-col">
       {/* Contenido principal */}
-      <div className="flex-1 py-8">
+      <div className="py-8 flex-1">
         <div className="max-w-4xl mx-auto px-4">
           {/* Título de la elección */}
-          <h1 className="text-3xl font-bold text-gray-900 text-center mb-8">
+          <h1 className="text-4xl font-extrabold text-gray-900 text-center mb-8">
             {electionTitle}
           </h1>
 
@@ -98,7 +114,17 @@ const ElectionConfigCargos: React.FC = () => {
           <div className="mb-4">
             <ConfigStepsTabs
               currentStep={1}
-              canNavigate={(step) => step === 1} // Solo paso 1 navegable por ahora
+              completedSteps={[
+                ...(hasPositions ? [1] : []),
+                ...(hasPartiesWithCandidates ? [2] : []),
+                ...(isPadronReady ? [3] : []),
+              ]}
+              onStepChange={handleGoToStep}
+              canNavigate={(step) => {
+                if (step === 1) return true;
+                if (step === 2) return hasPositions;
+                return hasPositions && hasPartiesWithCandidates;
+              }}
             />
           </div>
 
@@ -182,6 +208,7 @@ const ElectionConfigCargos: React.FC = () => {
         onClose={() => setDeleteConfirm(null)}
         title="Eliminar cargo"
         size="sm"
+        type="plain"
       >
         <div className="space-y-4">
           <p className="text-gray-700">

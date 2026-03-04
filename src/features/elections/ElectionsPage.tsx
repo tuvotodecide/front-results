@@ -15,6 +15,19 @@ const ElectionsPage: React.FC = () => {
     navigate('/elections/new');
   };
 
+  const handleElectionClick = (electionId: string, status: string) => {
+    if (status === 'DRAFT') {
+      // Ir a configuración (Paso 1)
+      navigate(`/elections/${electionId}/config/cargos`);
+    } else if (status === 'ACTIVE' || status === 'CLOSED' || status === 'RESULTS') {
+      // Elección activa o cerrada - ir a vista de estado (read-only)
+      navigate(`/elections/${electionId}/status`);
+    } else {
+      // Fallback a review
+      navigate(`/elections/${electionId}/config/review`);
+    }
+  };
+
   // Loading
   if (loading) {
     return (
@@ -68,7 +81,8 @@ const ElectionsPage: React.FC = () => {
             {elections.map((election) => (
               <div
                 key={election.id}
-                className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+                onClick={() => handleElectionClick(election.id, election.status)}
+                className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:border-[#459151] transition-all cursor-pointer"
               >
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                   <div className="flex-1">

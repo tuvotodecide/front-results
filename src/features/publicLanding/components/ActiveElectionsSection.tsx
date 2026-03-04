@@ -2,7 +2,9 @@
 // Basado en captura 03_active_elections.png
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { ActiveElection, ElectionStatus } from '../types';
+import PadronCheckModal from '../../padronCheck/PadronCheckModal';
 
 // Badge de estado
 const StatusBadge: React.FC<{ status: ElectionStatus }> = ({ status }) => {
@@ -52,6 +54,7 @@ const ActiveElectionsSection: React.FC<ActiveElectionsSectionProps> = ({
   others,
   onConsultarHabilitado,
 }) => {
+  const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
 
   const handleConsultar = () => {
@@ -60,6 +63,10 @@ const ActiveElectionsSection: React.FC<ActiveElectionsSectionProps> = ({
     } else {
       setShowModal(true);
     }
+  };
+
+  const handleViewElection = (electionId: string) => {
+    navigate(`/elections/${electionId}/public`);
   };
 
   return (
@@ -166,7 +173,10 @@ const ActiveElectionsSection: React.FC<ActiveElectionsSectionProps> = ({
                   <p className="text-sm text-slate-500 mb-4">
                     {election.organization}
                   </p>
-                  <button className="text-emerald-600 hover:text-emerald-700 text-sm font-semibold flex items-center gap-1 transition-colors group-hover:gap-2">
+                  <button
+                    onClick={() => handleViewElection(election.id)}
+                    className="text-emerald-600 hover:text-emerald-700 text-sm font-semibold flex items-center gap-1 transition-colors group-hover:gap-2"
+                  >
                     Ver información
                     <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M9 18l6-6-6-6" />
@@ -179,25 +189,11 @@ const ActiveElectionsSection: React.FC<ActiveElectionsSectionProps> = ({
         )}
       </div>
 
-      {/* Modal placeholder para consultar habilitado */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
-            <h3 className="text-xl font-bold text-slate-800 mb-2">
-              Consultar habilitación
-            </h3>
-            <p className="text-slate-600 mb-6">
-              Esta funcionalidad estará disponible próximamente. Por ahora, contacta al organizador de la elección.
-            </p>
-            <button
-              onClick={() => setShowModal(false)}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
-            >
-              Entendido
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Modal para consultar habilitado */}
+      <PadronCheckModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+      />
     </section>
   );
 };

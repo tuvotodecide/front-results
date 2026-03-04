@@ -57,6 +57,18 @@ const ElectionConfigCargos = React.lazy(() =>
 const ElectionConfigPlanchas = React.lazy(() =>
   import("./features/electionConfig").then((m) => ({ default: m.ElectionConfigPlanchas }))
 );
+const ElectionConfigPadron = React.lazy(() =>
+  import("./features/electionConfig").then((m) => ({ default: m.ElectionConfigPadron }))
+);
+const ElectionConfigReview = React.lazy(() =>
+  import("./features/electionConfig").then((m) => ({ default: m.ElectionConfigReview }))
+);
+const PublicElectionDetailPage = React.lazy(() =>
+  import("./features/publicElectionDetail").then((m) => ({ default: m.PublicElectionDetailPage }))
+);
+const ActiveElectionStatusPage = React.lazy(() =>
+  import("./features/electionConfig").then((m) => ({ default: m.ActiveElectionStatusPage }))
+);
 
 // Wrapper que decide entre Landing Público o Home según auth
 const LandingOrHomeRoute: React.FC = () => {
@@ -129,6 +141,42 @@ const AppRouter: React.FC = () => {
             element={
               <PublicLayout>
                 <ElectionConfigPlanchas />
+              </PublicLayout>
+            }
+          />
+          {/* Configuración de elección - Paso 3: Padrón */}
+          <Route
+            path="/elections/:electionId/config/padron"
+            element={
+              <PublicLayout>
+                <ElectionConfigPadron />
+              </PublicLayout>
+            }
+          />
+          {/* Configuración de elección - Revisión final */}
+          <Route
+            path="/elections/:electionId/config/review"
+            element={
+              <PublicLayout>
+                <ElectionConfigReview />
+              </PublicLayout>
+            }
+          />
+          {/* Detalle público de elección - resultados y estado */}
+          <Route
+            path="/elections/:electionId/public"
+            element={
+              <PublicLayout>
+                <PublicElectionDetailPage />
+              </PublicLayout>
+            }
+          />
+          {/* Estado de elección activa (loggeado, read-only) */}
+          <Route
+            path="/elections/:electionId/status"
+            element={
+              <PublicLayout>
+                <ActiveElectionStatusPage />
               </PublicLayout>
             }
           />

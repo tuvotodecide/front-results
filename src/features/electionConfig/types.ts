@@ -70,3 +70,49 @@ export interface PartyWithCandidates extends Party {
 }
 
 export type StepStatus = 'pending' | 'active' | 'completed';
+
+// Tipos para Padrón Electoral (Step 3)
+export type VoterStatus = 'valid' | 'invalid';
+export type InvalidReason = 'empty' | 'invalid_format' | 'duplicate';
+
+export interface Voter {
+  id: string;
+  rowNumber: number;
+  carnet: string;
+  fullName: string;
+  status: VoterStatus;
+  invalidReason?: InvalidReason;
+}
+
+export interface PadronUploadResult {
+  totalRecords: number;
+  validCount: number;
+  invalidCount: number;
+  voters: Voter[];
+}
+
+export interface PadronFile {
+  fileName: string;
+  uploadedAt: string;
+  totalRecords: number;
+  validCount: number;
+  invalidCount: number;
+}
+
+export interface PadronState {
+  electionId: string;
+  file: PadronFile | null;
+  voters: Voter[];
+  isLoaded: boolean;
+}
+
+export interface CorrectionInput {
+  id: string;
+  carnet: string;
+}
+
+export interface PadronSummary {
+  totalRecords: number;
+  validCount: number;
+  invalidCount: number;
+}

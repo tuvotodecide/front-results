@@ -88,7 +88,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
     if (!pendingData) return;
 
     try {
-      await createElection({
+      const newElection = await createElection({
         institution: pendingData.institution,
         description: pendingData.description,
         votingStartDate: pendingData.votingStartDate,
@@ -101,8 +101,8 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
       if (onSuccess) {
         onSuccess();
       } else {
-        // Navegar al dashboard de elecciones
-        navigate('/elections');
+        // Navegar al Paso 1 de configuración (Cargos)
+        navigate(`/elections/${newElection.id}/config/cargos`);
       }
     } catch (error) {
       console.error('Error creando elección:', error);
