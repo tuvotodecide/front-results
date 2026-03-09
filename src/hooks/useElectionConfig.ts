@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
+import { selectAuth } from '../store/auth/authSlice';
 import { useGetConfigurationStatusQuery } from '../store/configurations/configurationsEndpoints';
+
 import { ElectionStatusType } from '../types';
 import {
   FIVE_MINUTES_MS,
@@ -31,6 +33,9 @@ interface ElectionConfig {
  */
 export default function useElectionConfig(): ElectionConfig {
   const selectedElectionId = useSelector((s: RootState) => s.election.selectedElectionId);
+  const auth = useSelector(selectAuth);
+  const userRole = auth.user?.role;
+
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [knownActiveElections, setKnownActiveElections] = useState<ElectionStatusType[]>([]);
 
@@ -89,9 +94,16 @@ export default function useElectionConfig(): ElectionConfig {
       currentElection = activeElections.find(e => e.id === selectedElectionId) ?? null;
     }
 
-    // If no selection or selection not found, use first active election
+    // If no selection or selection not found, use first active election that matches user role
     if (!currentElection && activeElections.length > 0) {
-      currentElection = activeElections[0];
+      // Find role-matching election
+      if (userRole === 'MAYOR') {
+        currentElection = activeElections.find(e => e.type === 'municipal') ?? activeElections[0];
+      } else if (userRole === 'GOVERNOR') {
+        currentElection = activeElections.find(e => e.type === 'departamental') ?? activeElections[0];
+      } else {
+        currentElection = activeElections[0];
+      }
     }
 
     // Legacy fallback: if using old API format
@@ -116,5 +128,6 @@ export default function useElectionConfig(): ElectionConfig {
         : isAnyElectionInAutoRefreshWindow(activeElections, nowMs),
       isLoading,
     };
-  }, [status, selectedElectionId, isLoading, nowMs]);
+  }, [status, selectedElectionId, userRole, isLoading, nowMs]);
 }
+

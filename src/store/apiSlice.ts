@@ -15,6 +15,7 @@ const baseApiUrl = (VITE_BASE_API_URL as string) || "http://localhost:3000/api/v
 
 const baseQuery = fetchBaseQuery({
   baseUrl: baseApiUrl,
+  credentials: "include",
   prepareHeaders: (headers, { getState }) => {
     const state = getState() as RootState;
     const token = state.auth.token;

@@ -7,12 +7,18 @@ import store from "./store";
 
 async function prepareApp() {
   if (import.meta.env.DEV && import.meta.env.VITE_USE_MSW === 'true') {
-    const { worker } = await import('./mocks/browser')
-    return worker.start({
-      onUnhandledRequest: 'bypass',
-    })
+    try {
+      const { worker } = await import('./mocks/browser')
+      return worker.start({
+        onUnhandledRequest: 'bypass',
+      })
+    } catch (e) {
+      console.error('MSW failed to start:', e)
+    }
   }
 }
+
+
 
 prepareApp().then(() => {
   createRoot(document.getElementById("root")!).render(

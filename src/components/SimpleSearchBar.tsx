@@ -4,6 +4,7 @@ import { Search, X } from "lucide-react";
 interface SearchBarProps {
   className?: string;
   onSearch?: (query: string) => void;
+  onChange?: (query: string) => void;
   inputDataCy?: string;
   submitDataCy?: string;
   clearDataCy?: string;
@@ -13,6 +14,7 @@ interface SearchBarProps {
 export default function SimpleSearchBar({
   className,
   onSearch,
+  onChange,
   inputDataCy = "image-search-input",
   submitDataCy = "image-search-submit",
   clearDataCy = "image-search-clear",
@@ -73,7 +75,7 @@ export default function SimpleSearchBar({
               onChange={(e) => {
                 const val = e.target.value;
                 setQuery(val);
-                if (onSearch) onSearch(val);
+                if (onChange) onChange(val);
               }}
               onKeyDown={handleKeyDown}
               placeholder={placeholder}

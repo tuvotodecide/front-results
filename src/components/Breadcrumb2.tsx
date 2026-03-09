@@ -118,6 +118,7 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
               submitDataCy="table-search-submit"
               className={styles["search-bar"]}
               onSearch={handleSearch}
+              onChange={handleSearch}
             />
             <h2
               className={`text-lg font-semibold text-gray-800 ${styles["suggestions-title-text"]}`}

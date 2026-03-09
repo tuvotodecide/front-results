@@ -11,6 +11,8 @@ const TableSearchMode = () => {
         isPreliminaryPhase,
         isFinalPhase,
         filteredTables,
+        filteredMesas,
+        setMesaQuery,
         showAllFilteredTables,
         setShowAllFilteredTables,
         countedTables,
@@ -28,16 +30,24 @@ const TableSearchMode = () => {
 
             {filteredTables.length > 0 ? (
                 <div className="bg-gray-50 rounded-lg shadow-sm p-4 mt-6">
-                    <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
-                        Mesas encontradas ({filteredTables.length})
-                    </h3>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 pb-3 border-b border-gray-200 gap-4">
+                        <h3 className="text-xl font-bold text-gray-800">
+                            Mesas encontradas ({filteredTables.length})
+                        </h3>
+                        <SimpleSearchBar
+                            className="w-full sm:max-w-xs"
+                            placeholder="Filtrar por número o código..."
+                            onChange={setMesaQuery}
+                            onSearch={setMesaQuery}
+                        />
+                    </div>
                     <div
-                        className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 ${!showAllFilteredTables && filteredTables.length > 15
-                                ? "max-h-[calc(3*10rem+2*0.75rem)] overflow-hidden"
-                                : ""
+                        className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 ${!showAllFilteredTables && filteredMesas.length > 15
+                            ? "max-h-[calc(3*10rem+2*0.75rem)] overflow-hidden"
+                            : ""
                             }`}
                     >
-                        {filteredTables.map((table) => (
+                        {filteredMesas.map((table) => (
                             <Link
                                 key={table._id}
                                 to={`/resultados/mesa/${table.tableCode}`}
@@ -57,13 +67,13 @@ const TableSearchMode = () => {
                             </Link>
                         ))}
                     </div>
-                    {filteredTables.length > 15 && (
+                    {filteredMesas.length > 15 && (
                         <div className="mt-4 text-center">
                             <button
                                 onClick={() => setShowAllFilteredTables(!showAllFilteredTables)}
                                 className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200"
                             >
-                                {showAllFilteredTables ? "Mostrar menos" : `Mostrar todas (${filteredTables.length} mesas)`}
+                                {showAllFilteredTables ? "Mostrar menos" : `Mostrar todas (${filteredMesas.length} mesas)`}
                             </button>
                         </div>
                     )}

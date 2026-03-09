@@ -16,7 +16,14 @@ export const useTableSearchLogic = () => {
     const [getTablesByLocationId] = useLazyGetElectoralTablesByElectoralLocationIdQuery();
 
     const [filteredTables, setFilteredTables] = useState<ElectoralTableType[]>([]);
+    const [mesaQuery, setMesaQuery] = useState("");
     const [showAllFilteredTables, setShowAllFilteredTables] = useState(false);
+
+    const filteredMesas = (filteredTables || []).filter(t =>
+        !mesaQuery ||
+        t.tableNumber?.toString().includes(mesaQuery) ||
+        t.tableCode?.toLowerCase().includes(mesaQuery.toLowerCase())
+    );
 
     const {
         election,
@@ -68,6 +75,8 @@ export const useTableSearchLogic = () => {
         isPreliminaryPhase,
         isFinalPhase,
         filteredTables,
+        filteredMesas,
+        setMesaQuery,
         showAllFilteredTables,
         setShowAllFilteredTables,
         countedTables,
