@@ -1,8 +1,9 @@
-// Hook para gestionar el padrón electoral
-// Abstrae la comunicación con el repository
-
-import { useState, useEffect, useCallback } from 'react';
-import { padronRepository } from './PadronRepository.mock';
+import { useMemo, useState, useCallback } from 'react';
+import {
+  useGetPadronVersionsQuery,
+  useGetPadronVotersQuery,
+  useImportPadronMutation,
+} from '../../../store/votingEvents';
 import type {
   Voter,
   PadronFile,
@@ -19,259 +20,136 @@ export interface UsePadronOptions {
 }
 
 export interface UsePadronReturn {
-  // Estado del padrón
   file: PadronFile | null;
   isLoaded: boolean;
   loading: boolean;
-
-  // Votantes paginados
   voters: Voter[];
   totalVoters: number;
   page: number;
   pageSize: number;
   totalPages: number;
-
-  // Stats
   validCount: number;
   invalidCount: number;
-
-  // Operaciones
-  uploadCSV: (
-    file: File,
-    onProgress?: (progress: number) => void
-  ) => Promise<PadronUploadResult>;
+  uploadCSV: (file: File, onProgress?: (progress: number) => void) => Promise<PadronUploadResult>;
   uploading: boolean;
-
   getInvalidVoters: () => Promise<Voter[]>;
-
   saveCorrections: (
     corrections: CorrectionInput[],
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
   ) => Promise<PadronUploadResult>;
   savingCorrections: boolean;
-
   deleteVoter: (voterId: string) => Promise<void>;
   deletingVoter: boolean;
-
   deletePadron: () => Promise<void>;
   deletingPadron: boolean;
-
   replacePadron: (
     file: File,
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
   ) => Promise<PadronUploadResult>;
   replacingPadron: boolean;
-
-  // Refetch
   refetch: () => Promise<void>;
   setPage: (page: number) => void;
   setSearch: (search: string) => void;
 }
 
-export const usePadron = (
-  electionId: string,
-  options: UsePadronOptions = {}
-): UsePadronReturn => {
-  const { pageSize = 10, statusFilter = 'all' } = options;
-
-  // Estado local
-  const [file, setFile] = useState<PadronFile | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [voters, setVoters] = useState<Voter[]>([]);
-  const [totalVoters, setTotalVoters] = useState(0);
+export const usePadron = (electionId: string, options: UsePadronOptions = {}): UsePadronReturn => {
+  const { pageSize = 50, statusFilter = 'all' } = options;
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
-  const [search, setSearch] = useState('');
-  const [validCount, setValidCount] = useState(0);
-  const [invalidCount, setInvalidCount] = useState(0);
+  const [search, setSearch] = useState(options.search ?? '');
 
-  // Estados de operaciones
-  const [uploading, setUploading] = useState(false);
-  const [savingCorrections, setSavingCorrections] = useState(false);
-  const [deletingVoter, setDeletingVoter] = useState(false);
-  const [deletingPadron, setDeletingPadron] = useState(false);
-  const [replacingPadron, setReplacingPadron] = useState(false);
+  const { data: versions = [], isLoading: loadingVersions, refetch: refetchVersions } =
+    useGetPadronVersionsQuery(electionId, { skip: !electionId });
 
-  // Cargar estado inicial y votantes
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      // Obtener estado del padrón
-      const state = await padronRepository.getPadronState(electionId);
-      setFile(state.file);
-      setIsLoaded(state.isLoaded);
-      setValidCount(state.file?.validCount || 0);
-      setInvalidCount(state.file?.invalidCount || 0);
+  const { data: votersResp, isLoading: loadingVoters, refetch: refetchVoters } =
+    useGetPadronVotersQuery(
+      { eventId: electionId, page, limit: pageSize },
+      { skip: !electionId || versions.length === 0 },
+    );
 
-      // Obtener votantes paginados
-      if (state.isLoaded) {
-        const result = await padronRepository.getVoters(electionId, {
-          page,
-          pageSize,
-          search,
-          statusFilter,
-        });
-        setVoters(result.voters);
-        setTotalVoters(result.total);
-        setTotalPages(result.totalPages);
+  const [importPadron, importState] = useImportPadronMutation();
+
+  const currentVersion = versions.find((v) => v.isCurrent) ?? versions[0] ?? null;
+
+  const voters = useMemo(() => {
+    const rows = (votersResp?.voters ?? []).map((v, index) => ({
+      id: v.id,
+      rowNumber: (page - 1) * pageSize + index + 1,
+      carnet: v.carnet,
+      fullName: v.fullName || '',
+      status: 'valid' as const,
+      invalidReason: undefined,
+    }));
+
+    const searched = search.trim()
+      ? rows.filter(
+          (r) =>
+            r.carnet.toLowerCase().includes(search.toLowerCase()) ||
+            r.fullName.toLowerCase().includes(search.toLowerCase()),
+        )
+      : rows;
+
+    if (statusFilter === 'all') return searched;
+    return searched.filter((r) => r.status === statusFilter);
+  }, [votersResp?.voters, page, pageSize, search, statusFilter]);
+
+  const file: PadronFile | null = currentVersion
+    ? {
+        fileName: currentVersion.fileName,
+        uploadedAt: currentVersion.uploadedAt,
+        totalRecords: currentVersion.totalRecords,
+        validCount: currentVersion.validCount,
+        invalidCount: currentVersion.invalidCount,
       }
-    } catch (error) {
-      console.error('Error fetching padron:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [electionId, page, pageSize, search, statusFilter]);
+    : null;
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  // Subir CSV
   const uploadCSV = useCallback(
-    async (
-      csvFile: File,
-      onProgress?: (progress: number) => void
-    ): Promise<PadronUploadResult> => {
-      setUploading(true);
-      try {
-        const result = await padronRepository.uploadCSV(electionId, csvFile, onProgress);
-        setFile({
-          fileName: csvFile.name,
-          uploadedAt: new Date().toISOString(),
-          totalRecords: result.totalRecords,
-          validCount: result.validCount,
-          invalidCount: result.invalidCount,
-        });
-        setIsLoaded(true);
-        setValidCount(result.validCount);
-        setInvalidCount(result.invalidCount);
-        await fetchData();
-        return result;
-      } finally {
-        setUploading(false);
-      }
+    async (fileToUpload: File, onProgress?: (progress: number) => void): Promise<PadronUploadResult> => {
+      onProgress?.(30);
+      const out = await importPadron({ eventId: electionId, file: fileToUpload }).unwrap();
+      onProgress?.(100);
+      return {
+        totalRecords: out.totalRecords,
+        validCount: out.validCount,
+        invalidCount: out.invalidCount,
+        voters: [],
+      };
     },
-    [electionId, fetchData]
+    [importPadron, electionId],
   );
 
-  // Obtener votantes inválidos
-  const getInvalidVoters = useCallback(async (): Promise<Voter[]> => {
-    return padronRepository.getInvalidVoters(electionId);
-  }, [electionId]);
-
-  // Guardar correcciones
-  const saveCorrections = useCallback(
-    async (
-      corrections: CorrectionInput[],
-      onProgress?: (progress: number) => void
-    ): Promise<PadronUploadResult> => {
-      setSavingCorrections(true);
-      try {
-        const result = await padronRepository.saveCorrections(
-          electionId,
-          corrections,
-          onProgress
-        );
-        setValidCount(result.validCount);
-        setInvalidCount(result.invalidCount);
-        if (file) {
-          setFile({
-            ...file,
-            validCount: result.validCount,
-            invalidCount: result.invalidCount,
-          });
-        }
-        await fetchData();
-        return result;
-      } finally {
-        setSavingCorrections(false);
-      }
-    },
-    [electionId, file, fetchData]
-  );
-
-  // Eliminar votante
-  const deleteVoter = useCallback(
-    async (voterId: string): Promise<void> => {
-      setDeletingVoter(true);
-      try {
-        await padronRepository.deleteVoter(electionId, voterId);
-        await fetchData();
-      } finally {
-        setDeletingVoter(false);
-      }
-    },
-    [electionId, fetchData]
-  );
-
-  // Eliminar padrón completo
-  const deletePadron = useCallback(async (): Promise<void> => {
-    setDeletingPadron(true);
-    try {
-      await padronRepository.deletePadron(electionId);
-      setFile(null);
-      setIsLoaded(false);
-      setVoters([]);
-      setTotalVoters(0);
-      setValidCount(0);
-      setInvalidCount(0);
-    } finally {
-      setDeletingPadron(false);
-    }
-  }, [electionId]);
-
-  // Reemplazar padrón
-  const replacePadron = useCallback(
-    async (
-      csvFile: File,
-      onProgress?: (progress: number) => void
-    ): Promise<PadronUploadResult> => {
-      setReplacingPadron(true);
-      try {
-        const result = await padronRepository.replacePadron(electionId, csvFile, onProgress);
-        setFile({
-          fileName: csvFile.name,
-          uploadedAt: new Date().toISOString(),
-          totalRecords: result.totalRecords,
-          validCount: result.validCount,
-          invalidCount: result.invalidCount,
-        });
-        setIsLoaded(true);
-        setValidCount(result.validCount);
-        setInvalidCount(result.invalidCount);
-        await fetchData();
-        return result;
-      } finally {
-        setReplacingPadron(false);
-      }
-    },
-    [electionId, fetchData]
-  );
+  const refetch = useCallback(async () => {
+    await Promise.all([refetchVersions(), refetchVoters()]);
+  }, [refetchVersions, refetchVoters]);
 
   return {
     file,
-    isLoaded,
-    loading,
+    isLoaded: Boolean(currentVersion),
+    loading: loadingVersions || loadingVoters,
     voters,
-    totalVoters,
+    totalVoters: votersResp?.total ?? 0,
     page,
     pageSize,
-    totalPages,
-    validCount,
-    invalidCount,
+    totalPages: votersResp?.totalPages ?? 0,
+    validCount: currentVersion?.validCount ?? 0,
+    invalidCount: currentVersion?.invalidCount ?? 0,
     uploadCSV,
-    uploading,
-    getInvalidVoters,
-    saveCorrections,
-    savingCorrections,
-    deleteVoter,
-    deletingVoter,
-    deletePadron,
-    deletingPadron,
-    replacePadron,
-    replacingPadron,
-    refetch: fetchData,
+    uploading: importState.isLoading,
+    getInvalidVoters: async () => [],
+    saveCorrections: async () => {
+      throw new Error('Correcciones de padrón no implementadas en backend');
+    },
+    savingCorrections: false,
+    deleteVoter: async () => {
+      throw new Error('Eliminar votante no implementado en backend');
+    },
+    deletingVoter: false,
+    deletePadron: async () => {
+      throw new Error('Eliminar padrón no implementado en backend');
+    },
+    deletingPadron: false,
+    replacePadron: uploadCSV,
+    replacingPadron: importState.isLoading,
+    refetch,
     setPage,
     setSearch,
   };

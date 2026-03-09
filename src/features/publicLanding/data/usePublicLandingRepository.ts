@@ -3,15 +3,13 @@
 
 import { useState, useEffect } from 'react';
 import type { IPublicLandingRepository } from './PublicLandingRepository';
-import { publicLandingRepositoryMock } from './PublicLandingRepository.mock';
+import { publicLandingRepository } from './PublicLandingRepository.api';
 import type { PublicLandingData, ActiveElection } from '../types';
 
 // Selecciona la implementación del repositorio
 // TODO: Cambiar a API real cuando esté disponible
 const getRepository = (): IPublicLandingRepository => {
-  // Por ahora siempre usa mock
-  // En el futuro: verificar config o env para usar API real
-  return publicLandingRepositoryMock;
+  return publicLandingRepository;
 };
 
 interface UseLandingDataResult {

@@ -94,6 +94,14 @@ export const apiSlice = createApi({
     "Attestations",
     "ClientReports",
     "Contracts",
+    // Institutional Voting
+    "VotingEvents",
+    "VotingEventRoles",
+    "VotingEventOptions",
+    "VotingEventPadron",
+    "VotingEventResults",
+    "VotingEventNews",
+    "InstitutionalTenants",
   ],
   endpoints: () => ({}),
 });

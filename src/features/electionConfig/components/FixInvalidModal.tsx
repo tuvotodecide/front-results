@@ -12,6 +12,7 @@ interface FixInvalidModalProps {
   onSave: (corrections: CorrectionInput[]) => Promise<void>;
   onDelete: (voterId: string) => Promise<void>;
   isLoading: boolean;
+  error?: string | null;
 }
 
 interface EditableVoter extends Voter {
@@ -65,10 +66,10 @@ const FixInvalidModal: React.FC<FixInvalidModalProps> = ({
     }
   }, [isOpen, invalidVoters]);
 
-  // Validar formato de cédula (solo números, mínimo 6 dígitos)
+  // Validar formato de cédula (solo números, mínimo 7 dígitos)
   const validateCarnet = (carnet: string): boolean => {
     const cleaned = carnet.trim();
-    return /^\d{6,10}$/.test(cleaned);
+    return /^\d{7,10}$/.test(cleaned);
   };
 
   const handleCarnetChange = (voterId: string, value: string) => {
@@ -138,6 +139,11 @@ const FixInvalidModal: React.FC<FixInvalidModalProps> = ({
       type="plain"
     >
       <div className="space-y-4">
+        {error && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            {error}
+          </div>
+        )}
         {/* Subtítulo */}
         <p className="text-sm text-gray-500 -mt-2">
           Corrige o elimina registros con errores antes de publicar la votación.

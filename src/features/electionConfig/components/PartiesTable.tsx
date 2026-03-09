@@ -6,10 +6,11 @@ import type { PartyWithCandidates } from '../types';
 
 interface PartiesTableProps {
   parties: PartyWithCandidates[];
-  onEdit: (party: PartyWithCandidates) => void;
-  onDelete: (party: PartyWithCandidates) => void;
-  onEditCandidates: (party: PartyWithCandidates) => void;
+  onEdit?: (party: PartyWithCandidates) => void;
+  onDelete?: (party: PartyWithCandidates) => void;
+  onEditCandidates?: (party: PartyWithCandidates) => void;
   loading?: boolean;
+  readOnly?: boolean;
 }
 
 const ChevronIcon = ({ isOpen }: { isOpen: boolean }) => (
@@ -30,6 +31,7 @@ const PartiesTable: React.FC<PartiesTableProps> = ({
   onDelete,
   onEditCandidates,
   loading = false,
+  readOnly = false,
 }) => {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
@@ -67,7 +69,9 @@ const PartiesTable: React.FC<PartiesTableProps> = ({
             <th className="text-left px-4 py-4 font-semibold text-gray-700">Partido</th>
             <th className="text-center px-4 py-4 font-semibold text-gray-700 w-24">Color</th>
             <th className="text-center px-4 py-4 font-semibold text-gray-700 w-24">Logo</th>
-            <th className="text-right px-6 py-4 font-semibold text-gray-700">Acciones</th>
+            {!readOnly && (
+              <th className="text-right px-6 py-4 font-semibold text-gray-700">Acciones</th>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -116,51 +120,55 @@ const PartiesTable: React.FC<PartiesTableProps> = ({
                   </td>
 
                   {/* Acciones */}
-                  <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => onEdit(party)}
-                        disabled={loading}
-                        className="inline-flex items-center gap-1 px-3 py-2 bg-[#459151] hover:bg-[#3a7a44] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
-                      >
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onDelete(party)}
-                        disabled={loading}
-                        className="inline-flex items-center gap-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
-                      >
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        Eliminar
-                      </button>
-                    </div>
-                  </td>
+                  {!readOnly && (
+                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => onEdit?.(party)}
+                          disabled={loading}
+                          className="inline-flex items-center gap-1 px-3 py-2 bg-[#459151] hover:bg-[#3a7a44] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onDelete?.(party)}
+                          disabled={loading}
+                          className="inline-flex items-center gap-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Eliminar
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
 
                 {/* Fila expandida - Candidatos */}
                 {isExpanded && (
                   <tr className="bg-gray-50">
-                    <td colSpan={5} className="px-6 py-4">
+                    <td colSpan={readOnly ? 4 : 5} className="px-6 py-4">
                       <div className="pl-8">
                         <div className="flex items-center justify-between mb-4">
                           <h4 className="font-medium text-[#459151]">
                             Candidatos asignados
                           </h4>
-                          <button
-                            type="button"
-                            onClick={() => onEditCandidates(party)}
-                            disabled={loading}
-                            className="px-4 py-2 bg-[#459151] hover:bg-[#3a7a44] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
-                          >
-                            Editar Candidatos
-                          </button>
+                          {!readOnly && (
+                            <button
+                              type="button"
+                              onClick={() => onEditCandidates?.(party)}
+                              disabled={loading}
+                              className="px-4 py-2 bg-[#459151] hover:bg-[#3a7a44] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                            >
+                              Editar Candidatos
+                            </button>
+                          )}
                         </div>
 
                         {hasCandidates ? (

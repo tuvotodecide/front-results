@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { publicElectionRepository } from './data/PublicElectionRepository.mock';
+import { publicElectionRepository } from './data/PublicElectionRepository.api';
 import type { PublicElectionDetail, Candidate } from './types';
 import { PadronCheckModal } from '../padronCheck';
 
@@ -130,7 +130,7 @@ const StatusCard: React.FC<{ status: PublicElectionDetail['status'] }> = ({ stat
 );
 
 // Card del Ganador
-const WinnerCard: React.FC<{ candidate: Candidate; totalVotes: number }> = ({ candidate, totalVotes }) => (
+const WinnerCard: React.FC<{ candidate: Candidate }> = ({ candidate }) => (
   <div className="bg-emerald-50 border-2 border-emerald-200 rounded-xl p-6 shadow-sm">
     <div className="flex items-center gap-5">
       <div className="relative flex-shrink-0">
@@ -370,6 +370,7 @@ const PublicElectionDetailPage: React.FC = () => {
   }
 
   const winnerCandidate = getWinnerCandidate();
+  const hasResults = Boolean(election.results && election.results.candidates.length > 0);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -400,10 +401,10 @@ const PublicElectionDetailPage: React.FC = () => {
         </div>
 
         {/* Contenido según estado */}
-        {election.status === 'FINISHED' && winnerCandidate && (
+        {election.status === 'FINISHED' && hasResults && winnerCandidate && (
           <>
             <div className="mb-6">
-              <WinnerCard candidate={winnerCandidate} totalVotes={election.results!.totalVotes} />
+              <WinnerCard candidate={winnerCandidate} />
             </div>
             <VoteDistributionSection
               candidates={election.results!.candidates}
@@ -412,16 +413,24 @@ const PublicElectionDetailPage: React.FC = () => {
           </>
         )}
 
-        {election.status === 'LIVE' && election.results && (
+        {election.status === 'FINISHED' && !hasResults && (
+          <NoResultsCard />
+        )}
+
+        {election.status === 'LIVE' && (
           <>
             <div className="mb-6">
               <LiveVotingCard />
             </div>
-            <VoteDistributionSection
-              candidates={election.results.candidates}
-              winnerId={null}
-              isPreliminary
-            />
+            {hasResults ? (
+              <VoteDistributionSection
+                candidates={election.results!.candidates}
+                winnerId={null}
+                isPreliminary
+              />
+            ) : (
+              <NoResultsCard />
+            )}
           </>
         )}
 
@@ -437,6 +446,7 @@ const PublicElectionDetailPage: React.FC = () => {
       <PadronCheckModal
         isOpen={showPadronModal}
         onClose={() => setShowPadronModal(false)}
+        eventId={electionId}
       />
     </div>
   );

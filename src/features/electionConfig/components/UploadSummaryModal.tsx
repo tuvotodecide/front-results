@@ -11,6 +11,8 @@ interface UploadSummaryModalProps {
   invalidCount: number;
   onContinue: () => void;
   onFix: () => void;
+  continueLabel?: string;
+  disableContinue?: boolean;
 }
 
 const DocumentIcon = () => (
@@ -52,6 +54,8 @@ const UploadSummaryModal: React.FC<UploadSummaryModalProps> = ({
   invalidCount,
   onContinue,
   onFix,
+  continueLabel = 'Continuar',
+  disableContinue = false,
 }) => {
   const formatNumber = (num: number) => num.toLocaleString('es-ES');
 
@@ -101,9 +105,14 @@ const UploadSummaryModal: React.FC<UploadSummaryModalProps> = ({
           <button
             type="button"
             onClick={onContinue}
-            className="px-8 py-3 bg-[#459151] hover:bg-[#3a7a44] text-white font-semibold rounded-lg transition-colors"
+            disabled={disableContinue}
+            className={`px-8 py-3 font-semibold rounded-lg transition-colors ${
+              disableContinue
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-[#459151] hover:bg-[#3a7a44] text-white'
+            }`}
           >
-            Continuar
+            {continueLabel}
           </button>
           {invalidCount > 0 && (
             <button

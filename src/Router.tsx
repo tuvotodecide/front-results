@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { setAuth, selectIsLoggedIn } from "./store/auth/authSlice";
 import LoadingSkeleton from "./components/LoadingSkeleton";
+import { isVotingMode } from "./config/appMode";
 import ResultadosGenerales3 from "./pages/Resultados/ResultadosGenerales3";
 import ParticipacionPersonal from "./pages/Resultados/PersonalParticipation";
 import AuditAndMatch from "./pages/Resultados/AuditAndMatch";
@@ -70,12 +71,25 @@ const ActiveElectionStatusPage = React.lazy(() =>
   import("./features/electionConfig").then((m) => ({ default: m.ActiveElectionStatusPage }))
 );
 
-// Wrapper que decide entre Landing Público o Home según auth
+// Wrapper que decide entre Landing Público o Home según auth y modo
 const LandingOrHomeRoute: React.FC = () => {
   const isLoggedIn = useSelector(selectIsLoggedIn);
 
+  // Modo Voting: Redirigir a /elections si está logueado
+  if (isVotingMode()) {
+    if (isLoggedIn) {
+      return <Navigate to="/elections" replace />;
+    }
+    // No logueado: mostrar landing público
+    return (
+      <PublicLayout>
+        <PublicLandingPage />
+      </PublicLayout>
+    );
+  }
+
+  // Modo Results (anterior): comportamiento original
   if (isLoggedIn) {
-    // Usuario autenticado: muestra Home dentro de BasicLayout (con sidebar)
     return (
       <BasicLayout>
         <Home />
@@ -83,7 +97,6 @@ const LandingOrHomeRoute: React.FC = () => {
     );
   }
 
-  // Usuario no autenticado: muestra Landing Público con su layout (sin sidebar)
   return (
     <PublicLayout>
       <PublicLandingPage />

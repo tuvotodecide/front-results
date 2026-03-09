@@ -7,7 +7,8 @@
       "Bash(dir:*)",
       "Bash(timeout 15 npm run dev:*)",
       "Bash(findstr:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(tree:*)"
     ]
   }
 }

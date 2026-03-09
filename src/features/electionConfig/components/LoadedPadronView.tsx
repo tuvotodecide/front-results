@@ -15,11 +15,12 @@ interface LoadedPadronViewProps {
   pageSize: number;
   onPageChange: (page: number) => void;
   onSearchChange: (search: string) => void;
-  onFixInvalid: () => void;
-  onReplaceFile: () => void;
-  onDeleteFile: () => void;
-  onFinish: () => void;
+  onFixInvalid?: () => void;
+  onReplaceFile?: () => void;
+  onDeleteFile?: () => void;
+  onFinish?: () => void;
   loading?: boolean;
+  readOnly?: boolean;
 }
 
 // Iconos
@@ -70,6 +71,7 @@ const LoadedPadronView: React.FC<LoadedPadronViewProps> = ({
   onDeleteFile,
   onFinish,
   loading = false,
+  readOnly = false,
 }) => {
   const [searchValue, setSearchValue] = useState('');
 
@@ -135,7 +137,7 @@ const LoadedPadronView: React.FC<LoadedPadronViewProps> = ({
           </div>
           <p className="text-4xl font-bold text-red-600">{formatNumber(invalidCount)}</p>
           <p className="text-sm text-red-600 mt-1">Errores de formato o datos</p>
-          {invalidCount > 0 && (
+          {invalidCount > 0 && !readOnly && (
             <button
               type="button"
               onClick={onFixInvalid}
@@ -307,51 +309,55 @@ const LoadedPadronView: React.FC<LoadedPadronViewProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onReplaceFile}
-            className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-white transition-colors"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Reemplazar archivo
-          </button>
+        {!readOnly && (
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onReplaceFile}
+              className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-white transition-colors"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Reemplazar archivo
+            </button>
 
-          <button
-            type="button"
-            onClick={onDeleteFile}
-            className="inline-flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 font-medium rounded-lg hover:bg-red-50 transition-colors"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-            Eliminar
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={onDeleteFile}
+              className="inline-flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 font-medium rounded-lg hover:bg-red-50 transition-colors"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Eliminar
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Botón finalizar */}
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={onFinish}
-          disabled={invalidCount > 0}
-          className={`
-            inline-flex items-center gap-2 px-8 py-3 font-semibold rounded-lg transition-all
-            ${invalidCount === 0
-              ? 'bg-[#459151] hover:bg-[#3a7a44] text-white shadow-md hover:shadow-lg'
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }
-          `}
-        >
-          Finalizar configuración
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-        </button>
-      </div>
+      {!readOnly && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={onFinish}
+            disabled={invalidCount > 0}
+            className={`
+              inline-flex items-center gap-2 px-8 py-3 font-semibold rounded-lg transition-all
+              ${invalidCount === 0
+                ? 'bg-[#459151] hover:bg-[#3a7a44] text-white shadow-md hover:shadow-lg'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }
+            `}
+          >
+            Finalizar configuración
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

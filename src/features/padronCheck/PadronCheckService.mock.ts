@@ -15,6 +15,7 @@ export class PadronCheckServiceMock implements IPadronCheckService {
     // Regla 1: "0000000" => NO HABILITADO
     if (cleanCarnet === '0000000') {
       return {
+        kind: 'single',
         status: 'NOT_ELIGIBLE',
         carnet: cleanCarnet,
       };
@@ -23,6 +24,7 @@ export class PadronCheckServiceMock implements IPadronCheckService {
     // Regla 2: "1111111" => NO REGISTRADO
     if (cleanCarnet === '1111111') {
       return {
+        kind: 'single',
         status: 'NOT_REGISTERED',
         carnet: cleanCarnet,
       };
@@ -30,6 +32,7 @@ export class PadronCheckServiceMock implements IPadronCheckService {
 
     // Regla 3: Cualquier otro número válido => HABILITADO
     return {
+      kind: 'single',
       status: 'ELIGIBLE',
       carnet: cleanCarnet,
       mesaAsignada: 'Mesa ' + (Math.floor(Math.random() * 50) + 1),

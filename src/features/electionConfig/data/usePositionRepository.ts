@@ -1,20 +1,17 @@
-// Hook para usar el repositorio de posiciones
-
-import { useState, useEffect, useCallback } from 'react';
-import type { IPositionRepository } from './PositionRepository';
-import { positionRepositoryMock } from './PositionRepository.mock';
+import { useMemo } from 'react';
+import {
+  useCreateEventRoleMutation,
+  useDeleteEventRoleMutation,
+  useGetEventRolesQuery,
+  useUpdateEventRoleMutation,
+} from '../../../store/votingEvents';
 import type { Position, CreatePositionPayload, UpdatePositionPayload } from '../types';
-
-// Selector de implementación
-const getRepository = (): IPositionRepository => {
-  return positionRepositoryMock;
-};
 
 interface UsePositionsResult {
   positions: Position[];
   loading: boolean;
   error: Error | null;
-  refetch: () => Promise<void>;
+  refetch: () => Promise<any>;
   createPosition: (payload: CreatePositionPayload) => Promise<Position>;
   updatePosition: (payload: UpdatePositionPayload) => Promise<Position>;
   deletePosition: (positionId: string) => Promise<void>;
@@ -24,79 +21,60 @@ interface UsePositionsResult {
 }
 
 export const usePositions = (electionId: string): UsePositionsResult => {
-  const [positions, setPositions] = useState<Position[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [updating, setUpdating] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const { data = [], isLoading, error, refetch } = useGetEventRolesQuery(electionId, {
+    skip: !electionId,
+  });
 
-  const fetchPositions = useCallback(async () => {
-    if (!electionId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const repo = getRepository();
-      const data = await repo.listPositions(electionId);
-      setPositions(data);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Error desconocido'));
-    } finally {
-      setLoading(false);
-    }
-  }, [electionId]);
+  const [createRole, createState] = useCreateEventRoleMutation();
+  const [updateRole, updateState] = useUpdateEventRoleMutation();
+  const [deleteRole, deleteState] = useDeleteEventRoleMutation();
 
-  useEffect(() => {
-    fetchPositions();
-  }, [fetchPositions]);
-
-  const createPosition = async (payload: CreatePositionPayload): Promise<Position> => {
-    setCreating(true);
-    try {
-      const repo = getRepository();
-      const newPos = await repo.createPosition(electionId, payload);
-      setPositions((prev) => [...prev, newPos]);
-      return newPos;
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const updatePosition = async (payload: UpdatePositionPayload): Promise<Position> => {
-    setUpdating(true);
-    try {
-      const repo = getRepository();
-      const updated = await repo.updatePosition(electionId, payload);
-      setPositions((prev) =>
-        prev.map((p) => (p.id === payload.id ? updated : p))
-      );
-      return updated;
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const deletePosition = async (positionId: string): Promise<void> => {
-    setDeleting(true);
-    try {
-      const repo = getRepository();
-      await repo.deletePosition(electionId, positionId);
-      setPositions((prev) => prev.filter((p) => p.id !== positionId));
-    } finally {
-      setDeleting(false);
-    }
-  };
+  const positions = useMemo(
+    () =>
+      data.map((r) => ({
+        id: r.id,
+        name: r.name,
+        electionId: r.eventId,
+        createdAt: r.createdAt ?? new Date().toISOString(),
+      })),
+    [data],
+  );
 
   return {
     positions,
-    loading,
-    error,
-    refetch: fetchPositions,
-    createPosition,
-    updatePosition,
-    deletePosition,
-    creating,
-    updating,
-    deleting,
+    loading: isLoading,
+    error: error ? new Error('Error cargando cargos') : null,
+    refetch,
+    createPosition: async (payload) => {
+      const created = await createRole({
+        eventId: electionId,
+        data: { name: payload.name, maxWinners: 1 },
+      }).unwrap();
+      return {
+        id: created.id,
+        name: created.name,
+        electionId: created.eventId,
+        createdAt: created.createdAt ?? new Date().toISOString(),
+      };
+    },
+    updatePosition: async (payload) => {
+      const updated = await updateRole({
+        eventId: electionId,
+        roleId: payload.id,
+        data: { name: payload.name },
+      }).unwrap();
+      return {
+        id: updated.id,
+        name: updated.name,
+        electionId: updated.eventId,
+        createdAt: updated.createdAt ?? new Date().toISOString(),
+      };
+    },
+    deletePosition: async (positionId) => {
+      await deleteRole({ eventId: electionId, roleId: positionId }).unwrap();
+    },
+    creating: createState.isLoading,
+    updating: updateState.isLoading,
+    deleting: deleteState.isLoading,
   };
 };

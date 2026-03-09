@@ -1,31 +1,51 @@
 // Página de configuración de elección - Paso 2: Planchas/Partidos
-// Basado en capturas 01-04
+// Conectado a backend real con RTK Query
 
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Modal2 from '../../components/Modal2';
 import ConfigStepsTabs from './components/ConfigStepsTabs';
-import InfoPopover from './components/InfoPopover';
 import PartiesTable from './components/PartiesTable';
 import PartyModal from './components/PartyModal';
 import CandidatesModal from './components/CandidatesModal';
-import { useParties } from './data/usePartyRepository';
-import { usePositions } from './data/usePositionRepository';
-import { usePadron } from './data/usePadronRepository';
-import type { Party, PartyWithCandidates, CandidateInput, CreatePartyPayload, ConfigStep } from './types';
+import {
+  useGetVotingEventQuery,
+  useGetEventRolesQuery,
+  useGetEventOptionsQuery,
+  useCreateVotingOptionMutation,
+  useUpdateVotingOptionMutation,
+  useDeleteVotingOptionMutation,
+  useReplaceOptionCandidatesMutation,
+  useGetPadronVersionsQuery,
+} from '../../store/votingEvents';
+import type { Party, PartyWithCandidates, CandidateInput, CreatePartyPayload, Position, ConfigStep } from './types';
+import type { VotingOption, EventRole, OptionCandidate } from '../../store/votingEvents/types';
 
-// Mock: obtener título de elección
-const getElectionTitle = (electionId: string): string => {
-  try {
-    const stored = localStorage.getItem('mock_elections');
-    if (stored) {
-      const elections = JSON.parse(stored);
-      const election = elections.find((e: { id: string }) => e.id === electionId);
-      if (election) return election.institution;
-    }
-  } catch {}
-  return 'Elecciones Universitarias';
-};
+// Adaptar VotingOption a PartyWithCandidates
+const optionToPartyWithCandidates = (option: VotingOption): PartyWithCandidates => ({
+  id: option.id,
+  electionId: option.eventId,
+  name: option.name,
+  colorHex: option.color,
+  logoUrl: option.logoUrl,
+  createdAt: option.createdAt ?? new Date().toISOString(),
+  candidates: option.candidates.map((c: OptionCandidate) => ({
+    id: c.id,
+    partyId: option.id,
+    positionId: '', // Backend usa roleName, no positionId
+    positionName: c.roleName,
+    fullName: c.name,
+    photoUrl: c.photoUrl,
+  })),
+});
+
+// Adaptar EventRole a Position
+const roleToPosition = (role: EventRole): Position => ({
+  id: role.id,
+  name: role.name,
+  electionId: role.eventId,
+  createdAt: role.createdAt ?? new Date().toISOString(),
+});
 
 // Popover de información para Planchas
 const PlanchasInfoPopover: React.FC<{ className?: string }> = ({ className = '' }) => {
@@ -81,24 +101,30 @@ const PlanchasInfoPopover: React.FC<{ className?: string }> = ({ className = '' 
 const ElectionConfigPlanchas: React.FC = () => {
   const navigate = useNavigate();
   const { electionId } = useParams<{ electionId: string }>();
-  const actualElectionId = electionId || 'demo-election';
-  const electionTitle = getElectionTitle(actualElectionId);
+  const actualElectionId = electionId || '';
 
-  // Datos
-  const { positions } = usePositions(actualElectionId);
-  const {
-    parties,
-    loading,
-    createParty,
-    updateParty,
-    deleteParty,
-    saveCandidates,
-    creating,
-    updating,
-    deleting,
-    savingCandidates,
-  } = useParties(actualElectionId);
-  const { isLoaded: isPadronLoaded, validCount, invalidCount } = usePadron(actualElectionId);
+  // RTK Query hooks
+  const { data: event } = useGetVotingEventQuery(actualElectionId, {
+    skip: !actualElectionId,
+  });
+  const { data: roles = [] } = useGetEventRolesQuery(actualElectionId, {
+    skip: !actualElectionId,
+  });
+  const { data: options = [], isLoading: loading } = useGetEventOptionsQuery(actualElectionId, {
+    skip: !actualElectionId,
+  });
+  const { data: padronVersions = [] } = useGetPadronVersionsQuery(actualElectionId, {
+    skip: !actualElectionId,
+  });
+
+  const [createOption, { isLoading: creating }] = useCreateVotingOptionMutation();
+  const [updateOption, { isLoading: updating }] = useUpdateVotingOptionMutation();
+  const [deleteOption, { isLoading: deleting }] = useDeleteVotingOptionMutation();
+  const [replaceCandidates, { isLoading: savingCandidates }] = useReplaceOptionCandidatesMutation();
+
+  // Convertir datos del backend a formato del frontend
+  const parties = options.map(optionToPartyWithCandidates);
+  const positions = roles.map(roleToPosition);
 
   // Estados de UI
   const [isPartyModalOpen, setIsPartyModalOpen] = useState(false);
@@ -106,69 +132,140 @@ const ElectionConfigPlanchas: React.FC = () => {
   const [editingParty, setEditingParty] = useState<PartyWithCandidates | null>(null);
   const [currentPartyForCandidates, setCurrentPartyForCandidates] = useState<PartyWithCandidates | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<PartyWithCandidates | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const isOperating = creating || updating || deleting || savingCandidates;
 
-  // Verificar si hay al menos 1 partido con candidatos para habilitar "Siguiente"
+  // Verificar estados de los pasos
   const hasPartiesWithCandidates = parties.some((p) => p.candidates.length > 0);
   const hasPositions = positions.length > 0;
-  const isPadronReady = isPadronLoaded && validCount > 0 && invalidCount === 0;
+  const isPadronReady = padronVersions.length > 0;
 
   // Handlers
   const handleCreateParty = () => {
     setEditingParty(null);
     setIsPartyModalOpen(true);
+    setError(null);
   };
 
   const handleEditParty = (party: PartyWithCandidates) => {
     setEditingParty(party);
     setIsPartyModalOpen(true);
+    setError(null);
   };
 
   const handleDeleteParty = (party: PartyWithCandidates) => {
     setDeleteConfirm(party);
+    setError(null);
   };
 
   const handleEditCandidates = (party: PartyWithCandidates) => {
     setCurrentPartyForCandidates(party);
     setIsCandidatesModalOpen(true);
+    setError(null);
   };
 
   const handleSaveParty = async (data: CreatePartyPayload): Promise<Party> => {
-    let savedParty: Party;
+    setError(null);
+    try {
+      if (editingParty) {
+        const updated = await updateOption({
+          eventId: actualElectionId,
+          optionId: editingParty.id,
+          data: {
+            name: data.name,
+            color: data.colorHex,
+            logoUrl: data.logoBase64, // Backend debería aceptar base64 o URL
+          },
+        }).unwrap();
 
-    if (editingParty) {
-      savedParty = await updateParty({
-        id: editingParty.id,
-        ...data,
-      });
-      setIsPartyModalOpen(false);
-    } else {
-      savedParty = await createParty(data);
-      setIsPartyModalOpen(false);
-      // Abrir modal de candidatos para el nuevo partido
-      const newPartyWithCandidates: PartyWithCandidates = {
-        ...savedParty,
-        candidates: [],
-      };
-      setCurrentPartyForCandidates(newPartyWithCandidates);
-      setIsCandidatesModalOpen(true);
+        setIsPartyModalOpen(false);
+        return {
+          id: updated.id,
+          electionId: updated.eventId,
+          name: updated.name,
+          colorHex: updated.color,
+          logoUrl: updated.logoUrl,
+          createdAt: updated.createdAt ?? new Date().toISOString(),
+        };
+      } else {
+        const created = await createOption({
+          eventId: actualElectionId,
+          data: {
+            name: data.name,
+            color: data.colorHex,
+            logoUrl: data.logoBase64,
+            candidates: [], // Sin candidatos inicialmente
+          },
+        }).unwrap();
+
+        setIsPartyModalOpen(false);
+
+        // Abrir modal de candidatos para el nuevo partido
+        const newPartyWithCandidates: PartyWithCandidates = {
+          id: created.id,
+          electionId: created.eventId,
+          name: created.name,
+          colorHex: created.color,
+          logoUrl: created.logoUrl,
+          createdAt: created.createdAt ?? new Date().toISOString(),
+          candidates: [],
+        };
+        setCurrentPartyForCandidates(newPartyWithCandidates);
+        setIsCandidatesModalOpen(true);
+
+        return {
+          id: created.id,
+          electionId: created.eventId,
+          name: created.name,
+          colorHex: created.color,
+          logoUrl: created.logoUrl,
+          createdAt: created.createdAt ?? new Date().toISOString(),
+        };
+      }
+    } catch (err: any) {
+      setError(err?.data?.message || 'Error al guardar el partido');
+      throw err;
     }
-
-    return savedParty;
   };
 
   const handleSaveCandidates = async (candidates: CandidateInput[]) => {
     if (!currentPartyForCandidates) return;
-    await saveCandidates(currentPartyForCandidates.id, candidates);
-    setIsCandidatesModalOpen(false);
-    setCurrentPartyForCandidates(null);
+    setError(null);
+
+    try {
+      // Convertir CandidateInput al formato del backend
+      const backendCandidates = candidates.map((c) => ({
+        name: c.fullName,
+        photoUrl: c.photoBase64,
+        roleName: c.positionName,
+      }));
+
+      await replaceCandidates({
+        eventId: actualElectionId,
+        optionId: currentPartyForCandidates.id,
+        data: { candidates: backendCandidates },
+      }).unwrap();
+
+      setIsCandidatesModalOpen(false);
+      setCurrentPartyForCandidates(null);
+    } catch (err: any) {
+      setError(err?.data?.message || 'Error al guardar los candidatos');
+    }
   };
 
   const handleConfirmDelete = async () => {
-    if (deleteConfirm) {
-      await deleteParty(deleteConfirm.id);
+    if (!deleteConfirm) return;
+    setError(null);
+
+    try {
+      await deleteOption({
+        eventId: actualElectionId,
+        optionId: deleteConfirm.id,
+      }).unwrap();
       setDeleteConfirm(null);
+    } catch (err: any) {
+      setError(err?.data?.message || 'Error al eliminar el partido');
     }
   };
 
@@ -187,6 +284,23 @@ const ElectionConfigPlanchas: React.FC = () => {
     }
   };
 
+  // Si no hay electionId, mostrar error
+  if (!actualElectionId) {
+    return (
+      <div className="bg-gray-50 min-h-[calc(100vh-64px)] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-500">ID de elección no válido</p>
+          <button
+            onClick={() => navigate('/elections')}
+            className="mt-4 text-[#459151] hover:underline"
+          >
+            Volver a elecciones
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-gray-50 min-h-[calc(100vh-64px)] flex flex-col">
       {/* Contenido principal */}
@@ -194,10 +308,17 @@ const ElectionConfigPlanchas: React.FC = () => {
         <div className="max-w-5xl mx-auto px-4">
           {/* Título */}
           <h1 className="text-4xl font-extrabold text-gray-900 text-center mb-8">
-            {electionTitle}
+            {event?.name || 'Cargando...'}
           </h1>
 
-          {/* Tabs - Paso 1 completado, Paso 2 activo */}
+          {/* Error global */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+              {error}
+            </div>
+          )}
+
+          {/* Tabs */}
           <div className="mb-4">
             <ConfigStepsTabs
               currentStep={2}
@@ -205,7 +326,7 @@ const ElectionConfigPlanchas: React.FC = () => {
                 ...(hasPositions ? [1] : []),
                 ...(hasPartiesWithCandidates ? [2] : []),
                 ...(isPadronReady ? [3] : []),
-              ]}
+              ] as ConfigStep[]}
               onStepChange={handleGoToStep}
               canNavigate={(step) => {
                 if (step === 1 || step === 2) return true;

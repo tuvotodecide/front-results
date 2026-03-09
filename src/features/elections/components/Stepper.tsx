@@ -8,7 +8,7 @@ interface StepperProps {
   totalSteps?: number;
 }
 
-const Stepper: React.FC<StepperProps> = ({ currentStep, totalSteps = 2 }) => {
+const Stepper: React.FC<StepperProps> = ({ currentStep }) => {
   return (
     <div className="flex items-center justify-center gap-0">
       {/* Step 1 */}

@@ -27,7 +27,6 @@ const MOCK_NAMES = [
   'Roberto Daniel Choque Nina',
 ];
 
-const DEPARTMENTS = ['LP', 'CB', 'SC', 'OR', 'PT', 'CH', 'TJ', 'BE', 'PD'];
 
 // Genera una cédula aleatoria válida (solo números)
 const generateCarnet = (): string => {

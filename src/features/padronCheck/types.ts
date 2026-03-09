@@ -1,15 +1,41 @@
-// Tipos para la verificación de padrón electoral
+export type PadronStatus =
+  | 'ELIGIBLE'
+  | 'NOT_ELIGIBLE'
+  | 'NOT_REGISTERED'
+  | 'PADRON_IN_VALIDATION'
+  | 'PUBLIC_CHECK_DISABLED';
 
-export type PadronStatus = 'ELIGIBLE' | 'NOT_ELIGIBLE' | 'NOT_REGISTERED';
+export type PublicEligibilityStatus =
+  | 'HABILITADO'
+  | 'NO_HABILITADO'
+  | 'PADRON_EN_VALIDACION'
+  | 'PUBLIC_CHECK_DISABLED';
 
-export interface PadronCheckResult {
-  status: PadronStatus;
-  carnet: string;
-  // Campos opcionales para mostrar si está habilitado
-  mesaAsignada?: string;
-  recinto?: string;
+export interface PadronCheckEventResult {
+  eventId: string;
+  tenantId?: string;
+  name: string;
+  phase: 'UPCOMING' | 'ACTIVE' | 'RESULTS' | 'OTHER';
+  status: PublicEligibilityStatus;
+  eligible: boolean;
+  referenceVersion?: string | null;
 }
 
+export type PadronCheckResult =
+  | {
+      kind: 'single';
+      status: PadronStatus;
+      carnet: string;
+      mesaAsignada?: string;
+      recinto?: string;
+      referenceVersion?: string | null;
+    }
+  | {
+      kind: 'multi';
+      carnet: string;
+      events: PadronCheckEventResult[];
+    };
+
 export interface IPadronCheckService {
-  checkStatus(carnet: string): Promise<PadronCheckResult>;
+  checkStatus(carnet: string, eventId?: string): Promise<PadronCheckResult>;
 }

@@ -47,12 +47,13 @@ const Login: React.FC = () => {
 
   const mapBackendRole = (
     role: string,
-  ): "MAYOR" | "GOVERNOR" | "PUBLIC" | "SUPERADMIN" => {
+  ): "MAYOR" | "GOVERNOR" | "PUBLIC" | "SUPERADMIN" | "TENANT_ADMIN" => {
     const r = String(role || "").toUpperCase();
 
     if (r === "MAYOR") return "MAYOR";
     if (r === "GOVERNOR") return "GOVERNOR";
     if (r === "SUPERADMIN") return "SUPERADMIN";
+    if (r === "ADMIN" || r === "TENANT_ADMIN") return "TENANT_ADMIN";
 
     return "PUBLIC";
   };
@@ -80,6 +81,8 @@ const Login: React.FC = () => {
 
       if (user.role === "publico") {
         navigate("/", { replace: true });
+      } else if (user.role === "TENANT_ADMIN") {
+        navigate("/elections", { replace: true });
       } else if (user.role === "MAYOR" && user.municipalityId) {
         navigate(
           `/resultados?department=${user.departmentId}&municipality=${user.municipalityId}`,
@@ -89,6 +92,8 @@ const Login: React.FC = () => {
         navigate(`/resultados?department=${user.departmentId}`, {
           replace: true,
         });
+      } else if (user.role === "SUPERADMIN") {
+        navigate("/elections", { replace: true });
       } else {
         navigate("/resultados", { replace: true });
       }

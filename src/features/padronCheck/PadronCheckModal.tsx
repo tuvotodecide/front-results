@@ -3,12 +3,13 @@
 
 import React, { useState, useCallback } from 'react';
 import Modal2 from '../../components/Modal2';
-import { padronCheckService } from './PadronCheckService.mock';
-import type { PadronCheckResult } from './types';
+import { padronCheckService } from './PadronCheckService.api';
+import type { PadronCheckEventResult, PadronCheckResult, PadronStatus } from './types';
 
 interface PadronCheckModalProps {
   isOpen: boolean;
   onClose: () => void;
+  eventId?: string;
 }
 
 // Icono de búsqueda
@@ -61,7 +62,44 @@ const ButtonSpinner: React.FC = () => (
 );
 
 // Componente de resultado
-const ResultCard: React.FC<{ result: PadronCheckResult }> = ({ result }) => {
+const statusLabels: Record<PadronStatus, string> = {
+  ELIGIBLE: 'HABILITADO',
+  NOT_ELIGIBLE: 'NO HABILITADO',
+  NOT_REGISTERED: 'NO REGISTRADO',
+  PADRON_IN_VALIDATION: 'PADRÓN EN VALIDACIÓN',
+  PUBLIC_CHECK_DISABLED: 'CONSULTA DESHABILITADA',
+};
+
+const EventStatusBadge: React.FC<{ status: PadronCheckEventResult['status'] }> = ({ status }) => {
+  const styles: Record<PadronCheckEventResult['status'], string> = {
+    HABILITADO: 'bg-green-100 text-green-700 border-green-200',
+    NO_HABILITADO: 'bg-red-100 text-red-600 border-red-200',
+    PADRON_EN_VALIDACION: 'bg-amber-100 text-amber-700 border-amber-200',
+    PUBLIC_CHECK_DISABLED: 'bg-gray-100 text-gray-600 border-gray-200',
+  };
+
+  const labels: Record<PadronCheckEventResult['status'], string> = {
+    HABILITADO: 'HABILITADO',
+    NO_HABILITADO: 'NO HABILITADO',
+    PADRON_EN_VALIDACION: 'PADRÓN EN VALIDACIÓN',
+    PUBLIC_CHECK_DISABLED: 'CONSULTA DESHABILITADA',
+  };
+
+  return (
+    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${styles[status]}`}>
+      {labels[status]}
+    </span>
+  );
+};
+
+const phaseLabels: Record<PadronCheckEventResult['phase'], string> = {
+  UPCOMING: 'PRÓXIMA',
+  ACTIVE: 'ACTIVA',
+  RESULTS: 'RESULTADOS',
+  OTHER: 'OTRA',
+};
+
+const ResultCard: React.FC<{ result: Extract<PadronCheckResult, { kind: 'single' }> }> = ({ result }) => {
   if (result.status === 'ELIGIBLE') {
     return (
       <div className="mt-6 bg-green-50 border border-green-200 rounded-xl p-5">
@@ -122,6 +160,46 @@ const ResultCard: React.FC<{ result: PadronCheckResult }> = ({ result }) => {
     );
   }
 
+  if (result.status === 'PADRON_IN_VALIDATION') {
+    return (
+      <div className="mt-6 bg-amber-50 border border-amber-200 rounded-xl p-5">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <AlertIcon className="w-6 h-6 text-amber-600" />
+          </div>
+          <div className="flex-1">
+            <h4 className="text-lg font-bold text-amber-800 mb-1">
+              {statusLabels[result.status]}
+            </h4>
+            <p className="text-amber-700">
+              El padrón aún está en validación. Intenta nuevamente más tarde.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (result.status === 'PUBLIC_CHECK_DISABLED') {
+    return (
+      <div className="mt-6 bg-gray-50 border border-gray-200 rounded-xl p-5">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <InfoIcon className="w-6 h-6 text-gray-500" />
+          </div>
+          <div className="flex-1">
+            <h4 className="text-lg font-bold text-gray-800 mb-1">
+              {statusLabels[result.status]}
+            </h4>
+            <p className="text-gray-600">
+              Esta institución deshabilitó la consulta pública del padrón.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // NOT_REGISTERED
   return (
     <div className="mt-6 bg-amber-50 border border-amber-200 rounded-xl p-5">
@@ -140,16 +218,16 @@ const ResultCard: React.FC<{ result: PadronCheckResult }> = ({ result }) => {
   );
 };
 
-const PadronCheckModal: React.FC<PadronCheckModalProps> = ({ isOpen, onClose }) => {
+const PadronCheckModal: React.FC<PadronCheckModalProps> = ({ isOpen, onClose, eventId }) => {
   const [carnet, setCarnet] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<PadronCheckResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Validación simple: solo dígitos, mínimo 7 caracteres
+  // Validación simple: solo dígitos, 7 a 10 caracteres
   const isValidCarnet = (value: string): boolean => {
     const cleaned = value.trim();
-    return /^\d{7,}$/.test(cleaned);
+    return /^\d{7,10}$/.test(cleaned);
   };
 
   const canSubmit = carnet.trim().length > 0 && !isLoading;
@@ -166,7 +244,7 @@ const PadronCheckModal: React.FC<PadronCheckModalProps> = ({ isOpen, onClose }) 
     setResult(null);
 
     try {
-      const checkResult = await padronCheckService.checkStatus(carnet);
+      const checkResult = await padronCheckService.checkStatus(carnet, eventId);
       setResult(checkResult);
     } catch (err) {
       setError('Error al verificar. Por favor intenta nuevamente.');
@@ -210,7 +288,7 @@ const PadronCheckModal: React.FC<PadronCheckModalProps> = ({ isOpen, onClose }) 
       {/* Texto guía */}
       <p className="text-gray-600 text-center mb-6">
         Ingresa tu número de Carnet de Identidad para verificar si estás habilitado
-        para votar en este evento electoral.
+        para votar.
       </p>
 
       {/* Campo de entrada */}
@@ -240,7 +318,7 @@ const PadronCheckModal: React.FC<PadronCheckModalProps> = ({ isOpen, onClose }) 
         </div>
         {hasValidationError && (
           <p className="mt-1.5 text-sm text-red-600">
-            El carnet debe contener al menos 7 dígitos numéricos.
+            El carnet debe contener entre 7 y 10 dígitos numéricos.
           </p>
         )}
       </div>
@@ -277,7 +355,29 @@ const PadronCheckModal: React.FC<PadronCheckModalProps> = ({ isOpen, onClose }) 
       )}
 
       {/* Resultado */}
-      {result && <ResultCard result={result} />}
+      {result?.kind === 'single' && <ResultCard result={result} />}
+      {result?.kind === 'multi' && (
+        <div className="mt-6 space-y-3">
+          {result.events.length === 0 ? (
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 text-center text-gray-600">
+              No hay eventos visibles para este carnet.
+            </div>
+          ) : (
+            result.events.map((event) => (
+              <div
+                key={event.eventId}
+                className="bg-white border border-gray-200 rounded-xl p-4 flex items-start justify-between gap-4"
+              >
+                <div className="min-w-0">
+                  <p className="font-semibold text-gray-800 truncate">{event.name}</p>
+                  <p className="text-xs text-gray-500 mt-1">Estado: {phaseLabels[event.phase]}</p>
+                </div>
+                <EventStatusBadge status={event.status} />
+              </div>
+            ))
+          )}
+        </div>
+      )}
 
       {/* Nota importante - solo mostrar si no hay resultado */}
       {!result && (

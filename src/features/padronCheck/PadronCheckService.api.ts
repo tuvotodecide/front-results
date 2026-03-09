@@ -1,27 +1,101 @@
-// Placeholder para implementación real con API
-// Reemplazar cuando el backend esté listo
+import type {
+  IPadronCheckService,
+  PadronCheckResult,
+  PublicEligibilityStatus,
+} from './types';
 
-import type { IPadronCheckService, PadronCheckResult } from './types';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = import.meta.env.VITE_BASE_API_URL || 'http://localhost:3000/api/v1';
 
 export class PadronCheckServiceApi implements IPadronCheckService {
-  async checkStatus(carnet: string): Promise<PadronCheckResult> {
-    const response = await fetch(`${API_BASE_URL}/padron/check`, {
-      method: 'POST',
+  async checkStatus(carnet: string, eventId?: string): Promise<PadronCheckResult> {
+    const trimmed = carnet.trim();
+
+    if (eventId) {
+      const url = `${API_BASE_URL}/voting/events/${eventId}/eligibility/public?carnet=${encodeURIComponent(
+        trimmed,
+      )}`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al verificar estado en el padrón');
+      }
+
+      const data = await response.json();
+      const status = String(data?.status ?? 'NO_HABILITADO').toUpperCase();
+
+      if (status === 'HABILITADO') {
+        return {
+          kind: 'single',
+          status: 'ELIGIBLE',
+          carnet: trimmed,
+          referenceVersion: data?.referenceVersion ?? null,
+        };
+      }
+
+      if (status === 'NO_HABILITADO') {
+        return {
+          kind: 'single',
+          status: 'NOT_ELIGIBLE',
+          carnet: trimmed,
+          referenceVersion: data?.referenceVersion ?? null,
+        };
+      }
+
+      if (status === 'PADRON_EN_VALIDACION') {
+        return {
+          kind: 'single',
+          status: 'PADRON_IN_VALIDATION',
+          carnet: trimmed,
+          referenceVersion: data?.referenceVersion ?? null,
+        };
+      }
+
+      if (status === 'PUBLIC_CHECK_DISABLED') {
+        return { kind: 'single', status: 'PUBLIC_CHECK_DISABLED', carnet: trimmed };
+      }
+
+      return { kind: 'single', status: 'NOT_REGISTERED', carnet: trimmed };
+    }
+
+    const url = `${API_BASE_URL}/voting/events/public/eligibility-by-carnet?carnet=${encodeURIComponent(
+      trimmed,
+    )}`;
+    const response = await fetch(url, {
+      method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
+        Accept: 'application/json',
       },
-      body: JSON.stringify({ carnet: carnet.trim() }),
     });
 
     if (!response.ok) {
       throw new Error('Error al verificar estado en el padrón');
     }
 
-    return response.json();
+    const data = await response.json();
+    const events = Array.isArray(data?.events)
+      ? data.events.map((event: any) => ({
+          eventId: String(event?.eventId ?? ''),
+          tenantId: event?.tenantId ? String(event.tenantId) : undefined,
+          name: event?.name ?? '',
+          phase: (event?.phase ?? 'OTHER') as 'UPCOMING' | 'ACTIVE' | 'RESULTS' | 'OTHER',
+          status: (String(event?.status ?? 'PUBLIC_CHECK_DISABLED').toUpperCase() ||
+            'PUBLIC_CHECK_DISABLED') as PublicEligibilityStatus,
+          eligible: Boolean(event?.eligible),
+          referenceVersion: event?.referenceVersion ?? null,
+        }))
+      : [];
+
+    return {
+      kind: 'multi',
+      carnet: String(data?.carnet ?? trimmed),
+      events,
+    };
   }
 }
 
-// Descomentar cuando el backend esté listo
-// export const padronCheckService = new PadronCheckServiceApi();
+export const padronCheckService = new PadronCheckServiceApi();

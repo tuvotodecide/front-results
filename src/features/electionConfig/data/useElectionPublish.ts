@@ -1,119 +1,144 @@
-// Hook para gestionar la publicación de elecciones
-
-import { useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import {
-  electionPublishRepository,
-  type BallotPreviewData,
-  type ConfigSummary,
-  type ActivationResult,
-  type ElectionStatus,
+  useGetEventOptionsQuery,
+  useGetEventRolesQuery,
+  useGetPadronVersionsQuery,
+  useGetVotingEventQuery,
+  usePublishVotingEventMutation,
+} from '../../../store/votingEvents';
+import type { PartyWithCandidates } from '../types';
+import type {
+  ActivationResult,
+  BallotPreviewData,
+  ConfigSummary,
+  ElectionStatus,
 } from './ElectionPublishRepository.mock';
 
 export interface UseElectionPublishReturn {
-  // Estado
   ballotPreview: BallotPreviewData | null;
   configSummary: ConfigSummary | null;
   electionStatus: ElectionStatus;
   loading: boolean;
   error: string | null;
-
-  // Operaciones
   activateElection: () => Promise<ActivationResult>;
   activating: boolean;
   activationResult: ActivationResult | null;
-
-  // Utilities
   getShareUrl: () => Promise<string>;
   copyToClipboard: (text: string) => Promise<boolean>;
   refetch: () => Promise<void>;
 }
 
 export const useElectionPublish = (electionId: string): UseElectionPublishReturn => {
-  const [ballotPreview, setBallotPreview] = useState<BallotPreviewData | null>(null);
-  const [configSummary, setConfigSummary] = useState<ConfigSummary | null>(null);
-  const [electionStatus, setElectionStatus] = useState<ElectionStatus>('DRAFT');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [activating, setActivating] = useState(false);
+  const { data: event, isLoading: loadingEvent, refetch: refetchEvent } =
+    useGetVotingEventQuery(electionId, { skip: !electionId });
+  const { data: roles = [], isLoading: loadingRoles, refetch: refetchRoles } =
+    useGetEventRolesQuery(electionId, { skip: !electionId });
+  const { data: options = [], isLoading: loadingOptions, refetch: refetchOptions } =
+    useGetEventOptionsQuery(electionId, { skip: !electionId });
+  const { data: padronVersions = [], isLoading: loadingPadron, refetch: refetchPadron } =
+    useGetPadronVersionsQuery(electionId, { skip: !electionId });
+
+  const [publishVotingEvent, { isLoading: activating }] = usePublishVotingEventMutation();
   const [activationResult, setActivationResult] = useState<ActivationResult | null>(null);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const ballotPreview: BallotPreviewData | null = useMemo(() => {
+    if (!event) return null;
 
-    try {
-      const [preview, summary, status] = await Promise.all([
-        electionPublishRepository.getBallotPreview(electionId),
-        electionPublishRepository.getConfigSummary(electionId),
-        electionPublishRepository.getElectionStatus(electionId),
-      ]);
+    const parties: PartyWithCandidates[] = options.map((opt) => ({
+      id: opt.id,
+      electionId: event.id,
+      name: opt.name,
+      colorHex: opt.color,
+      logoUrl: opt.logoUrl,
+      createdAt: opt.createdAt ?? new Date().toISOString(),
+      candidates: (opt.candidates ?? []).map((c) => ({
+        id: c.id,
+        partyId: opt.id,
+        positionId: c.roleName,
+        positionName: c.roleName,
+        fullName: c.name,
+        photoUrl: c.photoUrl,
+      })),
+    }));
 
-      setBallotPreview(preview);
-      setConfigSummary(summary);
-      setElectionStatus(status);
-    } catch (err) {
-      setError('Error al cargar los datos de la elección');
-      console.error('Error fetching election publish data:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [electionId]);
+    return {
+      electionId: event.id,
+      electionTitle: event.name,
+      parties,
+    };
+  }, [event, options]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const configSummary: ConfigSummary | null = useMemo(() => {
+    const positionsCount = roles.length;
+    const partiesCount = options.length;
+    const partiesWithCandidates = options.filter((o) => (o.candidates ?? []).length > 0).length;
+    const currentPadron = padronVersions.find((v) => v.isCurrent) ?? padronVersions[0];
+    const votersCount = currentPadron?.validCount ?? 0;
+
+    return {
+      positionsOk: positionsCount > 0,
+      partiesOk: partiesWithCandidates > 0,
+      padronOk: votersCount > 0,
+      positionsCount,
+      partiesCount,
+      votersCount,
+    };
+  }, [roles, options, padronVersions]);
+
+  const electionStatus: ElectionStatus = useMemo(() => {
+    if (!event) return 'DRAFT';
+    if (event.status === 'PUBLISHED') return 'ACTIVE';
+    if (event.status === 'FINISHED') return 'CLOSED';
+    return 'DRAFT';
+  }, [event]);
 
   const activateElection = useCallback(async (): Promise<ActivationResult> => {
-    setActivating(true);
-    try {
-      const result = await electionPublishRepository.activateElection(electionId);
-      setActivationResult(result);
-      setElectionStatus('ACTIVE');
-      return result;
-    } finally {
-      setActivating(false);
-    }
-  }, [electionId]);
+    await publishVotingEvent(electionId).unwrap();
+
+    const publicUrl = `${window.location.origin}/elections/${electionId}/public`;
+    const shareText = `Participa en la votación: ${publicUrl}`;
+    const out: ActivationResult = {
+      publicUrl,
+      shareText,
+      electionStatus: 'ACTIVE',
+      startsAt: event?.votingStart ?? new Date().toISOString(),
+    };
+
+    setActivationResult(out);
+    return out;
+  }, [publishVotingEvent, electionId, event?.votingStart]);
 
   const getShareUrl = useCallback(async (): Promise<string> => {
-    return electionPublishRepository.getPublicShareUrl(electionId);
+    return `${window.location.origin}/elections/${electionId}/public`;
   }, [electionId]);
 
   const copyToClipboard = useCallback(async (text: string): Promise<boolean> => {
     try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
+      if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(text);
         return true;
       }
-      // Fallback para navegadores antiguos
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
-      textArea.style.top = '-999999px';
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      const success = document.execCommand('copy');
-      document.body.removeChild(textArea);
-      return success;
-    } catch (err) {
-      console.error('Error copying to clipboard:', err);
+      return false;
+    } catch {
       return false;
     }
   }, []);
+
+  const refetch = useCallback(async () => {
+    await Promise.all([refetchEvent(), refetchRoles(), refetchOptions(), refetchPadron()]);
+  }, [refetchEvent, refetchRoles, refetchOptions, refetchPadron]);
 
   return {
     ballotPreview,
     configSummary,
     electionStatus,
-    loading,
-    error,
+    loading: loadingEvent || loadingRoles || loadingOptions || loadingPadron,
+    error: null,
     activateElection,
     activating,
     activationResult,
     getShareUrl,
     copyToClipboard,
-    refetch: fetchData,
+    refetch,
   };
 };

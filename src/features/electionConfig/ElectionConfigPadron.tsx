@@ -1,7 +1,7 @@
 // Página de configuración de elección - Paso 3: Padrón Electoral
-// Basado en capturas 01-09
+// Conectado a backend real con RTK Query
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Modal2 from '../../components/Modal2';
 import ConfigStepsTabs from './components/ConfigStepsTabs';
@@ -10,126 +10,306 @@ import UploadProgressModal from './components/UploadProgressModal';
 import UploadSummaryModal from './components/UploadSummaryModal';
 import FixInvalidModal from './components/FixInvalidModal';
 import LoadedPadronView from './components/LoadedPadronView';
-import { usePadron } from './data/usePadronRepository';
-import { useParties } from './data/usePartyRepository';
-import { usePositions } from './data/usePositionRepository';
-import type { Voter, CorrectionInput, PadronUploadResult, ConfigStep } from './types';
-
-// Mock: obtener título de elección
-const getElectionTitle = (electionId: string): string => {
-  try {
-    const stored = localStorage.getItem('mock_elections');
-    if (stored) {
-      const elections = JSON.parse(stored);
-      const election = elections.find((e: { id: string }) => e.id === electionId);
-      if (election) return election.institution;
-    }
-  } catch {}
-  return 'Elecciones Universitarias';
-};
+import {
+  useGetVotingEventQuery,
+  useGetEventRolesQuery,
+  useGetEventOptionsQuery,
+  useGetPadronVersionsQuery,
+  useGetPadronVotersQuery,
+  useImportPadronMutation,
+} from '../../store/votingEvents';
+import type { Voter, CorrectionInput, PadronUploadResult, PadronFile, ConfigStep } from './types';
 
 type ModalState = 'none' | 'uploading' | 'summary' | 'fixing' | 'revalidating' | 'deleteConfirm';
+
+const HEADER_DNI = 'dni';
+const HEADER_CARNET = 'carnet';
+
+const normalizeCell = (value: string) => value.replace(/^"|"$/g, '').trim();
+
+const isValidCarnet = (value: string) => /^\d{7,10}$/.test(value.trim());
+
+const revalidateRows = (rows: Voter[]): Voter[] => {
+  const seen = new Set<string>();
+  return rows.map((row) => {
+    const cleaned = row.carnet.trim();
+    if (!cleaned) {
+      return { ...row, carnet: cleaned, status: 'invalid', invalidReason: 'empty' };
+    }
+    if (!isValidCarnet(cleaned)) {
+      return { ...row, carnet: cleaned, status: 'invalid', invalidReason: 'invalid_format' };
+    }
+    if (seen.has(cleaned)) {
+      return { ...row, carnet: cleaned, status: 'invalid', invalidReason: 'duplicate' };
+    }
+    seen.add(cleaned);
+    return { ...row, carnet: cleaned, status: 'valid', invalidReason: undefined };
+  });
+};
+
+const parsePadronCsv = async (file: File) => {
+  const text = await file.text();
+  const lines = text
+    .replace(/\uFEFF/g, '')
+    .replace(/\r/g, '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  if (lines.length === 0) {
+    throw new Error('El CSV está vacío');
+  }
+
+  const header = normalizeCell(lines[0]).toLowerCase();
+  if (header !== HEADER_DNI && header !== HEADER_CARNET) {
+    throw new Error('El CSV debe tener el header "dni"');
+  }
+
+  const rows: Voter[] = lines.slice(1).map((line, idx) => {
+    const cell = normalizeCell(line.split(',')[0] ?? '');
+    return {
+      id: `row-${idx + 1}`,
+      rowNumber: idx + 1,
+      carnet: cell,
+      fullName: '',
+      status: 'valid',
+      invalidReason: undefined,
+    };
+  });
+
+  const validated = revalidateRows(rows);
+  const invalidCount = validated.filter((v) => v.status === 'invalid').length;
+  const validCount = validated.length - invalidCount;
+
+  return {
+    rows: validated,
+    totalRecords: validated.length,
+    validCount,
+    invalidCount,
+  };
+};
+
+const buildUploadCsv = (rows: Voter[]) => {
+  const lines = [HEADER_CARNET, ...rows.map((row) => row.carnet.trim())];
+  return lines.join('\n');
+};
 
 const ElectionConfigPadron: React.FC = () => {
   const navigate = useNavigate();
   const { electionId } = useParams<{ electionId: string }>();
-  const actualElectionId = electionId || 'demo-election';
-  const electionTitle = getElectionTitle(actualElectionId);
+  const actualElectionId = electionId || '';
 
   // Ref para input de reemplazo de archivo
   const replaceFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Hook del padrón
-  const {
-    file,
-    isLoaded,
-    loading,
-    voters,
-    totalVoters,
-    validCount,
-    invalidCount,
-    page,
-    pageSize,
-    totalPages,
-    uploadCSV,
-    getInvalidVoters,
-    saveCorrections,
-    deleteVoter,
-    deletePadron,
-    replacePadron,
-    setPage,
-    setSearch,
-  } = usePadron(actualElectionId);
-  const { positions } = usePositions(actualElectionId);
-  const { parties } = useParties(actualElectionId);
-  const hasPositions = positions.length > 0;
-  const hasPartiesWithCandidates = parties.some((party) => party.candidates.length > 0);
+  // RTK Query hooks
+  const { data: event } = useGetVotingEventQuery(actualElectionId, {
+    skip: !actualElectionId,
+  });
+  const { data: roles = [] } = useGetEventRolesQuery(actualElectionId, {
+    skip: !actualElectionId,
+  });
+  const { data: options = [] } = useGetEventOptionsQuery(actualElectionId, {
+    skip: !actualElectionId,
+  });
+  const { data: padronVersions = [], isLoading: loadingVersions } = useGetPadronVersionsQuery(
+    actualElectionId,
+    { skip: !actualElectionId }
+  );
+
+  // Estado de paginación local
+  const [page, setPage] = useState(1);
+  const [searchTerm, setSearch] = useState('');
+  const pageSize = 50;
+
+  // Query de votantes
+  const { data: votersData, isLoading: loadingVoters } = useGetPadronVotersQuery(
+    { eventId: actualElectionId, page, limit: pageSize },
+    { skip: !actualElectionId || padronVersions.length === 0 }
+  );
+
+  const [importPadron, { isLoading: importing }] = useImportPadronMutation();
+
+  // Derivar datos
+  const hasPositions = roles.length > 0;
+  const hasPartiesWithCandidates = options.some((opt) => opt.candidates.length > 0);
+  const latestVersion = padronVersions.length > 0 ? padronVersions[0] : null;
+  const isLoaded = !!latestVersion;
+  const loading = loadingVersions || loadingVoters;
+
+  // Calcular conteos
+  const validCount = latestVersion?.validCount || 0;
+  const invalidCount = latestVersion?.invalidCount || 0;
+  const totalVoters = latestVersion?.totalRecords || 0;
   const isPadronReady = isLoaded && validCount > 0 && invalidCount === 0;
+
+  // Convertir votantes del backend al formato del frontend
+  const voters: Voter[] = (votersData?.voters || []).map((v, idx) => ({
+    id: v.id,
+    rowNumber: (page - 1) * pageSize + idx + 1,
+    carnet: v.carnet,
+    fullName: v.fullName || '',
+    status: v.status,
+    invalidReason: v.invalidReason as any,
+  }));
+
+  // Filtrar por búsqueda local (si el backend no lo soporta)
+  const filteredVoters = searchTerm
+    ? voters.filter(
+        (v) =>
+          v.carnet.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          v.fullName.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : voters;
+
+  const totalPages = Math.ceil((votersData?.total || 0) / pageSize);
+
+  // Crear objeto file para compatibilidad
+  const file: PadronFile | null = latestVersion
+    ? {
+        fileName: latestVersion.fileName,
+        uploadedAt: latestVersion.uploadedAt,
+        totalRecords: latestVersion.totalRecords,
+        validCount: latestVersion.validCount,
+        invalidCount: latestVersion.invalidCount,
+      }
+    : null;
 
   // Estados de UI
   const [modalState, setModalState] = useState<ModalState>('none');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadResult, setUploadResult] = useState<PadronUploadResult | null>(null);
   const [invalidVoters, setInvalidVoters] = useState<Voter[]>([]);
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingRows, setPendingRows] = useState<Voter[] | null>(null);
+  const [pendingFileName, setPendingFileName] = useState<string | null>(null);
+  const [fixError, setFixError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Handlers
   const handleFileSelect = async (selectedFile: File) => {
-    setPendingFile(selectedFile);
-    setModalState('uploading');
-    setUploadProgress(0);
-
+    setError(null);
+    setFixError(null);
     try {
-      const result = await uploadCSV(selectedFile, (progress) => {
-        setUploadProgress(progress);
+      const parsed = await parsePadronCsv(selectedFile);
+      setPendingRows(parsed.rows);
+      setPendingFileName(selectedFile.name);
+      setUploadResult({
+        totalRecords: parsed.totalRecords,
+        validCount: parsed.validCount,
+        invalidCount: parsed.invalidCount,
+        voters: parsed.rows,
       });
-      setUploadResult(result);
       setModalState('summary');
-    } catch (error) {
-      console.error('Error uploading file:', error);
+    } catch (err: any) {
+      setError(err?.message || 'No se pudo leer el CSV');
       setModalState('none');
     }
   };
 
-  const handleContinueFromSummary = () => {
-    setModalState('none');
-    setUploadResult(null);
-  };
+  const handleContinueFromSummary = async () => {
+    if (!pendingRows || !pendingFileName || !uploadResult) {
+      setModalState('none');
+      return;
+    }
 
-  const handleOpenFixModal = async () => {
-    const invalids = await getInvalidVoters();
-    setInvalidVoters(invalids);
-    setModalState('fixing');
-  };
+    if (uploadResult.invalidCount > 0) {
+      setModalState('none');
+      return;
+    }
 
-  const handleSaveCorrections = async (corrections: CorrectionInput[]) => {
-    setModalState('revalidating');
+    setModalState('uploading');
     setUploadProgress(0);
 
-    try {
-      const result = await saveCorrections(corrections, (progress) => {
-        setUploadProgress(progress);
-      });
-      setUploadResult(result);
+    const progressInterval = setInterval(() => {
+      setUploadProgress((prev) => Math.min(prev + 10, 90));
+    }, 200);
 
-      if (result.invalidCount > 0) {
-        // Aún hay inválidos, mostrar resumen
-        setModalState('summary');
-      } else {
-        // Todo corregido
-        setModalState('none');
-      }
-    } catch (error) {
-      console.error('Error saving corrections:', error);
-      setModalState('fixing');
+    try {
+      const csvContent = buildUploadCsv(pendingRows);
+      const uploadFile = new File([csvContent], pendingFileName, {
+        type: 'text/csv',
+      });
+
+      const result = await importPadron({
+        eventId: actualElectionId,
+        file: uploadFile,
+      }).unwrap();
+
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+
+      setUploadResult({
+        totalRecords: result.totalRecords,
+        validCount: result.validCount,
+        invalidCount: result.invalidCount,
+        voters: [],
+      });
+      setPendingRows(null);
+      setPendingFileName(null);
+      setModalState('none');
+    } catch (err: any) {
+      clearInterval(progressInterval);
+      setError(err?.data?.message || 'Error al cargar el archivo');
+      setModalState('none');
     }
   };
 
-  const handleDeleteVoter = async (voterId: string) => {
-    await deleteVoter(voterId);
-    // Actualizar lista de inválidos
-    const invalids = await getInvalidVoters();
+  const handleOpenFixModal = useCallback(async () => {
+    // Prioridad: errores locales antes de subir
+    if (pendingRows) {
+      const invalids = pendingRows.filter((v) => v.status === 'invalid');
+      setInvalidVoters(invalids);
+      setFixError(null);
+      setModalState('fixing');
+      return;
+    }
+
+    // Filtrar votantes inválidos del backend
+    const invalids = voters.filter((v) => v.status === 'invalid');
     setInvalidVoters(invalids);
+    setFixError(null);
+    setModalState('fixing');
+  }, [pendingRows, voters]);
+
+  const handleSaveCorrections = async (corrections: CorrectionInput[]) => {
+    if (pendingRows) {
+      const correctionMap = new Map(corrections.map((c) => [c.id, c.carnet]));
+      const updated = pendingRows.map((row) =>
+        correctionMap.has(row.id)
+          ? { ...row, carnet: correctionMap.get(row.id) ?? row.carnet }
+          : row
+      );
+
+      const revalidated = revalidateRows(updated);
+      const invalidCount = revalidated.filter((v) => v.status === 'invalid').length;
+      const validCount = revalidated.length - invalidCount;
+
+      setPendingRows(revalidated);
+      setUploadResult({
+        totalRecords: revalidated.length,
+        validCount,
+        invalidCount,
+        voters: revalidated,
+      });
+
+      if (invalidCount > 0) {
+        setFixError('Aún existen registros inválidos. Corrige los marcados.');
+        return;
+      }
+
+      setFixError(null);
+      setModalState('summary');
+      return;
+    }
+
+    // TODO: Implementar endpoint en backend para correcciones
+    setError('La corrección de votantes aún no está implementada en el backend');
+    setModalState('none');
+  };
+
+  const handleDeleteVoter = async (_voterId: string) => {
+    // TODO: Implementar endpoint en backend para eliminar votante individual
+    setError('La eliminación de votantes individuales aún no está implementada');
   };
 
   const handleReplaceFile = () => {
@@ -140,21 +320,8 @@ const ElectionConfigPadron: React.FC = () => {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
-    setPendingFile(selectedFile);
-    setModalState('uploading');
-    setUploadProgress(0);
-
-    try {
-      const result = await replacePadron(selectedFile, (progress) => {
-        setUploadProgress(progress);
-      });
-      setUploadResult(result);
-      setModalState('summary');
-    } catch (error) {
-      console.error('Error replacing file:', error);
-      setModalState('none');
-    }
-
+    // Usar el mismo flujo que upload
+    await handleFileSelect(selectedFile);
     e.target.value = '';
   };
 
@@ -163,7 +330,8 @@ const ElectionConfigPadron: React.FC = () => {
   };
 
   const handleConfirmDelete = async () => {
-    await deletePadron();
+    // TODO: Implementar endpoint en backend para eliminar padrón
+    setError('La eliminación del padrón aún no está implementada en el backend');
     setModalState('none');
   };
 
@@ -180,6 +348,23 @@ const ElectionConfigPadron: React.FC = () => {
     }
   };
 
+  // Si no hay electionId, mostrar error
+  if (!actualElectionId) {
+    return (
+      <div className="bg-gray-50 min-h-[calc(100vh-64px)] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-500">ID de elección no válido</p>
+          <button
+            onClick={() => navigate('/elections')}
+            className="mt-4 text-[#459151] hover:underline"
+          >
+            Volver a elecciones
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-gray-50 min-h-[calc(100vh-64px)]">
       {/* Contenido principal */}
@@ -187,10 +372,23 @@ const ElectionConfigPadron: React.FC = () => {
         <div className="max-w-5xl mx-auto px-4">
           {/* Título */}
           <h1 className="text-4xl font-extrabold text-gray-900 text-center mb-8">
-            {electionTitle}
+            {event?.name || 'Cargando...'}
           </h1>
 
-          {/* Tabs - Pasos 1 y 2 completados, Paso 3 activo */}
+          {/* Error global */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+              {error}
+              <button
+                onClick={() => setError(null)}
+                className="ml-2 text-red-500 hover:text-red-700"
+              >
+                ×
+              </button>
+            </div>
+          )}
+
+          {/* Tabs */}
           <div className="mb-4">
             <ConfigStepsTabs
               currentStep={3}
@@ -198,7 +396,7 @@ const ElectionConfigPadron: React.FC = () => {
                 ...(hasPositions ? [1] : []),
                 ...(hasPartiesWithCandidates ? [2] : []),
                 ...(isPadronReady ? [3] : []),
-              ]}
+              ] as ConfigStep[]}
               onStepChange={handleGoToStep}
               canNavigate={(step) => {
                 if (step === 1 || step === 2 || step === 3) return true;
@@ -211,7 +409,7 @@ const ElectionConfigPadron: React.FC = () => {
           <p className="text-gray-600 mb-6">Paso 3 de 3: Sube el padrón electoral.</p>
 
           {/* Contenido según estado */}
-          {loading ? (
+          {loading && !isLoaded ? (
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-12 text-center">
               <div className="w-8 h-8 border-4 border-[#459151] border-t-transparent rounded-full animate-spin mx-auto" />
               <p className="mt-4 text-gray-500">Cargando...</p>
@@ -219,7 +417,7 @@ const ElectionConfigPadron: React.FC = () => {
           ) : isLoaded && file ? (
             <LoadedPadronView
               file={file}
-              voters={voters}
+              voters={filteredVoters}
               totalVoters={totalVoters}
               validCount={validCount}
               invalidCount={invalidCount}
@@ -232,10 +430,10 @@ const ElectionConfigPadron: React.FC = () => {
               onReplaceFile={handleReplaceFile}
               onDeleteFile={handleDeleteFile}
               onFinish={handleFinish}
-              loading={loading}
+              loading={loadingVoters || importing}
             />
           ) : (
-            <PadronDropzone onFileSelect={handleFileSelect} disabled={modalState !== 'none'} />
+            <PadronDropzone onFileSelect={handleFileSelect} disabled={importing} />
           )}
         </div>
       </div>
@@ -271,6 +469,8 @@ const ElectionConfigPadron: React.FC = () => {
         invalidCount={uploadResult?.invalidCount || invalidCount}
         onContinue={handleContinueFromSummary}
         onFix={handleOpenFixModal}
+        continueLabel={uploadResult?.invalidCount ? 'Continuar' : 'Subir padrón'}
+        disableContinue={Boolean(uploadResult && uploadResult.invalidCount > 0)}
       />
 
       {/* Modal de corrección de inválidos */}
@@ -281,6 +481,7 @@ const ElectionConfigPadron: React.FC = () => {
         onSave={handleSaveCorrections}
         onDelete={handleDeleteVoter}
         isLoading={false}
+        error={fixError}
       />
 
       {/* Modal de confirmación de eliminación */}

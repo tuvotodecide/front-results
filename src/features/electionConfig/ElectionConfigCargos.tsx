@@ -1,5 +1,5 @@
 // Página de configuración de elección - Paso 1: Cargos
-// Basado en capturas 01-04
+// Conectado a backend real con RTK Query
 
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -8,81 +8,115 @@ import ConfigStepsTabs from './components/ConfigStepsTabs';
 import InfoPopover from './components/InfoPopover';
 import PositionsTable from './components/PositionsTable';
 import AddPositionModal from './components/AddPositionModal';
-import { usePositions } from './data/usePositionRepository';
-import { useParties } from './data/usePartyRepository';
-import { usePadron } from './data/usePadronRepository';
+import {
+  useGetVotingEventQuery,
+  useGetEventRolesQuery,
+  useCreateEventRoleMutation,
+  useUpdateEventRoleMutation,
+  useDeleteEventRoleMutation,
+  useGetEventOptionsQuery,
+  useGetPadronVersionsQuery,
+} from '../../store/votingEvents';
 import type { Position, ConfigStep } from './types';
+import type { EventRole } from '../../store/votingEvents/types';
 
-// Mock: obtener título de elección (en producción vendría de API/store)
-const getElectionTitle = (electionId: string): string => {
-  // Buscar en localStorage de elecciones mock
-  try {
-    const stored = localStorage.getItem('mock_elections');
-    if (stored) {
-      const elections = JSON.parse(stored);
-      const election = elections.find((e: { id: string }) => e.id === electionId);
-      if (election) return election.institution;
-    }
-  } catch {}
-  return 'Elecciones Universitarias'; // Fallback
-};
+// Adaptar EventRole a Position para compatibilidad con componentes existentes
+const roleToPosition = (role: EventRole): Position => ({
+  id: role.id,
+  name: role.name,
+  electionId: role.eventId,
+  createdAt: role.createdAt ?? new Date().toISOString(),
+});
 
 const ElectionConfigCargos: React.FC = () => {
   const navigate = useNavigate();
   const { electionId } = useParams<{ electionId: string }>();
-  const actualElectionId = electionId || 'demo-election';
+  const actualElectionId = electionId || '';
 
-  const electionTitle = getElectionTitle(actualElectionId);
+  // RTK Query hooks
+  const { data: event, isLoading: loadingEvent } = useGetVotingEventQuery(actualElectionId, {
+    skip: !actualElectionId,
+  });
+  const { data: roles = [], isLoading: loadingRoles } = useGetEventRolesQuery(actualElectionId, {
+    skip: !actualElectionId,
+  });
+  const { data: options = [] } = useGetEventOptionsQuery(actualElectionId, {
+    skip: !actualElectionId,
+  });
+  const { data: padronVersions = [] } = useGetPadronVersionsQuery(actualElectionId, {
+    skip: !actualElectionId,
+  });
 
-  const {
-    positions,
-    loading,
-    createPosition,
-    updatePosition,
-    deletePosition,
-    creating,
-    updating,
-    deleting,
-  } = usePositions(actualElectionId);
-  const { parties } = useParties(actualElectionId);
-  const { isLoaded: isPadronLoaded, validCount, invalidCount } = usePadron(actualElectionId);
+  const [createRole, { isLoading: creating }] = useCreateEventRoleMutation();
+  const [updateRole, { isLoading: updating }] = useUpdateEventRoleMutation();
+  const [deleteRole, { isLoading: deleting }] = useDeleteEventRoleMutation();
+
+  // Convertir roles a positions para compatibilidad
+  const positions = roles.map(roleToPosition);
+  const loading = loadingEvent || loadingRoles;
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingPosition, setEditingPosition] = useState<Position | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Position | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const isOperating = creating || updating || deleting;
   const hasPositions = positions.length > 0;
-  const hasPartiesWithCandidates = parties.some((party) => party.candidates.length > 0);
-  const isPadronReady = isPadronLoaded && validCount > 0 && invalidCount === 0;
+  const hasPartiesWithCandidates = options.some((opt) => opt.candidates.length > 0);
+  const isPadronReady = padronVersions.length > 0;
 
   // Handlers
   const handleAddClick = () => {
     setEditingPosition(null);
     setIsAddModalOpen(true);
+    setError(null);
   };
 
   const handleEditClick = (position: Position) => {
     setEditingPosition(position);
     setIsAddModalOpen(true);
+    setError(null);
   };
 
   const handleDeleteClick = (position: Position) => {
     setDeleteConfirm(position);
+    setError(null);
   };
 
   const handleSavePosition = async (name: string) => {
-    if (editingPosition) {
-      await updatePosition({ id: editingPosition.id, name });
-    } else {
-      await createPosition({ name });
+    setError(null);
+    try {
+      if (editingPosition) {
+        await updateRole({
+          eventId: actualElectionId,
+          roleId: editingPosition.id,
+          data: { name },
+        }).unwrap();
+      } else {
+        await createRole({
+          eventId: actualElectionId,
+          data: { name, maxWinners: 1 },
+        }).unwrap();
+      }
+      setIsAddModalOpen(false);
+      setEditingPosition(null);
+    } catch (err: any) {
+      setError(err?.data?.message || 'Error al guardar el cargo');
+      throw err; // Re-throw para que el modal lo maneje
     }
   };
 
   const handleConfirmDelete = async () => {
-    if (deleteConfirm) {
-      await deletePosition(deleteConfirm.id);
+    if (!deleteConfirm) return;
+    setError(null);
+    try {
+      await deleteRole({
+        eventId: actualElectionId,
+        roleId: deleteConfirm.id,
+      }).unwrap();
       setDeleteConfirm(null);
+    } catch (err: any) {
+      setError(err?.data?.message || 'Error al eliminar el cargo');
     }
   };
 
@@ -100,6 +134,23 @@ const ElectionConfigCargos: React.FC = () => {
     }
   };
 
+  // Si no hay electionId, mostrar error
+  if (!actualElectionId) {
+    return (
+      <div className="bg-gray-50 min-h-[calc(100vh-64px)] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-500">ID de elección no válido</p>
+          <button
+            onClick={() => navigate('/elections')}
+            className="mt-4 text-[#459151] hover:underline"
+          >
+            Volver a elecciones
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-gray-50 min-h-[calc(100vh-64px)] flex flex-col">
       {/* Contenido principal */}
@@ -107,8 +158,15 @@ const ElectionConfigCargos: React.FC = () => {
         <div className="max-w-4xl mx-auto px-4">
           {/* Título de la elección */}
           <h1 className="text-4xl font-extrabold text-gray-900 text-center mb-8">
-            {electionTitle}
+            {event?.name || 'Cargando...'}
           </h1>
+
+          {/* Error global */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+              {error}
+            </div>
+          )}
 
           {/* Tabs de pasos */}
           <div className="mb-4">
@@ -118,7 +176,7 @@ const ElectionConfigCargos: React.FC = () => {
                 ...(hasPositions ? [1] : []),
                 ...(hasPartiesWithCandidates ? [2] : []),
                 ...(isPadronReady ? [3] : []),
-              ]}
+              ] as ConfigStep[]}
               onStepChange={handleGoToStep}
               canNavigate={(step) => {
                 if (step === 1) return true;

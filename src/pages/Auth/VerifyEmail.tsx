@@ -1,13 +1,18 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import tuvotoDecideImage from "../../assets/tuvotodecide.webp";
-import { useLazyVerifyEmailQuery } from "../../store/auth/authEndpoints";
+import {
+  useLazyVerifyEmailQuery,
+  useVerifyInstitutionalAdminApplicationMutation,
+} from "../../store/auth/authEndpoints";
+import { isVotingMode } from "../../config/appMode";
 
 const VerifyEmail: React.FC = () => {
   const [searchParams] = useSearchParams();
   const token = useMemo(() => searchParams.get("token") || "", [searchParams]);
 
   const [triggerVerify] = useLazyVerifyEmailQuery();
+  const [verifyInstitutional] = useVerifyInstitutionalAdminApplicationMutation();
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
@@ -21,8 +26,11 @@ const VerifyEmail: React.FC = () => {
     }
 
     setStatus("loading");
-    triggerVerify({ token })
-      .unwrap()
+    const verifier = isVotingMode()
+      ? verifyInstitutional({ token }).unwrap()
+      : triggerVerify({ token }).unwrap();
+
+    verifier
       .then(() => {
         setStatus("success");
       })
@@ -34,7 +42,7 @@ const VerifyEmail: React.FC = () => {
         setStatus("error");
         setErrorMsg(typeof msg === "string" ? msg : "No se pudo verificar.");
       });
-  }, [token, triggerVerify]);
+  }, [token, triggerVerify, verifyInstitutional]);
 
   const content = () => {
     if (status === "loading") {

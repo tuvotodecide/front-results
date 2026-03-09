@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cy:open": "cypress open",
+    "cy:run": "cypress run",
+    "test:e2e": "cypress run"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -30,6 +33,7 @@
     "yup": "^1.6.1"
   },
   "devDependencies": {
+    "cypress": "^13.6.0",
     "@eslint/js": "^9.21.0",
     "@types/d3": "^7.4.3",
     "@types/node": "^22.13.11",

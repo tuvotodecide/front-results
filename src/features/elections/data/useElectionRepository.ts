@@ -1,54 +1,43 @@
-// Hook para usar el repositorio de elecciones
-// Permite cambiar entre mock y API sin tocar componentes
-
-import { useState, useEffect, useCallback } from 'react';
-import type { IElectionRepository } from './ElectionRepository';
-import { electionRepositoryMock } from './ElectionRepository.mock';
+import { useMemo } from 'react';
+import { useSelector } from 'react-redux';
+import {
+  useCreateVotingEventMutation,
+  useGetVotingEventsQuery,
+  useUpdateEventScheduleMutation,
+} from '../../../store/votingEvents';
+import { selectTenantId } from '../../../store/auth/authSlice';
 import type { Election, CreateElectionPayload } from '../types';
-
-// Selector de implementación
-// TODO: Cambiar a API real cuando esté disponible
-const getRepository = (): IElectionRepository => {
-  return electionRepositoryMock;
-};
 
 interface UseElectionsResult {
   elections: Election[];
   loading: boolean;
   error: Error | null;
-  refetch: () => Promise<void>;
+  refetch: () => Promise<any>;
   isEmpty: boolean;
 }
 
+const mapEventToElection = (event: any): Election => ({
+  id: String(event?.id ?? ''),
+  institution: String(event?.name ?? ''),
+  description: String(event?.objective ?? ''),
+  votingStartDate: event?.votingStart ?? '',
+  votingEndDate: event?.votingEnd ?? '',
+  resultsDate: event?.resultsPublishAt ?? '',
+  createdAt: event?.createdAt ?? new Date().toISOString(),
+  status: event?.status === 'PUBLISHED' ? 'ACTIVE' : event?.status === 'FINISHED' ? 'CLOSED' : 'DRAFT',
+});
+
 export const useElections = (): UseElectionsResult => {
-  const [elections, setElections] = useState<Election[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const { data = [], isLoading, error, refetch } = useGetVotingEventsQuery();
 
-  const fetchElections = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const repo = getRepository();
-      const data = await repo.listElections();
-      setElections(data);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Error desconocido'));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchElections();
-  }, [fetchElections]);
+  const elections = useMemo(() => data.map(mapEventToElection), [data]);
 
   return {
     elections,
-    loading,
-    error,
-    refetch: fetchElections,
-    isEmpty: !loading && elections.length === 0,
+    loading: isLoading,
+    error: error ? new Error('Error cargando votaciones') : null,
+    refetch,
+    isEmpty: !isLoading && elections.length === 0,
   };
 };
 
@@ -59,28 +48,48 @@ interface UseCreateElectionResult {
 }
 
 export const useCreateElection = (): UseCreateElectionResult => {
-  const [creating, setCreating] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  const tenantId = useSelector(selectTenantId);
+  const [createVotingEvent, createState] = useCreateVotingEventMutation();
+  const [updateSchedule, scheduleState] = useUpdateEventScheduleMutation();
 
-  const create = async (payload: CreateElectionPayload): Promise<Election> => {
-    setCreating(true);
-    setError(null);
-    try {
-      const repo = getRepository();
-      const election = await repo.createElection(payload);
-      return election;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Error al crear');
-      setError(error);
-      throw error;
-    } finally {
-      setCreating(false);
+  const createElection = async (payload: CreateElectionPayload): Promise<Election> => {
+    const effectiveTenantId = tenantId || localStorage.getItem('tenantId') || '';
+    if (!effectiveTenantId) {
+      throw new Error('No se encontró tenantId en sesión. Solicita al superadmin tu tenantId.');
     }
+
+    const created = await createVotingEvent({
+      tenantId: effectiveTenantId,
+      name: payload.institution,
+      objective: payload.description,
+    }).unwrap();
+
+    await updateSchedule({
+      eventId: created.id,
+      data: {
+        votingStart: new Date(payload.votingStartDate).toISOString(),
+        votingEnd: new Date(payload.votingEndDate).toISOString(),
+        resultsPublishAt: new Date(payload.resultsDate).toISOString(),
+      },
+    }).unwrap();
+
+    return {
+      id: created.id,
+      institution: created.name,
+      description: created.objective,
+      votingStartDate: created.votingStart ?? payload.votingStartDate,
+      votingEndDate: created.votingEnd ?? payload.votingEndDate,
+      resultsDate: created.resultsPublishAt ?? payload.resultsDate,
+      createdAt: created.createdAt ?? new Date().toISOString(),
+      status: 'DRAFT',
+    };
   };
 
   return {
-    createElection: create,
-    creating,
-    error,
+    createElection,
+    creating: createState.isLoading || scheduleState.isLoading,
+    error: (createState.error || scheduleState.error)
+      ? new Error('Error al crear votación')
+      : null,
   };
 };

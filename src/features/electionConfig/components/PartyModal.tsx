@@ -29,7 +29,6 @@ const PartyModal: React.FC<PartyModalProps> = ({
   const [errors, setErrors] = useState<{ name?: string; color?: string }>({});
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const isEditMode = !!editingParty;
 
   useEffect(() => {
     if (isOpen) {
