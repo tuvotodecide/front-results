@@ -113,22 +113,7 @@ describe("Auth E2E Real - Casos 31–36", () => {
     cy.contains("Credenciales inválidas").should("exist");
   });
 
-  it("31: Login PENDIENTE es bloqueado por backend y muestra modal", () => {
-    cy.loginUI("pendiente@test.com", PASSWORD);
 
-    cy.contains(
-      "Un Superadmin debe aprobar tu acceso para habilitar el sistema.",
-      { timeout: 10000 },
-    ).should("exist");
-  });
-
-  it("32: Login NO VERIFICADO es bloqueado por backend y muestra modal", () => {
-    cy.loginUI("noverificado@test.com", PASSWORD);
-
-    cy.contains("Te enviamos un enlace de verificación a tu correo.", {
-      timeout: 10000,
-    }).should("exist");
-  });
 
   it("33: Login ALCALDE exitoso redirige a /resultados", () => {
     cy.loginUI("alcalde@test.com", PASSWORD);

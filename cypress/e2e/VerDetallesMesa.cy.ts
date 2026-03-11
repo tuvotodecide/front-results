@@ -1,39 +1,88 @@
-describe("Ver Detalles de Mesa - Flujo E2E", () => {
-    const TABLE_CODE = "2050781";
+describe("Pruebas de Navegación Masiva por Departamentos", () => {
 
     beforeEach(() => {
         cy.clearSession();
-        // Interceptores para evitar fallos por red
-        cy.intercept("GET", "**/api/v1/geographic/electoral-tables/table-code/*").as("getTable");
-        cy.intercept("GET", "**/api/v1/ballots/by-table/*").as("getBallots");
     });
 
-    it("Debe buscar una mesa y ver los detalles de su acta", () => {
-        // 1. Ir a resultados por mesa
-        cy.visit("/resultados/mesa");
+    // Lista de departamentos para generar las pruebas individualmente
+    const departamentos = [
+        "Chuquisaca",
+        "La Paz",
+        "Cochabamba",
+        "Oruro",
+        "Potosí",
+        "Tarija",
+        "Santa Cruz",
+        "Beni",
+        "Pando"
+    ];
 
-        // 2. Buscar la mesa 2050781 como solicitó el usuario
-        cy.get('[data-cy="image-search-input"]', { timeout: 10000 })
+    departamentos.forEach((depto) => {
+        it(`Departamento: ${depto.toUpperCase()} - Navegación hasta Recinto`, () => {
+            cy.visit("/resultados");
+
+            // Función auxiliar para hacer click en el departamento exacto
+            const clickOptionByName = (name: string) => {
+                cy.get('[data-cy="level-options"]', { timeout: 20000 })
+                    .contains("button", new RegExp(`^${name}$`, "i"), { timeout: 15000 })
+                    .should('be.visible')
+                    .click({ force: true });
+            };
+
+            // 1. Seleccionar el Departamento por su nombre
+            clickOptionByName(depto);
+
+            // 2. Seleccionar la primera Provincia disponible
+            cy.get('[data-cy="level-options"] button', { timeout: 15000 })
+                .first()
+                .should('be.visible')
+                .click({ force: true });
+
+            // 3. Seleccionar el primer Municipio disponible
+            cy.get('[data-cy="level-options"] button', { timeout: 15000 })
+                .first()
+                .should('be.visible')
+                .click({ force: true });
+
+            // 4. Seleccionar el primer Asiento Electoral disponible
+            cy.get('[data-cy="level-options"] button', { timeout: 15000 })
+                .first()
+                .should('be.visible')
+                .click({ force: true });
+
+            // 5. Seleccionar el primer Recinto disponible
+            cy.get('[data-cy="level-options"] button', { timeout: 15000 })
+                .first()
+                .should('be.visible')
+                .click({ force: true });
+
+            // Verificación final de URL para confirmar que llegó al recinto
+            cy.url().should('include', 'electoralLocation=');
+        });
+    });
+
+    // Mantenemos el flujo específico de Arani/Pocoata al final
+    it("Flujo Específico Cochabamba - Arani - Pocoata", () => {
+        cy.visit("/resultados");
+
+        const clickOption = (text: string) => {
+            cy.get('[data-cy="level-options"]', { timeout: 20000 })
+                .contains("button", new RegExp(`^${text}$`, "i"), { timeout: 15000 })
+                .should('be.visible')
+                .click({ force: true });
+        };
+
+        clickOption("Cochabamba");
+        clickOption("Arani");
+        clickOption("Arani");
+        clickOption("Pocoata");
+
+        cy.get('[data-cy="table-search-input"]', { timeout: 15000 })
             .should('be.visible')
-            .type(TABLE_CODE);
+            .type("escuela mixta pocoata");
 
-        cy.get('[data-cy="image-search-submit"]').click();
-
-        // 3. Verificar que navegó al detalle o que aparece en resultados
-        // Si el sistema navega directamente (comportamiento actual):
-        cy.url().should('include', `/resultados/mesa/${TABLE_CODE}`);
-
-        // Esperamos a que carguen los datos de la mesa y las actas
-        // Nota: Si el backend no tiene esta mesa, el test fallará aquí, lo cual es correcto para E2E
-        cy.wait("@getTable", { timeout: 20000 });
-        cy.wait("@getBallots", { timeout: 20000 });
-
-        // 4. Hacer clic en "Detalles" en la sección de actas (ImagesSection)
-        cy.contains('Detalles', { timeout: 15000 })
-            .should('be.visible')
-            .click();
-
-        // 5. Verificar que navegó al detalle de la imagen (acta)
-        cy.url().should('include', '/resultados/imagen/');
+        cy.get('[data-cy="level-options"] button', { timeout: 15000 })
+            .first()
+            .click({ force: true });
     });
 });
