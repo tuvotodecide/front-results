@@ -184,7 +184,10 @@ const ResultadosMesa2 = () => {
         .unwrap()
         .then((data) => {
           setOtherTables(
-            data.filter((table: ElectoralTableType) => table._id !== tableCode),
+            data.filter(
+              (table: ElectoralTableType) =>
+                !!table.tableCode && table.tableCode !== tableCode,
+            ),
           );
         })
         .catch((err) => {

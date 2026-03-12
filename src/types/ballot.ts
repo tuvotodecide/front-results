@@ -37,6 +37,7 @@ export interface BallotType {
   _id: string;
   tableNumber: string;
   tableCode: string;
+  electionId?: string;
   electoralLocationId: string;
   location: Location;
   votes: Votes;
@@ -45,6 +46,8 @@ export interface BallotType {
   image: string;
   recordId: string;
   tableIdIpfs: string;
+  hasObservation?: boolean;
+  observationText?: string;
   status: string;
   valuable: boolean;
   version: number;

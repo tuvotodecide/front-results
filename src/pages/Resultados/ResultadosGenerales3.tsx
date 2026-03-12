@@ -215,15 +215,17 @@ const ResultadosGenerales3 = () => {
 
     let isActive = true;
     fetchDebounceRef.current = setTimeout(() => {
-      // Tipo de elecciÃ³n (municipal, departamental, presidential)
-      const presidentRequest = fetcher({
+      const primaryParams = {
         ...baseParams,
         electionType: primaryElectionType,
-      }, true);
-      const deputiesRequest = fetcher({
+      };
+      const secondaryParams = {
         ...baseParams,
         electionType: secondaryElectionType,
-      }, true);
+      };
+
+      const presidentRequest = fetcher(primaryParams, true);
+      const deputiesRequest = fetcher(secondaryParams, true);
 
       presidentRequest
         .unwrap()
