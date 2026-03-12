@@ -1,10 +1,13 @@
-import { Link } from 'react-router-dom';
-import { ElectoralTableType } from '../../types';
+import { Link } from "react-router-dom";
+import useElectionConfig from "../../hooks/useElectionConfig";
+import useElectionId from "../../hooks/useElectionId";
+import { ElectoralTableType } from "../../types";
+import { buildResultsTableLink } from "../../utils/resultsTableLink";
 
 interface Mesa {
   number: number;
   code: string;
-  status: 'unprocessed' | 'processed' | 'dispute';
+  status: "unprocessed" | "processed" | "dispute";
   photoCount?: number; // Number of photos of the electoral sheet
 }
 
@@ -13,6 +16,8 @@ interface TablesSectionProps {
 }
 
 const TablesSection = ({ tables = [] }: TablesSectionProps) => {
+  const electionId = useElectionId();
+  const { election } = useElectionConfig();
   // Sample data - you can replace this with your actual data source
   // const mesas: Mesa[] = [
   //   { number: 1, code: 'ERETTF', status: 'processed', photoCount: 3 },
@@ -90,12 +95,12 @@ const TablesSection = ({ tables = [] }: TablesSectionProps) => {
   const getStatusText = (status: Mesa['status']) => {
     switch (status) {
       case 'processed':
-        return 'Procesada';
+        return "Procesada";
       case 'dispute':
-        return 'En Disputa';
+        return "En Disputa";
       case 'unprocessed':
       default:
-        return 'Sin Procesar';
+        return "Sin Procesar";
     }
   };
 
@@ -112,11 +117,14 @@ const TablesSection = ({ tables = [] }: TablesSectionProps) => {
         {tables.map((table) => (
           <Link
             key={table._id}
-            to={`/resultados/mesa/${table.tableCode}`}
+            to={buildResultsTableLink(table.tableCode, {
+              electionId,
+              electionType: election?.type,
+            })}
             style={{
-              ...getCardStyle('processed'),
-              textDecoration: 'none',
-              cursor: 'pointer',
+              ...getCardStyle("processed"),
+              textDecoration: "none",
+              cursor: "pointer",
             }}
           >
             <div

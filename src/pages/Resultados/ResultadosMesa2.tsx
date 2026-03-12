@@ -33,7 +33,7 @@ import Breadcrumb2 from "../../components/Breadcrumb2";
 import { useGetDepartmentsQuery } from "../../store/departments/departmentsEndpoints";
 import TablesSection from "./TablesSection";
 import { useCountedBallots } from "../../hooks/useCountedBallots";
-import { getResultsLabels } from "./resultsLabels";
+import { getResultsLabels, type ResultsElectionType } from "./resultsLabels";
 import {
   selectFilters,
   // selectFilterIds,
@@ -41,6 +41,7 @@ import {
 import useElectionId from "../../hooks/useElectionId";
 import useAutoRefreshTick from "../../hooks/useAutoRefreshTick";
 import { FIVE_MINUTES_MS } from "../../utils/electionAutoRefreshWindow";
+import { buildResultsTableLink } from "../../utils/resultsTableLink";
 
 // const combinedData = [
 //   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -94,6 +95,16 @@ const ResultadosMesa2 = () => {
     isResultsPeriod: isFinalPhase,
     isAutoRefreshWindow,
   } = useElectionConfig();
+  const electionTypeFromUrl = searchParams.get("electionType");
+  const resolvedElectionId = electionId ?? undefined;
+  const resolvedElectionType: ResultsElectionType =
+    electionTypeFromUrl === "municipal" ||
+    electionTypeFromUrl === "departamental" ||
+    electionTypeFromUrl === "presidential" ||
+    electionTypeFromUrl === "mayor" ||
+    electionTypeFromUrl === "governor"
+      ? electionTypeFromUrl
+      : election?.type || "presidential";
 
   // Hook para obtener las mesas que cuentan en resultados (consistente con by-location)
   const {
@@ -102,8 +113,8 @@ const ResultadosMesa2 = () => {
     isError: countedBallotsError,
     total: countedBallotsTotal,
   } = useCountedBallots({
-    electionType: election?.type ?? "presidential",
-    electionId: electionId ?? undefined,
+    electionType: resolvedElectionType,
+    electionId: resolvedElectionId,
     department: filters.department,
     province: filters.province,
     municipality: filters.municipality,
@@ -114,7 +125,7 @@ const ResultadosMesa2 = () => {
     skip:
       !!tableCode || !hasActiveConfig || (!isPreliminaryPhase && !isFinalPhase),
   });
-  const resultsLabels = getResultsLabels(election?.type);
+  const resultsLabels = getResultsLabels(resolvedElectionType);
   const refreshTick = useAutoRefreshTick({
     enabled: hasActiveConfig && (isPreliminaryPhase || isFinalPhase) && isAutoRefreshWindow,
     intervalMs: FIVE_MINUTES_MS,
@@ -125,7 +136,7 @@ const ResultadosMesa2 = () => {
   });
   const { data: mostSupportedBallotData } =
     useGetMostSupportedBallotByTableCodeQuery(
-      { tableCode: tableCode || "", electionId: electionId ?? undefined },
+      { tableCode: tableCode || "", electionId: resolvedElectionId },
       {
         skip: !tableCode,
         pollingInterval: isAutoRefreshWindow ? FIVE_MINUTES_MS : 0,
@@ -135,7 +146,7 @@ const ResultadosMesa2 = () => {
       },
     );
   const { data: attestationCases } = useGetAttestationCasesByTableCodeQuery(
-    { tableCode: tableCode || "", electionId: electionId ?? undefined },
+    { tableCode: tableCode || "", electionId: resolvedElectionId },
     {
       skip: !tableCode,
       pollingInterval: isAutoRefreshWindow ? FIVE_MINUTES_MS : 0,
@@ -157,15 +168,20 @@ const ResultadosMesa2 = () => {
 
   const handleSearch = (searchTerm: string) => {
     if (!searchTerm) return;
-    navigate(`/resultados/mesa/${searchTerm}`);
+    navigate(
+      buildResultsTableLink(searchTerm, {
+        electionId: resolvedElectionId,
+        electionType: resolvedElectionType,
+      }),
+    );
     // console.log('Search term:', searchTerm);
     // Implement search functionality here
   };
 
   // Cargar actas por tableCode (independiente de electoralTableData)
   useEffect(() => {
-    if (!tableCode || !electionId) return;
-    getBallotsByTableCode({ tableCode, electionId })
+    if (!tableCode || !resolvedElectionId) return;
+    getBallotsByTableCode({ tableCode, electionId: resolvedElectionId })
       .unwrap()
       .then((data: any) => {
         setImages(data);
@@ -174,7 +190,7 @@ const ResultadosMesa2 = () => {
         console.error("Error obteniendo actas:", err);
         setImages([]);
       });
-  }, [tableCode, electionId, getBallotsByTableCode]);
+  }, [tableCode, resolvedElectionId, getBallotsByTableCode]);
 
   useEffect(() => {
     if (!tableCode || !electoralTableData) return;
@@ -216,8 +232,8 @@ const ResultadosMesa2 = () => {
 
     const presidentialPromise = fetcher({
       tableCode,
-      electionType: election?.type ?? "presidential",
-      electionId: electionId ?? undefined,
+      electionType: resolvedElectionType,
+      electionId: resolvedElectionId,
     })
       .unwrap()
       .then((data) => {
@@ -269,8 +285,8 @@ const ResultadosMesa2 = () => {
 
     const deputiesPromise = fetcher({
       tableCode,
-      electionType: election?.type ?? "deputies",
-      electionId: electionId ?? undefined,
+      electionType: resolvedElectionType,
+      electionId: resolvedElectionId,
     })
       .unwrap()
       .then((data) => {
@@ -309,8 +325,8 @@ const ResultadosMesa2 = () => {
     refreshTick,
     tableCode,
     electoralTableData,
-    electionId,
-    election,
+    resolvedElectionId,
+    resolvedElectionType,
     hasActiveConfig,
     isPreliminaryPhase,
     isFinalPhase,
@@ -375,7 +391,10 @@ const ResultadosMesa2 = () => {
                   {filteredTables.map((table) => (
                     <Link
                       key={table._id}
-                      to={`/resultados/mesa/${table.tableCode}`}
+                      to={buildResultsTableLink(table.tableCode, {
+                        electionId: resolvedElectionId,
+                        electionType: resolvedElectionType,
+                      })}
                       className="border border-gray-300 rounded-lg p-4 hover:bg-gray-50 hover:border-blue-400 hover:shadow-md transition-all duration-200 block"
                     >
                       <div className="text-center">
@@ -897,7 +916,10 @@ const ResultadosMesa2 = () => {
                     {otherTables.map((table) => (
                       <Link
                         key={table._id}
-                        to={`/resultados/mesa/${table.tableCode}`}
+                        to={buildResultsTableLink(table.tableCode, {
+                          electionId: resolvedElectionId,
+                          electionType: resolvedElectionType,
+                        })}
                         className="border border-gray-300 rounded-lg p-4 hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200 block flex-shrink-0 w-[calc(20%-0.6rem)] min-w-[120px]"
                       >
                         <div className="text-center">

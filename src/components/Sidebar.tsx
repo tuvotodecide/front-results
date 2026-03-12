@@ -4,11 +4,14 @@ import styles from "./Sidebar.module.css";
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { selectAuth, selectIsLoggedIn } from "../store/auth/authSlice";
+import useElectionConfig from "../hooks/useElectionConfig";
+import useElectionId from "../hooks/useElectionId";
 import {
   selectCurrentBallot,
   selectCurrentTable,
   selectQueryParamsResults,
 } from "../store/resultados/resultadosSlice";
+import { buildResultsTableLink } from "../utils/resultsTableLink";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -22,6 +25,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
   const currentTable = useSelector(selectCurrentTable);
   const currentBallot = useSelector(selectCurrentBallot);
   const queryParamsResults = useSelector(selectQueryParamsResults);
+  const electionId = useElectionId();
+  const { election } = useElectionConfig();
 
   const role = user?.role || "publico";
   const isApproved = !!user?.active;
@@ -91,7 +96,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
               <Link
                 to={
                   currentTable
-                    ? `/resultados/mesa/${currentTable}`
+                    ? buildResultsTableLink(currentTable, {
+                        electionId,
+                        electionType: election?.type,
+                      })
                     : "/resultados/mesa"
                 }
                 className={styles.menuLink}

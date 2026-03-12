@@ -16,7 +16,9 @@ import {
   useGetDelegateActivityQuery,
 } from "../../store/reports/clientReportEndpoints";
 import { useMyContract } from "../../hooks/useMyContract";
+import useElectionConfig from "../../hooks/useElectionConfig";
 import useElectionId from "../../hooks/useElectionId";
+import { buildResultsTableLink } from "../../utils/resultsTableLink";
 
 // Componente para mostrar mensajes de estado
 interface StatusMessageProps {
@@ -88,6 +90,7 @@ const ParticipacionPersonal: React.FC = () => {
 
   // Obtener electionId (del contrato si existe, o del selector)
   const electionId = useElectionId();
+  const { election } = useElectionConfig();
 
   // El electionId efectivo es el del contrato si tiene uno activo
   const effectiveElectionId =
@@ -494,7 +497,10 @@ const ParticipacionPersonal: React.FC = () => {
                             {row.ballotId ? (
                               <Link
                                 data-cy="view-ballots-link"
-                                to={`/resultados/mesa/${row.tableCode}`}
+                                to={buildResultsTableLink(row.tableCode, {
+                                  electionId: effectiveElectionId,
+                                  electionType: election?.type,
+                                })}
                                 state={{
                                   ballotId: row.ballotId,
                                   location: row.location,

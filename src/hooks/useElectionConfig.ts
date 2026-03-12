@@ -1,14 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useSelector } from 'react-redux';
-import { RootState } from '../store';
-import { useGetConfigurationStatusQuery } from '../store/configurations/configurationsEndpoints';
-import { ElectionStatusType } from '../types';
+import { useEffect, useMemo, useState } from "react";
+import { useSelector } from "react-redux";
+import { useLocation } from "react-router-dom";
+import { RootState } from "../store";
+import { useGetConfigurationStatusQuery } from "../store/configurations/configurationsEndpoints";
+import { ElectionStatusType } from "../types";
 import {
   FIVE_MINUTES_MS,
   ONE_MINUTE_MS,
   isAnyElectionInAutoRefreshWindow,
   isElectionInAutoRefreshWindow,
-} from '../utils/electionAutoRefreshWindow';
+} from "../utils/electionAutoRefreshWindow";
 
 interface ElectionConfig {
   // The current/selected election configuration
@@ -30,18 +31,24 @@ interface ElectionConfig {
  * along with derived properties that match the old API format.
  */
 export default function useElectionConfig(): ElectionConfig {
+  const location = useLocation();
   const selectedElectionId = useSelector((s: RootState) => s.election.selectedElectionId);
+  const electionIdFromUrl = useMemo(() => {
+    const value = new URLSearchParams(location.search).get("electionId");
+    return value?.trim() || null;
+  }, [location.search]);
+  const effectiveElectionId = electionIdFromUrl ?? selectedElectionId;
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [knownActiveElections, setKnownActiveElections] = useState<ElectionStatusType[]>([]);
 
   const shouldPollStatus = useMemo(() => {
-    if (selectedElectionId) {
+    if (effectiveElectionId) {
       const selectedElection =
-        knownActiveElections.find((e) => e.id === selectedElectionId) ?? null;
+        knownActiveElections.find((e) => e.id === effectiveElectionId) ?? null;
       return isElectionInAutoRefreshWindow(selectedElection, nowMs);
     }
     return isAnyElectionInAutoRefreshWindow(knownActiveElections, nowMs);
-  }, [knownActiveElections, selectedElectionId, nowMs]);
+  }, [effectiveElectionId, knownActiveElections, nowMs]);
 
   const { data: status, isLoading } = useGetConfigurationStatusQuery(undefined, {
     pollingInterval: shouldPollStatus ? FIVE_MINUTES_MS : 0,
@@ -85,8 +92,10 @@ export default function useElectionConfig(): ElectionConfig {
     // Find the selected election or default to first active
     let currentElection: ElectionStatusType | null = null;
 
-    if (selectedElectionId) {
-      currentElection = activeElections.find(e => e.id === selectedElectionId) ?? null;
+    if (effectiveElectionId) {
+      currentElection = activeElections.find(
+        (e) => e.id === effectiveElectionId,
+      ) ?? null;
     }
 
     // If no selection or selection not found, use first active election
@@ -98,7 +107,7 @@ export default function useElectionConfig(): ElectionConfig {
     if (!currentElection && status.config) {
       currentElection = {
         ...status.config,
-        type: 'presidential', // default type for legacy
+        type: "presidential", // default type for legacy
         round: 1,
         isVotingPeriod: status.isVotingPeriod ?? false,
         isResultsPeriod: status.isResultsPeriod ?? false,
@@ -116,5 +125,5 @@ export default function useElectionConfig(): ElectionConfig {
         : isAnyElectionInAutoRefreshWindow(activeElections, nowMs),
       isLoading,
     };
-  }, [status, selectedElectionId, isLoading, nowMs]);
+  }, [effectiveElectionId, isLoading, nowMs, status]);
 }
