@@ -25,5 +25,6 @@ dist-ssr
 .vercel
 .env
 
+
 docs/ui/*
-.claude/*
+.claude

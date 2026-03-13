@@ -13,17 +13,17 @@ import {
 import Graphs from "./Graphs";
 import StatisticsBars from "./StatisticsBars";
 import TablesSection from "./TablesSection";
-import { useLazyGetElectoralTablesByElectoralLocationIdQuery } from "../../store/electoralTables/electoralTablesEndpoints";
 import { useSearchParams } from "react-router-dom";
-import { ElectoralTableType } from "../../types";
 import { getPartyColor } from "./partyColors";
 import LoadingSkeleton from "../../components/LoadingSkeleton";
 import useElectionId from "../../hooks/useElectionId";
 import useElectionConfig from "../../hooks/useElectionConfig";
 import { selectAuth } from "../../store/auth/authSlice";
 import { useMyContract } from "../../hooks/useMyContract";
-import { getResultsLabels } from "./resultsLabels";
+import { getResultsLabels, type ResultsElectionType } from "./resultsLabels";
 import useAutoRefreshTick from "../../hooks/useAutoRefreshTick";
+import { useCountedBallots } from "../../hooks/useCountedBallots";
+import { usePublicResultsScope } from "../../hooks/usePublicResultsScope";
 
 // const combinedData = [
 //   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -52,14 +52,11 @@ const ResultadosGenerales3 = () => {
   const [validTables, setValidTables] = useState<
     Array<{ name: string; value: any; color: string }>
   >([]);
-  const [tablesData, setTablesData] = useState<ElectoralTableType[]>([]);
   useGetDepartmentsQuery({
     limit: 100,
   });
   const [getResultsByLocation] = useLazyGetResultsByLocationQuery({});
   const [getLiveResultsByLocation] = useLazyGetLiveResultsByLocationQuery();
-  const [getTablesByLocationId] =
-    useLazyGetElectoralTablesByElectoralLocationIdQuery();
   const {
     election,
     hasActiveConfig,
@@ -67,7 +64,16 @@ const ResultadosGenerales3 = () => {
     isResultsPeriod: isFinalPhase,
     isAutoRefreshWindow,
   } = useElectionConfig();
-  const resultsLabels = getResultsLabels(election?.type);
+  const electionTypeFromUrl = searchParams.get("electionType");
+  const resolvedElectionType: ResultsElectionType =
+    electionTypeFromUrl === "municipal" ||
+    electionTypeFromUrl === "departamental" ||
+    electionTypeFromUrl === "presidential" ||
+    electionTypeFromUrl === "mayor" ||
+    electionTypeFromUrl === "governor"
+      ? electionTypeFromUrl
+      : election?.type || "presidential";
+  const resultsLabels = getResultsLabels(resolvedElectionType);
   const filters = useSelector(selectFilters);
   const filterIds = useSelector(selectFilterIds);
   const { user } = useSelector(selectAuth);
@@ -98,13 +104,22 @@ const ResultadosGenerales3 = () => {
     isRestrictedRole && contractStatus === "loading" && !hasRestrictedScope;
   const shouldBlockForMissingScope =
     isRestrictedRole && !hasRestrictedScope && !hasAnyFilterId;
+  const electoralLocationId =
+    searchParams.get("electoralLocation") || undefined;
+  const publicScope = usePublicResultsScope({
+    electionId: electionId ?? undefined,
+    electionType: resolvedElectionType,
+  });
+  const shouldBlockForPublicScope =
+    publicScope.isPublic && !publicScope.isLoading && !publicScope.isScopeValid;
   const refreshTick = useAutoRefreshTick({
     enabled:
       hasActiveConfig &&
       (isPreliminaryPhase || isFinalPhase) &&
       isAutoRefreshWindow &&
       !shouldDelayForContract &&
-      !shouldBlockForMissingScope,
+      !shouldBlockForMissingScope &&
+      !shouldBlockForPublicScope,
     intervalMs: 5 * 60 * 1000,
   });
 
@@ -147,24 +162,43 @@ const ResultadosGenerales3 = () => {
   ]);
 
   const primaryElectionType = useMemo(() => {
-    if (election?.type === "municipal" ) {
+    if (resolvedElectionType === "municipal" || resolvedElectionType === "mayor") {
       return "municipal";
     }
-    if (election?.type === "departamental" ) {
+    if (resolvedElectionType === "departamental" || resolvedElectionType === "governor") {
       return "departamental";
     }
     return "presidential";
-  }, [election?.type]);
+  }, [resolvedElectionType]);
 
   const secondaryElectionType = useMemo(() => {
-    if (election?.type === "municipal" ) {
+    if (resolvedElectionType === "municipal" || resolvedElectionType === "mayor") {
       return "council";
     }
-    if (election?.type === "departamental" ) {
+    if (resolvedElectionType === "departamental" || resolvedElectionType === "governor") {
       return "assembly";
     }
     return "deputies";
-  }, [election?.type]);
+  }, [resolvedElectionType]);
+  const { tables: tablesData } = useCountedBallots({
+    electionType: primaryElectionType,
+    electionId: electionId ?? undefined,
+    department: locationParams.department,
+    province: locationParams.province,
+    municipality: locationParams.municipality,
+    electoralLocation: electoralLocationId,
+    page: 1,
+    limit: 200,
+    isLiveMode: isPreliminaryPhase && !isFinalPhase,
+    enablePolling: isAutoRefreshWindow,
+    skip:
+      !electoralLocationId ||
+      !hasActiveConfig ||
+      (!isPreliminaryPhase && !isFinalPhase) ||
+      shouldDelayForContract ||
+      shouldBlockForMissingScope ||
+      shouldBlockForPublicScope,
+  });
 
   // useEffect(() => {
   //   // console.log('Current config data:', configData);
@@ -198,6 +232,24 @@ const ResultadosGenerales3 = () => {
       return;
     }
 
+    if (publicScope.isLoading) {
+      setPresidentialData([]);
+      setDeputiesData([]);
+      setParticipation([]);
+      setValidTables([]);
+      setIsLoading({ president: true, deputies: true });
+      return;
+    }
+
+    if (shouldBlockForPublicScope) {
+      setPresidentialData([]);
+      setDeputiesData([]);
+      setParticipation([]);
+      setValidTables([]);
+      setIsLoading({ president: false, deputies: false });
+      return;
+    }
+
     const baseParams = {
       ...locationParams,
       electionId: electionId ?? undefined,
@@ -215,15 +267,17 @@ const ResultadosGenerales3 = () => {
 
     let isActive = true;
     fetchDebounceRef.current = setTimeout(() => {
-      // Tipo de elecciÃ³n (municipal, departamental, presidential)
-      const presidentRequest = fetcher({
+      const primaryParams = {
         ...baseParams,
         electionType: primaryElectionType,
-      }, true);
-      const deputiesRequest = fetcher({
+      };
+      const secondaryParams = {
         ...baseParams,
         electionType: secondaryElectionType,
-      }, true);
+      };
+
+      const presidentRequest = fetcher(primaryParams, true);
+      const deputiesRequest = fetcher(secondaryParams, true);
 
       presidentRequest
         .unwrap()
@@ -344,28 +398,13 @@ const ResultadosGenerales3 = () => {
     isFinalPhase,
     shouldDelayForContract,
     shouldBlockForMissingScope,
+    shouldBlockForPublicScope,
+    publicScope.isLoading,
     primaryElectionType,
     secondaryElectionType,
     getResultsByLocation,
     getLiveResultsByLocation,
   ]);
-
-  useEffect(() => {
-    const electoralLocationId = searchParams.get("electoralLocation");
-    if (electoralLocationId) {
-      getTablesByLocationId(electoralLocationId)
-        .unwrap()
-        .then((data) => {
-          setTablesData(data);
-        })
-        .catch((err) => {
-          console.error("Error obteniendo mesas:", err);
-          setTablesData([]);
-        });
-    } else {
-      setTablesData([]);
-    }
-  }, [searchParams, getTablesByLocationId]);
 
   return (
     <div className="outer-container min-h-screen bg-gray-50 py-8">
@@ -438,7 +477,11 @@ const ResultadosGenerales3 = () => {
               </div>
               {presidentialData.length === 0 ? (
                 <div className="border border-gray-200 rounded-lg p-8 text-center">
-                  <p className="text-xl text-gray-600">Sin datos</p>
+                  <p className="text-xl text-gray-600">
+                    {shouldBlockForPublicScope
+                      ? publicScope.reason || "Sin resultados disponibles"
+                      : "Sin datos"}
+                  </p>
                 </div>
               ) : (
                 <div className="w-full flex flex-wrap gap-4">

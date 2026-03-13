@@ -523,9 +523,11 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
       if (promises.length > 0) {
         Promise.allSettled(promises).then((results) => {
           const map = new Map<number, PathItem2>();
+          const rawDataByKey = new Map<string, any>();
 
           results.forEach((r) => {
             if (r.status === "fulfilled" && r.value?.data?._id) {
+              rawDataByKey.set(r.value.key, r.value.data);
               const level = breadcrumbLevels[r.value.index];
               map.set(r.value.index, {
                 ...level,
@@ -549,6 +551,93 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
           const hasMunicipality = map.get(2);
           const hasProvince = map.get(1);
           const hasDepartment = map.get(0);
+          const municipalityData = rawDataByKey.get("municipality");
+          const provinceData = rawDataByKey.get("province");
+
+          if (!hasDepartment && hasProvince && provinceData?.departmentId?._id) {
+            const forced: PathItem2[] = [
+              {
+                ...breadcrumbLevels[0],
+                selectedOption: {
+                  _id: provinceData.departmentId._id,
+                  name: provinceData.departmentId.name,
+                },
+              },
+              hasProvince,
+            ];
+
+            if (hasMunicipality) {
+              forced.push(hasMunicipality);
+            }
+
+            setSelectedPath2(forced);
+            const filters = forced.reduce(
+              (acc, item) => {
+                acc[item.id] = item.selectedOption?.name || "";
+                return acc;
+              },
+              {} as Record<string, string>,
+            );
+            const filterIds = forced.reduce(
+              (acc, item) => {
+                acc[item.id + "Id"] = item.selectedOption?._id || "";
+                return acc;
+              },
+              {} as Record<string, string>,
+            );
+            dispatch(setFilters(filters));
+            dispatch(setFilterIds(filterIds));
+            selectLevel(forced.length, forced);
+            if (autoOpen) setShowCurrentLevel(true);
+            return;
+          }
+
+          if (
+            !hasDepartment &&
+            !hasProvince &&
+            hasMunicipality &&
+            municipalityData?.provinceId?._id &&
+            municipalityData?.provinceId?.departmentId?._id
+          ) {
+            const forced: PathItem2[] = [
+              {
+                ...breadcrumbLevels[0],
+                selectedOption: {
+                  _id: municipalityData.provinceId.departmentId._id,
+                  name: municipalityData.provinceId.departmentId.name,
+                },
+              },
+              {
+                ...breadcrumbLevels[1],
+                selectedOption: {
+                  _id: municipalityData.provinceId._id,
+                  name: municipalityData.provinceId.name,
+                },
+              },
+              hasMunicipality,
+            ];
+
+            setSelectedPath2(forced);
+            const filters = forced.reduce(
+              (acc, item) => {
+                acc[item.id] = item.selectedOption?.name || "";
+                return acc;
+              },
+              {} as Record<string, string>,
+            );
+            const filterIds = forced.reduce(
+              (acc, item) => {
+                acc[item.id + "Id"] = item.selectedOption?._id || "";
+                return acc;
+              },
+              {} as Record<string, string>,
+            );
+            dispatch(setFilters(filters));
+            dispatch(setFilterIds(filterIds));
+            selectLevel(3, forced);
+            if (autoOpen) setShowCurrentLevel(true);
+            return;
+          }
 
           if (hasDepartment && hasMunicipality && !hasProvince) {
             const dept = map.get(0)!;

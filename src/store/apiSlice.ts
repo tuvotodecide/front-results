@@ -45,7 +45,12 @@ const baseQueryWrapper = async (
   extraOptions: {},
 ) => {
   const state = api.getState() as any;
+  const urlElectionId =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("electionId")
+      : null;
   const eid =
+    urlElectionId ??
     state?.election?.selectedElectionId ??
     (typeof localStorage !== "undefined"
       ? localStorage.getItem("selectedElectionId")

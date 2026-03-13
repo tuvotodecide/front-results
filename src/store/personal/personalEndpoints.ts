@@ -1,10 +1,37 @@
 import { apiSlice } from "../apiSlice";
 
+export interface AuditMatchDetail {
+  _id: string;
+  ballotId: string | null;
+  recinto: string;
+  mesa: string;
+  tableCode: string;
+  version?: number | null;
+  testigo: string;
+  auditoria: "Sin Obs" | "No coincide" | "Pendiente";
+  comparisonStatus: "MATCH" | "MISMATCH" | "NO_TSE_DATA" | "ERROR" | "PENDING";
+  comparedAt?: string | null;
+  mismatches?: Array<{
+    field: string;
+    label: string;
+    local: number;
+    tse: number;
+    kind: "party" | "metric";
+  }>;
+}
+
+export interface AuditMatchResponse {
+  observados: number;
+  sinObservaciones: number;
+  pendientes: number;
+  total: number;
+  details: AuditMatchDetail[];
+}
+
 export const personalApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getParticipacionPersonal: builder.query<any, any>({
       async queryFn() {
-        // MOCK: Simulamos la lista de personas contratadas vs reporte
         const mockData = [
           {
             _id: "1",
@@ -56,43 +83,15 @@ export const personalApiSlice = apiSlice.injectEndpoints({
         };
       },
     }),
-    getAuditoriaTSE: builder.query<any, any>({
-      async queryFn(_filters) {
-        // MOCK DATA
-        return {
-          data: {
-            observados: 2,
-            details: [
-              {
-                _id: "a1",
-                recinto: "Col. Italia",
-                mesa: "1123",
-                testigo: "Pedro S.",
-                auditoria: "Sin Obs",
-                ballotId: "677d",
-              },
-              {
-                _id: "a2",
-                recinto: "Holanda",
-                mesa: "1129",
-                testigo: "Juan Peres",
-                auditoria: "No coincide",
-                ballotId: "677e",
-              },
-              {
-                _id: "a3",
-                recinto: "Holanda",
-                mesa: "1122",
-                testigo: "Juan Peres",
-                auditoria: "No coincide",
-                ballotId: "677e",
-              },
-            ],
-          },
-        };
-      },
+    getAuditoriaTSE: builder.query<AuditMatchResponse, any>({
+      query: (filters) => ({
+        url: "/client-reports/audit-match",
+        params: filters,
+      }),
+      providesTags: ["ClientReports"],
     }),
   }),
 });
 
-export const { useGetParticipacionPersonalQuery, useGetAuditoriaTSEQuery } = personalApiSlice;
+export const { useGetParticipacionPersonalQuery, useGetAuditoriaTSEQuery } =
+  personalApiSlice;

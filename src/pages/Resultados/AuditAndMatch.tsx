@@ -7,10 +7,9 @@ import {
   ChevronDown,
   ChevronUp,
   Eye,
-  XCircle,
+  LoaderCircle,
 } from "lucide-react";
 
-import Breadcrumb2 from "../../components/Breadcrumb2";
 import { useGetAuditoriaTSEQuery } from "../../store/personal/personalEndpoints";
 import { selectFilters } from "../../store/resultados/resultadosSlice";
 import { useGetConfigurationStatusQuery } from "../../store/configurations/configurationsEndpoints";
@@ -28,16 +27,15 @@ const AuditAndMatch: React.FC = () => {
   const details = data?.details ?? [];
 
   const summary = useMemo(() => {
-    const observadasCalc = details.filter(
-      (r: any) => r.auditoria === "No coincide" || r.auditoria === "Anulada",
-    ).length;
+    const observadas = typeof data?.observados === "number" ? data.observados : 0;
+    const sinObs =
+      typeof data?.sinObservaciones === "number" ? data.sinObservaciones : 0;
+    const pendientes = typeof data?.pendientes === "number" ? data.pendientes : 0;
+    const total = typeof data?.total === "number" ? data.total : details.length;
 
-    const observadas =
-      typeof data?.observados === "number" ? data.observados : observadasCalc;
-    const sinObs = Math.max(details.length - observadas, 0);
+    return { observadas, sinObs, pendientes, total };
+  }, [data?.observados, data?.sinObservaciones, data?.pendientes, data?.total, details.length]);
 
-    return { observadas, sinObs, total: details.length };
-  }, [data?.observados, details]);
   if (isConfigLoading) {
     return (
       <div className="p-10 text-center">
@@ -46,7 +44,6 @@ const AuditAndMatch: React.FC = () => {
     );
   }
 
-  // 2. No hay elección activa
   if (!electionId) {
     return (
       <div className="p-10 text-center text-slate-600">
@@ -55,11 +52,9 @@ const AuditAndMatch: React.FC = () => {
     );
   }
 
-  // 3. Cargando datos de la auditoría
   if (isLoading) {
     return <div className="p-10 text-center">Cargando auditoría vs TSE...</div>;
   }
-
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -68,23 +63,26 @@ const AuditAndMatch: React.FC = () => {
           Auditoría vs Resultados TSE
         </h1>
 
-        {/* Reutilizamos tu componente de filtros */}
-        <div className="bg-white p-4 rounded-lg shadow-sm mb-8 border border-gray-200">
-          <Breadcrumb2 />
-        </div>
 
-        {/* Card de Resumen (misma UI del otro) */}
         <div className="bg-white rounded-xl shadow-md p-8 text-center border border-gray-100 mb-8">
           <h2 className="text-xl md:text-2xl text-gray-700 leading-relaxed">
-            Del total de actas analizadas
+            De todas las actas atestiguadas
+            <span className="mx-2 inline-block px-4 py-1 bg-slate-100 text-slate-700 font-bold rounded-full">
+              {summary.total}
+            </span>
+            se encontraron
             <span className="mx-2 inline-block px-4 py-1 bg-rose-100 text-rose-700 font-bold rounded-full">
               {summary.observadas}
             </span>
-            están observadas y
+            observadas,
             <span className="mx-2 inline-block px-4 py-1 bg-emerald-100 text-emerald-700 font-bold rounded-full">
               {summary.sinObs}
             </span>
-            no presentan observaciones.
+            sin observaciones y
+            <span className="mx-2 inline-block px-4 py-1 bg-amber-100 text-amber-700 font-bold rounded-full">
+              {summary.pendientes}
+            </span>
+            pendientes de comparación.
           </h2>
 
           <button
@@ -97,13 +95,12 @@ const AuditAndMatch: React.FC = () => {
               </>
             ) : (
               <>
-                Ver reporte detallado por mesa <ChevronDown size={20} />
+                Ver reporte detallado por acta <ChevronDown size={20} />
               </>
             )}
           </button>
         </div>
 
-        {/* Tabla Detallada Estilo Excel/Reporte */}
         {showDetails && (
           <div className="bg-white rounded-lg shadow-xl overflow-hidden border border-gray-200 animate-fadeIn">
             <div className="overflow-x-auto">
@@ -130,18 +127,19 @@ const AuditAndMatch: React.FC = () => {
 
                 <tbody className="divide-y divide-slate-50">
                   {details.map((row: any) => {
-                    const isError = row.auditoria === "No coincide";
-                    const isWarning = row.auditoria === "Anulada";
-                    const isObserved = isError || isWarning;
+                    const isMismatch = row.auditoria === "No coincide";
+                    const isPending = row.auditoria === "Pendiente";
 
                     return (
                       <tr
                         key={row._id}
                         className={[
                           "transition-colors group",
-                          isObserved
+                          isMismatch
                             ? "bg-rose-50 hover:bg-rose-100/80"
-                            : "hover:bg-slate-50/80",
+                            : isPending
+                              ? "bg-amber-50 hover:bg-amber-100/80"
+                              : "hover:bg-slate-50/80",
                         ].join(" ")}
                       >
                         <td className="px-6 py-4">
@@ -168,13 +166,13 @@ const AuditAndMatch: React.FC = () => {
                         </td>
 
                         <td className="px-6 py-4 text-center">
-                          {isError ? (
+                          {isMismatch ? (
                             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 text-rose-700 text-xs font-bold ring-1 ring-rose-600/20">
                               <AlertTriangle size={14} /> No coincide
                             </span>
-                          ) : isWarning ? (
+                          ) : isPending ? (
                             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-bold ring-1 ring-amber-600/20">
-                              <XCircle size={14} /> Anulada
+                              <LoaderCircle size={14} /> Pendiente
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold ring-1 ring-emerald-600/20">
@@ -189,13 +187,14 @@ const AuditAndMatch: React.FC = () => {
                               to={`/resultados/imagen/${row.ballotId}`}
                               className={[
                                 "inline-flex items-center gap-2 px-4 py-2 font-bold rounded-lg transition-all group-hover:shadow-md border",
-                                isObserved
+                                isMismatch
                                   ? "bg-rose-50 text-rose-500 hover:bg-rose-400 hover:text-white border-rose-200"
-                                  : "bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border-blue-100",
+                                  : isPending
+                                    ? "bg-amber-50 text-amber-700 hover:bg-amber-400 hover:text-white border-amber-200"
+                                    : "bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white border-emerald-100",
                               ].join(" ")}
                             >
-                              <Eye size={16} />{" "}
-                              {isObserved ? "Ver Actas" : "Ver Acta"}
+                              <Eye size={16} /> Ver Acta
                             </Link>
                           ) : (
                             <span className="text-slate-300 italic font-light">

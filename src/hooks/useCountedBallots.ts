@@ -13,6 +13,7 @@ interface UseCountedBallotsParams {
   department?: string;
   province?: string;
   municipality?: string;
+  electoralLocation?: string;
   page?: number;
   limit?: number;
   isLiveMode: boolean;
@@ -42,6 +43,7 @@ export const useCountedBallots = ({
   department,
   province,
   municipality,
+  electoralLocation,
   page = 1,
   limit = 20,
   isLiveMode,
@@ -55,6 +57,7 @@ export const useCountedBallots = ({
     department,
     province,
     municipality,
+    electoralLocation,
     page,
     limit,
   };
