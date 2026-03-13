@@ -10,7 +10,6 @@ import {
 } from "react-router-dom";
 import {
   useGetElectoralTableByTableCodeQuery,
-  useLazyGetElectoralTablesByElectoralLocationIdQuery,
 } from "../../store/electoralTables/electoralTablesEndpoints";
 import {
   useLazyGetLiveResultsByLocationQuery,
@@ -42,6 +41,7 @@ import useElectionId from "../../hooks/useElectionId";
 import useAutoRefreshTick from "../../hooks/useAutoRefreshTick";
 import { FIVE_MINUTES_MS } from "../../utils/electionAutoRefreshWindow";
 import { buildResultsTableLink } from "../../utils/resultsTableLink";
+import { usePublicResultsScope } from "../../hooks/usePublicResultsScope";
 
 // const combinedData = [
 //   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -66,8 +66,6 @@ const ResultadosMesa2 = () => {
   const [getResultsByLocation] = useLazyGetResultsByLocationQuery();
   const [getLiveResultsByLocation] = useLazyGetLiveResultsByLocationQuery();
   const [getBallotsByTableCode] = useLazyGetBallotByTableCodeQuery();
-  const [getTablesByLocationId] =
-    useLazyGetElectoralTablesByElectoralLocationIdQuery();
 
   const [presidentialData, setPresidentialData] = useState<
     Array<{ name: string; value: number; color: string }>
@@ -105,6 +103,17 @@ const ResultadosMesa2 = () => {
     electionTypeFromUrl === "governor"
       ? electionTypeFromUrl
       : election?.type || "presidential";
+  const searchElectoralLocationId =
+    searchParams.get("electoralLocation") || undefined;
+  const publicScope = usePublicResultsScope({
+    electionId: resolvedElectionId,
+    electionType: resolvedElectionType,
+  });
+  const shouldBlockForPublicScope =
+    !tableCode &&
+    publicScope.isPublic &&
+    !publicScope.isLoading &&
+    !publicScope.isScopeValid;
 
   // Hook para obtener las mesas que cuentan en resultados (consistente con by-location)
   const {
@@ -118,12 +127,16 @@ const ResultadosMesa2 = () => {
     department: filters.department,
     province: filters.province,
     municipality: filters.municipality,
+    electoralLocation: searchElectoralLocationId,
     page: 1,
     limit: 20,
     isLiveMode: isPreliminaryPhase && !isFinalPhase,
     enablePolling: isAutoRefreshWindow,
     skip:
-      !!tableCode || !hasActiveConfig || (!isPreliminaryPhase && !isFinalPhase),
+      !!tableCode ||
+      !hasActiveConfig ||
+      (!isPreliminaryPhase && !isFinalPhase) ||
+      shouldBlockForPublicScope,
   });
   const resultsLabels = getResultsLabels(resolvedElectionType);
   const refreshTick = useAutoRefreshTick({
@@ -165,6 +178,23 @@ const ResultadosMesa2 = () => {
   } = useGetElectoralTableByTableCodeQuery(tableCode || "", {
     skip: !tableCode, // Skip the query if tableCode is falsy
   });
+  const currentElectoralLocationId =
+    electoralTableData?.electoralLocation?._id || undefined;
+  const { tables: otherCountedTables } = useCountedBallots({
+    electionType: resolvedElectionType,
+    electionId: resolvedElectionId,
+    electoralLocation: currentElectoralLocationId,
+    page: 1,
+    limit: 200,
+    isLiveMode: isPreliminaryPhase && !isFinalPhase,
+    enablePolling: isAutoRefreshWindow,
+    skip:
+      !tableCode ||
+      !currentElectoralLocationId ||
+      !hasActiveConfig ||
+      (!isPreliminaryPhase && !isFinalPhase) ||
+      shouldBlockForPublicScope,
+  });
 
   const handleSearch = (searchTerm: string) => {
     if (!searchTerm) return;
@@ -195,24 +225,23 @@ const ResultadosMesa2 = () => {
   useEffect(() => {
     if (!tableCode || !electoralTableData) return;
 
-    if (electoralTableData.electoralLocation) {
-      getTablesByLocationId(electoralTableData.electoralLocation._id)
-        .unwrap()
-        .then((data) => {
-          setOtherTables(
-            data.filter(
-              (table: ElectoralTableType) =>
-                !!table.tableCode && table.tableCode !== tableCode,
-            ),
-          );
-        })
-        .catch((err) => {
-          console.error("Error obteniendo otras mesas:", err);
-          setOtherTables([]);
-        });
+    if (!hasActiveConfig || (!isPreliminaryPhase && !isFinalPhase)) {
+      setPresidentialData([]);
+      setDeputiesData([]);
+      setParticipation([]);
+      setResultsLoading(false);
+      return;
     }
 
-    if (!hasActiveConfig || (!isPreliminaryPhase && !isFinalPhase)) {
+    if (publicScope.isLoading) {
+      setPresidentialData([]);
+      setDeputiesData([]);
+      setParticipation([]);
+      setResultsLoading(true);
+      return;
+    }
+
+    if (shouldBlockForPublicScope) {
       setPresidentialData([]);
       setDeputiesData([]);
       setParticipation([]);
@@ -331,11 +360,25 @@ const ResultadosMesa2 = () => {
     isPreliminaryPhase,
     isFinalPhase,
     isAutoRefreshWindow,
-    getBallotsByTableCode,
-    getTablesByLocationId,
+    publicScope.isLoading,
+    shouldBlockForPublicScope,
     getResultsByLocation,
     getLiveResultsByLocation,
   ]);
+
+  useEffect(() => {
+    if (!tableCode) {
+      setOtherTables([]);
+      return;
+    }
+
+    setOtherTables(
+      otherCountedTables.filter(
+        (table: ElectoralTableType) =>
+          !!table.tableCode && table.tableCode !== tableCode,
+      ),
+    );
+  }, [otherCountedTables, tableCode]);
 
   useEffect(() => {
     if (tableCode) {
@@ -345,21 +388,13 @@ const ResultadosMesa2 = () => {
 
   // Effect to handle territorial filters and get filtered tables
   useEffect(() => {
-    const electoralLocationId = searchParams.get("electoralLocation");
-    if (electoralLocationId) {
-      getTablesByLocationId(electoralLocationId)
-        .unwrap()
-        .then((data) => {
-          setFilteredTables(data);
-        })
-        .catch((error) => {
-          console.error("Error fetching filtered tables:", error);
-          setFilteredTables([]);
-        });
-    } else {
+    if (!searchElectoralLocationId) {
       setFilteredTables([]);
+      return;
     }
-  }, [searchParams, getTablesByLocationId]);
+
+    setFilteredTables(countedTables);
+  }, [countedTables, searchElectoralLocationId]);
 
   return (
     <div className="outer-container min-h-screen bg-gray-50 py-8">
@@ -582,10 +617,15 @@ const ResultadosMesa2 = () => {
                             </svg>
                           </div>
                           <p className="text-gray-600 mb-2">
-                            No hay mesas con resultados disponibles
+                            {shouldBlockForPublicScope
+                              ? publicScope.reason ||
+                                "No hay mesas con resultados disponibles"
+                              : "No hay mesas con resultados disponibles"}
                           </p>
                           <p className="text-sm text-gray-500">
-                            {isPreliminaryPhase
+                            {shouldBlockForPublicScope
+                              ? "Seleccione un territorio habilitado para esta elección."
+                              : isPreliminaryPhase
                               ? "Aún no se han procesado actas para esta ubicación."
                               : "Los resultados finales aún no están disponibles."}
                           </p>
@@ -983,6 +1023,13 @@ const ResultadosMesa2 = () => {
                       </button>
                     </div>
                   )}
+                </div>
+              )}
+              {otherTables.length === 0 && shouldBlockForPublicScope && (
+                <div className="border border-gray-200 rounded-lg p-6 mb-4 text-center">
+                  <p className="text-gray-600">
+                    {publicScope.reason || "Seleccione un territorio habilitado para esta elección."}
+                  </p>
                 </div>
               )}
             </div>

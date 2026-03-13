@@ -1,294 +1,78 @@
-import { useEffect, useState, useMemo } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { useGetConfigurationStatusQuery } from "../store/configurations/configurationsEndpoints";
-import {
-  useLazyGetResultsByLocationQuery,
-  useLazyGetLiveResultsByLocationQuery,
-} from "../store/resultados/resultadosEndpoints";
 import { useSelector } from "react-redux";
-import { selectFilters } from "../store/resultados/resultadosSlice";
 import { selectAuth, selectIsLoggedIn } from "../store/auth/authSlice";
-import { getPartyColor } from "./Resultados/partyColors";
-import StatisticsBars from "./Resultados/StatisticsBars";
-import Graphs from "./Resultados/Graphs";
-import tuvotoDecideImage from "../assets/tuvotodecide.webp";
-import { ElectionStatusType } from "../types";
-import useAutoRefreshTick from "../hooks/useAutoRefreshTick";
 import {
-  FIVE_MINUTES_MS,
-  ONE_MINUTE_MS,
-  isAnyElectionInAutoRefreshWindow,
-} from "../utils/electionAutoRefreshWindow";
-
-interface ElectionResultsData {
+  useGetMyElectionsQuery,
+  useGetPublicActiveContractsQuery,
+} from "../store/contracts/contractsEndpoints";
+import tuvotoDecideImage from "../assets/tuvotodecide.webp";
+import { buildGeneralResultsLink } from "../utils/resultsGeneralLink";
+type ContractRow = {
+  id: string;
   electionId: string;
   electionName: string;
-  electionType: string;
-  resultsData: Array<{ name: string; value: number; color: string }>;
-  participationData: Array<{ name: string; value: any; color: string }>;
-  isPreliminary: boolean;
-}
-
-// Component to display results for a single election
-const ElectionResultsCard: React.FC<{
-  election: ElectionStatusType;
-  resultsData: Array<{ name: string; value: number; color: string }>;
-  participationData: Array<{ name: string; value: any; color: string }>;
-}> = ({ election, resultsData, participationData }) => {
-  const isPreliminary = election.isVotingPeriod;
-  const electionTypeLabel = election.type === "municipal"
-    ? "Municipales"
-    : election.type === "departamental"
-      ? "Departamentales"
-      : "Presidenciales";
-
-  return (
-    <div className="space-y-6">
-      {/* Election Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-4 text-white">
-        <h3 className="text-lg font-bold">{election.name}</h3>
-        <p className="text-sm text-blue-100">Elecciones {electionTypeLabel}</p>
-        {isPreliminary && (
-          <span className="inline-block mt-2 text-xs font-semibold uppercase tracking-wide text-orange-200 bg-orange-600 px-2 py-0.5 rounded-full">
-            Resultados preliminares
-          </span>
-        )}
-      </div>
-
-      {/* Participation */}
-      {participationData.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="bg-gradient-to-r from-green-50 to-blue-50 px-6 py-4 border-b border-gray-200">
-            <h4 className="text-lg font-semibold text-gray-900 flex items-center">
-              <svg
-                className="w-5 h-5 text-green-600 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                ></path>
-              </svg>
-              Participación Electoral
-            </h4>
-          </div>
-          <div className="p-4">
-            <StatisticsBars
-              title="Distribución de Votos"
-              voteData={participationData}
-              processedTables={{ current: 0, total: 0 }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Results */}
-      {resultsData.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 px-6 py-4 border-b border-gray-200">
-            <h4 className="text-lg font-semibold text-gray-900 flex items-center">
-              <svg
-                className="w-5 h-5 text-blue-600 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                ></path>
-              </svg>
-              Resultados {electionTypeLabel}
-            </h4>
-          </div>
-          <div className="p-4">
-            <Graphs data={resultsData} />
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  electionType?: "municipal" | "departamental" | "presidential" | string;
+  territoryType: "municipality" | "department";
+  departmentId?: string;
+  municipalityId?: string;
+  territoryLabel: string;
 };
 
 const Home: React.FC = () => {
-  const [electionResults, setElectionResults] = useState<Map<string, ElectionResultsData>>(new Map());
-  const [loading, setLoading] = useState(false);
-  const [shouldPollConfigStatus, setShouldPollConfigStatus] = useState(false);
-
-  const { data: configData } = useGetConfigurationStatusQuery(undefined, {
-    pollingInterval: shouldPollConfigStatus ? FIVE_MINUTES_MS : 0,
-    refetchOnFocus: true,
-    refetchOnReconnect: true,
-    skipPollingIfUnfocused: true,
-  });
-  const [getResultsByLocation] = useLazyGetResultsByLocationQuery();
-  const [getLiveResultsByLocation] = useLazyGetLiveResultsByLocationQuery();
-  const filters = useSelector(selectFilters);
   const auth = useSelector(selectAuth);
   const isLoggedIn = useSelector(selectIsLoggedIn);
-
-  // Filter elections based on user role
-  const visibleElections = useMemo(() => {
-    if (!configData?.elections) return [];
-
-    const elections = configData.elections.filter(e => e.isActive);
-
-    // Not logged in or SUPERADMIN: show all elections
-    if (!isLoggedIn || auth.user?.role === "SUPERADMIN") {
-      return elections;
-    }
-
-    // MAYOR: show only municipal elections
-    if (auth.user?.role === "MAYOR") {
-      return elections.filter(e => e.type === "municipal");
-    }
-
-    // GOVERNOR: show only departmental elections
-    if (auth.user?.role === "GOVERNOR") {
-      return elections.filter(e => e.type === "departamental");
-    }
-
-    // Default: show all
-    return elections;
-  }, [configData?.elections, isLoggedIn, auth.user?.role]);
-
-  // Get location filters based on user role
-  const getLocationFilters = useMemo(() => {
-    const baseFilters = { ...filters };
-
-    if (isLoggedIn && auth.user) {
-      // MAYOR: filter by their municipality
-      if (auth.user.role === "MAYOR" && auth.user.municipalityId) {
-        return { ...baseFilters, municipalityId: auth.user.municipalityId };
-      }
-      // GOVERNOR: filter by their department
-      if (auth.user.role === "GOVERNOR" && auth.user.departmentId) {
-        return { ...baseFilters, departmentId: auth.user.departmentId };
-      }
-    }
-
-    return baseFilters;
-  }, [filters, isLoggedIn, auth.user]);
-
-  const hasActiveConfig = visibleElections.length > 0;
-  const showResultsPeriod = visibleElections.some(e => e.isVotingPeriod || e.isResultsPeriod);
-  const windowClockTick = useAutoRefreshTick({
-    enabled: true,
-    intervalMs: ONE_MINUTE_MS,
+  const isClient =
+    auth.user?.role === "MAYOR" || auth.user?.role === "GOVERNOR";
+  const { data: publicContractsData } = useGetPublicActiveContractsQuery(undefined, {
+    skip: isLoggedIn && isClient,
   });
-  const isAutoRefreshWindow = useMemo(
-    () => isAnyElectionInAutoRefreshWindow(visibleElections),
-    [visibleElections, windowClockTick],
-  );
-  const refreshTick = useAutoRefreshTick({
-    enabled: isAutoRefreshWindow,
-    intervalMs: FIVE_MINUTES_MS,
-  });
+  const { data: myElectionsData, isLoading: myContractsLoading } =
+    useGetMyElectionsQuery(undefined, {
+      skip: !isLoggedIn || !isClient,
+    });
 
-  useEffect(() => {
-    setShouldPollConfigStatus(isAutoRefreshWindow);
-  }, [isAutoRefreshWindow]);
-
-  // Fetch results for all visible elections
-  useEffect(() => {
-    if (!hasActiveConfig || !showResultsPeriod) {
-      setElectionResults(new Map());
-      return;
+  const contractRows = useMemo<ContractRow[]>(() => {
+    if (isLoggedIn && isClient) {
+      return (myElectionsData ?? []).flatMap((election) =>
+        election.contracts
+          .filter((contract) => contract.active)
+          .map((contract) => ({
+            id: contract.contractId,
+            electionId: election.electionId,
+            electionName: election.electionName,
+            electionType: election.electionType,
+            territoryType: contract.territory.type,
+            departmentId: contract.territory.departmentId,
+            municipalityId: contract.territory.municipalityId,
+            territoryLabel:
+              contract.territory.type === "municipality"
+                ? contract.territory.municipalityName || "Sin municipio"
+                : contract.territory.departmentName || "Sin departamento",
+          })),
+      );
     }
 
-    const fetchAllResults = async () => {
-      setLoading(true);
-      const resultsMap = new Map<string, ElectionResultsData>();
+    return (publicContractsData?.data ?? []).map((contract) => ({
+      id: contract.contractId,
+      electionId: contract.election.electionId,
+      electionName: contract.election.electionName,
+      electionType: contract.election.electionType,
+      territoryType: contract.territory.type,
+      departmentId: contract.territory.departmentId,
+      municipalityId: contract.territory.municipalityId,
+      territoryLabel:
+        contract.territory.type === "municipality"
+          ? contract.territory.municipalityName || "Sin municipio"
+          : contract.territory.departmentName || "Sin departamento",
+    }));
+  }, [isLoggedIn, isClient, myElectionsData, publicContractsData?.data]);
 
-      for (const election of visibleElections) {
-        if (!election.isVotingPeriod && !election.isResultsPeriod) {
-          continue;
-        }
+  const isLoadingContracts = isLoggedIn && isClient ? myContractsLoading : false;
 
-        const params = {
-          ...getLocationFilters,
-          electionType: election.type,
-          electionId: election.id,
-        };
-
-        const fetcher = election.isResultsPeriod
-          ? getResultsByLocation
-          : getLiveResultsByLocation;
-
-        try {
-          const data = await fetcher(params).unwrap();
-
-          const formattedData = (data.results ?? []).map((item: any) => {
-            const partyColor = getPartyColor(item.partyId);
-            const randomColor =
-              "#" +
-              Math.floor(Math.random() * 16777215)
-                .toString(16)
-                .padStart(6, "0");
-            return {
-              name: item.partyId,
-              value: item.totalVotes,
-              color: partyColor || randomColor,
-            };
-          });
-
-          let participationData: Array<{ name: string; value: any; color: string }> = [];
-          if (data.summary) {
-            participationData = [
-              {
-                name: "Válidos",
-                value: data.summary.validVotes || 0,
-                color: "#8cc689",
-              },
-              {
-                name: "Nulos",
-                value: data.summary.nullVotes || 0,
-                color: "#81858e",
-              },
-              {
-                name: "Blancos",
-                value: data.summary.blankVotes || 0,
-                color: "#f3f3ce",
-              },
-            ];
-          }
-
-          resultsMap.set(election.id, {
-            electionId: election.id,
-            electionName: election.name,
-            electionType: election.type,
-            resultsData: formattedData,
-            participationData,
-            isPreliminary: election.isVotingPeriod,
-          });
-        } catch (error) {
-          console.log(`Error obteniendo resultados para ${election.name}:`, error);
-        }
-      }
-
-      setElectionResults(resultsMap);
-      setLoading(false);
-    };
-
-    fetchAllResults();
-  }, [
-    refreshTick,
-    visibleElections,
-    getLocationFilters,
-    hasActiveConfig,
-    showResultsPeriod,
-    getResultsByLocation,
-    getLiveResultsByLocation,
-  ]);
-
-  // Get the first election for waiting message
-  const firstWaitingElection = visibleElections.find(e => !e.isVotingPeriod && !e.isResultsPeriod);
+  const tableTitle = isLoggedIn && isClient
+    ? "Mis Contratos Activos"
+    : "Resultados";
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -308,10 +92,10 @@ const Home: React.FC = () => {
             {isLoggedIn && auth.user && (
               <p className="mt-2 text-sm text-green-200">
                 {auth.user.role === "MAYOR" && auth.user.municipalityName && (
-                  <>Viendo resultados de: {auth.user.municipalityName}</>
+                  <>Usuario vinculado a: {auth.user.municipalityName}</>
                 )}
                 {auth.user.role === "GOVERNOR" && auth.user.departmentName && (
-                  <>Viendo resultados de: {auth.user.departmentName}</>
+                  <>Usuario vinculado a: {auth.user.departmentName}</>
                 )}
               </p>
             )}
@@ -319,69 +103,88 @@ const Home: React.FC = () => {
         </div>
       </div>
 
-      {/* Election Results Section */}
       <div className="bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Loading state */}
-          {loading && (
+          {isLoadingContracts && (
             <div className="flex justify-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
           )}
 
-          {/* No active elections or waiting for results */}
-          {!loading && configData && hasActiveConfig && !showResultsPeriod && firstWaitingElection && (
-            <div className="bg-white border border-gray-300 rounded-xl p-8 text-center shadow-sm">
-              <div className="max-w-md mx-auto">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <svg
-                    className="w-8 h-8 text-blue-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    ></path>
-                  </svg>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                  Los resultados se habilitarán el:
+          {!isLoadingContracts && contractRows.length > 0 && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {tableTitle}
                 </h3>
-                <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                  <p className="text-2xl text-gray-700 font-medium mb-1">
-                    {new Date(
-                      firstWaitingElection.resultsStartDateBolivia
-                    ).toLocaleDateString("es-ES", {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                      timeZone: "America/La_Paz",
+                <p className="text-sm text-gray-500 mt-1">
+                  Selecciona un territorio disponible para ver resultados.
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Elección
+                      </th>
+                      <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Tipo
+                      </th>
+
+                      <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Alcance
+                      </th>
+                      <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Acción
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 bg-white">
+                    {contractRows.map((item) => {
+                      const typeLabel =
+                        item.electionType === "municipal"
+                          ? "Municipal"
+                          : item.electionType === "departamental"
+                            ? "Departamental"
+                            : "Presidencial";
+
+
+                      return (
+                        <tr key={item.id}>
+                          <td className="px-6 py-4 text-sm text-gray-700 text-center">
+                            {item.electionName}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-700 text-center">
+                            {typeLabel}
+                          </td>
+
+                          <td className="px-6 py-4 text-sm text-gray-700 text-center">
+                            {item.territoryLabel}
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <Link
+                              to={buildGeneralResultsLink({
+                                electionId: item.electionId,
+                                electionType: item.electionType,
+                                departmentId: item.departmentId,
+                                municipalityId: item.municipalityId,
+                              })}
+                              className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                            >
+                              Ver resultados
+                            </Link>
+                          </td>
+                        </tr>
+                      );
                     })}
-                  </p>
-                  <p className="text-3xl font-bold text-blue-600">
-                    {new Date(
-                      firstWaitingElection.resultsStartDateBolivia
-                    ).toLocaleTimeString("es-ES", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      timeZone: "America/La_Paz",
-                    })}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    (Hora de Bolivia)
-                  </p>
-                </div>
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
 
-          {/* No data available */}
-          {!loading && (!hasActiveConfig || (electionResults.size === 0 && showResultsPeriod)) && (
+          {!isLoadingContracts && contractRows.length === 0 && (
             <div className="bg-white border border-gray-300 rounded-xl p-8 text-center shadow-sm">
               <div className="max-w-md mx-auto">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -400,58 +203,11 @@ const Home: React.FC = () => {
                   </svg>
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  Sin datos disponibles
+                  Sin contratos disponibles
                 </h3>
                 <p className="text-gray-600">
-                  Los resultados aparecerán aquí una vez que inicie el período
-                  de conteo
+                  No hay contratos activos para mostrar en este momento.
                 </p>
-              </div>
-            </div>
-          )}
-
-          {/* Display results for each election */}
-          {!loading && electionResults.size > 0 && (
-            <div className="space-y-12">
-              {/* Grid for multiple elections */}
-              <div className={`grid gap-8 ${visibleElections.length > 1 ? 'lg:grid-cols-2' : 'grid-cols-1'}`}>
-                {visibleElections.map((election) => {
-                  const results = electionResults.get(election.id);
-                  if (!results || (results.resultsData.length === 0 && results.participationData.length === 0)) {
-                    return null;
-                  }
-                  return (
-                    <ElectionResultsCard
-                      key={election.id}
-                      election={election}
-                      resultsData={results.resultsData}
-                      participationData={results.participationData}
-                    />
-                  );
-                })}
-              </div>
-
-              {/* Button to see detailed results */}
-              <div className="text-center">
-                <Link
-                  to="/resultados"
-                  className="inline-flex items-center px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-lg rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-                >
-                  <svg
-                    className="w-5 h-5 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                    ></path>
-                  </svg>
-                  Ver Resultados Detallados
-                </Link>
               </div>
             </div>
           )}
