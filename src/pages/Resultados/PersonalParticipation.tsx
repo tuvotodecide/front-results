@@ -555,12 +555,6 @@ const ParticipacionPersonal: React.FC = () => {
                       <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
                         Nombre
                       </th>
-                      <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
-                        Teléfono
-                      </th>
-                      <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
-                        Email
-                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
@@ -576,16 +570,7 @@ const ParticipacionPersonal: React.FC = () => {
                             {d.name || "Sin nombre"}
                           </span>
                         </td>
-                        <td className="px-4 py-4">
-                          <span className="text-sm text-slate-600">
-                            {d.phone || "—"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className="text-sm text-slate-600">
-                            {d.email || "—"}
-                          </span>
-                        </td>
+
                       </tr>
                     ))}
                   </tbody>
