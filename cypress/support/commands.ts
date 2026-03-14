@@ -168,7 +168,7 @@ Cypress.Commands.add('mockBallotNotFound', (id) => {
 });
 
 Cypress.Commands.add('mockAttestationsByBallotId', (id, body) => {
-    cy.intercept('GET', `**/api/v1/attestations/by-ballot/${id}*`, {
+    cy.intercept('GET', `**/api/v1/attestations/ballot/${id}*`, {
         statusCode: 200,
         body: body
     }).as('attestationsByBallot');

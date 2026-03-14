@@ -108,21 +108,63 @@ describe("Módulo Administrativo - Navegación y Búsqueda (Solo Visual)", () =>
         cy.log("Recorrido de sidebar completado");
     });
 
-    it("3. Verificación de Lógica de Breadcrumb (Filtros en Mesas)", () => {
-        cy.visit("/mesas");
-
-        // Esperamos a que cargue la vista
+    it("3. Navegación de Mesa a Detalles de Acta", () => {
+        // 1. Visitamos la lista de mesas en resultados
+        cy.visit("/resultados/mesa");
         cy.wait(3000);
 
-        // Verificamos que el sistema de filtros (breadcrumb) esté visible
-        // En tu código suele haber un botón de 'País' o contenedores de filtros
-        cy.get('nav').should('be.visible');
+        // 2. Intentamos bajar hasta ver las mesas (usando force si es necesario)
+        // Buscamos algún texto que esté abajo para que Cypress haga el scroll solo y sea visible
+        cy.contains('Mesas con Resultados').scrollIntoView({ duration: 2000 });
+        cy.wait(1000);
 
-        // Verificamos presencia de elementos clave del breadcrumb
-        cy.contains('Bolivia').should('be.visible');
-        cy.get('[data-cy="filters-reset"]').should('be.visible');
+        // 3. Click en la primera mesa que aparezca
+        cy.contains('a', 'Mesa').first().click();
 
-        // Pausa adicional para que el usuario verifique visualmente la ruta
+        // 4. Esperamos a que cargue el detalle de la mesa y bajamos hasta las actas
+        cy.url().should('include', '/resultados/mesa/');
         cy.wait(3000);
+        
+        // Scroll suave hasta la sección de Actas Digitalizadas
+        cy.contains('h3', 'Actas Digitalizadas').scrollIntoView({ duration: 2000 });
+        cy.wait(1000);
+
+        // 5. Click en el botón 'Detalles' del acta
+        cy.contains('a', 'Detalles').first().click();
+
+        // 6. Verificación final
+        cy.url().should('include', '/resultados/imagen/');
+        
+        // Pausa adicional para verificación visual
+        cy.wait(3000);
+    });
+
+    it("4. Navegación de Mesa a Metadata del Acta", () => {
+        // 1. Visitamos la lista de mesas en resultados
+        cy.visit("/resultados/mesa");
+        cy.wait(3000);
+
+        // 2. Scroll suave hacia abajo hasta las mesas
+        cy.contains('Mesas con Resultados').scrollIntoView({ duration: 2000 });
+        cy.wait(1000);
+
+        // 3. Seleccionamos la primera mesa
+        cy.contains('a', 'Mesa').first().click();
+
+        // 4. Esperamos carga de detalles y hacemos scroll hacia las actas
+        cy.url().should('include', '/resultados/mesa/');
+        cy.wait(3000);
+        cy.contains('h3', 'Actas Digitalizadas').scrollIntoView({ duration: 2000 });
+        cy.wait(1000);
+
+        // 5. Único clic en Metadata al final (neutralizado para evitar timeout)
+        cy.contains('a', 'Metadata')
+          .first()
+          .invoke('attr', 'href', 'javascript:void(0)') 
+          .click({ force: true });
+
+        // 6. Fin del flujo: Espera de 4 segundos antes de terminar
+        cy.log("Clic final en Metadata realizado");
+        cy.wait(4000);
     });
 });

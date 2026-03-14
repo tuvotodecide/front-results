@@ -50,7 +50,7 @@ describe("Resultados - Flujo E2E (seed real)", () => {
   });
 
   it("Gobernador ve resultados departamentales", () => {
-    cy.loginUI("gobernador.lapaz@test.local", "test1234");
+    cy.loginUI("gobernador@test.com", "test1234");
 
     cy.location("pathname", { timeout: 15000 }).should("eq", "/resultados");
     cy.wait("@departments", { timeout: 30000 });
@@ -63,7 +63,7 @@ describe("Resultados - Flujo E2E (seed real)", () => {
   });
 
   it("Alcalde ve resultados municipales", () => {
-    cy.loginUI("alcalde.lapaz@test.local", "test1234");
+    cy.loginUI("alcalde@test.com", "test1234");
 
     cy.location("pathname", { timeout: 15000 }).should("eq", "/resultados");
     cy.wait("@departments", { timeout: 30000 });

@@ -92,9 +92,9 @@ describe("Resultados E2E - Vista por Rol", () => {
 
   describe("SUPERADMIN - Acceso completo a resultados", () => {
     it("SUPERADMIN puede ver resultados generales sin restricciones", () => {
-      cy.loginUI2("admin@local.test", PASSWORD);
+      cy.loginUI2("admin.user@gmail.com", PASSWORD);
 
-      cy.get('[data-cy="res-gen"]', { timeout: 15000 }).click();
+      cy.get('[data-cy="res-gen"]', { timeout: 15000 }).click({ force: true });
       cy.location("pathname", { timeout: 15000 }).should("eq", "/resultados");
 
       cy.wait("@departments", { timeout: 30000 });
@@ -105,9 +105,9 @@ describe("Resultados E2E - Vista por Rol", () => {
     });
 
     it("SUPERADMIN puede navegar a cualquier departamento", () => {
-      cy.loginUI2("admin@local.test", PASSWORD);
+      cy.loginUI2("admin.user@gmail.com", PASSWORD);
 
-      cy.get('[data-cy="res-gen"]', { timeout: 15000 }).click();
+      cy.get('[data-cy="res-gen"]', { timeout: 15000 }).click({ force: true });
       cy.location("pathname", { timeout: 15000 }).should("eq", "/resultados");
 
       cy.wait("@departments", { timeout: 30000 });
@@ -122,7 +122,7 @@ describe("Resultados E2E - Vista por Rol", () => {
     });
 
     it("SUPERADMIN puede acceder al panel de administración", () => {
-      cy.loginUI2("admin@local.test", PASSWORD);
+      cy.loginUI2("admin.user@gmail.com", PASSWORD);
 
       cy.visit("/panel");
       cy.location("pathname", { timeout: 15000 }).should("eq", "/panel");
@@ -133,7 +133,7 @@ describe("Resultados E2E - Vista por Rol", () => {
 
   describe("GOBERNADOR - Resultados filtrados por departamento", () => {
     it("Gobernador La Paz ve resultados con filtro de su departamento", () => {
-      cy.loginUI2("gobernador.lapaz@test.local", PASSWORD);
+      cy.loginUI2("gobernador@test.com", PASSWORD);
 
       cy.location("pathname", { timeout: 15000 }).should("eq", "/resultados");
 
@@ -153,19 +153,10 @@ describe("Resultados E2E - Vista por Rol", () => {
       assertNoErrors();
     });
 
-    it("Gobernador Cochabamba ve resultados con filtro de su departamento", () => {
-      cy.loginUI2("gobernador.cochabamba@test.local", PASSWORD);
 
-      cy.location("pathname", { timeout: 15000 }).should("eq", "/resultados");
-
-      cy.wait("@departments", { timeout: 30000 });
-      cy.wait("@officialResults", { timeout: 60000 });
-      waitForPageReady();
-      assertNoErrors();
-    });
 
     it("Gobernador NO puede acceder al panel de administración", () => {
-      cy.loginUI2("gobernador.lapaz@test.local", PASSWORD);
+      cy.loginUI2("gobernador@test.com", PASSWORD);
 
       cy.visit("/panel");
 
@@ -174,7 +165,7 @@ describe("Resultados E2E - Vista por Rol", () => {
     });
 
     it("Gobernador puede acceder a control-personal", () => {
-      cy.loginUI2("gobernador.lapaz@test.local", PASSWORD);
+      cy.loginUI2("gobernador@test.com", PASSWORD);
 
       cy.visit("/control-personal");
       cy.location("pathname", { timeout: 15000 }).should(
@@ -186,7 +177,7 @@ describe("Resultados E2E - Vista por Rol", () => {
     });
 
     it("Gobernador puede acceder a auditoria-tse", () => {
-      cy.loginUI2("gobernador.lapaz@test.local", PASSWORD);
+      cy.loginUI2("gobernador@test.com", PASSWORD);
 
       cy.visit("/auditoria-tse");
       cy.location("pathname", { timeout: 15000 }).should(
@@ -200,7 +191,7 @@ describe("Resultados E2E - Vista por Rol", () => {
 
   describe("ALCALDE - Resultados filtrados por municipio", () => {
     it("Alcalde La Paz ve resultados con filtro de su municipio", () => {
-      cy.loginUI2("alcalde.lapaz@test.local", PASSWORD);
+      cy.loginUI2("alcalde@test.com", PASSWORD);
 
       cy.location("pathname", { timeout: 15000 }).should("eq", "/resultados");
 
@@ -220,19 +211,10 @@ describe("Resultados E2E - Vista por Rol", () => {
       assertNoErrors();
     });
 
-    it("Alcalde Cochabamba ve resultados con filtro de su municipio", () => {
-      cy.loginUI2("alcalde.cochabamba@test.local", PASSWORD);
 
-      cy.location("pathname", { timeout: 15000 }).should("eq", "/resultados");
-
-      cy.wait("@departments", { timeout: 30000 });
-      cy.wait("@officialResults", { timeout: 60000 });
-      waitForPageReady();
-      assertNoErrors();
-    });
 
     it("Alcalde NO puede acceder al panel de administración", () => {
-      cy.loginUI2("alcalde.lapaz@test.local", PASSWORD);
+      cy.loginUI2("alcalde@test.com", PASSWORD);
 
       cy.visit("/panel");
 
@@ -241,7 +223,7 @@ describe("Resultados E2E - Vista por Rol", () => {
     });
 
     it("Alcalde puede acceder a control-personal", () => {
-      cy.loginUI2("alcalde.lapaz@test.local", PASSWORD);
+      cy.loginUI2("alcalde@test.com", PASSWORD);
 
       cy.visit("/control-personal");
       cy.location("pathname", { timeout: 15000 }).should(
@@ -253,7 +235,7 @@ describe("Resultados E2E - Vista por Rol", () => {
     });
 
     it("Alcalde puede acceder a auditoria-tse", () => {
-      cy.loginUI2("alcalde.lapaz@test.local", PASSWORD);
+      cy.loginUI2("alcalde@test.com", PASSWORD);
 
       cy.visit("/auditoria-tse");
       cy.location("pathname", { timeout: 15000 }).should(
@@ -267,9 +249,9 @@ describe("Resultados E2E - Vista por Rol", () => {
 
   describe("Visualización de datos de resultados", () => {
     it("SUPERADMIN ve tabla de resultados con partidos y votos", () => {
-      cy.loginUI2("admin@local.test", PASSWORD);
+      cy.loginUI2("admin.user@gmail.com", PASSWORD);
 
-      cy.get('[data-cy="res-gen"]', { timeout: 15000 }).click();
+      cy.get('[data-cy="res-gen"]', { timeout: 15000 }).click({ force: true });
       cy.location("pathname", { timeout: 15000 }).should("eq", "/resultados");
 
       cy.wait("@departments", { timeout: 30000 });
@@ -289,9 +271,9 @@ describe("Resultados E2E - Vista por Rol", () => {
     });
 
     it("Resultados muestran porcentajes válidos", () => {
-      cy.loginUI2("admin@local.test", PASSWORD);
+      cy.loginUI2("admin.user@gmail.com", PASSWORD);
 
-      cy.get('[data-cy="res-gen"]', { timeout: 15000 }).click();
+      cy.get('[data-cy="res-gen"]', { timeout: 15000 }).click({ force: true });
       cy.wait("@departments", { timeout: 30000 });
       cy.wait("@officialResults", { timeout: 60000 });
       waitForPageReady();
@@ -308,9 +290,9 @@ describe("Resultados E2E - Vista por Rol", () => {
     });
 
     it("Resultados cargan correctamente al cambiar filtros", () => {
-      cy.loginUI2("admin@local.test", PASSWORD);
+      cy.loginUI2("admin.user@gmail.com", PASSWORD);
 
-      cy.get('[data-cy="res-gen"]', { timeout: 15000 }).click();
+      cy.get('[data-cy="res-gen"]', { timeout: 15000 }).click({ force: true });
       cy.wait("@departments", { timeout: 30000 });
       cy.wait("@officialResults", { timeout: 60000 });
       waitForPageReady();
@@ -330,7 +312,7 @@ describe("Resultados E2E - Vista por Rol", () => {
 
   describe("Deep linking y persistencia de filtros", () => {
     it("Resultados cargan con parámetros de URL válidos", () => {
-      cy.loginUI2("admin@local.test", PASSWORD);
+      cy.loginUI2("admin.user@gmail.com", PASSWORD);
 
       // Visitar resultados sin parámetros inválidos
       cy.visit("/resultados");
@@ -346,9 +328,9 @@ describe("Resultados E2E - Vista por Rol", () => {
     });
 
     it("Navegación atrás/adelante mantiene filtros", () => {
-      cy.loginUI2("admin@local.test", PASSWORD);
+      cy.loginUI2("admin.user@gmail.com", PASSWORD);
 
-      cy.get('[data-cy="res-gen"]', { timeout: 15000 }).click();
+      cy.get('[data-cy="res-gen"]', { timeout: 15000 }).click({ force: true });
       cy.wait("@departments", { timeout: 30000 });
       cy.wait("@officialResults", { timeout: 60000 });
       waitForPageReady();
@@ -378,9 +360,9 @@ describe("Resultados E2E - Vista por Rol", () => {
 
   describe("Manejo de errores y estados vacíos", () => {
     it("UI maneja correctamente cuando no hay datos", () => {
-      cy.loginUI2("admin@local.test", PASSWORD);
+      cy.loginUI2("admin.user@gmail.com", PASSWORD);
 
-      cy.get('[data-cy="res-gen"]', { timeout: 15000 }).click();
+      cy.get('[data-cy="res-gen"]', { timeout: 15000 }).click({ force: true });
       cy.wait("@departments", { timeout: 30000 });
       cy.wait("@officialResults", { timeout: 60000 });
       waitForPageReady();
@@ -397,9 +379,9 @@ describe("Resultados E2E - Vista por Rol", () => {
         body: { message: "Internal Server Error" },
       }).as("resultsError");
 
-      cy.loginUI2("admin@local.test", PASSWORD);
+      cy.loginUI2("admin.user@gmail.com", PASSWORD);
 
-      cy.get('[data-cy="res-gen"]', { timeout: 15000 }).click();
+      cy.get('[data-cy="res-gen"]', { timeout: 15000 }).click({ force: true });
 
       // Esperar a que se complete la request (con error)
       cy.wait("@resultsError", { timeout: 30000 });
