@@ -44,7 +44,7 @@ const normalizeRole = (role: any) => {
   if (r === "ALCALDE" || r === "MAYOR") return "MAYOR";
   if (r === "GOBERNADOR" || r === "GOVERNOR") return "GOVERNOR";
   if (r === "SUPERADMIN") return "SUPERADMIN";
-  if (r === "TENANT_ADMIN" || r === "TENANTADMIN") return "TENANT_ADMIN";
+  if (r === "ADMIN" || r === "TENANT_ADMIN" || r === "TENANTADMIN") return "TENANT_ADMIN";
   return "publico";
 };
 

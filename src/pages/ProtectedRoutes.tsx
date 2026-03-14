@@ -32,13 +32,25 @@ export default function ProtectedRoutes() {
     "/partidos",
     "/partidos-politicos",
   ];
+  const institutionalPaths = ["/elections"];
 
   const isAdminPath = adminPaths.some((path) =>
+    location.pathname.startsWith(path),
+  );
+  const isInstitutionalPath = institutionalPaths.some((path) =>
     location.pathname.startsWith(path),
   );
 
   if (isAdminPath && user.role !== "SUPERADMIN") {
     return <Navigate to="/resultados" replace />;
+  }
+
+  if (
+    isInstitutionalPath &&
+    user.role !== "TENANT_ADMIN" &&
+    user.role !== "SUPERADMIN"
+  ) {
+    return <Navigate to="/" replace />;
   }
 
   const isRestrictedRole = user.role === "MAYOR" || user.role === "GOVERNOR";

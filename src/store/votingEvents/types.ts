@@ -157,6 +157,7 @@ export interface PadronVoter {
   carnetNorm: string;
   fullName?: string;
   email?: string;
+  enabled: boolean;
   status: "valid" | "invalid";
   invalidReason?: string;
   createdAt?: string;

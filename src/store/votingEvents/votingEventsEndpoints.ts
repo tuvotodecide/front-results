@@ -313,6 +313,7 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
               id: String(v?.id ?? v?._id ?? ""),
               carnet: String(v?.carnetNorm ?? ""),
               carnetNorm: String(v?.carnetNorm ?? ""),
+              enabled: v?.enabled !== false,
               status: "valid" as const,
               createdAt: v?.createdAt,
             }))
@@ -393,8 +394,8 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
       query: ({ eventId, carnet }) =>
         `/voting/events/${eventId}/eligibility?carnet=${encodeURIComponent(carnet)}`,
       transformResponse: (response: any) => ({
-        status: String(response?.status ?? "NO_HABILITADO"),
-        eligible: String(response?.status ?? "").toUpperCase() === "HABILITADO",
+        status: String(response?.status ?? "NOT_ELIGIBLE"),
+        eligible: String(response?.status ?? "").toUpperCase() === "ELIGIBLE",
         normalizedCarnet: response?.normalizedCarnet,
         referenceVersion: response?.referenceVersion ?? null,
       }),
@@ -404,8 +405,8 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
       query: ({ eventId, carnet }) =>
         `/voting/events/${eventId}/eligibility/public?carnet=${encodeURIComponent(carnet)}`,
       transformResponse: (response: any) => ({
-        status: String(response?.status ?? "NO_HABILITADO"),
-        eligible: String(response?.status ?? "").toUpperCase() === "HABILITADO",
+        status: String(response?.status ?? "NOT_ELIGIBLE"),
+        eligible: String(response?.status ?? "").toUpperCase() === "ELIGIBLE",
         referenceVersion: response?.referenceVersion ?? null,
       }),
     }),

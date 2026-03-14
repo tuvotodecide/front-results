@@ -63,6 +63,7 @@ const generateMockVoters = (count: number, invalidCount: number): Voter[] => {
       rowNumber: i + 1,
       carnet,
       fullName,
+      enabled: true,
       status,
       invalidReason,
     });
@@ -300,16 +301,18 @@ export const createMockPadronRepository = (): PadronRepository => {
       }
 
       // Aplicar correcciones
-      const correctionMap = new Map(corrections.map((c) => [c.id, c.carnet]));
+      const correctionMap = new Map(corrections.map((c) => [c.id, c]));
       const updatedVoters = state.voters.map((voter) => {
         if (correctionMap.has(voter.id)) {
-          const newCarnet = correctionMap.get(voter.id) || '';
+          const correction = correctionMap.get(voter.id)!;
+          const newCarnet = correction.carnet || '';
           const cleanedCarnet = newCarnet.trim();
           // Validar el nuevo carnet (solo números, mínimo 6 dígitos)
           const isValid = /^\d{6,10}$/.test(cleanedCarnet);
           return {
             ...voter,
             carnet: cleanedCarnet,
+            enabled: correction.enabled ?? voter.enabled,
             status: isValid ? ('valid' as const) : ('invalid' as const),
             invalidReason: isValid
               ? undefined

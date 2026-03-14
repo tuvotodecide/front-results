@@ -65,23 +65,26 @@ const ButtonSpinner: React.FC = () => (
 const statusLabels: Record<PadronStatus, string> = {
   ELIGIBLE: 'HABILITADO',
   NOT_ELIGIBLE: 'NO HABILITADO',
+  DISABLED: 'DESHABILITADO',
   NOT_REGISTERED: 'NO REGISTRADO',
-  PADRON_IN_VALIDATION: 'PADRÓN EN VALIDACIÓN',
+  ROLL_IN_VALIDATION: 'PADRÓN EN VALIDACIÓN',
   PUBLIC_CHECK_DISABLED: 'CONSULTA DESHABILITADA',
 };
 
 const EventStatusBadge: React.FC<{ status: PadronCheckEventResult['status'] }> = ({ status }) => {
   const styles: Record<PadronCheckEventResult['status'], string> = {
-    HABILITADO: 'bg-green-100 text-green-700 border-green-200',
-    NO_HABILITADO: 'bg-red-100 text-red-600 border-red-200',
-    PADRON_EN_VALIDACION: 'bg-amber-100 text-amber-700 border-amber-200',
+    ELIGIBLE: 'bg-green-100 text-green-700 border-green-200',
+    DISABLED: 'bg-amber-100 text-amber-700 border-amber-200',
+    NOT_ELIGIBLE: 'bg-red-100 text-red-600 border-red-200',
+    ROLL_IN_VALIDATION: 'bg-amber-100 text-amber-700 border-amber-200',
     PUBLIC_CHECK_DISABLED: 'bg-gray-100 text-gray-600 border-gray-200',
   };
 
   const labels: Record<PadronCheckEventResult['status'], string> = {
-    HABILITADO: 'HABILITADO',
-    NO_HABILITADO: 'NO HABILITADO',
-    PADRON_EN_VALIDACION: 'PADRÓN EN VALIDACIÓN',
+    ELIGIBLE: 'HABILITADO',
+    DISABLED: 'DESHABILITADO',
+    NOT_ELIGIBLE: 'NO HABILITADO',
+    ROLL_IN_VALIDATION: 'PADRÓN EN VALIDACIÓN',
     PUBLIC_CHECK_DISABLED: 'CONSULTA DESHABILITADA',
   };
 
@@ -160,7 +163,30 @@ const ResultCard: React.FC<{ result: Extract<PadronCheckResult, { kind: 'single'
     );
   }
 
-  if (result.status === 'PADRON_IN_VALIDATION') {
+  if (result.status === 'DISABLED') {
+    return (
+      <div className="mt-6 bg-amber-50 border border-amber-200 rounded-xl p-5">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <AlertIcon className="w-6 h-6 text-amber-600" />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <h4 className="text-lg font-bold text-amber-800">DESHABILITADO</h4>
+              <span className="px-2 py-0.5 bg-amber-600 text-white text-xs font-semibold rounded-full">
+                VERIFICADO
+              </span>
+            </div>
+            <p className="text-amber-700">
+              Tu carnet está en el padrón, pero tu participación está deshabilitada para este evento.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (result.status === 'ROLL_IN_VALIDATION') {
     return (
       <div className="mt-6 bg-amber-50 border border-amber-200 rounded-xl p-5">
         <div className="flex items-start gap-4">

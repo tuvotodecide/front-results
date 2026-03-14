@@ -26,9 +26,9 @@ export class PadronCheckServiceApi implements IPadronCheckService {
       }
 
       const data = await response.json();
-      const status = String(data?.status ?? 'NO_HABILITADO').toUpperCase();
+      const status = String(data?.status ?? 'NOT_ELIGIBLE').toUpperCase();
 
-      if (status === 'HABILITADO') {
+      if (status === 'ELIGIBLE') {
         return {
           kind: 'single',
           status: 'ELIGIBLE',
@@ -37,7 +37,7 @@ export class PadronCheckServiceApi implements IPadronCheckService {
         };
       }
 
-      if (status === 'NO_HABILITADO') {
+      if (status === 'NOT_ELIGIBLE') {
         return {
           kind: 'single',
           status: 'NOT_ELIGIBLE',
@@ -46,10 +46,19 @@ export class PadronCheckServiceApi implements IPadronCheckService {
         };
       }
 
-      if (status === 'PADRON_EN_VALIDACION') {
+      if (status === 'DISABLED') {
         return {
           kind: 'single',
-          status: 'PADRON_IN_VALIDATION',
+          status: 'DISABLED',
+          carnet: trimmed,
+          referenceVersion: data?.referenceVersion ?? null,
+        };
+      }
+
+      if (status === 'ROLL_IN_VALIDATION') {
+        return {
+          kind: 'single',
+          status: 'ROLL_IN_VALIDATION',
           carnet: trimmed,
           referenceVersion: data?.referenceVersion ?? null,
         };

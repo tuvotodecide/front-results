@@ -194,25 +194,26 @@ const LoadedPadronView: React.FC<LoadedPadronViewProps> = ({
         </div>
 
         {/* Tabla */}
-        <table className="w-full">
+            <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="text-left px-6 py-4 font-semibold text-gray-700">Carnet</th>
               <th className="text-left px-6 py-4 font-semibold text-gray-700">Nombre</th>
+              <th className="text-left px-6 py-4 font-semibold text-gray-700">Habilitado</th>
               <th className="text-right px-6 py-4 font-semibold text-gray-700">Estado</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={3} className="px-6 py-12 text-center">
+                <td colSpan={4} className="px-6 py-12 text-center">
                   <div className="w-8 h-8 border-4 border-[#459151] border-t-transparent rounded-full animate-spin mx-auto" />
                   <p className="mt-4 text-gray-500">Cargando...</p>
                 </td>
               </tr>
             ) : voters.length === 0 ? (
               <tr>
-                <td colSpan={3} className="px-6 py-12 text-center text-gray-500">
+                <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
                   No se encontraron registros
                 </td>
               </tr>
@@ -221,6 +222,15 @@ const LoadedPadronView: React.FC<LoadedPadronViewProps> = ({
                 <tr key={voter.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
                   <td className="px-6 py-4 font-medium text-gray-700">{voter.carnet || 'Sin cédula'}</td>
                   <td className="px-6 py-4 text-gray-600">{voter.fullName || '-'}</td>
+                  <td className="px-6 py-4 text-gray-600">
+                    <span
+                      className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${
+                        voter.enabled ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                      }`}
+                    >
+                      {voter.enabled ? 'Sí' : 'No'}
+                    </span>
+                  </td>
                   <td className="px-6 py-4 text-right">
                     {voter.status === 'valid' ? (
                       <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-[#459151] rounded-full text-sm font-medium">

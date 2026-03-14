@@ -34,6 +34,11 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
 }) => {
   const [candidates, setCandidates] = useState<CandidateFormData[]>([]);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const hasMissingRequiredFields = candidates.some(
+    (candidate) =>
+      !candidate.fullName.trim() ||
+      !String(candidate.photoBase64 || candidate.photoPreview || '').trim(),
+  );
 
   // Inicializar formulario según positions y candidatos existentes
   useEffect(() => {
@@ -80,14 +85,21 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const candidateInputs: CandidateInput[] = candidates
-      .filter((c) => c.fullName.trim()) // Solo guardar los que tienen nombre
-      .map((c) => ({
-        positionId: c.positionId,
-        positionName: c.positionName,
-        fullName: c.fullName.trim(),
-        photoBase64: c.photoBase64 || c.photoPreview,
-      }));
+    const hasMissingName = candidates.some((c) => !c.fullName.trim());
+    const hasMissingPhoto = candidates.some(
+      (c) => !String(c.photoBase64 || c.photoPreview || '').trim(),
+    );
+
+    if (hasMissingName || hasMissingPhoto) {
+      return;
+    }
+
+    const candidateInputs: CandidateInput[] = candidates.map((c) => ({
+      positionId: c.positionId,
+      positionName: c.positionName,
+      fullName: c.fullName.trim(),
+      photoBase64: c.photoBase64 || c.photoPreview,
+    }));
 
     try {
       await onSave(candidateInputs);
@@ -136,6 +148,11 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
                   disabled={isLoading}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#459151] focus:border-[#459151] transition-colors"
                 />
+                {!candidate.fullName.trim() && (
+                  <p className="mt-1 text-xs text-red-600">
+                    El nombre es obligatorio.
+                  </p>
+                )}
               </div>
 
               {/* Botón subir foto */}
@@ -186,6 +203,11 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
                   </span>
                 </button>
                 <p className="text-xs text-gray-500 text-center mt-1">Subir Foto</p>
+                {!String(candidate.photoBase64 || candidate.photoPreview || '').trim() && (
+                  <p className="mt-1 text-xs text-red-600 text-center">
+                    Foto obligatoria
+                  </p>
+                )}
               </div>
             </div>
           ))}
@@ -201,7 +223,7 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
         <div className="pt-2">
           <button
             type="submit"
-            disabled={isLoading || positions.length === 0}
+            disabled={isLoading || positions.length === 0 || hasMissingRequiredFields}
             className="w-full py-4 bg-[#459151] hover:bg-[#3a7a44] text-white font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isLoading ? (

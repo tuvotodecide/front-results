@@ -14,10 +14,12 @@ import type { ElectionFormData, ElectionFormStep1, ElectionFormStep2 } from '../
 const step1Schema = Yup.object({
   institution: Yup.string()
     .required('Este campo es obligatorio')
-    .min(3, 'Mínimo 3 caracteres'),
+    .min(3, 'Mínimo 3 caracteres')
+    .max(160, 'Máximo 160 caracteres'),
   description: Yup.string()
     .required('Este campo es obligatorio')
-    .min(10, 'Mínimo 10 caracteres'),
+    .min(10, 'Mínimo 10 caracteres')
+    .max(1000, 'Máximo 1000 caracteres'),
 });
 
 // Validación Step 2

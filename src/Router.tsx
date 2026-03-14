@@ -129,52 +129,6 @@ const AppRouter: React.FC = () => {
           {/* Ruta raíz: Landing público o Home según auth */}
           <Route path="/" element={<LandingOrHomeRoute />} />
 
-          {/* Rutas de elecciones (sin sidebar, usa PublicLayout interno) */}
-          <Route path="/elections" element={<ElectionsPage />} />
-          <Route
-            path="/elections/new"
-            element={
-              <PublicLayout>
-                <CreateElectionWizard />
-              </PublicLayout>
-            }
-          />
-          {/* Configuración de elección - Paso 1: Cargos */}
-          <Route
-            path="/elections/:electionId/config/cargos"
-            element={
-              <PublicLayout>
-                <ElectionConfigCargos />
-              </PublicLayout>
-            }
-          />
-          {/* Configuración de elección - Paso 2: Planchas */}
-          <Route
-            path="/elections/:electionId/config/planchas"
-            element={
-              <PublicLayout>
-                <ElectionConfigPlanchas />
-              </PublicLayout>
-            }
-          />
-          {/* Configuración de elección - Paso 3: Padrón */}
-          <Route
-            path="/elections/:electionId/config/padron"
-            element={
-              <PublicLayout>
-                <ElectionConfigPadron />
-              </PublicLayout>
-            }
-          />
-          {/* Configuración de elección - Revisión final */}
-          <Route
-            path="/elections/:electionId/config/review"
-            element={
-              <PublicLayout>
-                <ElectionConfigReview />
-              </PublicLayout>
-            }
-          />
           {/* Detalle público de elección - resultados y estado */}
           <Route
             path="/elections/:electionId/public"
@@ -184,16 +138,6 @@ const AppRouter: React.FC = () => {
               </PublicLayout>
             }
           />
-          {/* Estado de elección activa (loggeado, read-only) */}
-          <Route
-            path="/elections/:electionId/status"
-            element={
-              <PublicLayout>
-                <ActiveElectionStatusPage />
-              </PublicLayout>
-            }
-          />
-
           <Route element={<BasicLayout />}>
             <Route path="/login" element={<Login />} />
             <Route path="/registrarse" element={<Register />} />
@@ -215,6 +159,55 @@ const AppRouter: React.FC = () => {
               element={<ResultadosImagen />}
             />
             <Route element={<ProtectedRoutes />}>
+              <Route path="/elections" element={<ElectionsPage />} />
+              <Route
+                path="/elections/new"
+                element={
+                  <PublicLayout>
+                    <CreateElectionWizard />
+                  </PublicLayout>
+                }
+              />
+              <Route
+                path="/elections/:electionId/config/cargos"
+                element={
+                  <PublicLayout>
+                    <ElectionConfigCargos />
+                  </PublicLayout>
+                }
+              />
+              <Route
+                path="/elections/:electionId/config/planchas"
+                element={
+                  <PublicLayout>
+                    <ElectionConfigPlanchas />
+                  </PublicLayout>
+                }
+              />
+              <Route
+                path="/elections/:electionId/config/padron"
+                element={
+                  <PublicLayout>
+                    <ElectionConfigPadron />
+                  </PublicLayout>
+                }
+              />
+              <Route
+                path="/elections/:electionId/config/review"
+                element={
+                  <PublicLayout>
+                    <ElectionConfigReview />
+                  </PublicLayout>
+                }
+              />
+              <Route
+                path="/elections/:electionId/status"
+                element={
+                  <PublicLayout>
+                    <ActiveElectionStatusPage />
+                  </PublicLayout>
+                }
+              />
               <Route
                 path="/control-personal"
                 element={<ParticipacionPersonal />}

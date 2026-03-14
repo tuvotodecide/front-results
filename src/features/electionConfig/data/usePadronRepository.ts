@@ -76,6 +76,7 @@ export const usePadron = (electionId: string, options: UsePadronOptions = {}): U
       rowNumber: (page - 1) * pageSize + index + 1,
       carnet: v.carnet,
       fullName: v.fullName || '',
+      enabled: v.enabled !== false,
       status: 'valid' as const,
       invalidReason: undefined,
     }));

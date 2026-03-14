@@ -73,13 +73,14 @@ export type StepStatus = 'pending' | 'active' | 'completed';
 
 // Tipos para Padrón Electoral (Step 3)
 export type VoterStatus = 'valid' | 'invalid';
-export type InvalidReason = 'empty' | 'invalid_format' | 'duplicate';
+export type InvalidReason = 'empty' | 'invalid_format' | 'duplicate' | 'invalid_enabled';
 
 export interface Voter {
   id: string;
   rowNumber: number;
   carnet: string;
   fullName: string;
+  enabled: boolean;
   status: VoterStatus;
   invalidReason?: InvalidReason;
 }
@@ -109,6 +110,7 @@ export interface PadronState {
 export interface CorrectionInput {
   id: string;
   carnet: string;
+  enabled?: boolean;
 }
 
 export interface PadronSummary {

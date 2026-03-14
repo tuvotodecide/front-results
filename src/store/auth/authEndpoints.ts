@@ -13,6 +13,7 @@ export interface CreateInstitutionalAdminApplicationPayload {
   dni: string;
   name: string;
   email: string;
+  password: string;
   institutionName: string;
 }
 
@@ -57,6 +58,7 @@ export const authApiSlice = apiSlice.injectEndpoints({
           dni: data.dni,
           name: data.name,
           email: data.email,
+          password: data.password,
           institutionName: data.institutionName,
         },
       }),

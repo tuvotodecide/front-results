@@ -224,6 +224,7 @@ const Login: React.FC = () => {
         active: true,
         departmentId: profile?.votingDepartmentId,
         municipalityId: profile?.votingMunicipalityId,
+        tenantId: profile?.tenantId,
         status: "ACTIVE" as const,
       };
 

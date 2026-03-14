@@ -1,9 +1,9 @@
 // Modal para corregir registros inválidos del padrón
 // Basado en capturas 04_fix_invalid_modal.png y 05_fix_invalid_modal_alt.png
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Modal2 from '../../../components/Modal2';
-import type { Voter, CorrectionInput, InvalidReason } from '../types';
+import type { CorrectionInput, InvalidReason, Voter } from '../types';
 
 interface FixInvalidModalProps {
   isOpen: boolean;
@@ -17,8 +17,55 @@ interface FixInvalidModalProps {
 
 interface EditableVoter extends Voter {
   editedCarnet: string;
+  editedEnabled: boolean;
   isValidated: boolean;
+  currentReason?: InvalidReason;
 }
+
+const BOLIVIAN_CARNET_REGEX = /^\d{5,10}[A-Z]{0,2}$/;
+
+const normalizeCarnet = (carnet: string): string =>
+  String(carnet || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[\s.\-]/g, '');
+
+const getValidationReason = (carnet: string): InvalidReason | undefined => {
+  const cleaned = normalizeCarnet(carnet);
+  if (!cleaned) return 'empty';
+  if (!BOLIVIAN_CARNET_REGEX.test(cleaned)) return 'invalid_format';
+  return undefined;
+};
+
+const buildEditableVoters = (voters: Array<Voter | EditableVoter>): EditableVoter[] => {
+  const counts = new Map<string, number>();
+
+  voters.forEach((voter) => {
+    const editedCarnet = 'editedCarnet' in voter ? voter.editedCarnet : voter.carnet;
+    const normalized = normalizeCarnet(editedCarnet);
+    if (!normalized) return;
+    counts.set(normalized, (counts.get(normalized) ?? 0) + 1);
+  });
+
+  return voters.map((voter) => {
+    const editedCarnet = 'editedCarnet' in voter ? voter.editedCarnet : voter.carnet;
+    const normalized = normalizeCarnet(editedCarnet);
+    const inheritedReason = 'editedEnabled' in voter ? undefined : voter.invalidReason;
+    let currentReason = getValidationReason(editedCarnet) ?? inheritedReason;
+
+    if (!currentReason && normalized && (counts.get(normalized) ?? 0) > 1) {
+      currentReason = 'duplicate';
+    }
+
+    return {
+      ...voter,
+      editedCarnet,
+      editedEnabled: 'editedEnabled' in voter ? voter.editedEnabled : voter.enabled,
+      currentReason,
+      isValidated: !currentReason,
+    };
+  });
+};
 
 const getReasonLabel = (reason?: InvalidReason): string => {
   switch (reason) {
@@ -28,6 +75,8 @@ const getReasonLabel = (reason?: InvalidReason): string => {
       return 'Formato inválido';
     case 'duplicate':
       return 'Duplicado';
+    case 'invalid_enabled':
+      return 'Habilitación inválida';
     default:
       return 'Error';
   }
@@ -50,74 +99,85 @@ const FixInvalidModal: React.FC<FixInvalidModalProps> = ({
   onSave,
   onDelete,
   isLoading,
+  error,
 }) => {
   const [editableVoters, setEditableVoters] = useState<EditableVoter[]>([]);
+  const hasPendingErrors = editableVoters.some((voter) => !voter.isValidated);
 
-  // Inicializar datos editables cuando se abre el modal
   useEffect(() => {
     if (isOpen) {
-      setEditableVoters(
-        invalidVoters.map((voter) => ({
-          ...voter,
-          editedCarnet: voter.carnet,
-          isValidated: false,
-        }))
-      );
+      setEditableVoters(buildEditableVoters(invalidVoters));
     }
-  }, [isOpen, invalidVoters]);
-
-  // Validar formato de cédula (solo números, mínimo 7 dígitos)
-  const validateCarnet = (carnet: string): boolean => {
-    const cleaned = carnet.trim();
-    return /^\d{7,10}$/.test(cleaned);
-  };
+  }, [invalidVoters, isOpen]);
 
   const handleCarnetChange = (voterId: string, value: string) => {
     setEditableVoters((prev) =>
-      prev.map((v) => {
-        if (v.id === voterId) {
-          const isValid = validateCarnet(value);
-          return {
-            ...v,
-            editedCarnet: value,
-            isValidated: isValid,
-          };
-        }
-        return v;
-      })
+      buildEditableVoters(
+        prev.map((voter) =>
+          voter.id === voterId
+            ? {
+                ...voter,
+                editedCarnet: value,
+              }
+            : voter,
+        ),
+      ),
+    );
+  };
+
+  const handleEnabledChange = (voterId: string, value: boolean) => {
+    setEditableVoters((prev) =>
+      buildEditableVoters(
+        prev.map((voter) =>
+          voter.id === voterId
+            ? {
+                ...voter,
+                editedEnabled: value,
+              }
+            : voter,
+        ),
+      ),
     );
   };
 
   const handleDelete = async (voterId: string) => {
     await onDelete(voterId);
-    setEditableVoters((prev) => prev.filter((v) => v.id !== voterId));
+    setEditableVoters((prev) => buildEditableVoters(prev.filter((voter) => voter.id !== voterId)));
   };
 
   const handleSave = async () => {
+    if (hasPendingErrors) {
+      return;
+    }
+
     const corrections: CorrectionInput[] = editableVoters
-      .filter((v) => v.editedCarnet !== v.carnet)
-      .map((v) => ({
-        id: v.id,
-        carnet: v.editedCarnet.trim(),
+      .filter(
+        (voter) =>
+          normalizeCarnet(voter.editedCarnet) !== normalizeCarnet(voter.carnet) ||
+          voter.editedEnabled !== voter.enabled,
+      )
+      .map((voter) => ({
+        id: voter.id,
+        carnet: normalizeCarnet(voter.editedCarnet),
+        enabled: voter.editedEnabled,
       }));
 
     await onSave(corrections);
   };
 
   const handleDownloadCSV = () => {
-    // Crear contenido CSV
-    const headers = ['Fila', 'Carnet', 'Motivo del Error'];
-    const rows = editableVoters.map((v) => [
-      v.rowNumber.toString(),
-      v.carnet,
-      getReasonLabel(v.invalidReason),
+    const headers = ['Fila', 'Carnet', 'Habilitado', 'Motivo del Error'];
+    const rows = editableVoters.map((voter) => [
+      voter.rowNumber.toString(),
+      voter.carnet,
+      voter.editedEnabled ? 'SI' : 'NO',
+      getReasonLabel(voter.currentReason),
     ]);
 
     const csvContent = [headers, ...rows]
       .map((row) => row.map((cell) => `"${cell}"`).join(','))
       .join('\n');
 
-    // Descargar archivo
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -144,19 +204,13 @@ const FixInvalidModal: React.FC<FixInvalidModalProps> = ({
             {error}
           </div>
         )}
-        {/* Subtítulo */}
         <p className="text-sm text-gray-500 -mt-2">
           Corrige o elimina registros con errores antes de publicar la votación.
         </p>
 
-        {/* Header con contador y botones */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <svg
-              className="w-5 h-5 text-red-500"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
+            <svg className="w-5 h-5 text-red-500" viewBox="0 0 24 24" fill="currentColor">
               <circle cx="12" cy="12" r="10" fill="currentColor" />
               <path d="M8 8l8 8M16 8l-8 8" stroke="white" strokeWidth="2" strokeLinecap="round" />
             </svg>
@@ -181,7 +235,7 @@ const FixInvalidModal: React.FC<FixInvalidModalProps> = ({
             <button
               type="button"
               onClick={handleSave}
-              disabled={isLoading}
+              disabled={isLoading || hasPendingErrors}
               className="inline-flex items-center gap-2 px-4 py-2 bg-[#459151] hover:bg-[#3a7a44] text-white font-semibold rounded-lg transition-colors disabled:opacity-50"
             >
               {isLoading ? (
@@ -199,15 +253,21 @@ const FixInvalidModal: React.FC<FixInvalidModalProps> = ({
           </div>
         </div>
 
-        {/* Tabla de registros */}
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          El carnet debe tener solo numeros y, si aplica, letras solo al final. Ejemplo:
+          <span className="font-medium"> 12345678</span> o
+          <span className="font-medium"> 12345678LP</span>.
+        </div>
+
         <div className="border border-gray-200 rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px]">
+            <table className="w-full min-w-[860px]">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="text-left px-4 py-3 text-sm font-semibold text-gray-700 w-20">Fila #</th>
                   <th className="text-left px-4 py-3 text-sm font-semibold text-gray-700">Carnet</th>
-                  <th className="text-center px-4 py-3 text-sm font-semibold text-gray-700 w-40">Motivo del error</th>
+                  <th className="text-left px-4 py-3 text-sm font-semibold text-gray-700 w-40">Habilitado</th>
+                  <th className="text-center px-4 py-3 text-sm font-semibold text-gray-700 w-44">Motivo del error</th>
                   <th className="text-center px-4 py-3 text-sm font-semibold text-gray-700 w-20">Acción</th>
                 </tr>
               </thead>
@@ -226,16 +286,38 @@ const FixInvalidModal: React.FC<FixInvalidModalProps> = ({
                           w-full px-4 py-2 border rounded-lg
                           focus:ring-2 focus:ring-[#459151] focus:border-[#459151]
                           transition-colors
-                          ${voter.isValidated ? 'border-green-300 bg-green-50' : 'border-gray-300 bg-gray-50'}
+                          ${voter.isValidated ? 'border-green-300 bg-green-50' : 'border-red-300 bg-red-50'}
                           disabled:opacity-50
                         `}
                       />
+                      {!voter.isValidated && (
+                        <p className="mt-1 text-xs text-red-600">
+                          {voter.currentReason === 'empty' && 'El carnet es obligatorio.'}
+                          {voter.currentReason === 'invalid_format' &&
+                            'Formato inválido: usa números y, si aplica, letras solo al final.'}
+                          {voter.currentReason === 'duplicate' &&
+                            'Este carnet está repetido en el padrón.'}
+                          {voter.currentReason === 'invalid_enabled' &&
+                            'Selecciona si el registro está habilitado o no.'}
+                        </p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <select
+                        value={voter.editedEnabled ? 'si' : 'no'}
+                        onChange={(e) => handleEnabledChange(voter.id, e.target.value === 'si')}
+                        disabled={isLoading}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-[#459151] focus:border-[#459151] disabled:opacity-50"
+                      >
+                        <option value="si">Sí</option>
+                        <option value="no">No</option>
+                      </select>
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span
                         className={`
                           inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium
-                          ${getReasonBadgeClass(voter.invalidReason, voter.isValidated)}
+                          ${getReasonBadgeClass(voter.currentReason, voter.isValidated)}
                         `}
                       >
                         {voter.isValidated ? (
@@ -251,7 +333,7 @@ const FixInvalidModal: React.FC<FixInvalidModalProps> = ({
                               <circle cx="12" cy="12" r="10" />
                               <path d="M12 8v4M12 16h.01" strokeLinecap="round" />
                             </svg>
-                            {getReasonLabel(voter.invalidReason)}
+                            {getReasonLabel(voter.currentReason)}
                           </>
                         )}
                       </span>
@@ -276,13 +358,12 @@ const FixInvalidModal: React.FC<FixInvalidModalProps> = ({
           </div>
         </div>
 
-        {/* Footer info */}
         <div className="flex items-center gap-2 text-sm text-gray-500">
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="12" cy="12" r="10" />
             <path d="M12 8v4M12 16h.01" strokeLinecap="round" />
           </svg>
-          Las correcciones actualizarán el padrón y recalcularán los totales.
+          Las correcciones recalcularán los totales antes de subir la nueva versión del padrón.
         </div>
       </div>
     </Modal2>

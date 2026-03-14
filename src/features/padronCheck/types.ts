@@ -1,14 +1,16 @@
 export type PadronStatus =
   | 'ELIGIBLE'
   | 'NOT_ELIGIBLE'
+  | 'DISABLED'
   | 'NOT_REGISTERED'
-  | 'PADRON_IN_VALIDATION'
+  | 'ROLL_IN_VALIDATION'
   | 'PUBLIC_CHECK_DISABLED';
 
 export type PublicEligibilityStatus =
-  | 'HABILITADO'
-  | 'NO_HABILITADO'
-  | 'PADRON_EN_VALIDACION'
+  | 'ELIGIBLE'
+  | 'DISABLED'
+  | 'NOT_ELIGIBLE'
+  | 'ROLL_IN_VALIDATION'
   | 'PUBLIC_CHECK_DISABLED';
 
 export interface PadronCheckEventResult {

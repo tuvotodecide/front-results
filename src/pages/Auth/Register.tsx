@@ -43,6 +43,8 @@ interface VotingFormValues {
   name: string;
   email: string;
   tenantName: string; // Nombre de la empresa/institución
+  password: string;
+  confirmPassword: string;
 }
 
 
@@ -96,8 +98,15 @@ const Register: React.FC = () => {
 
   // Validación para voting mode (institucional)
   const votingValidationSchema = Yup.object({
-    dni: Yup.string().trim().required("El carnet es obligatorio"),
-    name: Yup.string().trim().required("El nombre completo es obligatorio"),
+    dni: Yup.string()
+      .trim()
+      .matches(/^[A-Za-z0-9-]{5,20}$/, "Carnet inválido")
+      .required("El carnet es obligatorio"),
+    name: Yup.string()
+      .trim()
+      .min(3, "Mínimo 3 caracteres")
+      .max(120, "Máximo 120 caracteres")
+      .required("El nombre completo es obligatorio"),
     email: Yup.string()
       .trim()
       .email("Correo electrónico inválido")
@@ -105,7 +114,16 @@ const Register: React.FC = () => {
     tenantName: Yup.string()
       .trim()
       .required("El nombre de la institución es obligatorio")
-      .min(3, "Mínimo 3 caracteres"),
+      .min(3, "Mínimo 3 caracteres")
+      .max(160, "Máximo 160 caracteres"),
+    password: Yup.string()
+      .trim()
+      .min(8, "Mínimo 8 caracteres")
+      .required("La contraseña es obligatoria"),
+    confirmPassword: Yup.string()
+      .trim()
+      .oneOf([Yup.ref("password")], "Las contraseñas no coinciden")
+      .required("Debes confirmar tu contraseña"),
   });
 
   // Validación para results mode (electoral)
@@ -157,6 +175,7 @@ const Register: React.FC = () => {
       dni: values.dni,
       name: values.name,
       email: values.email,
+      password: values.password,
       institutionName: values.tenantName,
     };
 
@@ -400,6 +419,8 @@ const Register: React.FC = () => {
         name: "",
         email: "",
         tenantName: "",
+        password: "",
+        confirmPassword: "",
       }}
       validationSchema={validationSchema}
       onSubmit={registerVotingUser}
@@ -427,6 +448,40 @@ const Register: React.FC = () => {
             <p className="text-xs text-gray-500 mt-1 ml-1">
               Recibirás un correo para verificar tu solicitud. Luego quedará pendiente de aprobación.
             </p>
+          </div>
+
+          <div className="flex flex-col">
+            <label className="text-sm font-semibold text-gray-700 mb-1 ml-1">
+              Contraseña
+            </label>
+            <Field
+              name="password"
+              data-cy="register-password"
+              type={showPassword ? "text" : "password"}
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#459151] focus:border-transparent outline-none transition-all"
+            />
+            <ErrorMessage
+              name="password"
+              component="div"
+              className="text-xs text-red-500 mt-1 ml-1 font-medium"
+            />
+          </div>
+
+          <div className="flex flex-col">
+            <label className="text-sm font-semibold text-gray-700 mb-1 ml-1">
+              Confirmar contraseña
+            </label>
+            <Field
+              name="confirmPassword"
+              data-cy="register-confirm-password"
+              type={showPassword ? "text" : "password"}
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#459151] focus:border-transparent outline-none transition-all"
+            />
+            <ErrorMessage
+              name="confirmPassword"
+              component="div"
+              className="text-xs text-red-500 mt-1 ml-1 font-medium"
+            />
           </div>
 
           <div className="pt-4 space-y-3">

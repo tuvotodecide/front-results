@@ -24,20 +24,46 @@ type ModalState = 'none' | 'uploading' | 'summary' | 'fixing' | 'revalidating' |
 
 const HEADER_DNI = 'dni';
 const HEADER_CARNET = 'carnet';
+const HEADER_ENABLED = 'habilitado';
+const BOLIVIAN_CARNET_REGEX = /^\d{5,10}[A-Z]{0,2}$/;
 
 const normalizeCell = (value: string) => value.replace(/^"|"$/g, '').trim();
 
-const isValidCarnet = (value: string) => /^\d{7,10}$/.test(value.trim());
+const normalizeCarnet = (value: string) =>
+  normalizeCell(value)
+    .toUpperCase()
+    .replace(/[\s.\-]/g, '');
+
+const isValidCarnet = (value: string) => BOLIVIAN_CARNET_REGEX.test(normalizeCarnet(value));
+
+const parseEnabledCell = (
+  value: string,
+): { valid: boolean; enabled: boolean } => {
+  const normalized = normalizeCell(value).toLowerCase();
+  if (!normalized) {
+    return { valid: true, enabled: true };
+  }
+  if (['1', 'true', 'si', 'sí', 'habilitado', 'activo'].includes(normalized)) {
+    return { valid: true, enabled: true };
+  }
+  if (['0', 'false', 'no', 'deshabilitado', 'inactivo'].includes(normalized)) {
+    return { valid: true, enabled: false };
+  }
+  return { valid: false, enabled: false };
+};
 
 const revalidateRows = (rows: Voter[]): Voter[] => {
   const seen = new Set<string>();
   return rows.map((row) => {
-    const cleaned = row.carnet.trim();
+    const cleaned = normalizeCarnet(row.carnet);
     if (!cleaned) {
       return { ...row, carnet: cleaned, status: 'invalid', invalidReason: 'empty' };
     }
     if (!isValidCarnet(cleaned)) {
       return { ...row, carnet: cleaned, status: 'invalid', invalidReason: 'invalid_format' };
+    }
+    if (row.invalidReason === 'invalid_enabled') {
+      return { ...row, carnet: cleaned, status: 'invalid', invalidReason: 'invalid_enabled' };
     }
     if (seen.has(cleaned)) {
       return { ...row, carnet: cleaned, status: 'invalid', invalidReason: 'duplicate' };
@@ -60,20 +86,28 @@ const parsePadronCsv = async (file: File) => {
     throw new Error('El CSV está vacío');
   }
 
-  const header = normalizeCell(lines[0]).toLowerCase();
-  if (header !== HEADER_DNI && header !== HEADER_CARNET) {
-    throw new Error('El CSV debe tener el header "dni"');
+  const headerColumns = lines[0].split(',').map((cell) => normalizeCell(cell).toLowerCase());
+  const mainHeader = headerColumns[0];
+  const enabledHeader = headerColumns[1];
+  if (mainHeader !== HEADER_DNI && mainHeader !== HEADER_CARNET) {
+    throw new Error('El CSV debe tener la primera columna "dni" o "carnet"');
+  }
+  if (enabledHeader && enabledHeader !== HEADER_ENABLED) {
+    throw new Error('La segunda columna debe llamarse "habilitado"');
   }
 
   const rows: Voter[] = lines.slice(1).map((line, idx) => {
-    const cell = normalizeCell(line.split(',')[0] ?? '');
+    const [rawCarnet = '', rawEnabled = ''] = line.split(',');
+    const cell = normalizeCarnet(rawCarnet);
+    const enabled = parseEnabledCell(rawEnabled);
     return {
       id: `row-${idx + 1}`,
       rowNumber: idx + 1,
       carnet: cell,
       fullName: '',
+      enabled: enabled.enabled,
       status: 'valid',
-      invalidReason: undefined,
+      invalidReason: enabled.valid ? undefined : 'invalid_enabled',
     };
   });
 
@@ -90,7 +124,10 @@ const parsePadronCsv = async (file: File) => {
 };
 
 const buildUploadCsv = (rows: Voter[]) => {
-  const lines = [HEADER_CARNET, ...rows.map((row) => row.carnet.trim())];
+  const lines = [
+    `${HEADER_CARNET},${HEADER_ENABLED}`,
+    ...rows.map((row) => `${row.carnet.trim()},${row.enabled ? 'si' : 'no'}`),
+  ];
   return lines.join('\n');
 };
 
@@ -149,6 +186,7 @@ const ElectionConfigPadron: React.FC = () => {
     rowNumber: (page - 1) * pageSize + idx + 1,
     carnet: v.carnet,
     fullName: v.fullName || '',
+    enabled: v.enabled !== false,
     status: v.status,
     invalidReason: v.invalidReason as any,
   }));
@@ -266,17 +304,30 @@ const ElectionConfigPadron: React.FC = () => {
 
     // Filtrar votantes inválidos del backend
     const invalids = voters.filter((v) => v.status === 'invalid');
+    if (invalids.length === 0) {
+      setError(
+        invalidCount > 0
+          ? 'Los registros inválidos no se guardan en la base. Debes reemplazar el CSV con una versión corregida antes de continuar.'
+          : 'No hay registros inválidos para corregir.',
+      );
+      setModalState('none');
+      return;
+    }
     setInvalidVoters(invalids);
     setFixError(null);
     setModalState('fixing');
-  }, [pendingRows, voters]);
+  }, [invalidCount, pendingRows, voters]);
 
   const handleSaveCorrections = async (corrections: CorrectionInput[]) => {
     if (pendingRows) {
-      const correctionMap = new Map(corrections.map((c) => [c.id, c.carnet]));
+      const correctionMap = new Map(corrections.map((c) => [c.id, c]));
       const updated = pendingRows.map((row) =>
         correctionMap.has(row.id)
-          ? { ...row, carnet: correctionMap.get(row.id) ?? row.carnet }
+          ? {
+              ...row,
+              carnet: correctionMap.get(row.id)?.carnet ?? row.carnet,
+              enabled: correctionMap.get(row.id)?.enabled ?? row.enabled,
+            }
           : row
       );
 
@@ -307,9 +358,26 @@ const ElectionConfigPadron: React.FC = () => {
     setModalState('none');
   };
 
-  const handleDeleteVoter = async (_voterId: string) => {
-    // TODO: Implementar endpoint en backend para eliminar votante individual
-    setError('La eliminación de votantes individuales aún no está implementada');
+  const handleDeleteVoter = async (voterId: string) => {
+    if (pendingRows) {
+      const updated = pendingRows.filter((row) => row.id !== voterId);
+      const revalidated = revalidateRows(updated);
+      const nextInvalidCount = revalidated.filter((v) => v.status === 'invalid').length;
+      const nextValidCount = revalidated.length - nextInvalidCount;
+
+      setPendingRows(revalidated);
+      setInvalidVoters((prev) => prev.filter((row) => row.id !== voterId));
+      setUploadResult({
+        totalRecords: revalidated.length,
+        validCount: nextValidCount,
+        invalidCount: nextInvalidCount,
+        voters: revalidated,
+      });
+      setFixError(null);
+      return;
+    }
+
+    setError('La eliminación de votantes persistidos aún no está implementada en el backend');
   };
 
   const handleReplaceFile = () => {
