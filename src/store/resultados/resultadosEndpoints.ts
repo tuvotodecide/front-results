@@ -18,6 +18,7 @@ interface GetCountedBallotsParams {
   department?: string;
   province?: string;
   municipality?: string;
+  electoralLocation?: string;
   page?: number;
   limit?: number;
 }

@@ -3,7 +3,10 @@ import { useEffect, useState, useMemo } from "react";
 // import actaImage from '../../assets/acta.jpg';
 import LocationSection from "./LocationSection";
 import { useParams, useNavigate } from "react-router-dom";
-import { useGetBallotQuery } from "../../store/ballots/ballotsEndpoints";
+import {
+  useGetBallotByTableCodeQuery,
+  useGetBallotQuery,
+} from "../../store/ballots/ballotsEndpoints";
 import Graphs from "./Graphs";
 import StatisticsBars from "./StatisticsBars";
 import SimpleSearchBar from "../../components/SimpleSearchBar";
@@ -13,6 +16,7 @@ import { setCurrentBallot } from "../../store/resultados/resultadosSlice";
 import { useGetAttestationsByBallotIdQuery } from "../../store/attestations/attestationsEndpoints";
 import { getPartyColor } from "./partyColors";
 import useElectionConfig from "../../hooks/useElectionConfig";
+import useElectionId from "../../hooks/useElectionId";
 import { getResultsLabels } from "./resultsLabels";
 import { FIVE_MINUTES_MS } from "../../utils/electionAutoRefreshWindow";
 
@@ -25,6 +29,7 @@ const BASE_NFT_URL = import.meta.env.VITE_BASE_NFT_URL;
 
 const ResultadosImagen = () => {
   const { id } = useParams();
+  const electionId = useElectionId();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const {
@@ -49,6 +54,19 @@ const ResultadosImagen = () => {
     refetchOnReconnect: true,
     skipPollingIfUnfocused: true,
   });
+  const { data: tableBallots } = useGetBallotByTableCodeQuery(
+    {
+      tableCode: currentItem?.tableCode || "",
+      electionId: currentItem?.electionId || electionId || undefined,
+    },
+    {
+      skip: !currentItem?.tableCode,
+      pollingInterval: isAutoRefreshWindow ? FIVE_MINUTES_MS : 0,
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
+      skipPollingIfUnfocused: true,
+    },
+  );
   const handleSearch = (searchTerm: string) => {
     const term = (searchTerm || "").trim();
     if (!term) return;
@@ -71,14 +89,13 @@ const ResultadosImagen = () => {
     }
 
     const inFavor = attestationsData.filter(
-      (attestation: any) => attestation.support === true
+      (attestation: any) => attestation.support === true,
     ).length;
-    const against = attestationsData.filter(
-      (attestation: any) => attestation.support === false
-    ).length;
+    const totalBallotsForTable = tableBallots?.length ?? 0;
+    const against = Math.max(totalBallotsForTable - 1, 0);
 
     return { attestationsInFavor: inFavor, attestationsAgainst: against };
-  }, [attestationsData]);
+  }, [attestationsData, tableBallots]);
 
   useEffect(() => {
     if (!currentItem) return;
@@ -277,6 +294,17 @@ const ResultadosImagen = () => {
                       </div>
                     </div>
                   </div>
+                  {currentItem?.hasObservation && (
+                    <div className="mt-5 border-t border-amber-100 pt-4">
+                      <h3 className="text-sm font-medium text-amber-700 uppercase tracking-wide mb-1">
+                        Observación:
+                      </h3>
+                      <p className="text-sm text-amber-800 font-semibold">
+                        {currentItem.observationText}
+                      </p>
+                     
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -411,7 +439,7 @@ const ResultadosImagen = () => {
                           data-cy="ipfs-image-link"
                           href={`https://ipfs.io/ipfs/${currentItem.image.replace(
                             "ipfs://",
-                            ""
+                            "",
                           )}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -482,7 +510,7 @@ const ResultadosImagen = () => {
                   <div className="mb-2">
                     <p className="text-2xl text-gray-700 mb-1">
                       {new Date(
-                        election.resultsStartDateBolivia
+                        election.resultsStartDateBolivia,
                       ).toLocaleDateString("es-ES", {
                         weekday: "long",
                         year: "numeric",
@@ -493,7 +521,7 @@ const ResultadosImagen = () => {
                     </p>
                     <p className="text-3xl font-bold text-gray-800">
                       {new Date(
-                        election.resultsStartDateBolivia
+                        election.resultsStartDateBolivia,
                       ).toLocaleTimeString("es-ES", {
                         hour: "2-digit",
                         minute: "2-digit",
