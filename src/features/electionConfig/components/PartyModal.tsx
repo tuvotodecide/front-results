@@ -82,6 +82,7 @@ const PartyModal: React.FC<PartyModalProps> = ({
       setLogoPreview(base64);
     };
     reader.readAsDataURL(file);
+    e.currentTarget.value = '';
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -134,6 +135,7 @@ const PartyModal: React.FC<PartyModalProps> = ({
       title="Datos del Partido"
       size="md"
       type="plain"
+      closeOnEscape={false}
     >
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Nombre del Partido */}
@@ -206,6 +208,7 @@ const PartyModal: React.FC<PartyModalProps> = ({
           </label>
           <div
             onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
               fileInputRef.current?.click();
             }}

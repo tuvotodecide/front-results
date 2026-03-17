@@ -11,8 +11,8 @@ import {
   useGetEventOptionsQuery,
   useGetPadronVersionsQuery,
   useGetPadronVotersQuery,
+  useGetEventResultsQuery,
   useLazyDownloadPadronCsvQuery,
-  useUpdatePublicEligibilityMutation,
 } from "../../store/votingEvents";
 import type { ConfigStep, PartyWithCandidates, Position, Voter } from "./types";
 import type {
@@ -58,12 +58,32 @@ const formatDateTime = (value?: string | null) => {
   });
 };
 
+const deriveLifecycle = (event?: {
+  status?: string | null;
+  votingStart?: string | null;
+  votingEnd?: string | null;
+  resultsPublishAt?: string | null;
+}) => {
+  if (!event) return "DRAFT";
+  const now = Date.now();
+  const start = event.votingStart ? new Date(event.votingStart).getTime() : null;
+  const end = event.votingEnd ? new Date(event.votingEnd).getTime() : null;
+  const resultsAt = event.resultsPublishAt ? new Date(event.resultsPublishAt).getTime() : null;
+
+  if (resultsAt && now >= resultsAt) return "RESULTS";
+  if (start && end && now >= start && now <= end) return "ACTIVE";
+  if (end && now > end) return "FINISHED";
+  if (start && now < start) return "PUBLISHED";
+  return event.status ?? "DRAFT";
+};
+
 const StatusBadge: React.FC<{ state?: string }> = ({ state }) => {
   const styles: Record<string, string> = {
     DRAFT: "bg-gray-100 text-gray-700 border-gray-200",
     PUBLISHED: "bg-blue-100 text-blue-700 border-blue-200",
     ACTIVE: "bg-amber-100 text-amber-700 border-amber-200",
     FINISHED: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    RESULTS: "bg-violet-100 text-violet-700 border-violet-200",
   };
 
   const labels: Record<string, string> = {
@@ -71,6 +91,7 @@ const StatusBadge: React.FC<{ state?: string }> = ({ state }) => {
     PUBLISHED: "Publicada",
     ACTIVE: "En votación",
     FINISHED: "Finalizada",
+    RESULTS: "Resultados disponibles",
   };
 
   return (
@@ -84,7 +105,7 @@ const StatusBadge: React.FC<{ state?: string }> = ({ state }) => {
   );
 };
 
-const TopInfoCard: React.FC<{ title: string; lines: string[] }> = ({
+const TopInfoCard: React.FC<{ title: string; lines: Array<{ label: string; value: string }> }> = ({
   title,
   lines,
 }) => (
@@ -92,7 +113,10 @@ const TopInfoCard: React.FC<{ title: string; lines: string[] }> = ({
     <h3 className="font-semibold text-gray-800 mb-3">{title}</h3>
     <div className="space-y-2 text-sm text-gray-600">
       {lines.map((line) => (
-        <p key={line}>{line}</p>
+        <p key={`${line.label}-${line.value}`}>
+          <span className="font-semibold text-gray-800">{line.label}:</span>{" "}
+          <span>{line.value}</span>
+        </p>
       ))}
     </div>
   </div>
@@ -105,6 +129,7 @@ const ActiveElectionStatusPage: React.FC = () => {
   const actualElectionId = electionId || "";
   const [activeTab, setActiveTab] = useState<ConfigStep>(1);
   const [page, setPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const { data: event, isLoading: loadingEvent } = useGetVotingEventQuery(
     actualElectionId,
@@ -137,8 +162,11 @@ const ActiveElectionStatusPage: React.FC = () => {
       { eventId: actualElectionId, page, limit: 20 },
       { skip: !actualElectionId },
     );
-  const [updatePublicEligibility, { isLoading: updatingEligibility }] =
-    useUpdatePublicEligibilityMutation();
+  const lifecycle = deriveLifecycle(event);
+  const shouldShowResults = lifecycle === "RESULTS";
+  const { data: resultsData } = useGetEventResultsQuery(actualElectionId, {
+    skip: !actualElectionId || !shouldShowResults,
+  });
   const [downloadPadronCsv, { isFetching: downloadingCsv }] =
     useLazyDownloadPadronCsvQuery();
 
@@ -159,6 +187,18 @@ const ActiveElectionStatusPage: React.FC = () => {
     [padronData?.voters, page],
   );
 
+  const filteredVoters = useMemo(
+    () =>
+      searchTerm.trim()
+        ? voters.filter(
+            (voter) =>
+              voter.carnet.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              voter.fullName.toLowerCase().includes(searchTerm.toLowerCase()),
+          )
+        : voters,
+    [searchTerm, voters],
+  );
+
   const otherElections = useMemo(
     () => events.filter((item) => item.id !== actualElectionId),
     [events, actualElectionId],
@@ -170,14 +210,6 @@ const ActiveElectionStatusPage: React.FC = () => {
     loadingOptions ||
     loadingPadronVersions ||
     loadingPadronVoters;
-
-  const handleTogglePublicEligibility = async () => {
-    if (!event) return;
-    await updatePublicEligibility({
-      eventId: actualElectionId,
-      data: { enabled: !Boolean(event.publicEligibilityEnabled) },
-    }).unwrap();
-  };
 
   const handleDownloadCsv = async () => {
     if (!currentPadron) return;
@@ -236,7 +268,7 @@ const ActiveElectionStatusPage: React.FC = () => {
             <h1 className="text-3xl font-bold text-gray-900">{event?.name}</h1>
             <p className="mt-2 max-w-3xl text-gray-600">{event?.objective}</p>
             <div className="mt-4">
-              <StatusBadge state={event?.status} />
+              <StatusBadge state={lifecycle} />
             </div>
           </div>
         </div>
@@ -245,26 +277,58 @@ const ActiveElectionStatusPage: React.FC = () => {
           <TopInfoCard
             title="Horario de Votación"
             lines={[
-              `Desde: ${formatDateTime(event?.votingStart)}`,
-              `Hasta: ${formatDateTime(event?.votingEnd)}`,
+              { label: "Desde", value: formatDateTime(event?.votingStart) },
+              { label: "Hasta", value: formatDateTime(event?.votingEnd) },
             ]}
           />
           <TopInfoCard
             title="Estado Actual"
             lines={[
-              `Estado: ${
-                event?.status === "FINISHED"
-                  ? "Finalizada"
-                  : event?.status === "ACTIVE"
-                    ? "En votación"
-                    : event?.status === "PUBLISHED"
-                      ? "Publicada"
-                      : "Borrador"
-              }`,
-              `Resultados: ${formatDateTime(event?.resultsPublishAt)}`,
+              {
+                label: "Estado",
+                value:
+                  lifecycle === "RESULTS"
+                    ? "Resultados disponibles"
+                    : lifecycle === "FINISHED"
+                      ? "Finalizada"
+                      : lifecycle === "ACTIVE"
+                        ? "En votación"
+                        : lifecycle === "PUBLISHED"
+                          ? "Próxima / publicada"
+                          : "Borrador",
+              },
+              { label: "Resultados", value: formatDateTime(event?.resultsPublishAt) },
             ]}
           />
         </div>
+
+        {shouldShowResults && resultsData && (
+          <div className="rounded-2xl border border-violet-200 bg-violet-50 p-5 shadow-sm">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-violet-900">
+                  Resultados disponibles
+                </h2>
+                <p className="mt-1 text-sm text-violet-700">
+                  Ya se publicaron los resultados de esta votación.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate(`/elections/${actualElectionId}/public`)}
+                className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700"
+              >
+                Ver resultados
+              </button>
+            </div>
+            <p className="mt-4 text-sm text-violet-800">
+              Total registrado:{" "}
+              <span className="font-bold">
+                {resultsData.roles.reduce((sum, role) => sum + Number(role.total || 0), 0)}
+              </span>
+            </p>
+          </div>
+        )}
 
         <div className="space-y-6">
           <ConfigStepsTabs
@@ -284,7 +348,7 @@ const ActiveElectionStatusPage: React.FC = () => {
                 validCount: currentPadron.validCount,
                 invalidCount: currentPadron.invalidCount,
               }}
-              voters={voters}
+              voters={filteredVoters}
               totalVoters={padronData?.total ?? 0}
               validCount={currentPadron.validCount}
               invalidCount={currentPadron.invalidCount}
@@ -292,7 +356,7 @@ const ActiveElectionStatusPage: React.FC = () => {
               totalPages={padronData?.totalPages ?? 1}
               pageSize={20}
               onPageChange={setPage}
-              onSearchChange={() => undefined}
+              onSearchChange={setSearchTerm}
               onDownloadCsv={handleDownloadCsv}
               loading={loadingPadronVoters}
               downloading={downloadingCsv}
@@ -301,36 +365,6 @@ const ActiveElectionStatusPage: React.FC = () => {
           )}
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-gray-700">
-                Consulta pública de padrón
-              </p>
-              <p className="text-xs text-gray-500">
-                Permite consultar si un carnet está habilitado desde el landing.
-              </p>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={Boolean(event?.publicEligibilityEnabled)}
-              disabled={updatingEligibility}
-              onClick={handleTogglePublicEligibility}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                event?.publicEligibilityEnabled ? "bg-[#459151]" : "bg-gray-300"
-              } ${updatingEligibility ? "opacity-60 cursor-not-allowed" : ""}`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  event?.publicEligibilityEnabled
-                    ? "translate-x-6"
-                    : "translate-x-1"
-                }`}
-              />
-            </button>
-          </div>
-        </div>
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           <div className="w-full space-y-5">
             <div>

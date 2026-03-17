@@ -9,10 +9,6 @@ import ConfigSummaryCard from './components/ConfigSummaryCard';
 import ConfirmActivateModal from './components/ConfirmActivateModal';
 import ActivatedSuccessModal from './components/ActivatedSuccessModal';
 import { useElectionPublish } from './data/useElectionPublish';
-import {
-  useGetVotingEventQuery,
-  useUpdatePublicEligibilityMutation,
-} from '../../store/votingEvents';
 
 const ElectionConfigReview: React.FC = () => {
   const navigate = useNavigate();
@@ -28,11 +24,6 @@ const ElectionConfigReview: React.FC = () => {
     activationResult,
     copyToClipboard,
   } = useElectionPublish(actualElectionId);
-  const { data: event } = useGetVotingEventQuery(actualElectionId, {
-    skip: !actualElectionId,
-  });
-  const [updatePublicEligibility, { isLoading: updatingEligibility }] =
-    useUpdatePublicEligibilityMutation();
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -57,13 +48,6 @@ const ElectionConfigReview: React.FC = () => {
     } catch (error) {
       console.error('Error activating election:', error);
     }
-  };
-
-  const handleTogglePublicEligibility = async (enabled: boolean) => {
-    await updatePublicEligibility({
-      eventId: actualElectionId,
-      data: { enabled },
-    }).unwrap();
   };
 
   const handleSuccessClose = () => {
@@ -133,27 +117,6 @@ const ElectionConfigReview: React.FC = () => {
 
             {/* Botón confirmar */}
             <div className="w-full sm:w-auto text-center sm:text-right">
-              <label className="mb-3 flex items-center justify-center sm:justify-end gap-3 text-sm text-gray-700">
-                <span>Habilitar consulta pública de padrón</span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={Boolean(event?.publicEligibilityEnabled)}
-                  disabled={updatingEligibility}
-                  onClick={() =>
-                    handleTogglePublicEligibility(!Boolean(event?.publicEligibilityEnabled))
-                  }
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    event?.publicEligibilityEnabled ? 'bg-[#459151]' : 'bg-gray-300'
-                  } ${updatingEligibility ? 'opacity-60 cursor-not-allowed' : ''}`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      event?.publicEligibilityEnabled ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </label>
               <button
                 type="button"
                 onClick={handleConfirmClick}

@@ -120,6 +120,7 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
       title="Gestión de Candidatos"
       size="2xl"
       type="plain"
+      closeOnEscape={false}
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         {partyName && (
@@ -168,12 +169,14 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) handlePhotoSelect(candidate.positionId, file);
+                    e.currentTarget.value = '';
                   }}
                   className="hidden"
                 />
                 <button
                   type="button"
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     fileInputRefs.current[candidate.positionId]?.click();
                   }}

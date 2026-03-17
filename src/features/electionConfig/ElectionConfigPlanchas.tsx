@@ -63,6 +63,23 @@ const roleToPosition = (role: EventRole): Position => ({
   createdAt: role.createdAt ?? new Date().toISOString(),
 });
 
+const partyHasCompleteCandidates = (
+  party: PartyWithCandidates,
+  positions: Position[],
+) => {
+  if (positions.length === 0) return false;
+  if (party.candidates.length !== positions.length) return false;
+
+  return positions.every((position) =>
+    party.candidates.some(
+      (candidate) =>
+        candidate.positionName === position.name &&
+        candidate.fullName.trim().length > 0 &&
+        String(candidate.photoUrl || '').trim().length > 0,
+    ),
+  );
+};
+
 // Popover de información para Planchas
 const PlanchasInfoPopover: React.FC<{ className?: string }> = ({ className = '' }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -153,8 +170,11 @@ const ElectionConfigPlanchas: React.FC = () => {
   const isOperating = creating || updating || deleting || savingCandidates;
 
   // Verificar estados de los pasos
-  const hasPartiesWithCandidates = parties.some((p) => p.candidates.length > 0);
   const hasPositions = positions.length > 0;
+  const completeParties = parties.filter((party) =>
+    partyHasCompleteCandidates(party, positions),
+  );
+  const hasMinimumCompleteParties = completeParties.length >= 2;
   const isPadronReady = padronVersions.length > 0;
 
   // Handlers
@@ -286,6 +306,12 @@ const ElectionConfigPlanchas: React.FC = () => {
   };
 
   const handleNextStep = () => {
+    if (!hasMinimumCompleteParties) {
+      setError(
+        'Debes registrar al menos 2 partidos y completar todos sus candidatos con nombre y foto antes de continuar.',
+      );
+      return;
+    }
     navigate(`/elections/${actualElectionId}/config/padron`);
   };
 
@@ -295,7 +321,7 @@ const ElectionConfigPlanchas: React.FC = () => {
       return;
     }
     if (step === 2) return;
-    if (step === 3 && hasPartiesWithCandidates) {
+    if (step === 3 && hasMinimumCompleteParties) {
       navigate(`/elections/${actualElectionId}/config/padron`);
     }
   };
@@ -340,13 +366,13 @@ const ElectionConfigPlanchas: React.FC = () => {
               currentStep={2}
               completedSteps={[
                 ...(hasPositions ? [1] : []),
-                ...(hasPartiesWithCandidates ? [2] : []),
+                ...(hasMinimumCompleteParties ? [2] : []),
                 ...(isPadronReady ? [3] : []),
               ] as ConfigStep[]}
               onStepChange={handleGoToStep}
               canNavigate={(step) => {
                 if (step === 1 || step === 2) return true;
-                return hasPartiesWithCandidates;
+                return hasMinimumCompleteParties;
               }}
             />
           </div>
@@ -356,6 +382,12 @@ const ElectionConfigPlanchas: React.FC = () => {
             <p className="text-gray-600">Paso 2 de 3: Agrega partidos y candidatos.</p>
             <PlanchasInfoPopover />
           </div>
+
+          {!hasMinimumCompleteParties && (
+            <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Debes registrar al menos 2 partidos y completar todos los cargos con nombre y foto en cada uno para continuar al padrón.
+            </div>
+          )}
 
           {/* Tabla de partidos */}
           {loading ? (
@@ -396,11 +428,11 @@ const ElectionConfigPlanchas: React.FC = () => {
           <button
             type="button"
             onClick={handleNextStep}
-            disabled={!hasPartiesWithCandidates}
+            disabled={!hasMinimumCompleteParties}
             className={`
               inline-flex items-center gap-2 px-8 py-3 font-semibold rounded-lg transition-all
               ${
-                hasPartiesWithCandidates
+                hasMinimumCompleteParties
                   ? 'bg-[#459151] hover:bg-[#3a7a44] text-white shadow-md hover:shadow-lg'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }

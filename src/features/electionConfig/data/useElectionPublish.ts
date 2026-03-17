@@ -74,11 +74,12 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
     const partiesWithCandidates = options.filter((o) => (o.candidates ?? []).length > 0).length;
     const currentPadron = padronVersions.find((v) => v.isCurrent) ?? padronVersions[0];
     const votersCount = currentPadron?.validCount ?? 0;
+    const invalidCount = currentPadron?.invalidCount ?? 0;
 
     return {
       positionsOk: positionsCount > 0,
       partiesOk: partiesWithCandidates > 0,
-      padronOk: votersCount > 0,
+      padronOk: votersCount > 0 && invalidCount === 0,
       positionsCount,
       partiesCount,
       votersCount,

@@ -219,6 +219,7 @@ const ActiveElectionsSection: React.FC<ActiveElectionsSectionProps> = ({
       <PadronCheckModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
+        eventId={featured?.id}
       />
     </section>
   );

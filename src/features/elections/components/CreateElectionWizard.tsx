@@ -10,6 +10,12 @@ import ConfirmCreateModal from './ConfirmCreateModal';
 import { useCreateElection } from '../data/useElectionRepository';
 import type { ElectionFormData, ElectionFormStep1, ElectionFormStep2 } from '../types';
 
+const getCurrentLocalDateTime = () => {
+  const now = new Date();
+  const timezoneOffset = now.getTimezoneOffset() * 60000;
+  return new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 16);
+};
+
 // Validación Step 1
 const step1Schema = Yup.object({
   institution: Yup.string()
@@ -24,7 +30,16 @@ const step1Schema = Yup.object({
 
 // Validación Step 2
 const step2Schema = Yup.object({
-  votingStartDate: Yup.string().required('Este campo es obligatorio'),
+  votingStartDate: Yup.string()
+    .required('Este campo es obligatorio')
+    .test(
+      'not-before-now',
+      'Debe ser una fecha y hora a partir de este momento',
+      (value) => {
+        if (!value) return true;
+        return new Date(value) >= new Date();
+      }
+    ),
   votingEndDate: Yup.string()
     .required('Este campo es obligatorio')
     .test(
@@ -220,7 +235,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
               validationSchema={step2Schema}
               onSubmit={handleStep2Submit}
             >
-              {({ isValid, dirty }) => (
+              {({ isValid, dirty, values }) => (
                 <Form className="space-y-6">
                   {/* Fecha apertura */}
                   <div>
@@ -234,6 +249,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                       id="votingStartDate"
                       name="votingStartDate"
                       type="datetime-local"
+                      min={getCurrentLocalDateTime()}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#459151] focus:border-[#459151] transition-colors"
                     />
                     <ErrorMessage
@@ -255,6 +271,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                       id="votingEndDate"
                       name="votingEndDate"
                       type="datetime-local"
+                      min={values.votingStartDate || getCurrentLocalDateTime()}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#459151] focus:border-[#459151] transition-colors"
                     />
                     <ErrorMessage
@@ -276,6 +293,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                       id="resultsDate"
                       name="resultsDate"
                       type="datetime-local"
+                      min={values.votingEndDate || values.votingStartDate || getCurrentLocalDateTime()}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#459151] focus:border-[#459151] transition-colors"
                     />
                     <ErrorMessage

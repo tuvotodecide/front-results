@@ -14,6 +14,7 @@ interface ModalProps {
   size?: "sm" | "md" | "lg" | "xl" | "2xl";
   className?: string;
   type?: "success" | "error" | "info" | "plain";
+  closeOnEscape?: boolean;
 }
 
 const Modal2: React.FC<PropsWithChildren<ModalProps>> = ({
@@ -24,6 +25,7 @@ const Modal2: React.FC<PropsWithChildren<ModalProps>> = ({
   size = "md",
   className = "",
   type = "info",
+  closeOnEscape = false,
   children,
 }) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -115,7 +117,9 @@ const Modal2: React.FC<PropsWithChildren<ModalProps>> = ({
       onClick={handleBackdropClick}
       onCancel={(e) => {
         e.preventDefault(); // evita que el dialog se cierre "solo" sin pasar por onClose
-        handleClose();
+        if (closeOnEscape) {
+          handleClose();
+        }
       }}
       className="backdrop:bg-gray-900/40 backdrop:backdrop-blur-[3px] p-0 bg-transparent m-auto w-[95vw] sm:w-full"
     >

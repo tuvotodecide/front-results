@@ -250,10 +250,13 @@ const PadronCheckModal: React.FC<PadronCheckModalProps> = ({ isOpen, onClose, ev
   const [result, setResult] = useState<PadronCheckResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Validación simple: solo dígitos, 7 a 10 caracteres
+  // Validación: carnet boliviano con números y opcionalmente letras al final
   const isValidCarnet = (value: string): boolean => {
-    const cleaned = value.trim();
-    return /^\d{7,10}$/.test(cleaned);
+    const cleaned = value
+      .trim()
+      .toUpperCase()
+      .replace(/[\s.\-]/g, '');
+    return /^\d{5,10}[A-Z]{0,2}$/.test(cleaned);
   };
 
   const canSubmit = carnet.trim().length > 0 && !isLoading;
