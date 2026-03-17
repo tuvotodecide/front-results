@@ -49,9 +49,6 @@ const ResultadosGenerales3 = () => {
   const [participation, setParticipation] = useState<
     Array<{ name: string; value: any; color: string }>
   >([]);
-  const [validTables, setValidTables] = useState<
-    Array<{ name: string; value: any; color: string }>
-  >([]);
   useGetDepartmentsQuery({
     limit: 100,
   });
@@ -209,7 +206,6 @@ const ResultadosGenerales3 = () => {
       setPresidentialData([]);
       setDeputiesData([]);
       setParticipation([]);
-      setValidTables([]);
       setIsLoading({ president: false, deputies: false });
       return;
     }
@@ -218,7 +214,6 @@ const ResultadosGenerales3 = () => {
       setPresidentialData([]);
       setDeputiesData([]);
       setParticipation([]);
-      setValidTables([]);
       setIsLoading({ president: true, deputies: true });
       return;
     }
@@ -227,7 +222,6 @@ const ResultadosGenerales3 = () => {
       setPresidentialData([]);
       setDeputiesData([]);
       setParticipation([]);
-      setValidTables([]);
       setIsLoading({ president: false, deputies: false });
       return;
     }
@@ -236,7 +230,6 @@ const ResultadosGenerales3 = () => {
       setPresidentialData([]);
       setDeputiesData([]);
       setParticipation([]);
-      setValidTables([]);
       setIsLoading({ president: true, deputies: true });
       return;
     }
@@ -245,7 +238,6 @@ const ResultadosGenerales3 = () => {
       setPresidentialData([]);
       setDeputiesData([]);
       setParticipation([]);
-      setValidTables([]);
       setIsLoading({ president: false, deputies: false });
       return;
     }
@@ -262,7 +254,6 @@ const ResultadosGenerales3 = () => {
     setPresidentialData([]);
     setDeputiesData([]);
     setParticipation([]);
-    setValidTables([]);
     setIsLoading({ president: true, deputies: true });
 
     let isActive = true;
@@ -316,25 +307,9 @@ const ResultadosGenerales3 = () => {
                 color: "#f3f3ce",
               },
             ];
-            const validTableData = [
-              {
-                name: "Atestiguados",
-                value: data.summary.tablesProcessed ?? 0,
-                color: "#8cc689",
-              },
-              {
-                name: "No atestiguados",
-                value:
-                  (data.summary.totalTables ?? 0) -
-                  (data.summary.tablesProcessed ?? 0),
-                color: "#81858e",
-              },
-            ];
             setParticipation(participationData);
-            setValidTables(validTableData);
           } else {
             setParticipation([]);
-            setValidTables([]);
           }
         })
         .catch((err) => {
@@ -342,7 +317,6 @@ const ResultadosGenerales3 = () => {
           console.error("Error obteniendo resultados presidenciales:", err);
           setPresidentialData([]);
           setParticipation([]);
-          setValidTables([]);
         })
         .finally(() => {
           if (isActive) {
@@ -467,11 +441,6 @@ const ResultadosGenerales3 = () => {
                 <StatisticsBars
                   title="Distribución de votos"
                   voteData={participation}
-                  processedTables={{ current: 1556, total: 2678 }}
-                />
-                <StatisticsBars
-                  title="Mesas atestiguadas"
-                  voteData={validTables}
                   processedTables={{ current: 1556, total: 2678 }}
                 />
               </div>

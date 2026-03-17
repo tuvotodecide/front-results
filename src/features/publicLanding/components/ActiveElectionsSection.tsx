@@ -82,7 +82,18 @@ const ActiveElectionsSection: React.FC<ActiveElectionsSectionProps> = ({
         {/* Featured Election Card */}
         {featured && (
           <div className="mb-12">
-            <div className="bg-white border border-slate-200/80 rounded-2xl p-6 md:p-8 shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => handleViewElection(featured.id)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  handleViewElection(featured.id);
+                }
+              }}
+              className="bg-white border border-slate-200/80 rounded-2xl p-6 md:p-8 shadow-lg hover:shadow-xl transition-shadow duration-300 cursor-pointer"
+            >
               <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
                 {/* Left: Election Info */}
                 <div className="flex-1">
@@ -139,7 +150,10 @@ const ActiveElectionsSection: React.FC<ActiveElectionsSectionProps> = ({
 
               {/* CTA Button */}
               <button
-                onClick={handleConsultar}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleConsultar();
+                }}
                 className="w-full mt-6 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-4 px-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -162,6 +176,15 @@ const ActiveElectionsSection: React.FC<ActiveElectionsSectionProps> = ({
               {others.map((election) => (
                 <div
                   key={election.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleViewElection(election.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      handleViewElection(election.id);
+                    }
+                  }}
                   className="bg-white border border-slate-200/80 rounded-xl p-5 hover:shadow-lg transition-shadow duration-200 group"
                 >
                   <div className="mb-3">
@@ -174,7 +197,10 @@ const ActiveElectionsSection: React.FC<ActiveElectionsSectionProps> = ({
                     {election.organization}
                   </p>
                   <button
-                    onClick={() => handleViewElection(election.id)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleViewElection(election.id);
+                    }}
                     className="text-emerald-600 hover:text-emerald-700 text-sm font-semibold flex items-center gap-1 transition-colors group-hover:gap-2"
                   >
                     Ver información

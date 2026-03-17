@@ -3,7 +3,6 @@ import { useSelector } from 'react-redux';
 import {
   useCreateVotingEventMutation,
   useGetVotingEventsQuery,
-  useUpdateEventScheduleMutation,
 } from '../../../store/votingEvents';
 import { selectTenantId } from '../../../store/auth/authSlice';
 import type { Election, CreateElectionPayload } from '../types';
@@ -50,7 +49,6 @@ interface UseCreateElectionResult {
 export const useCreateElection = (): UseCreateElectionResult => {
   const tenantId = useSelector(selectTenantId);
   const [createVotingEvent, createState] = useCreateVotingEventMutation();
-  const [updateSchedule, scheduleState] = useUpdateEventScheduleMutation();
 
   const createElection = async (payload: CreateElectionPayload): Promise<Election> => {
     const effectiveTenantId = tenantId || localStorage.getItem('tenantId') || '';
@@ -62,15 +60,9 @@ export const useCreateElection = (): UseCreateElectionResult => {
       tenantId: effectiveTenantId,
       name: payload.institution,
       objective: payload.description,
-    }).unwrap();
-
-    await updateSchedule({
-      eventId: created.id,
-      data: {
-        votingStart: new Date(payload.votingStartDate).toISOString(),
-        votingEnd: new Date(payload.votingEndDate).toISOString(),
-        resultsPublishAt: new Date(payload.resultsDate).toISOString(),
-      },
+      votingStart: new Date(payload.votingStartDate).toISOString(),
+      votingEnd: new Date(payload.votingEndDate).toISOString(),
+      resultsPublishAt: new Date(payload.resultsDate).toISOString(),
     }).unwrap();
 
     return {
@@ -87,9 +79,7 @@ export const useCreateElection = (): UseCreateElectionResult => {
 
   return {
     createElection,
-    creating: createState.isLoading || scheduleState.isLoading,
-    error: (createState.error || scheduleState.error)
-      ? new Error('Error al crear votación')
-      : null,
+    creating: createState.isLoading,
+    error: createState.error ? new Error('Error al crear votación') : null,
   };
 };

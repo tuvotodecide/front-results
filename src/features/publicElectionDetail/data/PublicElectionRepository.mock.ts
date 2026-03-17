@@ -59,6 +59,8 @@ const mockElections: PublicElectionDetail[] = [
       ],
     },
     winnerCandidateId: 'c1',
+    publicEligibilityEnabled: true,
+    ballotParties: [],
   },
   // LIVE - Elección en curso
   {
@@ -103,6 +105,8 @@ const mockElections: PublicElectionDetail[] = [
       ],
     },
     winnerCandidateId: null,
+    publicEligibilityEnabled: true,
+    ballotParties: [],
   },
   // UPCOMING - Próxima elección
   {
@@ -116,6 +120,8 @@ const mockElections: PublicElectionDetail[] = [
     },
     results: null,
     winnerCandidateId: null,
+    publicEligibilityEnabled: true,
+    ballotParties: [],
   },
   // FINISHED - Otra elección finalizada
   {
@@ -151,6 +157,8 @@ const mockElections: PublicElectionDetail[] = [
       ],
     },
     winnerCandidateId: 'c1',
+    publicEligibilityEnabled: true,
+    ballotParties: [],
   },
 ];
 

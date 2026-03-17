@@ -1,415 +1,441 @@
-// Página de estado de elección activa (READ-ONLY)
-// Para elecciones que ya fueron configuradas y están en votación
+import React, { useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import ConfigStepsTabs from "./components/ConfigStepsTabs";
+import PositionsTable from "./components/PositionsTable";
+import PartiesTable from "./components/PartiesTable";
+import LoadedPadronView from "./components/LoadedPadronView";
+import {
+  useGetVotingEventQuery,
+  useGetVotingEventsQuery,
+  useGetEventRolesQuery,
+  useGetEventOptionsQuery,
+  useGetPadronVersionsQuery,
+  useGetPadronVotersQuery,
+  useLazyDownloadPadronCsvQuery,
+  useUpdatePublicEligibilityMutation,
+} from "../../store/votingEvents";
+import type { ConfigStep, PartyWithCandidates, Position, Voter } from "./types";
+import type {
+  EventRole,
+  VotingOption,
+  OptionCandidate,
+} from "../../store/votingEvents/types";
+import { selectTenantId } from "../../store/auth/authSlice";
+import { useSelector } from "react-redux";
 
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import ConfigStepsTabs from './components/ConfigStepsTabs';
-import PositionsTable from './components/PositionsTable';
-import NotificationModal from './components/NotificationModal';
-import { usePositions } from './data/usePositionRepository';
-import { useParties } from './data/usePartyRepository';
-import { usePadron } from './data/usePadronRepository';
-import { notificationRepository } from './data/NotificationRepository.mock';
-import type { ConfigStep } from './types';
+const roleToPosition = (role: EventRole): Position => ({
+  id: role.id,
+  name: role.name,
+  electionId: role.eventId,
+  createdAt: role.createdAt ?? new Date().toISOString(),
+});
 
-// Tipos de estado de elección
-type ElectionActiveStatus = 'ACTIVE' | 'LIVE' | 'FINISHED';
+const optionToParty = (option: VotingOption): PartyWithCandidates => ({
+  id: option.id,
+  electionId: option.eventId,
+  name: option.name,
+  colorHex: option.color,
+  logoUrl: option.logoUrl,
+  createdAt: option.createdAt ?? new Date().toISOString(),
+  candidates: option.candidates.map((candidate: OptionCandidate) => ({
+    id: candidate.id,
+    partyId: option.id,
+    positionId: candidate.roleName,
+    positionName: candidate.roleName,
+    fullName: candidate.name,
+    photoUrl: candidate.photoUrl,
+  })),
+});
 
-// Mock: obtener datos de elección
-const getElectionData = (electionId: string) => {
-  try {
-    const stored = localStorage.getItem('mock_elections');
-    if (stored) {
-      const elections = JSON.parse(stored);
-      const election = elections.find((e: { id: string }) => e.id === electionId);
-      if (election) {
-        return {
-          title: election.institution || 'Elecciones universitarias',
-          schedule: {
-            from: election.votingStartDate
-              ? new Date(election.votingStartDate).toLocaleDateString('es-ES', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                }) + ' hrs'
-              : '12 de febrero de 2026 - 08:00 hrs',
-            to: election.votingEndDate
-              ? new Date(election.votingEndDate).toLocaleDateString('es-ES', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                }) + ' hrs'
-              : '12 de febrero de 2026 - 18:00 hrs',
-          },
-          status: (election.status === 'ACTIVE' ? 'LIVE' : election.status) as ElectionActiveStatus,
-        };
-      }
-    }
-  } catch {}
-  return {
-    title: 'Elecciones universitarias',
-    schedule: {
-      from: '12 de febrero de 2026 - 08:00 hrs',
-      to: '12 de febrero de 2026 - 18:00 hrs',
-    },
-    status: 'LIVE' as ElectionActiveStatus,
-  };
+const formatDateTime = (value?: string | null) => {
+  if (!value) return "No definida";
+  return new Date(value).toLocaleDateString("es-ES", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 };
 
-// Mock: obtener otras elecciones del usuario
-const getUserOtherElections = (currentElectionId: string) => {
-  try {
-    const stored = localStorage.getItem('mock_elections');
-    if (stored) {
-      const elections = JSON.parse(stored);
-      return elections
-        .filter((e: { id: string }) => e.id !== currentElectionId)
-        .slice(0, 3)
-        .map((e: any) => ({
-          id: e.id,
-          title: e.institution,
-          organization: e.description || 'Organización',
-          status: e.status === 'ACTIVE' ? 'ACTIVA' : e.status === 'DRAFT' ? 'BORRADOR' : 'FINALIZADA',
-        }));
-    }
-  } catch {}
-  return [];
-};
-
-// Iconos
-const ClockIcon = () => (
-  <svg className="w-6 h-6 text-[#459151]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="10" />
-    <path d="M12 6v6l4 2" />
-  </svg>
-);
-
-const CalendarIcon = () => (
-  <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-    <line x1="16" y1="2" x2="16" y2="6" />
-    <line x1="8" y1="2" x2="8" y2="6" />
-    <line x1="3" y1="10" x2="21" y2="10" />
-  </svg>
-);
-
-const BellIcon = () => (
-  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-  </svg>
-);
-
-// Badge de estado
-const StatusBadge: React.FC<{ status: ElectionActiveStatus }> = ({ status }) => {
-  const styles = {
-    LIVE: {
-      bg: 'bg-amber-50',
-      border: 'border-amber-300',
-      text: 'text-amber-700',
-      dot: 'bg-amber-500 animate-pulse',
-      label: 'En votación',
-    },
-    ACTIVE: {
-      bg: 'bg-green-50',
-      border: 'border-green-300',
-      text: 'text-green-700',
-      dot: 'bg-green-500 animate-pulse',
-      label: 'Activa',
-    },
-    FINISHED: {
-      bg: 'bg-gray-100',
-      border: 'border-gray-300',
-      text: 'text-gray-600',
-      dot: 'bg-gray-400',
-      label: 'Finalizada',
-    },
+const StatusBadge: React.FC<{ state?: string }> = ({ state }) => {
+  const styles: Record<string, string> = {
+    DRAFT: "bg-gray-100 text-gray-700 border-gray-200",
+    PUBLISHED: "bg-blue-100 text-blue-700 border-blue-200",
+    ACTIVE: "bg-amber-100 text-amber-700 border-amber-200",
+    FINISHED: "bg-emerald-100 text-emerald-700 border-emerald-200",
   };
 
-  const s = styles[status] || styles.LIVE;
+  const labels: Record<string, string> = {
+    DRAFT: "Borrador",
+    PUBLISHED: "Publicada",
+    ACTIVE: "En votación",
+    FINISHED: "Finalizada",
+  };
 
   return (
-    <span className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-base font-semibold border-2 ${s.bg} ${s.border} ${s.text}`}>
-      <span className={`w-2.5 h-2.5 rounded-full ${s.dot}`} />
-      {s.label}
+    <span
+      className={`inline-flex items-center rounded-full border px-4 py-2 text-sm font-semibold ${
+        styles[state || "DRAFT"] || styles.DRAFT
+      }`}
+    >
+      {labels[state || "DRAFT"] || state || "Borrador"}
     </span>
   );
 };
 
-// Card de elección para "Otras votaciones"
-const ElectionCard: React.FC<{
-  election: { id: string; title: string; organization: string; status: string };
-  onClick: () => void;
-}> = ({ election, onClick }) => {
-  const statusStyles: Record<string, string> = {
-    ACTIVA: 'bg-green-100 text-green-700 border-green-200',
-    BORRADOR: 'bg-gray-100 text-gray-600 border-gray-200',
-    FINALIZADA: 'bg-gray-100 text-gray-600 border-gray-200',
-  };
-
-  return (
-    <div
-      onClick={onClick}
-      className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-lg transition-shadow duration-200 cursor-pointer group"
-    >
-      <div className="mb-3">
-        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${statusStyles[election.status] || statusStyles.BORRADOR}`}>
-          {election.status}
-        </span>
-      </div>
-      <h4 className="font-semibold text-gray-800 mb-1">{election.title}</h4>
-      <p className="text-sm text-gray-500 mb-4">{election.organization}</p>
-      <button className="text-[#459151] hover:text-[#3a7a44] text-sm font-semibold flex items-center gap-1 transition-colors group-hover:gap-2">
-        Ver información
-        <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M9 18l6-6-6-6" />
-        </svg>
-      </button>
+const TopInfoCard: React.FC<{ title: string; lines: string[] }> = ({
+  title,
+  lines,
+}) => (
+  <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+    <h3 className="font-semibold text-gray-800 mb-3">{title}</h3>
+    <div className="space-y-2 text-sm text-gray-600">
+      {lines.map((line) => (
+        <p key={line}>{line}</p>
+      ))}
     </div>
-  );
-};
+  </div>
+);
 
 const ActiveElectionStatusPage: React.FC = () => {
   const navigate = useNavigate();
   const { electionId } = useParams<{ electionId: string }>();
-  const actualElectionId = electionId || 'demo-election';
-
-  const [electionData, setElectionData] = useState(() => getElectionData(actualElectionId));
-  const [otherElections, setOtherElections] = useState<any[]>([]);
+  const tenantId = useSelector(selectTenantId);
+  const actualElectionId = electionId || "";
   const [activeTab, setActiveTab] = useState<ConfigStep>(1);
-  const [showNotificationModal, setShowNotificationModal] = useState(false);
-  const [sendingNotification, setSendingNotification] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
-  const { positions, loading: loadingPositions } = usePositions(actualElectionId);
-  const { parties, loading: loadingParties } = useParties(actualElectionId);
-  const { voters, validCount, loading: loadingPadron } = usePadron(actualElectionId);
+  const { data: event, isLoading: loadingEvent } = useGetVotingEventQuery(
+    actualElectionId,
+    {
+      skip: !actualElectionId,
+    },
+  );
+  const { data: events = [] } = useGetVotingEventsQuery(
+    tenantId ? { tenantId } : undefined,
+    {
+      skip: !tenantId,
+    },
+  );
+  const { data: roles = [], isLoading: loadingRoles } = useGetEventRolesQuery(
+    actualElectionId,
+    {
+      skip: !actualElectionId,
+    },
+  );
+  const { data: options = [], isLoading: loadingOptions } =
+    useGetEventOptionsQuery(actualElectionId, {
+      skip: !actualElectionId,
+    });
+  const { data: padronVersions = [], isLoading: loadingPadronVersions } =
+    useGetPadronVersionsQuery(actualElectionId, {
+      skip: !actualElectionId,
+    });
+  const { data: padronData, isLoading: loadingPadronVoters } =
+    useGetPadronVotersQuery(
+      { eventId: actualElectionId, page, limit: 20 },
+      { skip: !actualElectionId },
+    );
+  const [updatePublicEligibility, { isLoading: updatingEligibility }] =
+    useUpdatePublicEligibilityMutation();
+  const [downloadPadronCsv, { isFetching: downloadingCsv }] =
+    useLazyDownloadPadronCsvQuery();
 
-  useEffect(() => {
-    setElectionData(getElectionData(actualElectionId));
-    setOtherElections(getUserOtherElections(actualElectionId));
-  }, [actualElectionId]);
+  const positions = useMemo(() => roles.map(roleToPosition), [roles]);
+  const parties = useMemo(() => options.map(optionToParty), [options]);
+  const currentPadron =
+    padronVersions.find((item) => item.isCurrent) ?? padronVersions[0];
+  const voters: Voter[] = useMemo(
+    () =>
+      (padronData?.voters ?? []).map((voter, index) => ({
+        id: voter.id,
+        rowNumber: index + 1 + (page - 1) * 20,
+        carnet: voter.carnetNorm,
+        fullName: voter.fullName ?? "-",
+        enabled: voter.enabled,
+        status: "valid",
+      })),
+    [padronData?.voters, page],
+  );
 
-  // Handler para enviar notificación
-  const handleSendNotification = async (title: string, message: string) => {
-    setSendingNotification(true);
-    try {
-      await notificationRepository.createNotification(actualElectionId, { title, message });
-      setToastMessage('Notificación enviada correctamente');
-      setTimeout(() => setToastMessage(null), 3000);
-    } finally {
-      setSendingNotification(false);
-    }
+  const otherElections = useMemo(
+    () => events.filter((item) => item.id !== actualElectionId),
+    [events, actualElectionId],
+  );
+
+  const loading =
+    loadingEvent ||
+    loadingRoles ||
+    loadingOptions ||
+    loadingPadronVersions ||
+    loadingPadronVoters;
+
+  const handleTogglePublicEligibility = async () => {
+    if (!event) return;
+    await updatePublicEligibility({
+      eventId: actualElectionId,
+      data: { enabled: !Boolean(event.publicEligibilityEnabled) },
+    }).unwrap();
   };
 
-  // Handler para ver otra elección
-  const handleViewElection = (elId: string) => {
-    navigate(`/elections/${elId}/status`);
+  const handleDownloadCsv = async () => {
+    if (!currentPadron) return;
+
+    const result = await downloadPadronCsv({
+      eventId: actualElectionId,
+      padronVersionId: currentPadron.padronVersionId,
+    }).unwrap();
+
+    const blob = new Blob([result.content], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = result.fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
-  // Renderizar contenido según tab activo
-  const renderTabContent = () => {
-    if (activeTab === 1) {
-      return (
-        <div className="mt-6">
-          {loadingPositions ? (
-            <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-              <div className="w-8 h-8 border-4 border-[#459151] border-t-transparent rounded-full animate-spin mx-auto" />
-              <p className="mt-4 text-gray-500">Cargando cargos...</p>
-            </div>
-          ) : (
-            <PositionsTable positions={positions} readOnly />
-          )}
-        </div>
-      );
-    }
+  if (!actualElectionId) {
+    return (
+      <div className="min-h-[calc(100vh-64px)] bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-500">ID de elección no válido.</p>
+      </div>
+    );
+  }
 
-    if (activeTab === 2) {
-      return (
-        <div className="mt-6">
-          {loadingParties ? (
-            <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-              <div className="w-8 h-8 border-4 border-[#459151] border-t-transparent rounded-full animate-spin mx-auto" />
-              <p className="mt-4 text-gray-500">Cargando planchas...</p>
-            </div>
-          ) : (
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-              <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
-                <h3 className="font-medium text-gray-700">Planchas / Partidos</h3>
-              </div>
-              {parties.length === 0 ? (
-                <div className="p-12 text-center">
-                  <p className="text-gray-500">No hay planchas registradas.</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-100">
-                  {parties.map((party) => (
-                    <div key={party.id} className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        {party.logoUrl ? (
-                          <img src={party.logoUrl} alt={party.name} className="w-10 h-10 rounded-full object-cover" />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">
-                            {party.name.charAt(0)}
-                          </div>
-                        )}
-                        <div>
-                          <h4 className="font-semibold text-gray-800">{party.name}</h4>
-                          <p className="text-sm text-gray-500">{party.candidates.length} candidato(s)</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+  if (loading) {
+    return (
+      <div className="min-h-[calc(100vh-64px)] bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[#459151] border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="mt-4 text-gray-500">
+            Cargando información de la votación...
+          </p>
         </div>
-      );
-    }
-
-    if (activeTab === 3) {
-      return (
-        <div className="mt-6">
-          {loadingPadron ? (
-            <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-              <div className="w-8 h-8 border-4 border-[#459151] border-t-transparent rounded-full animate-spin mx-auto" />
-              <p className="mt-4 text-gray-500">Cargando padrón...</p>
-            </div>
-          ) : (
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-              <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
-                <h3 className="font-medium text-gray-700">Padrón Electoral</h3>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                    <p className="text-2xl font-bold text-green-700">{validCount}</p>
-                    <p className="text-sm text-green-600">Votantes habilitados</p>
-                  </div>
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
-                    <p className="text-2xl font-bold text-gray-700">{voters.length}</p>
-                    <p className="text-sm text-gray-500">Total registrados</p>
-                  </div>
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                    <p className="text-2xl font-bold text-blue-700">
-                      {validCount > 0 ? Math.round((validCount / voters.length) * 100) : 0}%
-                    </p>
-                    <p className="text-sm text-blue-600">Tasa de habilitación</p>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-500 text-center">
-                  El padrón electoral está cargado y listo para la votación.
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    return null;
-  };
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50 min-h-[calc(100vh-64px)]">
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        {/* Título de la elección */}
-        <h1 className="text-3xl font-bold text-gray-900 text-center mb-8">
-          {electionData.title}
-        </h1>
-
-        {/* Cards superiores: Horario y Estado */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          {/* Card Horario de Votación */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center flex-shrink-0 border border-green-200">
-                <ClockIcon />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-gray-800 mb-3">Horario de Votación</h3>
-                <div className="space-y-2 text-sm">
-                  <p className="flex items-center gap-2 text-gray-600">
-                    <CalendarIcon />
-                    <span>Desde: {electionData.schedule.from}</span>
-                  </p>
-                  <p className="flex items-center gap-2 text-gray-600">
-                    <CalendarIcon />
-                    <span>Hasta: {electionData.schedule.to}</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Card Estado Actual */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex items-center justify-center">
-            <div className="text-center">
-              <p className="text-sm text-gray-500 mb-3">Estado Actual</p>
-              <StatusBadge status={electionData.status} />
+      <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <button
+              type="button"
+              onClick={() => navigate("/elections")}
+              className="mb-4 text-sm font-medium text-[#459151] hover:underline"
+            >
+              Volver a mis votaciones
+            </button>
+            <h1 className="text-3xl font-bold text-gray-900">{event?.name}</h1>
+            <p className="mt-2 max-w-3xl text-gray-600">{event?.objective}</p>
+            <div className="mt-4">
+              <StatusBadge state={event?.status} />
             </div>
           </div>
         </div>
 
-        {/* Stepper + Botón Crear Notificación */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+        <div className="grid gap-4 md:grid-cols-2">
+          <TopInfoCard
+            title="Horario de Votación"
+            lines={[
+              `Desde: ${formatDateTime(event?.votingStart)}`,
+              `Hasta: ${formatDateTime(event?.votingEnd)}`,
+            ]}
+          />
+          <TopInfoCard
+            title="Estado Actual"
+            lines={[
+              `Estado: ${
+                event?.status === "FINISHED"
+                  ? "Finalizada"
+                  : event?.status === "ACTIVE"
+                    ? "En votación"
+                    : event?.status === "PUBLISHED"
+                      ? "Publicada"
+                      : "Borrador"
+              }`,
+              `Resultados: ${formatDateTime(event?.resultsPublishAt)}`,
+            ]}
+          />
+        </div>
+
+        <div className="space-y-6">
           <ConfigStepsTabs
             currentStep={activeTab}
             completedSteps={[1, 2, 3]}
-            onStepChange={(step) => setActiveTab(step)}
-            canNavigate={() => true}
+            onStepChange={setActiveTab}
           />
 
-          <button
-            onClick={() => setShowNotificationModal(true)}
-            className="inline-flex items-center gap-2 px-5 py-3 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all"
-          >
-            <BellIcon />
-            Crear notificación
-          </button>
+          {activeTab === 1 && <PositionsTable positions={positions} readOnly />}
+          {activeTab === 2 && <PartiesTable parties={parties} readOnly />}
+          {activeTab === 3 && currentPadron && (
+            <LoadedPadronView
+              file={{
+                fileName: currentPadron.fileName,
+                uploadedAt: currentPadron.uploadedAt || currentPadron.createdAt,
+                totalRecords: currentPadron.totalRecords,
+                validCount: currentPadron.validCount,
+                invalidCount: currentPadron.invalidCount,
+              }}
+              voters={voters}
+              totalVoters={padronData?.total ?? 0}
+              validCount={currentPadron.validCount}
+              invalidCount={currentPadron.invalidCount}
+              page={page}
+              totalPages={padronData?.totalPages ?? 1}
+              pageSize={20}
+              onPageChange={setPage}
+              onSearchChange={() => undefined}
+              onDownloadCsv={handleDownloadCsv}
+              loading={loadingPadronVoters}
+              downloading={downloadingCsv}
+              readOnly
+            />
+          )}
         </div>
 
-        {/* Contenido del tab activo (READ-ONLY) */}
-        {renderTabContent()}
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-gray-700">
+                Consulta pública de padrón
+              </p>
+              <p className="text-xs text-gray-500">
+                Permite consultar si un carnet está habilitado desde el landing.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={Boolean(event?.publicEligibilityEnabled)}
+              disabled={updatingEligibility}
+              onClick={handleTogglePublicEligibility}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                event?.publicEligibilityEnabled ? "bg-[#459151]" : "bg-gray-300"
+              } ${updatingEligibility ? "opacity-60 cursor-not-allowed" : ""}`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  event?.publicEligibilityEnabled
+                    ? "translate-x-6"
+                    : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
+          <div className="w-full space-y-5">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">
+                Papeleta Electoral
+              </h2>
+              <p className="mt-1 text-gray-600">
+                Conoce a los candidatos y partidos políticos que participan en
+                esta elección.
+              </p>
+            </div>
 
-        {/* Sección "Otras votaciones" */}
+            {parties.length === 0 ? (
+              <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-500 shadow-sm">
+                No hay planchas configuradas todavía.
+              </div>
+            ) : (
+              <div className="grid gap-6 xl:grid-cols-2">
+                {parties.map((party) => (
+                  <div
+                    key={party.id}
+                    className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
+                  >
+                    <div
+                      className="h-2"
+                      style={{ backgroundColor: party.colorHex }}
+                    />
+                    <div className="p-6">
+                      <div className="flex items-center gap-4 pb-5 border-b border-gray-200">
+                        {party.logoUrl ? (
+                          <img
+                            src={party.logoUrl}
+                            alt={party.name}
+                            className="h-16 w-16 rounded-xl object-cover border border-gray-200"
+                          />
+                        ) : (
+                          <div className="h-16 w-16 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 font-bold">
+                            {party.name.charAt(0)}
+                          </div>
+                        )}
+                        <h3 className="text-xl font-semibold text-gray-800">
+                          {party.name}
+                        </h3>
+                      </div>
+
+                      <div className="space-y-5 pt-5">
+                        {party.candidates.map((candidate) => (
+                          <div
+                            key={candidate.id}
+                            className="flex items-center gap-4"
+                          >
+                            {candidate.photoUrl ? (
+                              <img
+                                src={candidate.photoUrl}
+                                alt={candidate.fullName}
+                                className="h-16 w-16 rounded-full object-cover border-2 border-gray-200"
+                              />
+                            ) : (
+                              <div className="h-16 w-16 rounded-full bg-gray-100 border-2 border-gray-200 flex items-center justify-center text-gray-500 font-bold">
+                                {candidate.fullName.charAt(0)}
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                                {candidate.positionName}
+                              </p>
+                              <p className="text-xl font-semibold text-gray-800">
+                                {candidate.fullName}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
         {otherElections.length > 0 && (
-          <div className="mt-12">
-            <h2 className="text-xl font-bold text-gray-800 mb-6">Otras votaciones</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {otherElections.map((election) => (
-                <ElectionCard
-                  key={election.id}
-                  election={election}
-                  onClick={() => handleViewElection(election.id)}
-                />
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold text-gray-800">
+              Otras votaciones
+            </h2>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {otherElections.map((item) => (
+                <button
+                  type="button"
+                  key={item.id}
+                  onClick={() => navigate(`/elections/${item.id}/status`)}
+                  className="rounded-xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:border-[#459151] hover:shadow-md"
+                >
+                  <div className="mb-2">
+                    <StatusBadge state={item.status} />
+                  </div>
+                  <h3 className="font-semibold text-gray-800">{item.name}</h3>
+                  <p className="mt-1 text-sm text-gray-500">{item.objective}</p>
+                </button>
               ))}
             </div>
           </div>
         )}
       </div>
-
-      {/* Modal de notificación */}
-      <NotificationModal
-        isOpen={showNotificationModal}
-        onClose={() => setShowNotificationModal(false)}
-        onSend={handleSendNotification}
-        isLoading={sendingNotification}
-      />
-
-      {/* Toast de éxito */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-fade-in z-50">
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-          {toastMessage}
-        </div>
-      )}
     </div>
   );
 };

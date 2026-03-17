@@ -9,6 +9,7 @@ type JwtPayload = {
   votingDepartmentId?: string;
   votingMunicipalityId?: string;
   tenantId?: string;
+  exp?: number;
 };
 
 export interface AuthState {
@@ -37,6 +38,13 @@ const decodeToken = (token: string | null): JwtPayload | null => {
   } catch {
     return null;
   }
+};
+
+const isTokenExpired = (token: string | null) => {
+  const decoded = decodeToken(token);
+  if (!decoded?.exp) return true;
+
+  return decoded.exp * 1000 <= Date.now();
 };
 const normalizeRole = (role: any) => {
   const r = String(role || "").toUpperCase();
@@ -77,9 +85,17 @@ try {
   rawUser = null;
 }
 
+const storedToken = localStorage.getItem("token");
+const initialToken = storedToken && !isTokenExpired(storedToken) ? storedToken : null;
+
+if (!initialToken) {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+}
+
 const initialState: AuthState = {
-  token: localStorage.getItem("token"),
-  user: rawUser ? normalizeUser(rawUser) : null,
+  token: initialToken,
+  user: initialToken && rawUser ? normalizeUser(rawUser) : null,
 };
 
 export const authSlice = createSlice({
@@ -92,10 +108,11 @@ export const authSlice = createSlice({
         action.payload?.access_token ??
         action.payload?.token ??
         null;
-      const decoded = decodeToken(token);
+      const validToken = token && !isTokenExpired(token) ? token : null;
+      const decoded = decodeToken(validToken);
 
       let user = normalizeUser(action.payload?.user);
-      if (!user && decoded?.sub) {
+      if (validToken && !user && decoded?.sub) {
         user = {
           id: decoded.sub,
           email: "",
@@ -133,11 +150,20 @@ export const authSlice = createSlice({
         // if (typeof decoded.active === "boolean") user.active = decoded.active;
       }
 
-      state.token = token;
-      state.user = user;
+      state.token = validToken;
+      state.user = validToken ? user : null;
 
-      if (user) localStorage.setItem("user", JSON.stringify(user));
-      if (token) localStorage.setItem("token", token);
+      if (validToken && user) {
+        localStorage.setItem("user", JSON.stringify(user));
+      } else {
+        localStorage.removeItem("user");
+      }
+
+      if (validToken) {
+        localStorage.setItem("token", validToken);
+      } else {
+        localStorage.removeItem("token");
+      }
     },
     logOut: (state) => {
       state.token = null;

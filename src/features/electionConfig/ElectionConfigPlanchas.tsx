@@ -39,6 +39,22 @@ const optionToPartyWithCandidates = (option: VotingOption): PartyWithCandidates 
   })),
 });
 
+const hydratePartyCandidates = (
+  party: PartyWithCandidates,
+  positions: Position[],
+): PartyWithCandidates => ({
+  ...party,
+  candidates: party.candidates.map((candidate) => {
+    const matchedPosition =
+      positions.find((position) => position.name === candidate.positionName) ?? null;
+
+    return {
+      ...candidate,
+      positionId: matchedPosition?.id ?? candidate.positionId,
+    };
+  }),
+});
+
 // Adaptar EventRole a Position
 const roleToPosition = (role: EventRole): Position => ({
   id: role.id,
@@ -160,7 +176,7 @@ const ElectionConfigPlanchas: React.FC = () => {
   };
 
   const handleEditCandidates = (party: PartyWithCandidates) => {
-    setCurrentPartyForCandidates(party);
+    setCurrentPartyForCandidates(hydratePartyCandidates(party, positions));
     setIsCandidatesModalOpen(true);
     setError(null);
   };

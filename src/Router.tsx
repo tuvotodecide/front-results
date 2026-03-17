@@ -138,28 +138,72 @@ const AppRouter: React.FC = () => {
               </PublicLayout>
             }
           />
-          <Route element={<BasicLayout />}>
-            <Route path="/login" element={<Login />} />
-            <Route path="/registrarse" element={<Register />} />
-            <Route path="/pendiente" element={<WaitingApproval />} />
-            <Route path="/rechazado" element={<Rejected />} />
-            <Route path="/resultados" element={<ResultadosGenerales3 />} />
-            <Route path="/resultados/mesa" element={<ResultadosMesa2 />} />
-            <Route path="/verificar-correo" element={<VerifyEmail />} />
-            <Route path="/recuperar" element={<ForgotPassword />} />
-            <Route path="/restablecer" element={<ResetPassword />} />
-
-            <Route
-              path="/resultados/mesa/:tableCode"
-              element={<ResultadosMesa2 />}
-            />
-            <Route path="/resultados/imagen" element={<ResultadosImagen />} />
-            <Route
-              path="/resultados/imagen/:id"
-              element={<ResultadosImagen />}
-            />
+          <Route
+            path="/login"
+            element={
+              <PublicLayout>
+                <Login />
+              </PublicLayout>
+            }
+          />
+          <Route
+            path="/registrarse"
+            element={
+              <PublicLayout>
+                <Register />
+              </PublicLayout>
+            }
+          />
+          <Route
+            path="/pendiente"
+            element={
+              <PublicLayout>
+                <WaitingApproval />
+              </PublicLayout>
+            }
+          />
+          <Route
+            path="/rechazado"
+            element={
+              <PublicLayout>
+                <Rejected />
+              </PublicLayout>
+            }
+          />
+          <Route
+            path="/verificar-correo"
+            element={
+              <PublicLayout>
+                <VerifyEmail />
+              </PublicLayout>
+            }
+          />
+          <Route
+            path="/recuperar"
+            element={
+              <PublicLayout>
+                <ForgotPassword />
+              </PublicLayout>
+            }
+          />
+          <Route
+            path="/restablecer"
+            element={
+              <PublicLayout>
+                <ResetPassword />
+              </PublicLayout>
+            }
+          />
+          {isVotingMode() && (
             <Route element={<ProtectedRoutes />}>
-              <Route path="/elections" element={<ElectionsPage />} />
+              <Route
+                path="/elections"
+                element={
+                  <PublicLayout>
+                    <ElectionsPage />
+                  </PublicLayout>
+                }
+              />
               <Route
                 path="/elections/new"
                 element={
@@ -208,6 +252,83 @@ const AppRouter: React.FC = () => {
                   </PublicLayout>
                 }
               />
+            </Route>
+          )}
+          <Route element={<BasicLayout />}>
+            <Route path="/resultados" element={<ResultadosGenerales3 />} />
+            <Route path="/resultados/mesa" element={<ResultadosMesa2 />} />
+
+            <Route
+              path="/resultados/mesa/:tableCode"
+              element={<ResultadosMesa2 />}
+            />
+            <Route path="/resultados/imagen" element={<ResultadosImagen />} />
+            <Route
+              path="/resultados/imagen/:id"
+              element={<ResultadosImagen />}
+            />
+            <Route element={<ProtectedRoutes />}>
+              {!isVotingMode() && <Route path="/elections" element={<ElectionsPage />} />}
+              {!isVotingMode() && (
+                <Route
+                  path="/elections/new"
+                  element={
+                    <PublicLayout>
+                      <CreateElectionWizard />
+                    </PublicLayout>
+                  }
+                />
+              )}
+              {!isVotingMode() && (
+                <Route
+                  path="/elections/:electionId/config/cargos"
+                  element={
+                    <PublicLayout>
+                      <ElectionConfigCargos />
+                    </PublicLayout>
+                  }
+                />
+              )}
+              {!isVotingMode() && (
+                <Route
+                  path="/elections/:electionId/config/planchas"
+                  element={
+                    <PublicLayout>
+                      <ElectionConfigPlanchas />
+                    </PublicLayout>
+                  }
+                />
+              )}
+              {!isVotingMode() && (
+                <Route
+                  path="/elections/:electionId/config/padron"
+                  element={
+                    <PublicLayout>
+                      <ElectionConfigPadron />
+                    </PublicLayout>
+                  }
+                />
+              )}
+              {!isVotingMode() && (
+                <Route
+                  path="/elections/:electionId/config/review"
+                  element={
+                    <PublicLayout>
+                      <ElectionConfigReview />
+                    </PublicLayout>
+                  }
+                />
+              )}
+              {!isVotingMode() && (
+                <Route
+                  path="/elections/:electionId/status"
+                  element={
+                    <PublicLayout>
+                      <ActiveElectionStatusPage />
+                    </PublicLayout>
+                  }
+                />
+              )}
               <Route
                 path="/control-personal"
                 element={<ParticipacionPersonal />}

@@ -438,8 +438,73 @@ const PublicElectionDetailPage: React.FC = () => {
           <NoResultsCard />
         )}
 
+        {/* Papeleta y candidaturas */}
+        <div className="mt-8 space-y-5">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800">Papeleta Electoral</h2>
+            <p className="mt-1 text-slate-500">
+              Conoce a los candidatos y partidos políticos que participan en esta elección
+            </p>
+          </div>
+          {election.ballotParties.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500 shadow-sm">
+              Esta elección todavía no tiene candidaturas públicas configuradas.
+            </div>
+          ) : (
+            <div className="grid gap-6 xl:grid-cols-2">
+              {election.ballotParties.map((party) => (
+                <div key={party.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                  <div className="h-2" style={{ backgroundColor: party.colorHex }} />
+                  <div className="p-6">
+                    <div className="flex items-center gap-4 border-b border-slate-200 pb-5">
+                      {party.logoUrl ? (
+                        <img
+                          src={party.logoUrl}
+                          alt={party.name}
+                          className="h-16 w-16 rounded-xl object-cover border border-slate-200"
+                        />
+                      ) : (
+                        <div className="h-16 w-16 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 font-bold">
+                          {party.name.charAt(0)}
+                        </div>
+                      )}
+                      <h3 className="text-xl font-semibold text-slate-800">{party.name}</h3>
+                    </div>
+
+                    <div className="space-y-5 pt-5">
+                      {party.candidates.map((candidate) => (
+                        <div key={candidate.id} className="flex items-center gap-4">
+                          {candidate.photoUrl ? (
+                            <img
+                              src={candidate.photoUrl}
+                              alt={candidate.fullName}
+                              className="h-16 w-16 rounded-full object-cover border-2 border-slate-200"
+                            />
+                          ) : (
+                            <div className="h-16 w-16 rounded-full bg-slate-100 border-2 border-slate-200 flex items-center justify-center text-slate-500 font-bold">
+                              {candidate.fullName.charAt(0)}
+                            </div>
+                          )}
+                          <div>
+                            <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                              {candidate.positionName}
+                            </p>
+                            <p className="text-xl font-semibold text-slate-800">{candidate.fullName}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Sección consulta padrón */}
-        <PadronCheckSection onOpenModal={() => setShowPadronModal(true)} />
+        {election.publicEligibilityEnabled && (
+          <PadronCheckSection onOpenModal={() => setShowPadronModal(true)} />
+        )}
       </main>
 
       {/* Modal de consulta de padrón */}

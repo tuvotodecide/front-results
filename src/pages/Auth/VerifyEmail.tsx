@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import tuvotoDecideImage from "../../assets/tuvotodecide.webp";
 import {
@@ -17,6 +17,7 @@ const VerifyEmail: React.FC = () => {
     "idle" | "loading" | "success" | "error"
   >("idle");
   const [errorMsg, setErrorMsg] = useState<string>("");
+  const attemptedTokenRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!token) {
@@ -25,6 +26,11 @@ const VerifyEmail: React.FC = () => {
       return;
     }
 
+    if (attemptedTokenRef.current === token) {
+      return;
+    }
+
+    attemptedTokenRef.current = token;
     setStatus("loading");
     const verifier = isVotingMode()
       ? verifyInstitutional({ token }).unwrap()

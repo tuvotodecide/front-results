@@ -22,6 +22,19 @@ export interface ElectionResults {
   candidates: Candidate[];
 }
 
+export interface PublicBallotParty {
+  id: string;
+  name: string;
+  colorHex: string;
+  logoUrl?: string;
+  candidates: Array<{
+    id: string;
+    fullName: string;
+    positionName: string;
+    photoUrl?: string;
+  }>;
+}
+
 export interface PublicElectionDetail {
   id: string;
   title: string;
@@ -30,6 +43,8 @@ export interface PublicElectionDetail {
   schedule: ElectionSchedule;
   results: ElectionResults | null; // null si UPCOMING
   winnerCandidateId: string | null; // solo si FINISHED
+  publicEligibilityEnabled: boolean;
+  ballotParties: PublicBallotParty[];
 }
 
 export interface IPublicElectionRepository {

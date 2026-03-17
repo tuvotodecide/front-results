@@ -16,6 +16,7 @@ import {
   useGetEventOptionsQuery,
   useGetPadronVersionsQuery,
   useGetPadronVotersQuery,
+  useLazyDownloadPadronCsvQuery,
   useImportPadronMutation,
 } from '../../store/votingEvents';
 import type { Voter, CorrectionInput, PadronUploadResult, PadronFile, ConfigStep } from './types';
@@ -166,6 +167,7 @@ const ElectionConfigPadron: React.FC = () => {
   );
 
   const [importPadron, { isLoading: importing }] = useImportPadronMutation();
+  const [downloadPadronCsv, { isFetching: downloadingCsv }] = useLazyDownloadPadronCsvQuery();
 
   // Derivar datos
   const hasPositions = roles.length > 0;
@@ -397,6 +399,29 @@ const ElectionConfigPadron: React.FC = () => {
     setModalState('deleteConfirm');
   };
 
+  const handleDownloadCsv = async () => {
+    if (!latestVersion) return;
+
+    try {
+      const result = await downloadPadronCsv({
+        eventId: actualElectionId,
+        padronVersionId: latestVersion.padronVersionId,
+      }).unwrap();
+
+      const blob = new Blob([result.content], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = result.fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setError(err?.data?.message || 'No se pudo descargar el padrón');
+    }
+  };
+
   const handleConfirmDelete = async () => {
     // TODO: Implementar endpoint en backend para eliminar padrón
     setError('La eliminación del padrón aún no está implementada en el backend');
@@ -497,8 +522,10 @@ const ElectionConfigPadron: React.FC = () => {
               onFixInvalid={handleOpenFixModal}
               onReplaceFile={handleReplaceFile}
               onDeleteFile={handleDeleteFile}
+              onDownloadCsv={handleDownloadCsv}
               onFinish={handleFinish}
               loading={loadingVoters || importing}
+              downloading={downloadingCsv}
             />
           ) : (
             <PadronDropzone onFileSelect={handleFileSelect} disabled={importing} />

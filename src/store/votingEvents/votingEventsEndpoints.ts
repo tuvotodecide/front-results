@@ -10,6 +10,7 @@ import type {
   EventNews,
   EventResults,
   EventRole,
+  PadronCsvDownload,
   PadronImportResult,
   PadronVersion,
   PadronVoter,
@@ -326,6 +327,27 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
       providesTags: (_result, _error, { eventId }) => [{ type: "VotingEventPadron", id: eventId }],
     }),
 
+    downloadPadronCsv: builder.query<
+      PadronCsvDownload,
+      { eventId: string; padronVersionId?: string }
+    >({
+      query: ({ eventId, padronVersionId }) => ({
+        url: `/voting/events/${eventId}/padron/download`,
+        params: padronVersionId ? { padronVersionId } : undefined,
+        responseHandler: "text",
+      }),
+      transformResponse: (response: string, meta, arg) => {
+        const contentDisposition = meta?.response?.headers?.get("content-disposition") ?? "";
+        const fileNameMatch = contentDisposition.match(/filename=\"([^\"]+)\"/i);
+        return {
+          content: String(response ?? ""),
+          fileName:
+            fileNameMatch?.[1] ??
+            `padron-${String(arg.padronVersionId ?? arg.eventId)}.csv`,
+        };
+      },
+    }),
+
     updateEventSchedule: builder.mutation<void, { eventId: string; data: UpdateScheduleDto }>({
       query: ({ eventId, data }) => ({
         url: `/voting/events/${eventId}/schedule`,
@@ -382,11 +404,11 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
       invalidatesTags: (_result, _error, { eventId }) => [{ type: "VotingEventResults", id: eventId }],
     }),
 
-    updateComparisonReportStatus: builder.mutation<void, { eventId: string; status: ComparisonReportStatus }>({
-      query: ({ eventId, status }) => ({
+    updateComparisonReportStatus: builder.mutation<void, { eventId: string; status: ComparisonReportStatus; padronVersionId?: string }>({
+      query: ({ eventId, status, padronVersionId }) => ({
         url: `/voting/events/${eventId}/comparison-report/status`,
         method: "POST",
-        body: { status },
+        body: { status, padronVersionId },
       }),
     }),
 
@@ -481,6 +503,7 @@ export const {
   useLazyGetPadronVersionsQuery,
   useGetPadronVotersQuery,
   useLazyGetPadronVotersQuery,
+  useLazyDownloadPadronCsvQuery,
   useUpdateEventScheduleMutation,
   useUpdatePublicEligibilityMutation,
   useGetEventResultsQuery,

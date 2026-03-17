@@ -10,6 +10,9 @@ import ContactSection from './components/ContactSection';
 
 const PublicLandingPage: React.FC = () => {
   const { data, loading, error } = useLandingData();
+  const hasActiveElections = Boolean(
+    data?.activeElections?.featured || (data?.activeElections?.others?.length ?? 0) > 0,
+  );
 
   // Loading state
   if (loading) {
@@ -66,11 +69,13 @@ const PublicLandingPage: React.FC = () => {
       />
 
       {/* Sección 3: Elecciones activas */}
-      <ActiveElectionsSection
-        title={data.activeElections.title}
-        featured={data.activeElections.featured}
-        others={data.activeElections.others}
-      />
+      {hasActiveElections && (
+        <ActiveElectionsSection
+          title={data.activeElections.title}
+          featured={data.activeElections.featured}
+          others={data.activeElections.others}
+        />
+      )}
 
       {/* Sección 4: Contacto */}
       <ContactSection contact={data.contact} />

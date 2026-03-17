@@ -78,6 +78,23 @@ const mapDetailToPublic = (raw: any): PublicElectionDetail => {
         ? { totalVotes, candidates }
         : null,
     winnerCandidateId: winnerCandidate?.id ?? (candidates[0]?.id ?? null),
+    publicEligibilityEnabled: Boolean(raw?.publicEligibilityEnabled),
+    ballotParties: Array.isArray(raw?.options)
+      ? raw.options.map((option: any, index: number) => ({
+          id: String(option?.id ?? `option-${index + 1}`),
+          name: option?.name ?? '',
+          colorHex: option?.color ?? colorPalette[index % colorPalette.length],
+          logoUrl: option?.logoUrl ?? undefined,
+          candidates: Array.isArray(option?.candidates)
+            ? option.candidates.map((candidate: any, candidateIndex: number) => ({
+                id: String(candidate?.id ?? `${String(option?.id ?? index)}-${candidateIndex + 1}`),
+                fullName: candidate?.name ?? '',
+                positionName: candidate?.roleName ?? '',
+                photoUrl: candidate?.photoUrl ?? undefined,
+              }))
+            : [],
+        }))
+      : [],
   };
 };
 

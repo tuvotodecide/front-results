@@ -47,6 +47,8 @@ interface VotingFormValues {
   confirmPassword: string;
 }
 
+const VOTING_REGISTER_DRAFT_KEY = "voting-register-draft";
+
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
@@ -181,6 +183,7 @@ const Register: React.FC = () => {
 
     try {
       await createInstitutionalAdminApplication(payload).unwrap();
+      localStorage.removeItem(VOTING_REGISTER_DRAFT_KEY);
       localStorage.setItem("pendingEmail", payload.email);
       localStorage.setItem("pendingReason", "VERIFY_EMAIL");
       navigate("/pendiente", { replace: true });
@@ -414,19 +417,13 @@ const Register: React.FC = () => {
   // Formulario para voting mode (institucional)
   const VotingModeForm = () => (
     <Formik<VotingFormValues>
-      initialValues={{
-        dni: "",
-        name: "",
-        email: "",
-        tenantName: "",
-        password: "",
-        confirmPassword: "",
-      }}
+      initialValues={loadVotingDraft()}
       validationSchema={validationSchema}
       onSubmit={registerVotingUser}
     >
       {() => (
         <Form className="space-y-5">
+          <VotingRegisterPersist />
           <VotingCommonFields />
 
           {/* Nombre de la institución/empresa */}
@@ -454,12 +451,21 @@ const Register: React.FC = () => {
             <label className="text-sm font-semibold text-gray-700 mb-1 ml-1">
               Contraseña
             </label>
-            <Field
-              name="password"
-              data-cy="register-password"
-              type={showPassword ? "text" : "password"}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#459151] focus:border-transparent outline-none transition-all"
-            />
+            <div className="relative">
+              <Field
+                name="password"
+                data-cy="register-password"
+                type={showPassword ? "text" : "password"}
+                className="w-full px-4 py-2.5 pr-11 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#459151] focus:border-transparent outline-none transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#459151]"
+              >
+                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+              </button>
+            </div>
             <ErrorMessage
               name="password"
               component="div"
@@ -471,12 +477,21 @@ const Register: React.FC = () => {
             <label className="text-sm font-semibold text-gray-700 mb-1 ml-1">
               Confirmar contraseña
             </label>
-            <Field
-              name="confirmPassword"
-              data-cy="register-confirm-password"
-              type={showPassword ? "text" : "password"}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#459151] focus:border-transparent outline-none transition-all"
-            />
+            <div className="relative">
+              <Field
+                name="confirmPassword"
+                data-cy="register-confirm-password"
+                type={showPassword ? "text" : "password"}
+                className="w-full px-4 py-2.5 pr-11 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#459151] focus:border-transparent outline-none transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#459151]"
+              >
+                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+              </button>
+            </div>
             <ErrorMessage
               name="confirmPassword"
               component="div"
@@ -747,5 +762,47 @@ const EyeOffIcon = () => (
     />
   </svg>
 );
+
+function loadVotingDraft(): VotingFormValues {
+  try {
+    const stored = localStorage.getItem(VOTING_REGISTER_DRAFT_KEY);
+    if (!stored) {
+      return emptyVotingValues();
+    }
+
+    const parsed = JSON.parse(stored);
+    return {
+      dni: parsed?.dni ?? "",
+      name: parsed?.name ?? "",
+      email: parsed?.email ?? "",
+      tenantName: parsed?.tenantName ?? "",
+      password: parsed?.password ?? "",
+      confirmPassword: parsed?.confirmPassword ?? "",
+    };
+  } catch {
+    return emptyVotingValues();
+  }
+}
+
+function emptyVotingValues(): VotingFormValues {
+  return {
+    dni: "",
+    name: "",
+    email: "",
+    tenantName: "",
+    password: "",
+    confirmPassword: "",
+  };
+}
+
+function VotingRegisterPersist() {
+  const { values } = useFormikContext<VotingFormValues>();
+
+  useEffect(() => {
+    localStorage.setItem(VOTING_REGISTER_DRAFT_KEY, JSON.stringify(values));
+  }, [values]);
+
+  return null;
+}
 
 export default Register;

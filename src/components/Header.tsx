@@ -46,6 +46,7 @@ export const Header: React.FC<HeaderProps> = ({
     dispatch(clearSelectedElection());
     dispatch(apiSlice.util.resetApiState());
     setIsMenuOpen(false);
+    window.location.replace("/");
   };
   return (
     <header className={styles.header}>

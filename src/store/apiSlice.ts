@@ -4,10 +4,11 @@ import {
   createApi,
   fetchBaseQuery,
 } from "@reduxjs/toolkit/query/react";
-// import { logOut } from "./auth/authSlice";
+import { logOut } from "./auth/authSlice";
 
 const { VITE_BASE_API_URL } = import.meta.env;
 const baseApiUrl = VITE_BASE_API_URL || "http://localhost:3000/api/v1";
+const appMode = String(import.meta.env.VITE_APP_MODE || "voting").toLowerCase();
 
 const baseQuery = fetchBaseQuery({
   baseUrl: baseApiUrl,
@@ -70,12 +71,15 @@ const baseQueryWrapper = async (
 
   const result = await baseQuery(adjusted, api, extraOptions);
 
-  // if (result.error?.status === 401) {
-  //   api.dispatch(logOut());
-  //   if (typeof window !== "undefined") {
-  //     window.location.assign("/login");
-  //   }
-  // }
+  if (result.error?.status === 401 && state?.auth?.token) {
+    api.dispatch(logOut());
+    if (typeof window !== "undefined") {
+      const target = appMode === "voting" ? "/" : "/login";
+      if (window.location.pathname !== target) {
+        window.location.assign(target);
+      }
+    }
+  }
   return result;
 };
 

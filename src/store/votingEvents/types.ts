@@ -179,6 +179,11 @@ export interface PadronImportResult {
   };
 }
 
+export interface PadronCsvDownload {
+  content: string;
+  fileName: string;
+}
+
 export interface EligibilityResult {
   status: string;
   eligible: boolean;

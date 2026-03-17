@@ -23,6 +23,9 @@ interface CandidateFormData {
   photoPreview?: string;
 }
 
+const MAX_CANDIDATE_IMAGE_SIZE = 512;
+const CANDIDATE_IMAGE_QUALITY = 0.82;
+
 const CandidatesModal: React.FC<CandidatesModalProps> = ({
   isOpen,
   onClose,
@@ -33,6 +36,7 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
   partyName,
 }) => {
   const [candidates, setCandidates] = useState<CandidateFormData[]>([]);
+  const [showValidation, setShowValidation] = useState(false);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const hasMissingRequiredFields = candidates.some(
     (candidate) =>
@@ -43,8 +47,11 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
   // Inicializar formulario según positions y candidatos existentes
   useEffect(() => {
     if (isOpen) {
+      setShowValidation(false);
       const initialCandidates = positions.map((pos) => {
-        const existing = existingCandidates.find((c) => c.positionId === pos.id);
+        const existing = existingCandidates.find(
+          (c) => c.positionId === pos.id || c.positionName === pos.name,
+        );
         return {
           positionId: pos.id,
           positionName: pos.name,
@@ -67,10 +74,7 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
 
   const handlePhotoSelect = (positionId: string, file: File) => {
     if (!file.type.startsWith('image/')) return;
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = reader.result as string;
+    void buildCenteredCandidateImage(file).then((base64) => {
       setCandidates((prev) =>
         prev.map((c) =>
           c.positionId === positionId
@@ -78,12 +82,12 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
             : c
         )
       );
-    };
-    reader.readAsDataURL(file);
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setShowValidation(true);
 
     const hasMissingName = candidates.some((c) => !c.fullName.trim());
     const hasMissingPhoto = candidates.some(
@@ -148,7 +152,7 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
                   disabled={isLoading}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#459151] focus:border-[#459151] transition-colors"
                 />
-                {!candidate.fullName.trim() && (
+                {showValidation && !candidate.fullName.trim() && (
                   <p className="mt-1 text-xs text-red-600">
                     El nombre es obligatorio.
                   </p>
@@ -203,7 +207,7 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
                   </span>
                 </button>
                 <p className="text-xs text-gray-500 text-center mt-1">Subir Foto</p>
-                {!String(candidate.photoBase64 || candidate.photoPreview || '').trim() && (
+                {showValidation && !String(candidate.photoBase64 || candidate.photoPreview || '').trim() && (
                   <p className="mt-1 text-xs text-red-600 text-center">
                     Foto obligatoria
                   </p>
@@ -245,3 +249,49 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
 };
 
 export default CandidatesModal;
+
+function buildCenteredCandidateImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onerror = () => reject(new Error('No se pudo leer la imagen'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('No se pudo procesar la imagen'));
+      img.onload = () => {
+        const side = Math.min(img.width, img.height);
+        const sx = Math.max(0, (img.width - side) / 2);
+        const sy = Math.max(0, (img.height - side) / 2);
+        const canvas = document.createElement('canvas');
+        canvas.width = MAX_CANDIDATE_IMAGE_SIZE;
+        canvas.height = MAX_CANDIDATE_IMAGE_SIZE;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('No se pudo preparar la imagen'));
+          return;
+        }
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(
+          img,
+          sx,
+          sy,
+          side,
+          side,
+          0,
+          0,
+          MAX_CANDIDATE_IMAGE_SIZE,
+          MAX_CANDIDATE_IMAGE_SIZE,
+        );
+
+        resolve(canvas.toDataURL('image/jpeg', CANDIDATE_IMAGE_QUALITY));
+      };
+
+      img.src = String(reader.result || '');
+    };
+
+    reader.readAsDataURL(file);
+  });
+}

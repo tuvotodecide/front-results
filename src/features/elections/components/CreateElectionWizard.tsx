@@ -104,7 +104,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
         onSuccess();
       } else {
         // Navegar al Paso 1 de configuración (Cargos)
-        navigate(`/elections/${newElection.id}/config/cargos`);
+        navigate(`/elections/${newElection.id}/config/cargos`, { replace: true });
       }
     } catch (error) {
       console.error('Error creando elección:', error);
