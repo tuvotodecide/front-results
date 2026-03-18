@@ -75,6 +75,12 @@ Cypress.Commands.add('mockConfig', (config) => {
         statusCode: 200,
         body: config || require('../fixtures/elections_config.json')
     }).as('config');
+    
+    // Add default mock for public-active contracts to prevent 404 timeouts for unauthenticated users
+    cy.intercept('GET', '**/api/v1/contracts/public-active*', {
+        statusCode: 200,
+        body: { data: [] }
+    }).as('publicContracts');
 });
 
 Cypress.Commands.add('mockDepartments', () => {
