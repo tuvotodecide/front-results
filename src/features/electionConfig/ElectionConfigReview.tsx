@@ -9,6 +9,8 @@ import ConfigSummaryCard from './components/ConfigSummaryCard';
 import ConfirmActivateModal from './components/ConfirmActivateModal';
 import ActivatedSuccessModal from './components/ActivatedSuccessModal';
 import { useElectionPublish } from './data/useElectionPublish';
+import { useWallet } from '../../hooks/useWallet';
+import Modal2 from '../../components/Modal2';
 
 const ElectionConfigReview: React.FC = () => {
   const navigate = useNavigate();
@@ -16,6 +18,16 @@ const ElectionConfigReview: React.FC = () => {
   const actualElectionId = electionId || 'demo-election';
 
   const {
+    connectionState,
+    account,
+    transactionState,
+    connectWallet,
+    callCreateVoting,
+    resetTransactionState,
+  } = useWallet();
+
+  const {
+    votingEvent,
     ballotPreview,
     configSummary,
     loading,
@@ -42,10 +54,18 @@ const ElectionConfigReview: React.FC = () => {
 
   const handleActivate = async () => {
     try {
+      if (!votingEvent) {
+        throw new Error('Could not load voting event data');
+      }
+      await callCreateVoting(votingEvent);
       await activateElection();
       setShowConfirmModal(false);
       setShowSuccessModal(true);
-    } catch (error) {
+    } catch (error: any) {
+      setShowConfirmModal(false);
+      if (error.message === 'tx_canceled') {
+        return;
+      }
       console.error('Error activating election:', error);
     }
   };
@@ -55,6 +75,29 @@ const ElectionConfigReview: React.FC = () => {
     // Navegar al dashboard o detalle de la elección
     navigate('/elections');
   };
+
+  const connectMetamask = () => {
+    connectWallet();
+  }
+
+  const renderButtonText = () => {
+    switch (connectionState) {
+      case 'disconnected':
+        return 'Conectarse a MetaMask para publicar';
+      case 'connecting':
+        return 'Conectando...';
+      case 'notInstalled':
+        return 'Instale la extensión MetaMask para publicar';
+      case 'connected':
+        return 'Confirmar y activar';
+      default:
+        return 'Conectarse a MetaMask para publicar';
+    }
+  }
+
+  const isPublishButtonDisabled = () => {
+    return !isReadyToPublish || connectionState === 'connecting' || connectionState === 'notInstalled'
+  }
 
   if (loading) {
     return (
@@ -119,17 +162,17 @@ const ElectionConfigReview: React.FC = () => {
             <div className="w-full sm:w-auto text-center sm:text-right">
               <button
                 type="button"
-                onClick={handleConfirmClick}
-                disabled={!isReadyToPublish}
+                onClick={connectionState === 'disconnected' ? connectMetamask : handleConfirmClick}
+                disabled={isPublishButtonDisabled()}
                 className={`
                   w-full sm:w-auto px-8 py-3 font-semibold rounded-lg transition-all
-                  ${isReadyToPublish
+                  ${!isPublishButtonDisabled()
                     ? 'bg-[#459151] hover:bg-[#3a7a44] text-white shadow-md hover:shadow-lg'
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }
                 `}
               >
-                Confirmar y activar
+                { renderButtonText() }
               </button>
               <p className="text-xs text-gray-500 mt-2">
                 Al activar, la votación será visible para votantes según horarios.
@@ -144,7 +187,7 @@ const ElectionConfigReview: React.FC = () => {
         isOpen={showConfirmModal}
         onClose={() => setShowConfirmModal(false)}
         onConfirm={handleActivate}
-        isLoading={activating}
+        isLoading={activating || transactionState === 'pending'}
       />
 
       {/* Modal de éxito */}
@@ -155,6 +198,28 @@ const ElectionConfigReview: React.FC = () => {
         shareText={activationResult?.shareText || ''}
         onCopyLink={copyToClipboard}
       />
+
+      <Modal2
+        isOpen={transactionState == 'canceled'}
+        onClose={resetTransactionState}
+        title='Operación cancelada'
+        type='info'
+        showClose
+        closeOnEscape
+      >
+        Operación cancelada por el usuario. No se ha publicado la votación.
+      </Modal2>
+
+      <Modal2
+        isOpen={transactionState == 'error'}
+        onClose={resetTransactionState}
+        title='Operación fallida'
+        type='error'
+        showClose
+        closeOnEscape
+      >
+        Operación fallida. No se ha publicado la votación. Intenta nuevamente o contacta al soporte si el problema persiste.
+      </Modal2>
     </div>
   );
 };

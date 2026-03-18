@@ -5,6 +5,7 @@ import {
   useGetPadronVersionsQuery,
   useGetVotingEventQuery,
   usePublishVotingEventMutation,
+  VotingEvent,
 } from '../../../store/votingEvents';
 import type { PartyWithCandidates } from '../types';
 import type {
@@ -15,6 +16,7 @@ import type {
 } from './ElectionPublishRepository.mock';
 
 export interface UseElectionPublishReturn {
+  votingEvent?: VotingEvent;
   ballotPreview: BallotPreviewData | null;
   configSummary: ConfigSummary | null;
   electionStatus: ElectionStatus;
@@ -130,6 +132,7 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
   }, [refetchEvent, refetchRoles, refetchOptions, refetchPadron]);
 
   return {
+    votingEvent: event,
     ballotPreview,
     configSummary,
     electionStatus,

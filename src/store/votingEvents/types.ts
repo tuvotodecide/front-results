@@ -94,6 +94,7 @@ export interface VotingEvent {
   id: string;
   tenantId: string;
   name: string;
+  chainRequestId: string;
   objective: string;
   votingStart?: string | null;
   votingEnd?: string | null;
