@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useLocation } from "react-router-dom";
 import {
   useGetConfigurationsQuery,
   useGetConfigurationStatusQuery,
@@ -14,6 +15,7 @@ import { AlertCircle, Lock } from "lucide-react";
 
 export default function ElectionSelector() {
   const dispatch = useDispatch();
+  const location = useLocation();
   const { data: configs, isLoading: configsLoading } =
     useGetConfigurationsQuery();
   const { data: status, isLoading: statusLoading } =
@@ -24,6 +26,10 @@ export default function ElectionSelector() {
 
   const { status: contractStatus, contract, isClient, elections } =
     useMyContract();
+  const electionIdFromUrl = useMemo(() => {
+    const value = new URLSearchParams(location.search).get("electionId");
+    return value?.trim() || null;
+  }, [location.search]);
 
   // Get active elections from new API format
   const activeElections = useMemo(() => {
@@ -40,6 +46,24 @@ export default function ElectionSelector() {
 
   // Auto-seleccionar elección basada en contrato o elección activa
   useEffect(() => {
+    if (electionIdFromUrl) {
+      const electionName =
+        configs?.find((c) => c.id === electionIdFromUrl)?.name ??
+        status?.elections?.find((e) => e.id === electionIdFromUrl)?.name ??
+        elections.find((e) => e.electionId === electionIdFromUrl)?.electionName ??
+        null;
+
+      if (selectedId !== electionIdFromUrl) {
+        dispatch(
+          setSelectedElection({
+            id: electionIdFromUrl,
+            name: electionName,
+          })
+        );
+      }
+      return;
+    }
+
     // Si es cliente con contrato activo, forzar esa elección
     if (contractStatus === "has_active" && contract?.electionId) {
       const electionName =
@@ -69,10 +93,12 @@ export default function ElectionSelector() {
   }, [
     dispatch,
     selectedId,
+    electionIdFromUrl,
     firstActiveElection,
     contractStatus,
     contract,
     configs,
+    status?.elections,
     elections,
   ]);
 

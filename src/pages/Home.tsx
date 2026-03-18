@@ -19,6 +19,18 @@ type ContractRow = {
   territoryLabel: string;
 };
 
+const resolveTerritoryType = (territory: {
+  type?: "municipality" | "department";
+  municipalityId?: string;
+  departmentId?: string;
+}) => {
+  if (territory.type === "municipality" || territory.municipalityId) {
+    return "municipality" as const;
+  }
+
+  return "department" as const;
+};
+
 const Home: React.FC = () => {
   const auth = useSelector(selectAuth);
   const isLoggedIn = useSelector(selectIsLoggedIn);
@@ -37,35 +49,43 @@ const Home: React.FC = () => {
       return (myElectionsData ?? []).flatMap((election) =>
         election.contracts
           .filter((contract) => contract.active)
-          .map((contract) => ({
-            id: contract.contractId,
-            electionId: election.electionId,
-            electionName: election.electionName,
-            electionType: election.electionType,
-            territoryType: contract.territory.type,
-            departmentId: contract.territory.departmentId,
-            municipalityId: contract.territory.municipalityId,
-            territoryLabel:
-              contract.territory.type === "municipality"
-                ? contract.territory.municipalityName || "Sin municipio"
-                : contract.territory.departmentName || "Sin departamento",
-          })),
+          .map((contract) => {
+            const territoryType = resolveTerritoryType(contract.territory);
+
+            return {
+              id: contract.contractId,
+              electionId: election.electionId,
+              electionName: election.electionName,
+              electionType: election.electionType,
+              territoryType,
+              departmentId: contract.territory.departmentId,
+              municipalityId: contract.territory.municipalityId,
+              territoryLabel:
+                territoryType === "municipality"
+                  ? contract.territory.municipalityName || "Sin municipio"
+                  : contract.territory.departmentName || "Sin departamento",
+            };
+          }),
       );
     }
 
-    return (publicContractsData?.data ?? []).map((contract) => ({
-      id: contract.contractId,
-      electionId: contract.election.electionId,
-      electionName: contract.election.electionName,
-      electionType: contract.election.electionType,
-      territoryType: contract.territory.type,
-      departmentId: contract.territory.departmentId,
-      municipalityId: contract.territory.municipalityId,
-      territoryLabel:
-        contract.territory.type === "municipality"
-          ? contract.territory.municipalityName || "Sin municipio"
-          : contract.territory.departmentName || "Sin departamento",
-    }));
+    return (publicContractsData?.data ?? []).map((contract) => {
+      const territoryType = resolveTerritoryType(contract.territory);
+
+      return {
+        id: contract.contractId,
+        electionId: contract.election.electionId,
+        electionName: contract.election.electionName,
+        electionType: contract.election.electionType,
+        territoryType,
+        departmentId: contract.territory.departmentId,
+        municipalityId: contract.territory.municipalityId,
+        territoryLabel:
+          territoryType === "municipality"
+            ? contract.territory.municipalityName || "Sin municipio"
+            : contract.territory.departmentName || "Sin departamento",
+      };
+    });
   }, [isLoggedIn, isClient, myElectionsData, publicContractsData?.data]);
 
   const isLoadingContracts = isLoggedIn && isClient ? myContractsLoading : false;
