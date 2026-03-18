@@ -31,6 +31,7 @@ const toVotingEvent = (raw: any): VotingEvent => {
   return {
     id: String(raw?.id ?? raw?._id ?? ""),
     tenantId: String(raw?.tenantId ?? ""),
+    chainRequestId: String(raw?.chainRequestId ?? ""),
     name: raw?.name ?? "",
     objective: raw?.objective ?? "",
     votingStart: raw?.votingStart ?? null,
