@@ -191,6 +191,17 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
   }, [selectedElectionId]);
   const buildQueryParams = (path: PathItem2[]) => {
     const params = new URLSearchParams();
+    const electionId = searchParams.get("electionId");
+    const electionType = searchParams.get("electionType");
+
+    if (electionId) {
+      params.set("electionId", electionId);
+    }
+
+    if (electionType) {
+      params.set("electionType", electionType);
+    }
+
     path.forEach((item) => {
       if (item.selectedOption?._id) {
         params.set(item.id, item.selectedOption._id);
@@ -217,6 +228,82 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
     dispatch(setFilters(filters));
     dispatch(setFilterIds(filterIds));
   };
+
+  const syncPathState = (path: PathItem2[]) => {
+    setSelectedPath2(path);
+    applyPathFilters(path);
+  };
+
+  const buildMayorBasePath = async ({
+    municipalityId,
+    municipalityName,
+    departmentId,
+    departmentName,
+  }: {
+    municipalityId: string;
+    municipalityName?: string;
+    departmentId?: string;
+    departmentName?: string;
+  }) => {
+    let resolvedDepartmentId = departmentId ?? "";
+    let resolvedDepartmentName = departmentName ?? "";
+    let resolvedProvinceId = "";
+    let resolvedProvinceName = "";
+    let resolvedMunicipalityName = municipalityName ?? "";
+
+    if (
+      !resolvedDepartmentId ||
+      !resolvedDepartmentName ||
+      !resolvedProvinceId ||
+      !resolvedMunicipalityName
+    ) {
+      try {
+        const municipalityData = await getMunicipality(municipalityId).unwrap();
+        resolvedMunicipalityName =
+          resolvedMunicipalityName || municipalityData?.name || "";
+        resolvedProvinceId = municipalityData?.provinceId?._id || "";
+        resolvedProvinceName = municipalityData?.provinceId?.name || "";
+        resolvedDepartmentId =
+          resolvedDepartmentId ||
+          municipalityData?.provinceId?.departmentId?._id ||
+          "";
+        resolvedDepartmentName =
+          resolvedDepartmentName ||
+          municipalityData?.provinceId?.departmentId?.name ||
+          "";
+      } catch {
+        // Fallback a los datos ya disponibles del usuario/contrato.
+      }
+    }
+
+    return [
+      {
+        id: "department",
+        title: "Departamento",
+        selectedOption: {
+          _id: resolvedDepartmentId,
+          name: resolvedDepartmentName,
+        },
+      },
+      {
+        id: "province",
+        title: "Provincia",
+        selectedOption: {
+          _id: resolvedProvinceId,
+          name: resolvedProvinceName || "-",
+        },
+      },
+      {
+        id: "municipality",
+        title: "Municipio",
+        selectedOption: {
+          _id: municipalityId,
+          name: resolvedMunicipalityName,
+        },
+      },
+    ] satisfies PathItem2[];
+  };
+
   const isSamePath = (a: PathItem2[], b: PathItem2[]) => {
     if (a.length !== b.length) return false;
     return a.every((item, idx) => {
@@ -231,6 +318,8 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
 
   useEffect(() => {
     if (!user) return;
+
+    let cancelled = false;
 
     const territoryDepartmentId = hasContract
       ? contract?.territory.departmentId
@@ -282,36 +371,75 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
         needsGovernorName);
     if (isInitialized && !shouldReinit) return;
 
-    if (hasContract && contract) {
-      if (contract.role === "MAYOR" && territoryMunicipalityId) {
-        const deptId = contract.territory.departmentId ?? user.departmentId;
-        const deptName = contract.territory.departmentName ?? user.departmentName ?? "";
-        const munId = territoryMunicipalityId;
-        const munName =
-          contract.territory.municipalityName ?? user.municipalityName ?? "";
-        const forcedPath: PathItem2[] = [
-          {
-            id: "department",
-            title: "Departamento",
-            selectedOption: {
-              _id: deptId!,
-              name: deptName,
+    const initializeForcedPath = async () => {
+      if (hasContract && contract) {
+        if (contract.role === "MAYOR" && territoryMunicipalityId) {
+          const forcedPath = await buildMayorBasePath({
+            municipalityId: territoryMunicipalityId,
+            municipalityName:
+              contract.territory.municipalityName ?? user.municipalityName,
+            departmentId: contract.territory.departmentId ?? user.departmentId,
+            departmentName:
+              contract.territory.departmentName ?? user.departmentName,
+          });
+
+          if (cancelled) return;
+
+          if (isSamePath(selectedPath2, forcedPath)) {
+            if (!isInitialized) {
+              setIsInitialized(true);
+            }
+            return;
+          }
+
+          syncPathState(forcedPath);
+          selectLevel(3, forcedPath);
+          if (autoOpen) setShowCurrentLevel(true);
+          setIsInitialized(true);
+          return;
+        }
+
+        if (contract.role === "GOVERNOR" && territoryDepartmentId) {
+          const deptId = territoryDepartmentId;
+          const deptName =
+            contract.territory.departmentName ?? user.departmentName ?? "";
+          const forcedPath: PathItem2[] = [
+            {
+              id: "department",
+              title: "Departamento",
+              selectedOption: {
+                _id: deptId!,
+                name: deptName,
+              },
             },
-          },
-          {
-            id: "province",
-            title: "Provincia",
-            selectedOption: { _id: "", name: "-" },
-          },
-          {
-            id: "municipality",
-            title: "Municipio",
-            selectedOption: {
-              _id: munId!,
-              name: munName,
-            },
-          },
-        ];
+          ];
+
+          if (cancelled) return;
+
+          if (isSamePath(selectedPath2, forcedPath)) {
+            if (!isInitialized) {
+              setIsInitialized(true);
+            }
+            return;
+          }
+
+          syncPathState(forcedPath);
+          selectLevel(1, forcedPath);
+          if (autoOpen) setShowCurrentLevel(true);
+          setIsInitialized(true);
+          return;
+        }
+      }
+
+      if (role === "MAYOR" && user.municipalityId) {
+        const forcedPath = await buildMayorBasePath({
+          municipalityId: user.municipalityId,
+          municipalityName: user.municipalityName,
+          departmentId: user.departmentId,
+          departmentName: user.departmentName,
+        });
+
+        if (cancelled) return;
 
         if (isSamePath(selectedPath2, forcedPath)) {
           if (!isInitialized) {
@@ -320,134 +448,39 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
           return;
         }
 
-        setSelectedPath2(forcedPath);
-        dispatch(
-          setFilters({
-            department: deptName,
-            municipality: munName,
-          }),
-        );
-        dispatch(
-          setFilterIds({
-            departmentId: deptId,
-            municipalityId: munId,
-          }),
-        );
-
+        syncPathState(forcedPath);
         selectLevel(3, forcedPath);
         if (autoOpen) setShowCurrentLevel(true);
         setIsInitialized(true);
         return;
       }
 
-      if (contract.role === "GOVERNOR" && territoryDepartmentId) {
-        const deptId = territoryDepartmentId;
-        const deptName = contract.territory.departmentName ?? user.departmentName ?? "";
+      if (role === "GOVERNOR" && user.departmentId) {
         const forcedPath: PathItem2[] = [
           {
             id: "department",
             title: "Departamento",
             selectedOption: {
-              _id: deptId!,
-              name: deptName,
+              _id: user.departmentId!,
+              name: user.departmentName!,
             },
           },
         ];
 
-        if (isSamePath(selectedPath2, forcedPath)) {
-          if (!isInitialized) {
-            setIsInitialized(true);
-          }
-          return;
-        }
+        if (cancelled) return;
 
-        setSelectedPath2(forcedPath);
-        dispatch(setFilters({ department: deptName }));
-        dispatch(
-          setFilterIds({ departmentId: deptId }),
-        );
-
+        syncPathState(forcedPath);
         selectLevel(1, forcedPath);
         if (autoOpen) setShowCurrentLevel(true);
         setIsInitialized(true);
-        return;
       }
-    }
+    };
 
-    if (role === "MAYOR" && user.municipalityId) {
-      const forcedPath: PathItem2[] = [
-        {
-          id: "department",
-          title: "Departamento",
-          selectedOption: {
-            _id: user.departmentId!,
-            name: user.departmentName!,
-          },
-        },
-        {
-          id: "province",
-          title: "Provincia",
-          selectedOption: { _id: "", name: "-" },
-        },
-        {
-          id: "municipality",
-          title: "Municipio",
-          selectedOption: {
-            _id: user.municipalityId!,
-            name: user.municipalityName!,
-          },
-        },
-      ];
+    void initializeForcedPath();
 
-      setSelectedPath2(forcedPath);
-
-      dispatch(
-        setFilters({
-          department: user.departmentName,
-          municipality: user.municipalityName,
-        }),
-      );
-
-      dispatch(
-        setFilterIds({
-          departmentId: user.departmentId,
-          municipalityId: user.municipalityId,
-        }),
-      );
-
-      // IMPORTANTE: abrir el siguiente nivel correcto (Asiento Electoral)
-      selectLevel(3, forcedPath);
-      if (autoOpen) setShowCurrentLevel(true);
-
-      setIsInitialized(true);
-      return;
-    }
-
-    if (role === "GOVERNOR" && user.departmentId) {
-      const forcedPath: PathItem2[] = [
-        {
-          id: "department",
-          title: "Departamento",
-          selectedOption: {
-            _id: user.departmentId!,
-            name: user.departmentName!,
-          },
-        },
-      ];
-
-      setSelectedPath2(forcedPath);
-      dispatch(setFilters({ department: user.departmentName }));
-      dispatch(setFilterIds({ departmentId: user.departmentId }));
-
-      // Abrir siguiente nivel (Provincia)
-      selectLevel(1, forcedPath);
-      if (autoOpen) setShowCurrentLevel(true);
-
-      setIsInitialized(true);
-      return;
-    }
-
-    // SUPERADMIN/publico: NO marcar initialized aquí
+    return () => {
+      cancelled = true;
+    };
   }, [
     user,
     role,
@@ -471,10 +504,19 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
       setSelectedLevel(null);
       setShowCurrentLevel(false);
       setIsInitialized(false);
-      setSearchParams({});
+      const nextParams = new URLSearchParams();
+      const electionId = searchParams.get("electionId");
+      const electionType = searchParams.get("electionType");
+      if (electionId) {
+        nextParams.set("electionId", electionId);
+      }
+      if (electionType) {
+        nextParams.set("electionType", electionType);
+      }
+      setSearchParams(nextParams);
     }
     prevUserRef.current = user;
-  }, [user, dispatch, setSearchParams]);
+  }, [user, dispatch, searchParams, setSearchParams]);
 
   // Update URL whenever selectedPath2 changes
   useEffect(() => {
@@ -930,42 +972,18 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
         const deptName = hasContract ? contract?.territory.departmentName : user?.departmentName;
         const munId = hasContract ? contract?.territory.municipalityId : user?.municipalityId;
         const munName = hasContract ? contract?.territory.municipalityName : user?.municipalityName;
-
-        const basePath: PathItem2[] = [
-          {
-            id: "department",
-            title: "Departamento",
-            selectedOption: { _id: deptId!, name: deptName! },
-          },
-          {
-            id: "province",
-            title: "Provincia",
-            selectedOption: { _id: "", name: "-" },
-          },
-          {
-            id: "municipality",
-            title: "Municipio",
-            selectedOption: { _id: munId!, name: munName! },
-          },
-        ];
-
-        setSelectedPath2(basePath);
-        dispatch(
-          setFilters({
-            department: deptName,
-            municipality: munName,
-          }),
-        );
-        dispatch(
-          setFilterIds({
-            departmentId: deptId,
+        if (munId) {
+          void buildMayorBasePath({
             municipalityId: munId,
-          }),
-        );
-
-        // Abrir siguiente nivel (Asiento Electoral, índice 3)
-        selectLevel(3, basePath);
-        setShowCurrentLevel(open);
+            municipalityName: munName,
+            departmentId: deptId,
+            departmentName: deptName,
+          }).then((basePath) => {
+            syncPathState(basePath);
+            selectLevel(3, basePath);
+            setShowCurrentLevel(open);
+          });
+        }
       } else if (role === "GOVERNOR") {
         const deptId = hasContract ? contract?.territory.departmentId : user?.departmentId;
         const deptName = hasContract ? contract?.territory.departmentName : user?.departmentName;

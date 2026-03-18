@@ -3,7 +3,6 @@ import { useGetDepartmentsQuery } from "../../store/departments/departmentsEndpo
 import Breadcrumb2 from "../../components/Breadcrumb2";
 import { useSelector } from "react-redux";
 import {
-  selectFilters,
   selectFilterIds,
 } from "../../store/resultados/resultadosSlice";
 import {
@@ -71,7 +70,6 @@ const ResultadosGenerales3 = () => {
       ? electionTypeFromUrl
       : election?.type || "presidential";
   const resultsLabels = getResultsLabels(resolvedElectionType);
-  const filters = useSelector(selectFilters);
   const filterIds = useSelector(selectFilterIds);
   const { user } = useSelector(selectAuth);
   const { status: contractStatus, contract } = useMyContract();
@@ -121,13 +119,14 @@ const ResultadosGenerales3 = () => {
   });
 
   const locationParams = useMemo(() => {
+    const getParamId = (key: string) => searchParams.get(key) || "";
     const params = {
-      department: filterIds.departmentId || filters.department || "",
-      province: filterIds.provinceId || filters.province || "",
-      municipality: filterIds.municipalityId || filters.municipality || "",
-      electoralSeat: filterIds.electoralSeatId || filters.electoralSeat || "",
+      department: filterIds.departmentId || getParamId("department"),
+      province: filterIds.provinceId || getParamId("province"),
+      municipality: filterIds.municipalityId || getParamId("municipality"),
+      electoralSeat: filterIds.electoralSeatId || getParamId("electoralSeat"),
       electoralLocation:
-        filterIds.electoralLocationId || filters.electoralLocation || "",
+        filterIds.electoralLocationId || getParamId("electoralLocation"),
     };
 
     if (role === "MAYOR") {
@@ -148,12 +147,8 @@ const ResultadosGenerales3 = () => {
     filterIds.municipalityId,
     filterIds.electoralSeatId,
     filterIds.electoralLocationId,
-    filters.department,
-    filters.province,
-    filters.municipality,
-    filters.electoralSeat,
-    filters.electoralLocation,
     role,
+    searchParams,
     territoryDepartmentId,
     territoryMunicipalityId,
   ]);
