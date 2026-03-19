@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import LocationSection from "./LocationSection";
 import Graphs from "./Graphs";
 import ImagesSection from "./ImagesSection";
@@ -73,7 +73,6 @@ const ResultadosMesa2 = () => {
   const [deputiesData, setDeputiesData] = useState<
     Array<{ name: string; value: number; color: string }>
   >([]);
-  console.log(deputiesData);
   const [participation, setParticipation] = useState<
     Array<{ name: string; value: any; color: string }>
   >([]);
@@ -114,6 +113,36 @@ const ResultadosMesa2 = () => {
     publicScope.isPublic &&
     !publicScope.isLoading &&
     !publicScope.isScopeValid;
+  const primaryElectionType = useMemo(() => {
+    if (resolvedElectionType === "municipal" || resolvedElectionType === "mayor") {
+      return "municipal";
+    }
+    if (
+      resolvedElectionType === "departamental" ||
+      resolvedElectionType === "governor"
+    ) {
+      return "departamental";
+    }
+    return "presidential";
+  }, [resolvedElectionType]);
+  const secondaryElectionType = useMemo(() => {
+    if (resolvedElectionType === "municipal" || resolvedElectionType === "mayor") {
+      return "council";
+    }
+    if (
+      resolvedElectionType === "departamental" ||
+      resolvedElectionType === "governor"
+    ) {
+      return "assembly";
+    }
+    return "deputies";
+  }, [resolvedElectionType]);
+  const shouldRenderSecondaryResults =
+    resolvedElectionType === "municipal" ||
+    resolvedElectionType === "mayor" ||
+    resolvedElectionType === "departamental" ||
+    resolvedElectionType === "governor" ||
+    deputiesData.length > 0;
 
   // Hook para obtener las mesas que cuentan en resultados (consistente con by-location)
   const {
@@ -122,7 +151,7 @@ const ResultadosMesa2 = () => {
     isError: countedBallotsError,
     total: countedBallotsTotal,
   } = useCountedBallots({
-    electionType: resolvedElectionType,
+    electionType: primaryElectionType,
     electionId: resolvedElectionId,
     department: filters.department,
     province: filters.province,
@@ -181,7 +210,7 @@ const ResultadosMesa2 = () => {
   const currentElectoralLocationId =
     electoralTableData?.electoralLocation?._id || undefined;
   const { tables: otherCountedTables } = useCountedBallots({
-    electionType: resolvedElectionType,
+    electionType: primaryElectionType,
     electionId: resolvedElectionId,
     electoralLocation: currentElectoralLocationId,
     page: 1,
@@ -261,7 +290,7 @@ const ResultadosMesa2 = () => {
 
     const presidentialPromise = fetcher({
       tableCode,
-      electionType: resolvedElectionType,
+      electionType: primaryElectionType,
       electionId: resolvedElectionId,
     })
       .unwrap()
@@ -307,14 +336,14 @@ const ResultadosMesa2 = () => {
       })
       .catch((err) => {
         if (!isActive) return;
-        console.error("Error obteniendo resultados presidenciales:", err);
+        console.error("Error obteniendo resultados del bloque principal:", err);
         setPresidentialData([]);
         setParticipation([]);
       });
 
     const deputiesPromise = fetcher({
       tableCode,
-      electionType: resolvedElectionType,
+      electionType: secondaryElectionType,
       electionId: resolvedElectionId,
     })
       .unwrap()
@@ -337,7 +366,7 @@ const ResultadosMesa2 = () => {
       })
       .catch((err) => {
         if (!isActive) return;
-        console.error("Error obteniendo resultados diputados:", err);
+        console.error("Error obteniendo resultados del bloque secundario:", err);
         setDeputiesData([]);
       });
 
@@ -355,7 +384,8 @@ const ResultadosMesa2 = () => {
     tableCode,
     electoralTableData,
     resolvedElectionId,
-    resolvedElectionType,
+    primaryElectionType,
+    secondaryElectionType,
     hasActiveConfig,
     isPreliminaryPhase,
     isFinalPhase,
@@ -727,6 +757,8 @@ const ResultadosMesa2 = () => {
                     images={images}
                     mostSupportedBallot={mostSupportedBallotData}
                     attestationCases={attestationCases?.ballots || []}
+                    electionId={resolvedElectionId}
+                    electionType={resolvedElectionType}
                   />
                 </div>
               ) : (
@@ -916,15 +948,22 @@ const ResultadosMesa2 = () => {
                             <Graphs data={presidentialData} />
                           </div>
                         </div>
-                        {/* <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
-                          <div className="p-4">
-                            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                              {resultsLabels.secondary}
-                            </h3>
-                            <Graphs data={deputiesData} />
-                           
+                        {shouldRenderSecondaryResults && (
+                          <div className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0">
+                            <div className="p-4">
+                              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                                {resultsLabels.secondary}
+                              </h3>
+                              {deputiesData.length > 0 ? (
+                                <Graphs data={deputiesData} />
+                              ) : (
+                                <div className="border border-dashed border-gray-300 rounded-lg p-8 text-center text-gray-500">
+                                  Sin datos
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div> */}
+                        )}
                       </div>
                     </>
                   )}
@@ -939,6 +978,8 @@ const ResultadosMesa2 = () => {
                   images={images}
                   mostSupportedBallot={mostSupportedBallotData}
                   attestationCases={attestationCases?.ballots || []}
+                  electionId={resolvedElectionId}
+                  electionType={resolvedElectionType}
                 />
               </div>
               {otherTables.length > 0 && (

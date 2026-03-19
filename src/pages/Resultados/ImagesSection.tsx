@@ -21,6 +21,8 @@ interface ImagesSectionProps {
   images: BallotType[];
   mostSupportedBallot?: MostSupportedBallotType | null | undefined;
   attestationCases?: AttestationsBallotType[];
+  electionId?: string;
+  electionType?: string;
 }
 
 const nftBaseUrl = import.meta.env.VITE_BASE_NFT_URL;
@@ -29,6 +31,8 @@ const ImagesSection = ({
   images,
   mostSupportedBallot,
   attestationCases,
+  electionId,
+  electionType,
 }: ImagesSectionProps) => {
   // Combine images with attestation cases data
   const combinedImagesData = useMemo(() => {
@@ -48,6 +52,20 @@ const ImagesSection = ({
     const baseUrl = 'https://ipfs.io/ipfs/';
     const ipfsHash = image.image.replace('ipfs://', '');
     return `${baseUrl}${ipfsHash}`;
+  };
+
+  const getDetailsHref = (ballotId: string) => {
+    const params = new URLSearchParams();
+    if (electionId) {
+      params.set('electionId', electionId);
+    }
+    if (electionType) {
+      params.set('electionType', electionType);
+    }
+    const query = params.toString();
+    return query
+      ? `/resultados/imagen/${ballotId}?${query}`
+      : `/resultados/imagen/${ballotId}`;
   };
 
   return (
@@ -143,7 +161,7 @@ const ImagesSection = ({
                 </h4>
                 <div className="grid grid-cols-2 gap-2">
                   <a
-                    href={`/resultados/imagen/${image._id}`}
+                    href={getDetailsHref(image._id)}
                     className="px-3 py-2.5 text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-md hover:bg-slate-100 hover:border-slate-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-1 text-center no-underline inline-block"
                   >
                     Detalles

@@ -17,8 +17,8 @@ export const getResultsLabels = (type: ResultsElectionType) => {
 
   if (type === "departamental" || type === "governor") {
     return {
-      primary: "Resultados Gobernadores",
-      secondary: "Resultados Asambleistas",
+      primary: "Resultados Gobernador",
+      secondary: "Resultados Asambleísta por Territorio",
     };
   }
 

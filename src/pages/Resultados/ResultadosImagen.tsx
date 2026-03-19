@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 // import ModalImage from '../../components/ModalImage';
 // import actaImage from '../../assets/acta.jpg';
 import LocationSection from "./LocationSection";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   useGetBallotByTableCodeQuery,
   useGetBallotQuery,
@@ -17,7 +17,7 @@ import { useGetAttestationsByBallotIdQuery } from "../../store/attestations/atte
 import { getPartyColor } from "./partyColors";
 import useElectionConfig from "../../hooks/useElectionConfig";
 import useElectionId from "../../hooks/useElectionId";
-import { getResultsLabels } from "./resultsLabels";
+import { getResultsLabels, type ResultsElectionType } from "./resultsLabels";
 import { FIVE_MINUTES_MS } from "../../utils/electionAutoRefreshWindow";
 
 // const ballotData = {
@@ -32,6 +32,7 @@ const ResultadosImagen = () => {
   const electionId = useElectionId();
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const {
     election,
     hasActiveConfig,
@@ -39,7 +40,16 @@ const ResultadosImagen = () => {
     isResultsPeriod: isFinalPhase,
     isAutoRefreshWindow,
   } = useElectionConfig();
-  const resultsLabels = getResultsLabels(election?.type);
+  const electionTypeFromUrl = searchParams.get("electionType");
+  const resolvedElectionType: ResultsElectionType =
+    electionTypeFromUrl === "municipal" ||
+    electionTypeFromUrl === "departamental" ||
+    electionTypeFromUrl === "presidential" ||
+    electionTypeFromUrl === "mayor" ||
+    electionTypeFromUrl === "governor"
+      ? electionTypeFromUrl
+      : election?.type || "presidential";
+  const resultsLabels = getResultsLabels(resolvedElectionType);
   const { data: currentItem, isError: isBallotError } = useGetBallotQuery(id!, {
     skip: !id,
     pollingInterval: isAutoRefreshWindow ? FIVE_MINUTES_MS : 0,
@@ -70,7 +80,8 @@ const ResultadosImagen = () => {
   const handleSearch = (searchTerm: string) => {
     const term = (searchTerm || "").trim();
     if (!term) return;
-    navigate(`/resultados/imagen/${term}`);
+    const query = searchParams.toString();
+    navigate(query ? `/resultados/imagen/${term}?${query}` : `/resultados/imagen/${term}`);
   };
 
   const [presidentialData, setPresidentialData] = useState<
@@ -82,6 +93,12 @@ const ResultadosImagen = () => {
   const [participation, setParticipation] = useState<
     Array<{ name: string; value: any; color: string }>
   >([]);
+  const shouldRenderSecondaryResults =
+    resolvedElectionType === "municipal" ||
+    resolvedElectionType === "mayor" ||
+    resolvedElectionType === "departamental" ||
+    resolvedElectionType === "governor" ||
+    deputiesData.length > 0;
 
   const { attestationsInFavor, attestationsAgainst } = useMemo(() => {
     if (!attestationsData) {
@@ -573,17 +590,23 @@ const ResultadosImagen = () => {
                       <Graphs data={presidentialData} />
                     </div>
 
-                    {deputiesData.length > 0 && (
+                    {shouldRenderSecondaryResults && (
                       <div className="border border-gray-200 rounded-lg p-4">
                         <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                           <span>{resultsLabels.secondary}</span>
                           {isPreliminaryPhase && (
                             <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
-                              Preliminares
-                            </span>
-                          )}
-                        </h3>
-                        <Graphs data={deputiesData} />
+                            Preliminares
+                          </span>
+                        )}
+                      </h3>
+                        {deputiesData.length > 0 ? (
+                          <Graphs data={deputiesData} />
+                        ) : (
+                          <div className="border border-dashed border-gray-300 rounded-lg p-8 text-center text-gray-500">
+                            Sin datos
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

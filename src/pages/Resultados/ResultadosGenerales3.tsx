@@ -172,6 +172,12 @@ const ResultadosGenerales3 = () => {
     }
     return "deputies";
   }, [resolvedElectionType]);
+  const shouldRenderSecondaryResults =
+    resolvedElectionType === "municipal" ||
+    resolvedElectionType === "mayor" ||
+    resolvedElectionType === "departamental" ||
+    resolvedElectionType === "governor" ||
+    deputiesData.length > 0;
   const { tables: tablesData } = useCountedBallots({
     electionType: primaryElectionType,
     electionId: electionId ?? undefined,
@@ -466,7 +472,7 @@ const ResultadosGenerales3 = () => {
                       <Graphs data={presidentialData} />
                     </div>
                   </div>
-                  {deputiesData.length > 0 && (
+                  {shouldRenderSecondaryResults && (
                     <div
                       data-cy="deputies-results"
                       className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0"
@@ -476,11 +482,17 @@ const ResultadosGenerales3 = () => {
                           <span>{resultsLabels.secondary}</span>
                           {isPreliminaryPhase && (
                             <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
-                              Preliminares
-                            </span>
-                          )}
-                        </h3>
-                        <Graphs data={deputiesData} />
+                            Preliminares
+                          </span>
+                        )}
+                      </h3>
+                        {deputiesData.length > 0 ? (
+                          <Graphs data={deputiesData} />
+                        ) : (
+                          <div className="border border-dashed border-gray-300 rounded-lg p-8 text-center text-gray-500">
+                            Sin datos
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
