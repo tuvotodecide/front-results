@@ -65,6 +65,10 @@ export const useCreateElection = (): UseCreateElectionResult => {
       resultsPublishAt: new Date(payload.resultsDate).toISOString(),
     }).unwrap();
 
+    if (!created?.id) {
+      throw new Error("La votación fue creada con una respuesta incompleta. Intenta nuevamente.");
+    }
+
     return {
       id: created.id,
       institution: created.name,

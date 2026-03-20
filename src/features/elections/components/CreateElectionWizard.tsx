@@ -83,15 +83,18 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
   });
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingData, setPendingData] = useState<ElectionFormData | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Step 1: Info básica
   const handleStep1Submit = (values: ElectionFormStep1) => {
+    setSubmitError(null);
     setStep1Data(values);
     setStep(2);
   };
 
   // Step 2: Fechas -> Abrir modal
   const handleStep2Submit = (values: ElectionFormStep2) => {
+    setSubmitError(null);
     const fullData: ElectionFormData = {
       ...step1Data,
       ...values,
@@ -105,6 +108,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
     if (!pendingData) return;
 
     try {
+      setSubmitError(null);
       const newElection = await createElection({
         institution: pendingData.institution,
         description: pendingData.description,
@@ -118,11 +122,14 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
       if (onSuccess) {
         onSuccess();
       } else {
-        // Navegar al Paso 1 de configuración (Cargos)
         navigate(`/elections/${newElection.id}/config/cargos`, { replace: true });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creando elección:', error);
+      setShowConfirmModal(false);
+      setSubmitError(
+        error?.message || 'No se pudo continuar al siguiente paso. Intenta nuevamente.',
+      );
     }
   };
 
@@ -143,6 +150,12 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
         <div className="mb-8">
           <Stepper currentStep={step} />
         </div>
+
+        {submitError && (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {submitError}
+          </div>
+        )}
 
         {/* Step 1: Info básica */}
         {step === 1 && (

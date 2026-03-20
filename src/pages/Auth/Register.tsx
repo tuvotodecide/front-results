@@ -1,6 +1,13 @@
 // C:\apps\front-results\src\pages\Auth\Register.tsx
 import React, { useEffect, useState } from "react";
-import { Formik, Form, Field, ErrorMessage, FormikHelpers } from "formik";
+import {
+  Formik,
+  Form,
+  Field,
+  ErrorMessage,
+  FormikHelpers,
+  useFormikContext,
+} from "formik";
 import * as Yup from "yup";
 import {
   useCreateUserMutation,
@@ -11,7 +18,6 @@ import LoadingButton from "../../components/LoadingButton";
 import tuvotoDecideImage from "../../assets/tuvotodecide.webp";
 import ScopePicker from "../../components/ScopePicker";
 
-import { useFormikContext } from "formik";
 import Modal2 from "../../components/Modal2";
 import { useGetDepartmentsQuery } from "../../store/departments/departmentsEndpoints";
 import { ModalState } from "../../types";
@@ -46,9 +52,6 @@ interface VotingFormValues {
   password: string;
   confirmPassword: string;
 }
-
-const VOTING_REGISTER_DRAFT_KEY = "voting-register-draft";
-
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
@@ -183,7 +186,6 @@ const Register: React.FC = () => {
 
     try {
       await createInstitutionalAdminApplication(payload).unwrap();
-      localStorage.removeItem(VOTING_REGISTER_DRAFT_KEY);
       localStorage.setItem("pendingEmail", payload.email);
       localStorage.setItem("pendingReason", "VERIFY_EMAIL");
       navigate("/pendiente", { replace: true });
@@ -417,13 +419,12 @@ const Register: React.FC = () => {
   // Formulario para voting mode (institucional)
   const VotingModeForm = () => (
     <Formik<VotingFormValues>
-      initialValues={loadVotingDraft()}
+      initialValues={emptyVotingValues()}
       validationSchema={validationSchema}
       onSubmit={registerVotingUser}
     >
       {() => (
-        <Form className="space-y-5">
-          <VotingRegisterPersist />
+        <Form className="space-y-5" autoComplete="off">
           <VotingCommonFields />
 
           {/* Nombre de la institución/empresa */}
@@ -542,7 +543,7 @@ const Register: React.FC = () => {
       onSubmit={registerResultsUser}
     >
       {({ values, setFieldValue }) => (
-        <Form className="space-y-5">
+        <Form className="space-y-5" autoComplete="off">
           <RoleTypeWatcher />
           <CommonFields />
 
@@ -763,27 +764,6 @@ const EyeOffIcon = () => (
   </svg>
 );
 
-function loadVotingDraft(): VotingFormValues {
-  try {
-    const stored = localStorage.getItem(VOTING_REGISTER_DRAFT_KEY);
-    if (!stored) {
-      return emptyVotingValues();
-    }
-
-    const parsed = JSON.parse(stored);
-    return {
-      dni: parsed?.dni ?? "",
-      name: parsed?.name ?? "",
-      email: parsed?.email ?? "",
-      tenantName: parsed?.tenantName ?? "",
-      password: parsed?.password ?? "",
-      confirmPassword: parsed?.confirmPassword ?? "",
-    };
-  } catch {
-    return emptyVotingValues();
-  }
-}
-
 function emptyVotingValues(): VotingFormValues {
   return {
     dni: "",
@@ -793,16 +773,6 @@ function emptyVotingValues(): VotingFormValues {
     password: "",
     confirmPassword: "",
   };
-}
-
-function VotingRegisterPersist() {
-  const { values } = useFormikContext<VotingFormValues>();
-
-  useEffect(() => {
-    localStorage.setItem(VOTING_REGISTER_DRAFT_KEY, JSON.stringify(values));
-  }, [values]);
-
-  return null;
 }
 
 export default Register;

@@ -11,15 +11,15 @@ import ActivatedSuccessModal from './components/ActivatedSuccessModal';
 import { useElectionPublish } from './data/useElectionPublish';
 import { useWallet } from '../../hooks/useWallet';
 import Modal2 from '../../components/Modal2';
+import ConfigPageFallback from './components/ConfigPageFallback';
 
 const ElectionConfigReview: React.FC = () => {
   const navigate = useNavigate();
   const { electionId } = useParams<{ electionId: string }>();
-  const actualElectionId = electionId || 'demo-election';
+  const actualElectionId = electionId || '';
 
   const {
     connectionState,
-    account,
     transactionState,
     connectWallet,
     callCreateVoting,
@@ -97,6 +97,17 @@ const ElectionConfigReview: React.FC = () => {
 
   const isPublishButtonDisabled = () => {
     return !isReadyToPublish || connectionState === 'connecting' || connectionState === 'notInstalled'
+  }
+
+  if (!actualElectionId) {
+    return (
+      <ConfigPageFallback
+        title="ID de votación no válido"
+        message="No se pudo resolver la votación seleccionada. Vuelve al listado y entra nuevamente."
+        actionLabel="Volver a elecciones"
+        onAction={() => navigate('/elections')}
+      />
+    );
   }
 
   if (loading) {

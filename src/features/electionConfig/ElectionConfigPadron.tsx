@@ -10,6 +10,7 @@ import UploadProgressModal from './components/UploadProgressModal';
 import UploadSummaryModal from './components/UploadSummaryModal';
 import FixInvalidModal from './components/FixInvalidModal';
 import LoadedPadronView from './components/LoadedPadronView';
+import ConfigPageFallback from './components/ConfigPageFallback';
 import {
   useGetVotingEventQuery,
   useGetEventRolesQuery,
@@ -141,16 +142,25 @@ const ElectionConfigPadron: React.FC = () => {
   const replaceFileInputRef = useRef<HTMLInputElement>(null);
 
   // RTK Query hooks
-  const { data: event } = useGetVotingEventQuery(actualElectionId, {
+  const {
+    data: event,
+    isLoading: loadingEvent,
+    isError: eventLoadFailed,
+    refetch: refetchEvent,
+  } = useGetVotingEventQuery(actualElectionId, {
     skip: !actualElectionId,
   });
-  const { data: roles = [] } = useGetEventRolesQuery(actualElectionId, {
+  const { data: roles = [], isError: rolesLoadFailed } = useGetEventRolesQuery(actualElectionId, {
     skip: !actualElectionId,
   });
-  const { data: options = [] } = useGetEventOptionsQuery(actualElectionId, {
+  const { data: options = [], isError: optionsLoadFailed } = useGetEventOptionsQuery(actualElectionId, {
     skip: !actualElectionId,
   });
-  const { data: padronVersions = [], isLoading: loadingVersions } = useGetPadronVersionsQuery(
+  const {
+    data: padronVersions = [],
+    isLoading: loadingVersions,
+    isError: padronVersionsLoadFailed,
+  } = useGetPadronVersionsQuery(
     actualElectionId,
     { skip: !actualElectionId }
   );
@@ -161,7 +171,7 @@ const ElectionConfigPadron: React.FC = () => {
   const pageSize = 50;
 
   // Query de votantes
-  const { data: votersData, isLoading: loadingVoters } = useGetPadronVotersQuery(
+  const { data: votersData, isLoading: loadingVoters, isError: votersLoadFailed } = useGetPadronVotersQuery(
     { eventId: actualElectionId, page, limit: pageSize },
     { skip: !actualElectionId || padronVersions.length === 0 }
   );
@@ -444,17 +454,42 @@ const ElectionConfigPadron: React.FC = () => {
   // Si no hay electionId, mostrar error
   if (!actualElectionId) {
     return (
-      <div className="bg-gray-50 min-h-[calc(100vh-64px)] flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-500">ID de elección no válido</p>
-          <button
-            onClick={() => navigate('/elections')}
-            className="mt-4 text-[#459151] hover:underline"
-          >
-            Volver a elecciones
-          </button>
-        </div>
-      </div>
+      <ConfigPageFallback
+        title="ID de votación no válido"
+        message="No se pudo resolver la votación seleccionada. Vuelve al listado y entra nuevamente."
+        actionLabel="Volver a elecciones"
+        onAction={() => navigate('/elections')}
+      />
+    );
+  }
+
+  if (
+    eventLoadFailed ||
+    rolesLoadFailed ||
+    optionsLoadFailed ||
+    padronVersionsLoadFailed ||
+    votersLoadFailed
+  ) {
+    return (
+      <ConfigPageFallback
+        title="No se pudo cargar Padrón"
+        message="Alguno de los datos necesarios para este paso falló al cargar. Reintenta antes de continuar."
+        actionLabel="Reintentar"
+        onAction={() => {
+          void refetchEvent();
+        }}
+      />
+    );
+  }
+
+  if (!loadingEvent && !event) {
+    return (
+      <ConfigPageFallback
+        title="Votación no encontrada"
+        message="La votación no existe o la respuesta llegó incompleta. Vuelve al listado y selecciónala de nuevo."
+        actionLabel="Volver a elecciones"
+        onAction={() => navigate('/elections')}
+      />
     );
   }
 

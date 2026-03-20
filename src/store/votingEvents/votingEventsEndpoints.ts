@@ -26,34 +26,37 @@ import type {
   VotingOption,
 } from "./types";
 
+const unwrapApiData = (raw: any) => raw?.data ?? raw;
+
 const toVotingEvent = (raw: any): VotingEvent => {
-  const state = (raw?.state ?? raw?.status ?? "DRAFT") as VotingEvent["state"];
+  const source = unwrapApiData(raw);
+  const state = (source?.state ?? source?.status ?? "DRAFT") as VotingEvent["state"];
   return {
-    id: String(raw?.id ?? raw?._id ?? ""),
-    tenantId: String(raw?.tenantId ?? ""),
-    chainRequestId: String(raw?.chainRequestId ?? ""),
-    name: raw?.name ?? "",
-    objective: raw?.objective ?? "",
-    votingStart: raw?.votingStart ?? null,
-    votingEnd: raw?.votingEnd ?? null,
-    resultsPublishAt: raw?.resultsPublishAt ?? null,
+    id: String(source?.id ?? source?._id ?? ""),
+    tenantId: String(source?.tenantId ?? ""),
+    chainRequestId: String(source?.chainRequestId ?? ""),
+    name: source?.name ?? "",
+    objective: source?.objective ?? "",
+    votingStart: source?.votingStart ?? null,
+    votingEnd: source?.votingEnd ?? null,
+    resultsPublishAt: source?.resultsPublishAt ?? null,
     state,
     status: state,
-    publicEligibilityEnabled: Boolean(raw?.publicEligibilityEnabled),
-    publicEligibility: Boolean(raw?.publicEligibilityEnabled),
-    roles: Array.isArray(raw?.roles)
-      ? raw.roles.map((r: any) => ({
+    publicEligibilityEnabled: Boolean(source?.publicEligibilityEnabled),
+    publicEligibility: Boolean(source?.publicEligibilityEnabled),
+    roles: Array.isArray(source?.roles)
+      ? source.roles.map((r: any) => ({
           id: String(r?.id ?? r?._id ?? ""),
-          eventId: String(r?.eventId ?? raw?.id ?? raw?._id ?? ""),
+          eventId: String(r?.eventId ?? source?.id ?? source?._id ?? ""),
           name: r?.name ?? "",
           maxWinners: Number(r?.maxWinners ?? 1),
           createdAt: r?.createdAt,
         }))
       : undefined,
-    options: Array.isArray(raw?.options)
-      ? raw.options.map((o: any) => ({
+    options: Array.isArray(source?.options)
+      ? source.options.map((o: any) => ({
           id: String(o?.id ?? o?._id ?? ""),
-          eventId: String(o?.eventId ?? raw?.id ?? raw?._id ?? ""),
+          eventId: String(o?.eventId ?? source?.id ?? source?._id ?? ""),
           name: o?.name ?? "",
           color: o?.color ?? "#000000",
           logoUrl: o?.logoUrl ?? undefined,
@@ -73,32 +76,38 @@ const toVotingEvent = (raw: any): VotingEvent => {
   };
 };
 
-const toRole = (raw: any): EventRole => ({
-  id: String(raw?.id ?? raw?._id ?? ""),
-  eventId: String(raw?.eventId ?? ""),
-  name: raw?.name ?? "",
-  maxWinners: Number(raw?.maxWinners ?? 1),
-  createdAt: raw?.createdAt,
-});
+const toRole = (raw: any): EventRole => {
+  const source = unwrapApiData(raw);
+  return {
+    id: String(source?.id ?? source?._id ?? ""),
+    eventId: String(source?.eventId ?? ""),
+    name: source?.name ?? "",
+    maxWinners: Number(source?.maxWinners ?? 1),
+    createdAt: source?.createdAt,
+  };
+};
 
-const toOption = (raw: any): VotingOption => ({
-  id: String(raw?.id ?? raw?._id ?? ""),
-  eventId: String(raw?.eventId ?? ""),
-  name: raw?.name ?? "",
-  color: raw?.color ?? "#000000",
-  logoUrl: raw?.logoUrl ?? undefined,
-  active: Boolean(raw?.active ?? true),
-  createdAt: raw?.createdAt,
-  candidates: Array.isArray(raw?.candidates)
-    ? raw.candidates.map((c: any, idx: number) => ({
-        id: String(c?.id ?? c?._id ?? `${String(raw?.id ?? raw?._id ?? "opt")}-${idx}`),
-        optionId: String(raw?.id ?? raw?._id ?? ""),
-        name: c?.name ?? "",
-        photoUrl: c?.photoUrl ?? undefined,
-        roleName: c?.roleName ?? "",
-      }))
-    : [],
-});
+const toOption = (raw: any): VotingOption => {
+  const source = unwrapApiData(raw);
+  return {
+    id: String(source?.id ?? source?._id ?? ""),
+    eventId: String(source?.eventId ?? ""),
+    name: source?.name ?? "",
+    color: source?.color ?? "#000000",
+    logoUrl: source?.logoUrl ?? undefined,
+    active: Boolean(source?.active ?? true),
+    createdAt: source?.createdAt,
+    candidates: Array.isArray(source?.candidates)
+      ? source.candidates.map((c: any, idx: number) => ({
+          id: String(c?.id ?? c?._id ?? `${String(source?.id ?? source?._id ?? "opt")}-${idx}`),
+          optionId: String(source?.id ?? source?._id ?? ""),
+          name: c?.name ?? "",
+          photoUrl: c?.photoUrl ?? undefined,
+          roleName: c?.roleName ?? "",
+        }))
+      : [],
+  };
+};
 
 export const votingEventsEndpoints = apiSlice.injectEndpoints({
   endpoints: (builder) => ({

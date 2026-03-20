@@ -8,6 +8,7 @@ import ConfigStepsTabs from './components/ConfigStepsTabs';
 import InfoPopover from './components/InfoPopover';
 import PositionsTable from './components/PositionsTable';
 import AddPositionModal from './components/AddPositionModal';
+import ConfigPageFallback from './components/ConfigPageFallback';
 import {
   useGetVotingEventQuery,
   useGetEventRolesQuery,
@@ -34,7 +35,12 @@ const ElectionConfigCargos: React.FC = () => {
   const actualElectionId = electionId || '';
 
   // RTK Query hooks
-  const { data: event, isLoading: loadingEvent } = useGetVotingEventQuery(actualElectionId, {
+  const {
+    data: event,
+    isLoading: loadingEvent,
+    isError: eventLoadFailed,
+    refetch: refetchEvent,
+  } = useGetVotingEventQuery(actualElectionId, {
     skip: !actualElectionId,
   });
   const { data: roles = [], isLoading: loadingRoles } = useGetEventRolesQuery(actualElectionId, {
@@ -137,17 +143,36 @@ const ElectionConfigCargos: React.FC = () => {
   // Si no hay electionId, mostrar error
   if (!actualElectionId) {
     return (
-      <div className="bg-gray-50 min-h-[calc(100vh-64px)] flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-500">ID de elección no válido</p>
-          <button
-            onClick={() => navigate('/elections')}
-            className="mt-4 text-[#459151] hover:underline"
-          >
-            Volver a elecciones
-          </button>
-        </div>
-      </div>
+      <ConfigPageFallback
+        title="ID de votación no válido"
+        message="No se pudo resolver la votación seleccionada. Vuelve al listado y entra nuevamente."
+        actionLabel="Volver a elecciones"
+        onAction={() => navigate('/elections')}
+      />
+    );
+  }
+
+  if (eventLoadFailed) {
+    return (
+      <ConfigPageFallback
+        title="No se pudo cargar la votación"
+        message="Falló la carga inicial del flujo de configuración. Reintenta antes de continuar."
+        actionLabel="Reintentar"
+        onAction={() => {
+          void refetchEvent();
+        }}
+      />
+    );
+  }
+
+  if (!loadingEvent && !event) {
+    return (
+      <ConfigPageFallback
+        title="Votación no encontrada"
+        message="La votación no existe o la respuesta llegó incompleta. Vuelve al listado y selecciónala de nuevo."
+        actionLabel="Volver a elecciones"
+        onAction={() => navigate('/elections')}
+      />
     );
   }
 
