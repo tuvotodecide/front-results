@@ -252,7 +252,7 @@ const ResultadosMesa2 = () => {
   }, [tableCode, resolvedElectionId, getBallotsByTableCode]);
 
   useEffect(() => {
-    if (!tableCode || !electoralTableData) return;
+    if (!tableCode || !resolvedElectionId) return;
 
     if (!hasActiveConfig || (!isPreliminaryPhase && !isFinalPhase)) {
       setPresidentialData([]);
