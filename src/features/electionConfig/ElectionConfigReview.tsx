@@ -1,7 +1,7 @@
 // Página de revisión final antes de publicar la elección
 // Basado en capturas 01-04
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PhoneMockup from './components/PhoneMockup';
 import BallotPreview from './components/BallotPreview';
@@ -35,7 +35,12 @@ const ElectionConfigReview: React.FC = () => {
     activating,
     activationResult,
     copyToClipboard,
+    refetch,
   } = useElectionPublish(actualElectionId);
+
+  useEffect(() => {
+    refetch();
+  }, []);
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);

@@ -33,39 +33,64 @@ const formatSchedule = (from?: string | null, to?: string | null) => {
 };
 
 const mapPhaseToStatus = (phase?: string | null): PublicElectionStatus => {
-  if (phase === 'RESULTS') return 'FINISHED';
-  if (phase === 'ACTIVE') return 'LIVE';
+  if (phase === 'RESULTS' || phase === 'RESULTS_PUBLISHED') return 'FINISHED';
+  if (phase === 'ACTIVE' || phase === 'VOTING') return 'LIVE';
   return 'UPCOMING';
 };
 
 const mapDetailToPublic = (raw: any): PublicElectionDetail => {
+  type MappedCandidate = {
+    id: string;
+    name: string;
+    party: string;
+    avatarUrl?: string;
+    colorHex: string;
+    votes: number;
+    percent: number;
+  };
+
   const status = mapPhaseToStatus(raw?.phase ?? raw?.state);
   const schedule = formatSchedule(raw?.votingStart, raw?.votingEnd);
+  const options = Array.isArray(raw?.options) ? raw.options : [];
 
-  const roles = raw?.results?.roles ?? [];
-  const primaryRole = Array.isArray(roles) && roles.length > 0 ? roles[0] : null;
-  const ranking = primaryRole?.ranking ?? [];
+  const resultRows = Array.isArray(raw?.results) ? raw.results : [];
+  const votesByOption = new Map<string, number>(
+    resultRows.map((result: any) => [String(result?.option ?? ''), Number(result?.votes ?? 0)]),
+  );
 
-  const candidates = Array.isArray(ranking)
-    ? ranking.map((opt: any, idx: number) => ({
-        id: `${primaryRole?.roleName ?? 'role'}-${idx + 1}`,
-        name: opt?.optionName ?? '',
-        party: opt?.optionName ?? '',
-        colorHex: colorPalette[idx % colorPalette.length],
-        votes: Number(opt?.votes ?? 0),
-        percent: Number(opt?.percentage ?? 0),
-      }))
-    : [];
+  const mappedOptionCandidates: MappedCandidate[] = options.map((option: any, idx: number) => {
+    const partyName = String(option?.name ?? `Opcion ${idx + 1}`);
+    const firstCandidate = Array.isArray(option?.candidates) && option.candidates.length > 0
+      ? option.candidates[0]
+      : null;
+    const votes = votesByOption.get(partyName) ?? 0;
 
-  const totalVotes =
-    primaryRole?.total !== undefined
-      ? Number(primaryRole.total)
-      : candidates.reduce((sum, c) => sum + c.votes, 0);
+    return {
+      id: String(option?.id ?? `option-${idx + 1}`),
+      name: firstCandidate?.name ?? partyName,
+      party: partyName,
+      avatarUrl: firstCandidate?.photoUrl ?? undefined,
+      colorHex: option?.color ?? colorPalette[idx % colorPalette.length],
+      votes,
+      percent: 0,
+    };
+  });
 
-  const winnerOptionName = primaryRole?.winners?.[0]?.optionName ?? null;
+  const baseCandidates: MappedCandidate[] = mappedOptionCandidates;
+  const computedTotalVotes = baseCandidates.reduce((sum, candidate) => sum + candidate.votes, 0);
+  const candidates: MappedCandidate[] = baseCandidates.map((candidate) => ({
+    ...candidate,
+    percent: computedTotalVotes > 0
+      ? Number(((candidate.votes * 100) / computedTotalVotes).toFixed(2))
+      : 0,
+  }));
+
+  const totalVotes = computedTotalVotes;
+
   const winnerCandidate =
-    winnerOptionName &&
-    candidates.find((c) => c.name === winnerOptionName);
+    candidates.length > 0
+      ? candidates.reduce((max, candidate) => (candidate.votes > max.votes ? candidate : max), candidates[0])
+      : null;
 
   return {
     id: String(raw?.id ?? ''),
@@ -77,24 +102,22 @@ const mapDetailToPublic = (raw: any): PublicElectionDetail => {
       raw?.resultsAvailable && candidates.length > 0
         ? { totalVotes, candidates }
         : null,
-    winnerCandidateId: winnerCandidate?.id ?? (candidates[0]?.id ?? null),
+    winnerCandidateId: winnerCandidate?.id ?? null,
     publicEligibilityEnabled: Boolean(raw?.publicEligibilityEnabled),
-    ballotParties: Array.isArray(raw?.options)
-      ? raw.options.map((option: any, index: number) => ({
-          id: String(option?.id ?? `option-${index + 1}`),
-          name: option?.name ?? '',
-          colorHex: option?.color ?? colorPalette[index % colorPalette.length],
-          logoUrl: option?.logoUrl ?? undefined,
-          candidates: Array.isArray(option?.candidates)
-            ? option.candidates.map((candidate: any, candidateIndex: number) => ({
-                id: String(candidate?.id ?? `${String(option?.id ?? index)}-${candidateIndex + 1}`),
-                fullName: candidate?.name ?? '',
-                positionName: candidate?.roleName ?? '',
-                photoUrl: candidate?.photoUrl ?? undefined,
-              }))
-            : [],
-        }))
-      : [],
+    ballotParties: options.map((option: any, index: number) => ({
+      id: String(option?.id ?? `option-${index + 1}`),
+      name: option?.name ?? '',
+      colorHex: option?.color ?? colorPalette[index % colorPalette.length],
+      logoUrl: option?.logoUrl ?? undefined,
+      candidates: Array.isArray(option?.candidates)
+        ? option.candidates.map((candidate: any, candidateIndex: number) => ({
+            id: String(candidate?.id ?? `${String(option?.id ?? index)}-${candidateIndex + 1}`),
+            fullName: candidate?.name ?? '',
+            positionName: candidate?.roleName ?? '',
+            photoUrl: candidate?.photoUrl ?? undefined,
+          }))
+        : [],
+    })),
   };
 };
 
