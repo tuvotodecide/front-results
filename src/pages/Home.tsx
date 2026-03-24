@@ -106,9 +106,9 @@ const Home: React.FC = () => {
             <p className="mt-3 text-lg sm:text-xl text-blue-100">
               Plataforma para el control electoral
             </p>
-            // <p className="mt-2 text-sm sm:text-base font-medium text-blue-200 uppercase tracking-wide">
-            //   Elecciones Bolivia 2026
-            // </p>
+            <p className="mt-2 text-sm sm:text-base font-medium text-blue-200 uppercase tracking-wide">
+             Elecciones Subnacionales Bolivia 2026
+             </p>
             {isLoggedIn && auth.user && (
               <p className="mt-2 text-sm text-green-200">
                 {auth.user.role === "MAYOR" && auth.user.municipalityName && (
