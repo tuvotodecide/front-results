@@ -6,7 +6,11 @@ import { MainContent } from './MainContent';
 import { Outlet } from 'react-router-dom';
 import './BasicLayout.css'; // Assuming you have a CSS file for styles
 
-const BasicLayout: React.FC = () => {
+interface BasicLayoutProps {
+  children?: React.ReactNode;
+}
+
+const BasicLayout: React.FC<BasicLayoutProps> = ({ children }) => {
   const { isSmallScreen } = useScreenSize();
   const [isSidebarOpen, setSidebarOpen] = useState(!isSmallScreen);
 
@@ -41,7 +45,7 @@ const BasicLayout: React.FC = () => {
         }}
       >
         <MainContent>
-          <Outlet />
+          {children || <Outlet />}
         </MainContent>
         <Sidebar isOpen={isSidebarOpen} closeSidebar={closeSidebar} />
       </div>

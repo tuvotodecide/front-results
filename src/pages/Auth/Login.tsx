@@ -15,6 +15,7 @@ import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { ModalState } from "../../types";
 import Modal2 from "../../components/Modal2";
+import { isVotingMode } from "../../config/appMode";
 
 const Login: React.FC = () => {
   const dispatch = useDispatch();
@@ -47,12 +48,13 @@ const Login: React.FC = () => {
 
   const mapBackendRole = (
     role: string,
-  ): "MAYOR" | "GOVERNOR" | "PUBLIC" | "SUPERADMIN" => {
+  ): "MAYOR" | "GOVERNOR" | "PUBLIC" | "SUPERADMIN" | "TENANT_ADMIN" => {
     const r = String(role || "").toUpperCase();
 
     if (r === "MAYOR") return "MAYOR";
     if (r === "GOVERNOR") return "GOVERNOR";
     if (r === "SUPERADMIN") return "SUPERADMIN";
+    if (r === "ADMIN" || r === "TENANT_ADMIN") return "TENANT_ADMIN";
 
     return "PUBLIC";
   };
@@ -73,13 +75,15 @@ const Login: React.FC = () => {
       }
 
       const from = (location.state as any)?.from as string | undefined;
-      if (from && from !== "/login") {
+      if (!isVotingMode() && from && from !== "/login") {
         navigate(from, { replace: true });
         return;
       }
 
       if (user.role === "publico") {
         navigate("/", { replace: true });
+      } else if (user.role === "TENANT_ADMIN") {
+        navigate("/elections", { replace: true });
       } else if (user.role === "MAYOR" && user.municipalityId) {
         navigate(
           `/resultados?department=${user.departmentId}&municipality=${user.municipalityId}`,
@@ -89,6 +93,8 @@ const Login: React.FC = () => {
         navigate(`/resultados?department=${user.departmentId}`, {
           replace: true,
         });
+      } else if (user.role === "SUPERADMIN") {
+        navigate("/elections", { replace: true });
       } else {
         navigate("/resultados", { replace: true });
       }
@@ -219,6 +225,7 @@ const Login: React.FC = () => {
         active: true,
         departmentId: profile?.votingDepartmentId,
         municipalityId: profile?.votingMunicipalityId,
+        tenantId: profile?.tenantId,
         status: "ACTIVE" as const,
       };
 
@@ -245,7 +252,9 @@ const Login: React.FC = () => {
       if (
         msgStr.includes("inactivo") ||
         msgStr.includes("no está activo") ||
-        msgStr.includes("usuario inactivo")
+        msgStr.includes("usuario inactivo") ||
+        msgStr.includes("pendiente de aprobación") ||
+        msgStr.includes("pendiente de aprobacion")
       ) {
         localStorage.setItem("pendingReason", "SUPERADMIN_APPROVAL");
         navigate("/pendiente", { replace: true });
@@ -415,13 +424,23 @@ const Login: React.FC = () => {
                   Crear cuenta
                 </Link>
               </div>
-              <div className="text-right -mt-2">
-                <Link
-                  to="/recuperar"
-                  className="text-sm font-semibold text-gray-500 hover:text-[#459151]"
-                >
-                  ¿Olvidaste tu contraseña?
-                </Link>
+              <div className="flex justify-between">
+                <div className="text-left -mt-2">
+                  <Link
+                    to="/"
+                    className="text-sm font-semibold text-gray-500 hover:text-[#459151]"
+                  >
+                    Volver al inicio
+                  </Link>
+                </div>
+                <div className="text-right -mt-2">
+                  <Link
+                    to="/recuperar"
+                    className="text-sm font-semibold text-gray-500 hover:text-[#459151]"
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </Link>
+                </div>
               </div>
             </Form>
           </Formik>

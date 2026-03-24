@@ -1,0 +1,30 @@
+// Barrel export para el módulo de configuración de elecciones
+
+export { default as ElectionConfigCargos } from './ElectionConfigCargos';
+export { default as ElectionConfigPlanchas } from './ElectionConfigPlanchas';
+export { default as ElectionConfigPadron } from './ElectionConfigPadron';
+export { default as ElectionConfigReview } from './ElectionConfigReview';
+export { default as ConfigStepsTabs } from './components/ConfigStepsTabs';
+export { default as InfoPopover } from './components/InfoPopover';
+export { default as PositionsTable } from './components/PositionsTable';
+export { default as AddPositionModal } from './components/AddPositionModal';
+export { default as PartyModal } from './components/PartyModal';
+export { default as CandidatesModal } from './components/CandidatesModal';
+export { default as PartiesTable } from './components/PartiesTable';
+export { default as PadronDropzone } from './components/PadronDropzone';
+export { default as UploadProgressModal } from './components/UploadProgressModal';
+export { default as UploadSummaryModal } from './components/UploadSummaryModal';
+export { default as FixInvalidModal } from './components/FixInvalidModal';
+export { default as LoadedPadronView } from './components/LoadedPadronView';
+export { default as PhoneMockup } from './components/PhoneMockup';
+export { default as BallotPreview } from './components/BallotPreview';
+export { default as ConfigSummaryCard } from './components/ConfigSummaryCard';
+export { default as ConfirmActivateModal } from './components/ConfirmActivateModal';
+export { default as ActivatedSuccessModal } from './components/ActivatedSuccessModal';
+export { default as NotificationModal } from './components/NotificationModal';
+export { default as ActiveElectionStatusPage } from './ActiveElectionStatusPage';
+export * from './types';
+export * from './data/usePositionRepository';
+export * from './data/usePartyRepository';
+export * from './data/usePadronRepository';
+export * from './data/useElectionPublish';

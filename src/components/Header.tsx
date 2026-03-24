@@ -11,11 +11,13 @@ import { Link, useLocation } from "react-router-dom";
 interface HeaderProps {
   toggleSidebar: () => void;
   isSidebarOpen: boolean;
+  hideSidebarToggle?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   toggleSidebar,
   isSidebarOpen,
+  hideSidebarToggle = false,
 }) => {
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const location = useLocation();
@@ -44,6 +46,7 @@ export const Header: React.FC<HeaderProps> = ({
     dispatch(clearSelectedElection());
     dispatch(apiSlice.util.resetApiState());
     setIsMenuOpen(false);
+    window.location.replace("/");
   };
   return (
     <header className={styles.header}>
@@ -143,55 +146,57 @@ export const Header: React.FC<HeaderProps> = ({
             
           </>
         )}
-        <button
-          className={styles.menuToggle}
-          onClick={toggleSidebar}
-          aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
-        >
-          {isSidebarOpen ? (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="26"
-              height="26"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect
-                x="2"
-                y="2"
-                width="20"
-                height="20"
-                rx="4"
-                ry="4"
+        {!hideSidebarToggle && (
+          <button
+            className={styles.menuToggle}
+            onClick={toggleSidebar}
+            aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
+          >
+            {isSidebarOpen ? (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="26"
+                height="26"
+                viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="1.5"
-                opacity="0.3"
-              />
-              <path d="M11 16l4-4-4-4" strokeWidth="2.5" />
-            </svg>
-          ) : (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <line x1="3" y1="18" x2="21" y2="18" />
-            </svg>
-          )}
-        </button>
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect
+                  x="2"
+                  y="2"
+                  width="20"
+                  height="20"
+                  rx="4"
+                  ry="4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  opacity="0.3"
+                />
+                <path d="M11 16l4-4-4-4" strokeWidth="2.5" />
+              </svg>
+            ) : (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            )}
+          </button>
+        )}
       </div>
     </header>
   );

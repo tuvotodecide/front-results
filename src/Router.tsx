@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { useDispatch } from "react-redux";
-import { setAuth } from "./store/auth/authSlice";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { setAuth, selectIsLoggedIn } from "./store/auth/authSlice";
 import LoadingSkeleton from "./components/LoadingSkeleton";
+import { isVotingMode } from "./config/appMode";
 import ResultadosGenerales3 from "./pages/Resultados/ResultadosGenerales3";
 import ParticipacionPersonal from "./pages/Resultados/PersonalParticipation";
 import AuditAndMatch from "./pages/Resultados/AuditAndMatch";
@@ -41,6 +42,67 @@ const ProtectedRoutes = React.lazy(() => import("./pages/ProtectedRoutes"));
 const BasicLayout = React.lazy(() => import("./components/BasicLayout"));
 const Partidos = React.lazy(() => import("./pages/Partidos/Partidos"));
 const PartidoForm = React.lazy(() => import("./pages/Partidos/PartidoForm"));
+const PublicLayout = React.lazy(() => import("./components/PublicLayout"));
+const PublicLandingPage = React.lazy(() =>
+  import("./features/publicLanding").then((m) => ({ default: m.PublicLandingPage }))
+);
+const ElectionsPage = React.lazy(() =>
+  import("./features/elections").then((m) => ({ default: m.ElectionsPage }))
+);
+const CreateElectionWizard = React.lazy(() =>
+  import("./features/elections").then((m) => ({ default: m.CreateElectionWizard }))
+);
+const ElectionConfigCargos = React.lazy(() =>
+  import("./features/electionConfig").then((m) => ({ default: m.ElectionConfigCargos }))
+);
+const ElectionConfigPlanchas = React.lazy(() =>
+  import("./features/electionConfig").then((m) => ({ default: m.ElectionConfigPlanchas }))
+);
+const ElectionConfigPadron = React.lazy(() =>
+  import("./features/electionConfig").then((m) => ({ default: m.ElectionConfigPadron }))
+);
+const ElectionConfigReview = React.lazy(() =>
+  import("./features/electionConfig").then((m) => ({ default: m.ElectionConfigReview }))
+);
+const PublicElectionDetailPage = React.lazy(() =>
+  import("./features/publicElectionDetail").then((m) => ({ default: m.PublicElectionDetailPage }))
+);
+const ActiveElectionStatusPage = React.lazy(() =>
+  import("./features/electionConfig").then((m) => ({ default: m.ActiveElectionStatusPage }))
+);
+
+// Wrapper que decide entre Landing Público o Home según auth y modo
+const LandingOrHomeRoute: React.FC = () => {
+  const isLoggedIn = useSelector(selectIsLoggedIn);
+
+  // Modo Voting: Redirigir a /elections si está logueado
+  if (isVotingMode()) {
+    if (isLoggedIn) {
+      return <Navigate to="/elections" replace />;
+    }
+    // No logueado: mostrar landing público
+    return (
+      <PublicLayout>
+        <PublicLandingPage />
+      </PublicLayout>
+    );
+  }
+
+  // Modo Results (anterior): comportamiento original
+  if (isLoggedIn) {
+    return (
+      <BasicLayout>
+        <Home />
+      </BasicLayout>
+    );
+  }
+
+  return (
+    <PublicLayout>
+      <PublicLandingPage />
+    </PublicLayout>
+  );
+};
 
 const AppRouter: React.FC = () => {
   const dispatch = useDispatch();
@@ -64,17 +126,137 @@ const AppRouter: React.FC = () => {
     <Router>
       <React.Suspense fallback={<LoadingSkeleton />}>
         <Routes>
+          {/* Ruta raíz: Landing público o Home según auth */}
+          <Route path="/" element={<LandingOrHomeRoute />} />
+
+          {/* Detalle público de elección - resultados y estado */}
+          <Route
+            path="/elections/:electionId/public"
+            element={
+              <PublicLayout>
+                <PublicElectionDetailPage />
+              </PublicLayout>
+            }
+          />
+          <Route
+            path="/login"
+            element={
+              <PublicLayout>
+                <Login />
+              </PublicLayout>
+            }
+          />
+          <Route
+            path="/registrarse"
+            element={
+              <PublicLayout>
+                <Register />
+              </PublicLayout>
+            }
+          />
+          <Route
+            path="/pendiente"
+            element={
+              <PublicLayout>
+                <WaitingApproval />
+              </PublicLayout>
+            }
+          />
+          <Route
+            path="/rechazado"
+            element={
+              <PublicLayout>
+                <Rejected />
+              </PublicLayout>
+            }
+          />
+          <Route
+            path="/verificar-correo"
+            element={
+              <PublicLayout>
+                <VerifyEmail />
+              </PublicLayout>
+            }
+          />
+          <Route
+            path="/recuperar"
+            element={
+              <PublicLayout>
+                <ForgotPassword />
+              </PublicLayout>
+            }
+          />
+          <Route
+            path="/restablecer"
+            element={
+              <PublicLayout>
+                <ResetPassword />
+              </PublicLayout>
+            }
+          />
+          {isVotingMode() && (
+            <Route element={<ProtectedRoutes />}>
+              <Route
+                path="/elections"
+                element={
+                  <PublicLayout>
+                    <ElectionsPage />
+                  </PublicLayout>
+                }
+              />
+              <Route
+                path="/elections/new"
+                element={
+                  <PublicLayout>
+                    <CreateElectionWizard />
+                  </PublicLayout>
+                }
+              />
+              <Route
+                path="/elections/:electionId/config/cargos"
+                element={
+                  <PublicLayout>
+                    <ElectionConfigCargos />
+                  </PublicLayout>
+                }
+              />
+              <Route
+                path="/elections/:electionId/config/planchas"
+                element={
+                  <PublicLayout>
+                    <ElectionConfigPlanchas />
+                  </PublicLayout>
+                }
+              />
+              <Route
+                path="/elections/:electionId/config/padron"
+                element={
+                  <PublicLayout>
+                    <ElectionConfigPadron />
+                  </PublicLayout>
+                }
+              />
+              <Route
+                path="/elections/:electionId/config/review"
+                element={
+                  <PublicLayout>
+                    <ElectionConfigReview />
+                  </PublicLayout>
+                }
+              />
+              <Route
+                path="/elections/:electionId/status"
+                element={
+                  <PublicLayout>
+                    <ActiveElectionStatusPage />
+                  </PublicLayout>
+                }
+              />
+            </Route>
+          )}
           <Route element={<BasicLayout />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/registrarse" element={<Register />} />
-            <Route path="/pendiente" element={<WaitingApproval />} />
-            <Route path="/rechazado" element={<Rejected />} />
             <Route path="/resultados" element={<ResultadosGenerales3 />} />
             <Route path="/resultados/mesa" element={<ResultadosMesa2 />} />
-            <Route path="/verificar-correo" element={<VerifyEmail />} />
-            <Route path="/recuperar" element={<ForgotPassword />} />
-            <Route path="/restablecer" element={<ResetPassword />} />
 
             <Route
               path="/resultados/mesa/:tableCode"
@@ -86,6 +268,67 @@ const AppRouter: React.FC = () => {
               element={<ResultadosImagen />}
             />
             <Route element={<ProtectedRoutes />}>
+              {!isVotingMode() && <Route path="/elections" element={<ElectionsPage />} />}
+              {!isVotingMode() && (
+                <Route
+                  path="/elections/new"
+                  element={
+                    <PublicLayout>
+                      <CreateElectionWizard />
+                    </PublicLayout>
+                  }
+                />
+              )}
+              {!isVotingMode() && (
+                <Route
+                  path="/elections/:electionId/config/cargos"
+                  element={
+                    <PublicLayout>
+                      <ElectionConfigCargos />
+                    </PublicLayout>
+                  }
+                />
+              )}
+              {!isVotingMode() && (
+                <Route
+                  path="/elections/:electionId/config/planchas"
+                  element={
+                    <PublicLayout>
+                      <ElectionConfigPlanchas />
+                    </PublicLayout>
+                  }
+                />
+              )}
+              {!isVotingMode() && (
+                <Route
+                  path="/elections/:electionId/config/padron"
+                  element={
+                    <PublicLayout>
+                      <ElectionConfigPadron />
+                    </PublicLayout>
+                  }
+                />
+              )}
+              {!isVotingMode() && (
+                <Route
+                  path="/elections/:electionId/config/review"
+                  element={
+                    <PublicLayout>
+                      <ElectionConfigReview />
+                    </PublicLayout>
+                  }
+                />
+              )}
+              {!isVotingMode() && (
+                <Route
+                  path="/elections/:electionId/status"
+                  element={
+                    <PublicLayout>
+                      <ActiveElectionStatusPage />
+                    </PublicLayout>
+                  }
+                />
+              )}
               <Route
                 path="/control-personal"
                 element={<ParticipacionPersonal />}

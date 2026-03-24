@@ -4,7 +4,11 @@
       "Bash(npx tsc:*)",
       "Bash(npm run build:*)",
       "Bash(echo:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(timeout 15 npm run dev:*)",
+      "Bash(findstr:*)",
+      "Bash(grep:*)",
+      "Bash(tree:*)"
     ]
   }
 }

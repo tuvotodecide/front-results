@@ -1,5 +1,22 @@
 import { apiSlice } from "../apiSlice";
 
+export interface RegisterTenantAdminPayload {
+  dni: string;
+  name: string;
+  email: string;
+  password: string;
+  tenantName: string;
+  tenantDescription?: string;
+}
+
+export interface CreateInstitutionalAdminApplicationPayload {
+  dni: string;
+  name: string;
+  email: string;
+  password: string;
+  institutionName: string;
+}
+
 export const authApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getProfile: builder.query<any, void>({
@@ -13,6 +30,45 @@ export const authApiSlice = apiSlice.injectEndpoints({
         url: "/auth/register",
         method: "POST",
         body: user,
+      }),
+    }),
+
+    registerTenantAdmin: builder.mutation<any, RegisterTenantAdminPayload>({
+      query: (data) => ({
+        url: "/auth/register",
+        method: "POST",
+        body: {
+          dni: data.dni,
+          name: data.name,
+          email: data.email,
+          password: data.password,
+          institutionName: data.tenantName,
+        },
+      }),
+    }),
+
+    createInstitutionalAdminApplication: builder.mutation<
+      any,
+      CreateInstitutionalAdminApplicationPayload
+    >({
+      query: (data) => ({
+        url: "/institutional-admin-applications",
+        method: "POST",
+        body: {
+          dni: data.dni,
+          name: data.name,
+          email: data.email,
+          password: data.password,
+          institutionName: data.institutionName,
+        },
+      }),
+    }),
+
+    verifyInstitutionalAdminApplication: builder.mutation<any, { token: string }>({
+      query: ({ token }) => ({
+        url: "/institutional-admin-applications/verify-email",
+        method: "POST",
+        body: { token },
       }),
     }),
 
@@ -54,6 +110,9 @@ export const {
   useGetProfileQuery,
   useLazyGetProfileQuery,
   useCreateUserMutation,
+  useRegisterTenantAdminMutation,
+  useCreateInstitutionalAdminApplicationMutation,
+  useVerifyInstitutionalAdminApplicationMutation,
   useLoginUserMutation,
   useForgotPasswordMutation,
   useResetPasswordMutation,

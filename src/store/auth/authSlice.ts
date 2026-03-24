@@ -8,6 +8,7 @@ type JwtPayload = {
   active?: boolean;
   votingDepartmentId?: string;
   votingMunicipalityId?: string;
+  tenantId?: string;
   exp?: number;
 };
 
@@ -17,7 +18,7 @@ export interface AuthState {
     id: string;
     email: string;
     name: string;
-    role: "SUPERADMIN" | "MAYOR" | "GOVERNOR" | "publico";
+    role: "SUPERADMIN" | "MAYOR" | "GOVERNOR" | "TENANT_ADMIN" | "publico";
     active: boolean;
     restrictedId?: string;
     departmentId?: string;
@@ -25,6 +26,9 @@ export interface AuthState {
     municipalityId?: string;
     municipalityName?: string;
     status?: "ACTIVE" | "PENDING" | "REJECTED" | "INACTIVE";
+    // Institutional voting
+    tenantId?: string;
+    tenantName?: string;
   } | null;
 }
 const decodeToken = (token: string | null): JwtPayload | null => {
@@ -48,6 +52,7 @@ const normalizeRole = (role: any) => {
   if (r === "ALCALDE" || r === "MAYOR") return "MAYOR";
   if (r === "GOBERNADOR" || r === "GOVERNOR") return "GOVERNOR";
   if (r === "SUPERADMIN") return "SUPERADMIN";
+  if (r === "ADMIN" || r === "TENANT_ADMIN" || r === "TENANTADMIN") return "TENANT_ADMIN";
   return "publico";
 };
 
@@ -68,6 +73,9 @@ const normalizeUser = (u: any): AuthState["user"] => {
     municipalityId: u.municipalityId,
     municipalityName: u.municipalityName,
     status: u.status,
+    // Institutional voting
+    tenantId: u.tenantId,
+    tenantName: u.tenantName,
   };
 };
 let rawUser: any = null;
@@ -132,6 +140,11 @@ export const authSlice = createSlice({
           user.municipalityId = decoded.votingMunicipalityId;
         }
 
+        // Institutional voting: tenantId desde token
+        if (!user.tenantId && decoded.tenantId) {
+          user.tenantId = decoded.tenantId;
+        }
+
         // // opcional: también sincroniza active/role desde token si confías en eso para UI
         // user.role = role;
         // if (typeof decoded.active === "boolean") user.active = decoded.active;
@@ -171,5 +184,11 @@ export const selectAuth = (state: RootState) => state.auth;
 export const selectIsLoggedIn = (state: RootState) => {
   return Boolean(state.auth.token && state.auth.user);
 };
+
+// Selector for tenantId (institutional voting)
+export const selectTenantId = (state: RootState) => state.auth.user?.tenantId;
+
+// Selector for user role
+export const selectUserRole = (state: RootState) => state.auth.user?.role;
 
 export default authSlice;
