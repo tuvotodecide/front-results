@@ -31,7 +31,7 @@ export function dateStringToUnixSeconds(dateString: string): number {
   return Math.floor(new Date(dateString).getTime() / 1000);
 }
 
-export async function createVoting(signer: ethers.JsonRpcSigner, votingEvent: VotingEvent) {
+export async function createVoting(signer: ethers.JsonRpcSigner, votingEvent: VotingEvent, userNullifiers: string[]) {
   if (!votingEvent.votingStart) {
     throw new Error('Voting event must have a start date');
   }
@@ -60,7 +60,7 @@ export async function createVoting(signer: ethers.JsonRpcSigner, votingEvent: Vo
     dateStringToUnixSeconds(votingEvent.votingStart),
     dateStringToUnixSeconds(votingEvent.votingEnd),
     dateStringToUnixSeconds(votingEvent.resultsPublishAt),
-    parseInt(votingEvent.chainRequestId),
+    userNullifiers,
     votingEvent.options.map(option => option.name)
   )
 
@@ -101,13 +101,13 @@ export const useWallet = () => {
     }
   };
 
-  const callCreateVoting = async (votingEvent: VotingEvent) => {
+  const callCreateVoting = async (votingEvent: VotingEvent, userNullifiers: string[]) => {
     if (!accSigner.current) {
       throw new Error('Wallet not connected');
     }
     setTransactionState('pending');
     try {
-      await createVoting(accSigner.current, votingEvent);
+      await createVoting(accSigner.current, votingEvent, userNullifiers);
       setTransactionState('success');
     } catch (error: any) {
       if (error.message.includes('user rejected action')) {

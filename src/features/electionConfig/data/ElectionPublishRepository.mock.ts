@@ -23,6 +23,7 @@ export interface ActivationResult {
   shareText: string;
   electionStatus: 'ACTIVE' | 'DRAFT' | 'CLOSED';
   startsAt: string;
+  nullifiers: string[];
 }
 
 export type ElectionStatus = 'DRAFT' | 'ACTIVE' | 'CLOSED';
@@ -193,6 +194,7 @@ export const createMockElectionPublishRepository = (): ElectionPublishRepository
         shareText,
         electionStatus: 'ACTIVE',
         startsAt: new Date().toISOString(),
+        nullifiers: [],
       };
     },
 

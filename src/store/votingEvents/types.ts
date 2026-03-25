@@ -232,4 +232,10 @@ export interface EventNews {
   skipped?: string | null;
 }
 
+export interface PublishEventResponse {
+  id: string;
+  state: VotingEventStatus;
+  nullifiers: string[];
+}
+
 export type ComparisonReportStatus = "PENDING" | "OK" | "FAILED";

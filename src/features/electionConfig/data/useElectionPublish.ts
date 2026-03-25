@@ -96,7 +96,7 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
   }, [event]);
 
   const activateElection = useCallback(async (): Promise<ActivationResult> => {
-    await publishVotingEvent(electionId).unwrap();
+    const response = await publishVotingEvent(electionId).unwrap();
 
     const publicUrl = `${window.location.origin}/elections/${electionId}/public`;
     const shareText = `Participa en la votación: ${publicUrl}`;
@@ -105,6 +105,7 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
       shareText,
       electionStatus: 'ACTIVE',
       startsAt: event?.votingStart ?? new Date().toISOString(),
+      nullifiers: response.nullifiers,
     };
 
     setActivationResult(out);
