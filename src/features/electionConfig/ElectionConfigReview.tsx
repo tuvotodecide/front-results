@@ -62,8 +62,8 @@ const ElectionConfigReview: React.FC = () => {
       if (!votingEvent) {
         throw new Error('Could not load voting event data');
       }
-      await callCreateVoting(votingEvent);
-      await activateElection();
+      const response = await activateElection();
+      await callCreateVoting(votingEvent, response.nullifiers);
       setShowConfirmModal(false);
       setShowSuccessModal(true);
     } catch (error: any) {

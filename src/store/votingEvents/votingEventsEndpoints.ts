@@ -15,6 +15,7 @@ import type {
   PadronVersion,
   PadronVoter,
   ParticipationStatus,
+  PublishEventResponse,
   ReplaceCandidatesDto,
   UpdateEventRoleDto,
   UpdatePublicEligibilityDto,
@@ -158,7 +159,7 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
       invalidatesTags: ["VotingEvents"],
     }),
 
-    publishVotingEvent: builder.mutation<any, string>({
+    publishVotingEvent: builder.mutation<PublishEventResponse, string>({
       query: (eventId) => ({
         url: `/voting/events/${eventId}/publish`,
         method: "POST",
