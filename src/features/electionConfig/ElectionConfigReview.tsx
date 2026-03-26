@@ -82,6 +82,13 @@ const ElectionConfigReview: React.FC = () => {
   };
 
   const connectMetamask = () => {
+    if (
+      connectionState === 'connecting' ||
+      activating ||
+      transactionState === 'pending'
+    ) {
+      return;
+    }
     connectWallet();
   }
 
@@ -101,7 +108,13 @@ const ElectionConfigReview: React.FC = () => {
   }
 
   const isPublishButtonDisabled = () => {
-    return !isReadyToPublish || connectionState === 'connecting' || connectionState === 'notInstalled'
+    return (
+      !isReadyToPublish ||
+      connectionState === 'connecting' ||
+      connectionState === 'notInstalled' ||
+      activating ||
+      transactionState === 'pending'
+    );
   }
 
   if (!actualElectionId) {

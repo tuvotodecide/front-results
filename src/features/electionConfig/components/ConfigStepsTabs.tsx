@@ -62,12 +62,19 @@ const ConfigStepsTabs: React.FC<ConfigStepsTabsProps> = ({
               ${!isClickable ? 'cursor-not-allowed' : 'cursor-pointer hover:shadow-sm'}
             `}
           >
-            {status === 'completed' && (
-              <span className="text-[#459151]">
+            <span
+              aria-hidden="true"
+              className={`inline-flex min-h-4 min-w-4 items-center justify-center ${
+                status === 'completed' ? 'text-[#459151]' : 'invisible'
+              }`}
+            >
+              {status === 'completed' ? (
                 <CheckIcon />
-              </span>
-            )}
-            {label}
+              ) : (
+                <span className="h-4 w-4" />
+              )}
+            </span>
+            <span>{label}</span>
           </button>
         );
       })}

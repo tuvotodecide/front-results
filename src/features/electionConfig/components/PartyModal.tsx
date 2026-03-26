@@ -26,7 +26,7 @@ const PartyModal: React.FC<PartyModalProps> = ({
   const [colorHex, setColorHex] = useState(DEFAULT_COLOR);
   const [logoBase64, setLogoBase64] = useState<string | undefined>();
   const [logoPreview, setLogoPreview] = useState<string | undefined>();
-  const [errors, setErrors] = useState<{ name?: string; color?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; color?: string; logo?: string }>({});
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -80,6 +80,7 @@ const PartyModal: React.FC<PartyModalProps> = ({
       const base64 = reader.result as string;
       setLogoBase64(base64);
       setLogoPreview(base64);
+      setErrors((prev) => ({ ...prev, logo: undefined }));
     };
     reader.readAsDataURL(file);
     e.currentTarget.value = '';
@@ -94,6 +95,7 @@ const PartyModal: React.FC<PartyModalProps> = ({
         const base64 = reader.result as string;
         setLogoBase64(base64);
         setLogoPreview(base64);
+        setErrors((prev) => ({ ...prev, logo: undefined }));
       };
       reader.readAsDataURL(file);
     }
@@ -102,7 +104,7 @@ const PartyModal: React.FC<PartyModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const newErrors: { name?: string; color?: string } = {};
+    const newErrors: { name?: string; color?: string; logo?: string } = {};
 
     if (!name.trim()) {
       newErrors.name = 'El nombre es obligatorio';
@@ -110,6 +112,10 @@ const PartyModal: React.FC<PartyModalProps> = ({
 
     if (!validateHex(colorHex)) {
       newErrors.color = 'Formato de color inválido';
+    }
+
+    if (!logoBase64 && !logoPreview) {
+      newErrors.logo = 'El logo es obligatorio';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -204,7 +210,7 @@ const PartyModal: React.FC<PartyModalProps> = ({
         {/* Logo */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Logo
+            Logo *
           </label>
           <div
             onClick={(e) => {
@@ -253,6 +259,9 @@ const PartyModal: React.FC<PartyModalProps> = ({
             onChange={handleFileSelect}
             className="hidden"
           />
+          {errors.logo && (
+            <p className="mt-1 text-sm text-red-600">{errors.logo}</p>
+          )}
         </div>
 
         {/* Botones */}
