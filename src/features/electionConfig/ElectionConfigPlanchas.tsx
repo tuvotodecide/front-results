@@ -30,7 +30,7 @@ const optionToPartyWithCandidates = (option: VotingOption): PartyWithCandidates 
   colorHex: option.color,
   logoUrl: option.logoUrl,
   createdAt: option.createdAt ?? new Date().toISOString(),
-  candidates: option.candidates.map((c: OptionCandidate) => ({
+  candidates: (option.candidates ?? []).map((c: OptionCandidate) => ({
     id: c.id,
     partyId: option.id,
     positionId: '', // Backend usa roleName, no positionId

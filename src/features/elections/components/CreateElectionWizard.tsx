@@ -16,6 +16,68 @@ const getCurrentLocalDateTime = () => {
   return new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 16);
 };
 
+const addMinutesToLocalDateTime = (value?: string, minutes = 1) => {
+  if (!value) return getCurrentLocalDateTime();
+  const base = new Date(value);
+  if (Number.isNaN(base.getTime())) return getCurrentLocalDateTime();
+
+  const next = new Date(base.getTime() + minutes * 60 * 1000);
+  const timezoneOffset = next.getTimezoneOffset() * 60000;
+  return new Date(next.getTime() - timezoneOffset).toISOString().slice(0, 16);
+};
+
+const CalendarIcon = () => (
+  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="3" y="4" width="18" height="18" rx="2" />
+    <path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round" />
+  </svg>
+);
+
+const ClockIcon = () => (
+  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+interface DateTimeFieldProps {
+  id: string;
+  name: string;
+  label: string;
+  min: string;
+  helper: string;
+}
+
+const DateTimeField: React.FC<DateTimeFieldProps> = ({ id, name, label, min, helper }) => (
+  <div>
+    <label htmlFor={id} className="mb-2 block text-sm font-medium text-gray-700">
+      {label}
+    </label>
+    <div className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-[linear-gradient(135deg,#f8fafc_0%,#eef7f0_100%)] shadow-sm transition focus-within:border-[#459151] focus-within:ring-2 focus-within:ring-[#459151]/20">
+      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center gap-3 px-4 text-gray-500">
+        <span className="rounded-full bg-white/80 p-2 shadow-sm">
+          <CalendarIcon />
+        </span>
+        <span className="hidden text-xs font-semibold uppercase tracking-[0.24em] text-gray-400 sm:inline">
+          Fecha y hora
+        </span>
+      </div>
+      <Field
+        id={id}
+        name={name}
+        type="datetime-local"
+        min={min}
+        className="w-full bg-transparent py-4 pl-16 pr-14 text-gray-800 outline-none [color-scheme:light] sm:pl-40"
+      />
+      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-[#459151]">
+        <ClockIcon />
+      </div>
+    </div>
+    <p className="mt-2 text-xs text-gray-500">{helper}</p>
+    <ErrorMessage name={name} component="p" className="mt-1 text-sm text-red-600" />
+  </div>
+);
+
 // Validación Step 1
 const step1Schema = Yup.object({
   institution: Yup.string()
@@ -55,11 +117,11 @@ const step2Schema = Yup.object({
     .required('Este campo es obligatorio')
     .test(
       'is-after-end',
-      'Debe ser posterior al cierre de votación',
+      'Debe ser posterior al cierre de votación. No puede ser la misma hora.',
       function (value) {
         const { votingEndDate } = this.parent;
         if (!votingEndDate || !value) return true;
-        return new Date(value) >= new Date(votingEndDate);
+        return new Date(value) > new Date(votingEndDate);
       }
     ),
 });
@@ -251,70 +313,35 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
               {({ isValid, dirty, values }) => (
                 <Form className="space-y-6">
                   {/* Fecha apertura */}
-                  <div>
-                    <label
-                      htmlFor="votingStartDate"
-                      className="block text-sm font-medium text-gray-700 mb-2"
-                    >
-                      ¿Cuándo abre la votación?
-                    </label>
-                    <Field
-                      id="votingStartDate"
-                      name="votingStartDate"
-                      type="datetime-local"
-                      min={getCurrentLocalDateTime()}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#459151] focus:border-[#459151] transition-colors"
-                    />
-                    <ErrorMessage
-                      name="votingStartDate"
-                      component="p"
-                      className="mt-1 text-sm text-red-600"
-                    />
-                  </div>
+                  <DateTimeField
+                    id="votingStartDate"
+                    name="votingStartDate"
+                    label="¿Cuándo abre la votación?"
+                    min={getCurrentLocalDateTime()}
+                    helper="Selecciona el inicio oficial de la votación."
+                  />
 
                   {/* Fecha cierre */}
-                  <div>
-                    <label
-                      htmlFor="votingEndDate"
-                      className="block text-sm font-medium text-gray-700 mb-2"
-                    >
-                      ¿Cuándo cierra la votación?
-                    </label>
-                    <Field
-                      id="votingEndDate"
-                      name="votingEndDate"
-                      type="datetime-local"
-                      min={values.votingStartDate || getCurrentLocalDateTime()}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#459151] focus:border-[#459151] transition-colors"
-                    />
-                    <ErrorMessage
-                      name="votingEndDate"
-                      component="p"
-                      className="mt-1 text-sm text-red-600"
-                    />
-                  </div>
+                  <DateTimeField
+                    id="votingEndDate"
+                    name="votingEndDate"
+                    label="¿Cuándo cierra la votación?"
+                    min={values.votingStartDate || getCurrentLocalDateTime()}
+                    helper="Debe ser posterior a la apertura."
+                  />
 
                   {/* Fecha resultados */}
-                  <div>
-                    <label
-                      htmlFor="resultsDate"
-                      className="block text-sm font-medium text-gray-700 mb-2"
-                    >
-                      ¿Cuándo se muestran los resultados?
-                    </label>
-                    <Field
+                  <DateTimeField
                       id="resultsDate"
                       name="resultsDate"
-                      type="datetime-local"
-                      min={values.votingEndDate || values.votingStartDate || getCurrentLocalDateTime()}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#459151] focus:border-[#459151] transition-colors"
+                      label="¿Cuándo se muestran los resultados?"
+                      min={
+                        values.votingEndDate
+                          ? addMinutesToLocalDateTime(values.votingEndDate)
+                          : values.votingStartDate || getCurrentLocalDateTime()
+                      }
+                      helper="Debe publicarse después del cierre, no en la misma hora."
                     />
-                    <ErrorMessage
-                      name="resultsDate"
-                      component="p"
-                      className="mt-1 text-sm text-red-600"
-                    />
-                  </div>
 
                   {/* Botones */}
                   <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">

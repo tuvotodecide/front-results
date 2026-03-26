@@ -91,7 +91,7 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
   const electionStatus: ElectionStatus = useMemo(() => {
     if (!event) return 'DRAFT';
     if (event.status === 'PUBLISHED') return 'ACTIVE';
-    if (event.status === 'FINISHED') return 'CLOSED';
+    if (event.status === 'CLOSED' || event.status === 'RESULTS_PUBLISHED') return 'CLOSED';
     return 'DRAFT';
   }, [event]);
 

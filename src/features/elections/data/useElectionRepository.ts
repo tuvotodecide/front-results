@@ -23,7 +23,14 @@ const mapEventToElection = (event: any): Election => ({
   votingEndDate: event?.votingEnd ?? '',
   resultsDate: event?.resultsPublishAt ?? '',
   createdAt: event?.createdAt ?? new Date().toISOString(),
-  status: event?.status === 'PUBLISHED' ? 'ACTIVE' : event?.status === 'FINISHED' ? 'CLOSED' : 'DRAFT',
+  status:
+    event?.status === 'RESULTS_PUBLISHED'
+      ? 'RESULTS'
+      : event?.status === 'CLOSED'
+        ? 'CLOSED'
+        : event?.status === 'PUBLISHED'
+          ? 'ACTIVE'
+          : 'DRAFT',
 });
 
 export const useElections = (): UseElectionsResult => {

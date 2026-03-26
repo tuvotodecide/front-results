@@ -88,7 +88,11 @@ export interface CreateEventNewsDto {
   link?: string;
 }
 
-export type VotingEventStatus = "DRAFT" | "PUBLISHED" | "ACTIVE" | "FINISHED";
+export type VotingEventStatus =
+  | "DRAFT"
+  | "PUBLISHED"
+  | "CLOSED"
+  | "RESULTS_PUBLISHED";
 
 export interface VotingEvent {
   id: string;

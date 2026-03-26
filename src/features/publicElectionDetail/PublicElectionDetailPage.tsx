@@ -371,6 +371,10 @@ const PublicElectionDetailPage: React.FC = () => {
 
   const winnerCandidate = getWinnerCandidate();
   const hasResults = Boolean(election.results && election.results.candidates.length > 0);
+  const ballotDescription =
+    election.status === 'FINISHED'
+      ? 'Conoce a los candidatos y partidos políticos que participaron en esta elección'
+      : 'Conoce a los candidatos y partidos políticos que participan en esta elección';
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -442,9 +446,7 @@ const PublicElectionDetailPage: React.FC = () => {
         <div className="mt-8 space-y-5">
           <div>
             <h2 className="text-2xl font-bold text-slate-800">Papeleta Electoral</h2>
-            <p className="mt-1 text-slate-500">
-              Conoce a los candidatos y partidos políticos que participan en esta elección
-            </p>
+            <p className="mt-1 text-slate-500">{ballotDescription}</p>
           </div>
           {election.ballotParties.length === 0 ? (
             <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500 shadow-sm">

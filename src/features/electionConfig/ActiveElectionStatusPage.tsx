@@ -37,7 +37,7 @@ const optionToParty = (option: VotingOption): PartyWithCandidates => ({
   colorHex: option.color,
   logoUrl: option.logoUrl,
   createdAt: option.createdAt ?? new Date().toISOString(),
-  candidates: option.candidates.map((candidate: OptionCandidate) => ({
+  candidates: (option.candidates ?? []).map((candidate: OptionCandidate) => ({
     id: candidate.id,
     partyId: option.id,
     positionId: candidate.roleName,
@@ -58,6 +58,14 @@ const formatDateTime = (value?: string | null) => {
   });
 };
 
+const getInitial = (value?: string | null) =>
+  String(value ?? "").trim().charAt(0).toUpperCase() || "?";
+
+const getBallotDescription = (lifecycle: string) =>
+  lifecycle === "RESULTS" || lifecycle === "RESULTS_PUBLISHED" || lifecycle === "CLOSED"
+    ? "Conoce a los candidatos y partidos políticos que participaron en esta votación."
+    : "Conoce a los candidatos y partidos políticos que participan en esta votación.";
+
 const deriveLifecycle = (event?: {
   status?: string | null;
   votingStart?: string | null;
@@ -72,7 +80,7 @@ const deriveLifecycle = (event?: {
 
   if (resultsAt && now >= resultsAt) return "RESULTS";
   if (start && end && now >= start && now <= end) return "ACTIVE";
-  if (end && now > end) return "FINISHED";
+  if (end && now > end) return "CLOSED";
   if (start && now < start) return "PUBLISHED";
   return event.status ?? "DRAFT";
 };
@@ -82,16 +90,18 @@ const StatusBadge: React.FC<{ state?: string }> = ({ state }) => {
     DRAFT: "bg-gray-100 text-gray-700 border-gray-200",
     PUBLISHED: "bg-blue-100 text-blue-700 border-blue-200",
     ACTIVE: "bg-amber-100 text-amber-700 border-amber-200",
-    FINISHED: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    CLOSED: "bg-emerald-100 text-emerald-700 border-emerald-200",
     RESULTS: "bg-violet-100 text-violet-700 border-violet-200",
+    RESULTS_PUBLISHED: "bg-violet-100 text-violet-700 border-violet-200",
   };
 
   const labels: Record<string, string> = {
     DRAFT: "Borrador",
     PUBLISHED: "Publicada",
     ACTIVE: "En votación",
-    FINISHED: "Finalizada",
+    CLOSED: "Finalizada",
     RESULTS: "Resultados disponibles",
+    RESULTS_PUBLISHED: "Resultados publicados",
   };
 
   return (
@@ -289,7 +299,7 @@ const ActiveElectionStatusPage: React.FC = () => {
                 value:
                   lifecycle === "RESULTS"
                     ? "Resultados disponibles"
-                    : lifecycle === "FINISHED"
+                    : lifecycle === "CLOSED"
                       ? "Finalizada"
                       : lifecycle === "ACTIVE"
                         ? "En votación"
@@ -321,12 +331,6 @@ const ActiveElectionStatusPage: React.FC = () => {
                 Ver resultados
               </button>
             </div>
-            <p className="mt-4 text-sm text-violet-800">
-              Total registrado:{" "}
-              <span className="font-bold">
-                {resultsData.roles.reduce((sum, role) => sum + Number(role.total || 0), 0)}
-              </span>
-            </p>
           </div>
         )}
 
@@ -371,10 +375,7 @@ const ActiveElectionStatusPage: React.FC = () => {
               <h2 className="text-2xl font-bold text-gray-900">
                 Papeleta Electoral
               </h2>
-              <p className="mt-1 text-gray-600">
-                Conoce a los candidatos y partidos políticos que participan en
-                esta elección.
-              </p>
+              <p className="mt-1 text-gray-600">{getBallotDescription(lifecycle)}</p>
             </div>
 
             {parties.length === 0 ? (
@@ -402,7 +403,7 @@ const ActiveElectionStatusPage: React.FC = () => {
                           />
                         ) : (
                           <div className="h-16 w-16 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 font-bold">
-                            {party.name.charAt(0)}
+                            {getInitial(party.name)}
                           </div>
                         )}
                         <h3 className="text-xl font-semibold text-gray-800">
@@ -424,7 +425,7 @@ const ActiveElectionStatusPage: React.FC = () => {
                               />
                             ) : (
                               <div className="h-16 w-16 rounded-full bg-gray-100 border-2 border-gray-200 flex items-center justify-center text-gray-500 font-bold">
-                                {candidate.fullName.charAt(0)}
+                                {getInitial(candidate.fullName)}
                               </div>
                             )}
                             <div>
