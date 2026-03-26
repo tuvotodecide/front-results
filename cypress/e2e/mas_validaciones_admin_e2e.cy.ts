@@ -5,7 +5,7 @@ describe('Segunda Suite: Happy Failing y Validaciones Complejas E2E', () => {
   // Nuevo correo destructivo para esta segunda oleada de pruebas
   const errorEmail2 = 'e2e.negativo2@test.local';
   const errorPassword2 = 'ContraseñaCasiPerfecta123*';
-  
+
   let adminToken = '';
 
   before(() => {
@@ -13,7 +13,7 @@ describe('Segunda Suite: Happy Failing y Validaciones Complejas E2E', () => {
     cy.request({
       method: 'POST',
       url: `${apiUrl}/auth/login`,
-      body: { email: 'pabloquispe19982ui@gmail.com', password: 'secret123' }
+      body: { email: 'walltoys1@gmail.com', password: 'secret123' }
     }).then((resp) => {
       adminToken = resp.body.accessToken;
     });
@@ -39,7 +39,7 @@ describe('Segunda Suite: Happy Failing y Validaciones Complejas E2E', () => {
           password: errorPassword2,
           institutionName: 'Institucion Validadora Cypress Dos'
         },
-        failOnStatusCode: false 
+        failOnStatusCode: false
       });
     });
   });
@@ -49,9 +49,9 @@ describe('Segunda Suite: Happy Failing y Validaciones Complejas E2E', () => {
 
     cy.get('[data-cy="register-dni"]').type('ERR-22222');
     cy.get('[data-cy="register-name"]').type('Señor Distraído');
-    cy.get('[data-cy="register-email"]').type('tonto.correo@gmail.com'); 
+    cy.get('[data-cy="register-email"]').type('tonto.correo@gmail.com');
     cy.get('[data-cy="register-tenant-name"]').type('Mi Institucion');
-    
+
     // Contraseñas DIFERENTES
     cy.get('[data-cy="register-password"]').type('ManzanaROJA123*');
     cy.get('[data-cy="register-confirm-password"]').type('PeraVERDE123*');
@@ -69,9 +69,9 @@ describe('Segunda Suite: Happy Failing y Validaciones Complejas E2E', () => {
 
     cy.get('[data-cy="register-dni"]').type('ERR-33333');
     cy.get('[data-cy="register-name"]').type('Hacker Malo');
-    
+
     // Correo sin @ y con espacios (Imposible)
-    cy.get('[data-cy="register-email"]').type('un correo hackeado y sin arroba.com'); 
+    cy.get('[data-cy="register-email"]').type('un correo hackeado y sin arroba.com');
     cy.get('[data-cy="register-tenant-name"]').type('Mala Institucion');
     cy.get('[data-cy="register-password"]').type(errorPassword2);
     cy.get('[data-cy="register-confirm-password"]').type(errorPassword2);
@@ -92,7 +92,7 @@ describe('Segunda Suite: Happy Failing y Validaciones Complejas E2E', () => {
     cy.contains('button', 'Iniciar Sesión').click();
 
     // Crea un evento base para entrar al panel de "Cargos"
-    cy.contains('button', 'Nueva Votación', { timeout: 10000 }).should('be.visible').click();
+    cy.contains('button', /Nueva Votación|Crear votación/i, { timeout: 10000 }).should('be.visible').click();
     cy.contains('label', '¿A qué institución pertenece?').parent().find('input, textarea').first().type('Paso Rapido');
     cy.contains('label', '¿Cuál es el objetivo o descripción?').parent().find('input, textarea').first().type('Paso Rapido');
     cy.contains('button', 'Siguiente').click();
@@ -100,14 +100,14 @@ describe('Segunda Suite: Happy Failing y Validaciones Complejas E2E', () => {
     // Fix: Explicitly typing Parameter 'days'
     const now = new Date();
     const futureDate = (days: number) => {
-        const d = new Date(now);
-        d.setDate(d.getDate() + days);
-        return d.toISOString().slice(0, 16);
+      const d = new Date(now);
+      d.setDate(d.getDate() + days);
+      return d.toISOString().slice(0, 16);
     };
     cy.contains('label', '¿Cuándo abre la votación?').parent().find('input[type="datetime-local"]').type(futureDate(1));
     cy.contains('label', '¿Cuándo cierra la votación?').parent().find('input[type="datetime-local"]').type(futureDate(2));
     cy.contains('label', '¿Cuándo se muestran los resultados?').parent().find('input[type="datetime-local"]').type(futureDate(3));
-    
+
     // Forzamos creación del evento crudo
     cy.contains(/Crear/i).scrollIntoView().click({ force: true });
     cy.contains(/Confirmar/i, { timeout: 20000 }).should('be.visible').click({ force: true });
@@ -136,14 +136,14 @@ describe('Segunda Suite: Happy Failing y Validaciones Complejas E2E', () => {
     cy.get('input[name="email"]').type(errorEmail2);
     cy.get('input[name="password"]').type(errorPassword2);
     cy.contains('button', 'Iniciar Sesión').click();
-    
+
     // Abrimos el primer evento en borradores (el que creamos en Flujo 8)
     cy.contains('h1', 'Mis Votaciones', { timeout: 10000 }).should('be.visible');
     cy.get('div[class*="cursor-pointer"]').first().click();
     cy.url().should('include', '/config/cargos');
 
     cy.contains('button', 'Agregar Cargo').click();
-    
+
     // DEJAMOS EL INPUT EN BLANCO Y DAMOS GUARDAR
     // No type()!
     cy.contains('button', 'Guardar Cargo').click();
@@ -159,7 +159,7 @@ describe('Segunda Suite: Happy Failing y Validaciones Complejas E2E', () => {
     cy.get('input[name="email"]').type(errorEmail2);
     cy.get('input[name="password"]').type(errorPassword2);
     cy.contains('button', 'Iniciar Sesión').click();
-    
+
     cy.contains('h1', 'Mis Votaciones', { timeout: 10000 }).should('be.visible');
     // Para simplificar, revisamos que el botón Finalizar existe pero en lugar de confirmar el paso letal, retrocedemos
     cy.log('Cypress navegando por la app comprobando estados sin confirmar cambios irreversibles - Happy Failing');

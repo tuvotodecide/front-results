@@ -5,7 +5,7 @@ describe('Validaciones y Casos Negativos de Admin Institucional E2E', () => {
   // Usamos un correo diferente para no chocar con tu script principal de éxito
   const errorEmail = 'e2e.negativo@test.local';
   const errorPassword = 'TestDefinitivo123*';
-  
+
   let adminToken = '';
 
   before(() => {
@@ -13,7 +13,7 @@ describe('Validaciones y Casos Negativos de Admin Institucional E2E', () => {
     cy.request({
       method: 'POST',
       url: `${apiUrl}/auth/login`,
-      body: { email: 'pabloquispe19982ui@gmail.com', password: 'secret123' }
+      body: { email: 'walltoys1@gmail.com', password: 'secret123' }
     }).then((resp) => {
       adminToken = resp.body.accessToken;
     });
@@ -39,7 +39,7 @@ describe('Validaciones y Casos Negativos de Admin Institucional E2E', () => {
           password: errorPassword,
           institutionName: 'Institucion Validadora Cypress'
         },
-        failOnStatusCode: false 
+        failOnStatusCode: false
       });
     });
   });
@@ -61,7 +61,7 @@ describe('Validaciones y Casos Negativos de Admin Institucional E2E', () => {
     // El usuario "limpia" sus cookies al cambiar de test, así que aquí no está logueado
     // Intentamos entrar como hacker directamente al dashboard
     cy.visit('/elections');
-    
+
     // El sistema debe detectarlo y patearlo de vuelta al login
     cy.url().should('include', '/login');
   });
@@ -73,10 +73,10 @@ describe('Validaciones y Casos Negativos de Admin Institucional E2E', () => {
     cy.get('input[name="password"]').type(errorPassword);
     cy.contains('button', 'Iniciar Sesión').click();
 
-    cy.contains('button', 'Nueva Votación', { timeout: 10000 }).should('be.visible').click();
+    cy.contains('button', /Nueva Votación|Crear votación/i, { timeout: 10000 }).should('be.visible').click();
 
-    // Damos click a "Siguiente" SIN haber llenado Institución ni Descripción
-    cy.contains('button', 'Siguiente').click();
+    // Verificamos que el botón "Siguiente" está deshabilitado por las validaciones precargadas
+    cy.contains('button', 'Siguiente').should('be.disabled');
 
     // Verificamos que NO nos dejó avanzar. ¿Cómo lo sabemos? Porque seguimos viendo la pregunta "Institución"
     cy.contains('label', '¿A qué institución pertenece?').should('be.visible');
@@ -90,13 +90,13 @@ describe('Validaciones y Casos Negativos de Admin Institucional E2E', () => {
     cy.get('input[name="password"]').type(errorPassword);
     cy.contains('button', 'Iniciar Sesión').click();
 
-    cy.contains('button', 'Nueva Votación', { timeout: 10000 }).should('be.visible').click();
-    
+    cy.contains('button', /Nueva Votación|Crear votación/i, { timeout: 10000 }).should('be.visible').click();
+
     cy.contains('label', '¿A qué institución pertenece?')
       .parent().find('input, textarea').first().type('Test Institución');
     cy.contains('label', '¿Cuál es el objetivo o descripción?')
       .parent().find('input, textarea').first().type('Motivo cualquiera');
-    
+
     cy.contains('button', 'Siguiente').click();
 
     // CREAMOS FECHAS ILÓGICAS

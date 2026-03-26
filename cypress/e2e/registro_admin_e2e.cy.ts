@@ -2,11 +2,11 @@
 
 describe('Automatización de Registro de Admin Institucional E2E', () => {
   const apiUrl = Cypress.env('apiUrl') || 'http://localhost:3005/api/v1';
-  
+
   let createdTenantId = '';
   const testEmail = 'e2e.voting@test.local';
   const testPassword = 'Test12345*';
-  
+
   // Generaremos un token dinámico para evitar los errores 401 de token vencido/inválido
   let adminToken = '';
 
@@ -16,7 +16,7 @@ describe('Automatización de Registro de Admin Institucional E2E', () => {
       method: 'POST',
       url: `${apiUrl}/auth/login`,
       body: {
-        email: 'pabloquispe19982ui@gmail.com',
+        email: 'walltoys1@gmail.com',
         password: 'secret123'
       }
     }).then((resp) => {
@@ -65,7 +65,7 @@ describe('Automatización de Registro de Admin Institucional E2E', () => {
     cy.get('[data-cy="register-confirm-password"]').should('be.visible').type(testPassword);
 
     cy.log('Llamando al endpoint test/approved-admin con el TOKEN DINÁMICO...');
-    
+
     // 3. Mandamos los datos con tu Token al endpoint
     cy.request({
       method: 'POST',
@@ -78,27 +78,27 @@ describe('Automatización de Registro de Admin Institucional E2E', () => {
         password: testPassword,
         institutionName: 'Institucion E2E Cypress'
       },
-      failOnStatusCode: false 
+      failOnStatusCode: false
     }).then(({ status, body }) => {
       // Validamos que sea 201(Creado exitosamente) o 409(Si el usuario quedó vivo de antes)
       expect([201, 409]).to.include(status);
-      
+
       createdTenantId = body?.tenantId || body?.id || 'ya_existia';
       cy.log(`✅ Usuario E2E aprobado listo con código HTTP: ${status}`);
 
       // 4. Proceder al Login con las credenciales que se acaban de aprobar
       cy.visit('/login');
-      
+
       cy.get('input[name="email"]', { timeout: 10000 })
         .should('be.visible')
         .clear()
         .type(testEmail);
-        
+
       cy.get('input[name="password"]')
         .should('be.visible')
         .clear()
         .type(testPassword);
-        
+
       cy.contains('button', 'Iniciar Sesión')
         .should('be.visible')
         .click();
@@ -125,7 +125,7 @@ describe('Automatización de Registro de Admin Institucional E2E', () => {
 
     // 3. Click en Nueva Votación
     cy.url({ timeout: 15000 }).should('include', '/elections');
-    cy.contains('button', 'Nueva Votación', { timeout: 10000 })
+    cy.contains('button', /Nueva Votación|Crear votación/i, { timeout: 10000 })
       .should('be.visible')
       .click();
 
@@ -145,17 +145,25 @@ describe('Automatización de Registro de Admin Institucional E2E', () => {
     cy.contains('button', 'Siguiente').should('be.visible').click();
 
     // 5. Llenar segundo paso (Fechas y horas)
-    // Definimos fechas futuras
+    // Definimos fechas cercanas para facilitar las pruebas
     const now = new Date();
-    const futureDate = (days: number) => {
-        const date = new Date(now);
-        date.setDate(date.getDate() + days);
-        return date.toISOString().slice(0, 16); // Formato YYYY-MM-DDTHH:MM
+    
+    // Apertura: 20 minutos después de ahora
+    const dateApertura = new Date(now.getTime() + 20 * 60000);
+    // Cierre: 1 hora después de la apertura
+    const dateCierre = new Date(dateApertura.getTime() + 60 * 60000);
+    // Resultados: 5 minutos después del cierre (debe ser > 1 min)
+    const dateResultados = new Date(dateCierre.getTime() + 5 * 60000);
+
+    // Formatear correctamente a la hora local para 'datetime-local'
+    const toLocalISOString = (dt: Date) => {
+      const tzOffset = dt.getTimezoneOffset() * 60000;
+      return new Date(dt.getTime() - tzOffset).toISOString().slice(0, 16);
     };
 
-    const fechaApertura = futureDate(1);
-    const fechaCierre = futureDate(2);
-    const fechaResultados = futureDate(2);
+    const fechaApertura = toLocalISOString(dateApertura);
+    const fechaCierre = toLocalISOString(dateCierre);
+    const fechaResultados = toLocalISOString(dateResultados);
 
     cy.contains('label', '¿Cuándo abre la votación?')
       .parent()
@@ -178,10 +186,17 @@ describe('Automatización de Registro de Admin Institucional E2E', () => {
       .should('be.visible')
       .click({ force: true });
 
+    // Interceptar la creación del evento
+    cy.intercept('POST', '**/api/v1/voting/events').as('createEvent');
+
     // Modal de confirmación final
     cy.contains(/Confirmar/i, { timeout: 20000 })
       .should('be.visible')
       .click({ force: true });
+
+    // Esperar explícitamente a que el backend guarde la votación en la base de datos
+    // Si no esperamos esto, sale de la Fase 2 y cancela la petición HTTP antes de completarse!
+    cy.wait('@createEvent', { timeout: 15000 }).its('response.statusCode').should('be.oneOf', [200, 201]);
   });
 
   it('Fase 3: Debe continuar la configuración: creación de cargos, 2 partidos con candidatos y subir el padrón', () => {
