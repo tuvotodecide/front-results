@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, PropsWithChildren } from "react";
+import React, { useEffect, PropsWithChildren } from "react";
+import { createPortal } from "react-dom";
 import {
   XMarkIcon,
   CheckCircleIcon,
@@ -28,24 +29,27 @@ const Modal2: React.FC<PropsWithChildren<ModalProps>> = ({
   closeOnEscape = false,
   children,
 }) => {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
   useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
+    if (!isOpen) return;
 
-    if (isOpen) dialog.showModal();
-    else dialog.close();
-  }, [isOpen]);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && closeOnEscape) {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [closeOnEscape, isOpen, onClose]);
 
   const handleClose = () => onClose();
-
-  const handleBackdropClick = (event: React.MouseEvent<HTMLDialogElement>) => {
-    // Solo cerrar si el click fue directamente en el dialog (backdrop), no en sus hijos
-    if (event.target === dialogRef.current) {
-      handleClose();
-    }
-  };
 
   const sizeClasses = {
     sm: "max-w-sm",
@@ -89,6 +93,10 @@ const Modal2: React.FC<PropsWithChildren<ModalProps>> = ({
   const ui = stylesByType[type];
   const isPlain = type === "plain";
 
+  if (!isOpen) {
+    return null;
+  }
+
   const StatusIcon = () => {
     const base =
       "w-9 h-9 inline-flex items-center justify-center rounded-full p-2";
@@ -111,20 +119,21 @@ const Modal2: React.FC<PropsWithChildren<ModalProps>> = ({
     );
   };
 
-  return (
-    <dialog
-      ref={dialogRef}
-      onClick={handleBackdropClick}
-      onCancel={(e) => {
-        e.preventDefault(); // evita que el dialog se cierre "solo" sin pasar por onClose
-        if (closeOnEscape) {
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/40 px-4 backdrop-blur-[3px]"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
           handleClose();
         }
       }}
-      className="backdrop:bg-gray-900/40 backdrop:backdrop-blur-[3px] p-0 bg-transparent m-auto w-[95vw] sm:w-full"
+      role="presentation"
     >
       <div
-        className={`bg-white ${sizeClasses[size]} w-full mx-auto rounded-2xl overflow-hidden border shadow-2xl ${ui.border} ${className}`}
+        className={`max-h-[90vh] w-full overflow-y-auto rounded-2xl border bg-white shadow-2xl ${sizeClasses[size]} ${ui.border} ${className}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title || "Modal"}
       >
         {/* Accent bar - only for non-plain types */}
         {!isPlain && <div className={`h-1.5 ${ui.accent}`} />}
@@ -163,7 +172,8 @@ const Modal2: React.FC<PropsWithChildren<ModalProps>> = ({
         {/* Body */}
         <div className="px-6 py-5">{children}</div>
       </div>
-    </dialog>
+    </div>,
+    document.body
   );
 };
 

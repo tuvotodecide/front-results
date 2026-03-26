@@ -5,7 +5,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { useGetVotingEventsQuery } from '../../store/votingEvents';
+import { useDeleteVotingEventMutation, useGetVotingEventsQuery } from '../../store/votingEvents';
 import { selectTenantId, selectIsLoggedIn } from '../../store/auth/authSlice';
 import EmptyState from './components/EmptyState';
 import type { VotingEvent } from '../../store/votingEvents/types';
@@ -27,10 +27,15 @@ const statusColors: Record<string, string> = {
   RESULTS_PUBLISHED: 'bg-violet-100 text-violet-700',
 };
 
+const hasDraftAlreadyStarted = (event: VotingEvent) =>
+  event.status === 'DRAFT' &&
+  Boolean(event.votingStart && new Date(event.votingStart).getTime() <= Date.now());
+
 const ElectionsPage: React.FC = () => {
   const navigate = useNavigate();
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const tenantId = useSelector(selectTenantId);
+  const [deleteVotingEvent, { isLoading: deleting }] = useDeleteVotingEventMutation();
 
   // Query de eventos - skip si no hay tenantId
   const { data: events = [], isLoading, error, refetch } = useGetVotingEventsQuery(
@@ -45,12 +50,15 @@ const ElectionsPage: React.FC = () => {
   };
 
   const handleElectionClick = (event: VotingEvent) => {
+    if (hasDraftAlreadyStarted(event)) {
+      return;
+    }
+
     if (event.status === 'DRAFT') {
       // Ir a configuración (Paso 1)
       navigate(`/elections/${event.id}/config/cargos`);
     } else if (
       event.status === 'PUBLISHED' ||
-      event.status === 'ACTIVE' ||
       event.status === 'CLOSED' ||
       event.status === 'RESULTS_PUBLISHED'
     ) {
@@ -59,6 +67,18 @@ const ElectionsPage: React.FC = () => {
     } else {
       // Fallback a review
       navigate(`/elections/${event.id}/config/review`);
+    }
+  };
+
+  const handleDeleteElection = async (event: VotingEvent) => {
+    if (!window.confirm(`¿Eliminar la votación "${event.name}"? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+
+    try {
+      await deleteVotingEvent(event.id).unwrap();
+    } catch (error) {
+      console.error('Error eliminando votación:', error);
     }
   };
 
@@ -160,7 +180,11 @@ const ElectionsPage: React.FC = () => {
             <div
               key={event.id}
               onClick={() => handleElectionClick(event)}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:border-[#459151] transition-all cursor-pointer"
+              className={`bg-white rounded-xl shadow-sm border border-gray-200 p-6 transition-all ${
+                hasDraftAlreadyStarted(event)
+                  ? 'border-amber-200 bg-amber-50/40 cursor-default'
+                  : 'hover:shadow-md hover:border-[#459151] cursor-pointer'
+              }`}
             >
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div className="flex-1">
@@ -183,18 +207,41 @@ const ElectionsPage: React.FC = () => {
                         Pendiente de configurar
                       </span>
                     )}
+                    {hasDraftAlreadyStarted(event) && (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                        Inicio vencido
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                <div className="text-sm text-gray-500 space-y-1">
+                <div className="text-sm text-gray-500 space-y-2">
                   <p>
                     <span className="font-medium">Inicio:</span> {formatDate(event.votingStart)}
                   </p>
                   <p>
                     <span className="font-medium">Cierre:</span> {formatDate(event.votingEnd)}
                   </p>
+                  {event.status === 'DRAFT' && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleDeleteElection(event);
+                      }}
+                      disabled={deleting}
+                      className="inline-flex items-center rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50"
+                    >
+                      Eliminar
+                    </button>
+                  )}
                 </div>
               </div>
+              {hasDraftAlreadyStarted(event) && (
+                <p className="mt-4 text-sm text-amber-800">
+                  Esta votación ya alcanzó su hora de inicio sin estar lista. No debería seguir configurándose; elimínala y crea una nueva.
+                </p>
+              )}
             </div>
           ))}
         </div>

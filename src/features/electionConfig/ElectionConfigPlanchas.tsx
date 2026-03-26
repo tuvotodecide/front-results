@@ -64,6 +64,10 @@ const roleToPosition = (role: EventRole): Position => ({
   createdAt: role.createdAt ?? new Date().toISOString(),
 });
 
+const hasDraftAlreadyStarted = (event?: { status?: string | null; votingStart?: string | null }) =>
+  event?.status === 'DRAFT' &&
+  Boolean(event.votingStart && new Date(event.votingStart).getTime() <= Date.now());
+
 const partyHasCompleteCandidates = (
   party: PartyWithCandidates,
   positions: Position[],
@@ -373,6 +377,17 @@ const ElectionConfigPlanchas: React.FC = () => {
     );
   }
 
+  if (hasDraftAlreadyStarted(event)) {
+    return (
+      <ConfigPageFallback
+        title="La votación ya venció antes de completarse"
+        message="Como la hora de inicio ya pasó y el evento sigue en borrador, ya no debe seguir configurándose. Elimínalo desde la lista de votaciones."
+        actionLabel="Volver a elecciones"
+        onAction={() => navigate('/elections')}
+      />
+    );
+  }
+
   return (
     <div className="bg-gray-50 min-h-[calc(100vh-64px)] flex flex-col">
       {/* Contenido principal */}
@@ -532,17 +547,18 @@ const ElectionConfigPlanchas: React.FC = () => {
               disabled={deleting}
               className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
             >
-              {deleting ? (
-                <>
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Eliminando...
-                </>
-              ) : (
-                'Eliminar'
-              )}
+              <span
+                aria-hidden="true"
+                className={`inline-flex h-4 w-4 items-center justify-center ${
+                  deleting ? 'visible' : 'invisible'
+                }`}
+              >
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              </span>
+              <span>{deleting ? 'Eliminando...' : 'Eliminar'}</span>
             </button>
           </div>
         </div>

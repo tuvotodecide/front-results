@@ -29,6 +29,10 @@ const roleToPosition = (role: EventRole): Position => ({
   createdAt: role.createdAt ?? new Date().toISOString(),
 });
 
+const hasDraftAlreadyStarted = (event?: { status?: string | null; votingStart?: string | null }) =>
+  event?.status === 'DRAFT' &&
+  Boolean(event.votingStart && new Date(event.votingStart).getTime() <= Date.now());
+
 const ElectionConfigCargos: React.FC = () => {
   const navigate = useNavigate();
   const { electionId } = useParams<{ electionId: string }>();
@@ -170,6 +174,17 @@ const ElectionConfigCargos: React.FC = () => {
       <ConfigPageFallback
         title="Votación no encontrada"
         message="La votación no existe o la respuesta llegó incompleta. Vuelve al listado y selecciónala de nuevo."
+        actionLabel="Volver a elecciones"
+        onAction={() => navigate('/elections')}
+      />
+    );
+  }
+
+  if (hasDraftAlreadyStarted(event)) {
+    return (
+      <ConfigPageFallback
+        title="La votación ya venció antes de completarse"
+        message="Como la hora de inicio ya pasó y el evento sigue en borrador, ya no debe seguir configurándose. Elimínalo desde la lista de votaciones."
         actionLabel="Volver a elecciones"
         onAction={() => navigate('/elections')}
       />

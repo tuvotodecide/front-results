@@ -13,6 +13,10 @@ import { useWallet } from '../../hooks/useWallet';
 import Modal2 from '../../components/Modal2';
 import ConfigPageFallback from './components/ConfigPageFallback';
 
+const hasDraftAlreadyStarted = (event?: { status?: string | null; votingStart?: string | null }) =>
+  event?.status === 'DRAFT' &&
+  Boolean(event.votingStart && new Date(event.votingStart).getTime() <= Date.now());
+
 const ElectionConfigReview: React.FC = () => {
   const navigate = useNavigate();
   const { electionId } = useParams<{ electionId: string }>();
@@ -136,6 +140,17 @@ const ElectionConfigReview: React.FC = () => {
           <p className="mt-4 text-gray-500">Cargando vista previa...</p>
         </div>
       </div>
+    );
+  }
+
+  if (hasDraftAlreadyStarted(votingEvent)) {
+    return (
+      <ConfigPageFallback
+        title="La votación ya venció antes de completarse"
+        message="Como la hora de inicio ya pasó y el evento sigue en borrador, ya no debe publicarse ni seguir configurándose. Elimínalo desde la lista de votaciones."
+        actionLabel="Volver a elecciones"
+        onAction={() => navigate('/elections')}
+      />
     );
   }
 
