@@ -2,6 +2,7 @@ import {Contract, ethers} from 'ethers';
 import { useRef, useState } from 'react';
 import { VotingEvent } from '../store/votingEvents';
 import { votingContractAbi } from '../abi/votingContract';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function connectMetamask() {
   if(window.ethereum == null) {
@@ -141,7 +142,7 @@ export const useWallet = () => {
     }
     setTransactionState('pending');
     try {
-      const userNullifiers = Array.from({ length: votersCount }, () => crypto.randomUUID());
+      const userNullifiers = Array.from({ length: votersCount }, () => uuidv4());
       await createVoting(accSigner.current, votingEvent, userNullifiers);
       setTransactionState('success');
       return userNullifiers;
