@@ -8,19 +8,53 @@ export async function connectMetamask() {
     throw new Error('MetaMask is not installed');
   } else {
     const chainId = import.meta.env.VITE_VOTE_CHAIN_ID ? parseInt(import.meta.env.VITE_VOTE_CHAIN_ID) : undefined;
+    const chainIdHex = chainId != null ? `0x${chainId.toString(16)}` : undefined;
     const provider = new ethers.BrowserProvider(
       window.ethereum,
       chainId
     );
     const signer = await provider.getSigner();
 
-    try {
-      await window.ethereum.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: `0x${chainId?.toString(16)}` }]
-      });
-    } catch (switchError: any) {
-      console.log('Error switching chain:', switchError);
+    if (chainIdHex) {
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: chainIdHex }]
+        });
+      } catch (switchError: any) {
+        // 4902 = unknown chain in wallet, attempt to add it and switch again.
+        if (switchError?.code === 4902) {
+          const chainName = import.meta.env.VITE_VOTE_CHAIN_NAME ?? 'Custom Network';
+          const rpcUrl = import.meta.env.VITE_VOTE_CHAIN_RPC_URL;
+          const blockExplorerUrl = import.meta.env.VITE_VOTE_CHAIN_BLOCK_EXPLORER_URL;
+
+          if (!rpcUrl) {
+            throw new Error('Missing VITE_VOTE_CHAIN_RPC_URL for wallet_addEthereumChain');
+          }
+
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: chainIdHex,
+              chainName,
+              rpcUrls: [rpcUrl],
+              blockExplorerUrls: blockExplorerUrl ? [blockExplorerUrl] : undefined,
+              nativeCurrency: {
+                name: import.meta.env.VITE_VOTE_CHAIN_CURRENCY_NAME ?? 'Ether',
+                symbol: import.meta.env.VITE_VOTE_CHAIN_CURRENCY_SYMBOL ?? 'ETH',
+                decimals: 18,
+              },
+            }]
+          });
+
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: chainIdHex }]
+          });
+        } else {
+          console.log('Error switching chain:', switchError);
+        }
+      }
     }
 
     return {provider, signer};
@@ -101,14 +135,16 @@ export const useWallet = () => {
     }
   };
 
-  const callCreateVoting = async (votingEvent: VotingEvent, userNullifiers: string[]) => {
+  const callCreateVoting = async (votingEvent: VotingEvent, votersCount: number): Promise<string[]> => {
     if (!accSigner.current) {
       throw new Error('Wallet not connected');
     }
     setTransactionState('pending');
     try {
+      const userNullifiers = Array.from({ length: votersCount }, () => crypto.randomUUID());
       await createVoting(accSigner.current, votingEvent, userNullifiers);
       setTransactionState('success');
+      return userNullifiers;
     } catch (error: any) {
       if (error.message.includes('user rejected action')) {
         setTransactionState('canceled');

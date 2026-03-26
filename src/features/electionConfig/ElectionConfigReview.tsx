@@ -63,11 +63,13 @@ const ElectionConfigReview: React.FC = () => {
 
   const handleActivate = async () => {
     try {
-      if (!votingEvent) {
+      if (!votingEvent || !configSummary?.votersCount) {
         throw new Error('Could not load voting event data');
       }
-      const response = await activateElection();
-      await callCreateVoting(votingEvent, response.nullifiers);
+      // on-chain call
+      const nullifiers = await callCreateVoting(votingEvent, configSummary.votersCount);
+      // call backend to activate election with nullifiers
+      await activateElection(nullifiers);
       setShowConfirmModal(false);
       setShowSuccessModal(true);
     } catch (error: any) {
