@@ -59,6 +59,13 @@ const formatNumber = (num: number): string => {
   return num.toLocaleString('es-BO');
 };
 
+const getTopCandidates = (candidates: Candidate[]): Candidate[] => {
+  if (candidates.length === 0) return [];
+  const maxVotes = Math.max(...candidates.map((candidate) => candidate.votes));
+  if (maxVotes <= 0) return [];
+  return candidates.filter((candidate) => candidate.votes === maxVotes);
+};
+
 // Badge de estado
 const StatusBadge: React.FC<{ status: PublicElectionDetail['status'] }> = ({ status }) => {
   const styles = {
@@ -157,6 +164,36 @@ const WinnerCard: React.FC<{ candidate: Candidate }> = ({ candidate }) => (
           <span className="text-3xl font-bold text-emerald-700">{candidate.percent}%</span>
           <span className="text-slate-500">{formatNumber(candidate.votes)} votos</span>
         </div>
+      </div>
+    </div>
+  </div>
+);
+
+const TieCard: React.FC<{ candidates: Candidate[] }> = ({ candidates }) => (
+  <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-6 shadow-sm">
+    <div className="flex flex-col gap-4">
+      <div>
+        <span className="inline-flex items-center rounded-full bg-amber-500 px-3 py-1 text-xs font-bold text-white">
+          EMPATE
+        </span>
+        <h3 className="mt-3 text-xl font-bold text-slate-800">
+          La elección registra un empate
+        </h3>
+        <p className="mt-1 text-slate-600">
+          {candidates.length === 2 ? 'Candidaturas empatadas:' : 'Candidaturas empatadas en el primer lugar:'}
+        </p>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        {candidates.map((candidate) => (
+          <div key={candidate.id} className="rounded-xl border border-amber-200 bg-white p-4">
+            <h4 className="font-semibold text-slate-800">{candidate.name}</h4>
+            <p className="text-sm text-slate-500">{candidate.party}</p>
+            <div className="mt-2 flex items-baseline gap-3">
+              <span className="text-2xl font-bold text-amber-700">{candidate.percent}%</span>
+              <span className="text-slate-500">{formatNumber(candidate.votes)} votos</span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   </div>
@@ -261,20 +298,31 @@ const CandidateRow: React.FC<{ candidate: Candidate; isLeading?: boolean; isPrel
 const VoteDistributionSection: React.FC<{
   candidates: Candidate[];
   winnerId: string | null;
+  tiedCandidateIds?: string[];
   isPreliminary?: boolean;
-}> = ({ candidates, winnerId, isPreliminary }) => {
+}> = ({ candidates, winnerId, tiedCandidateIds = [], isPreliminary }) => {
   // Ordenar por porcentaje descendente
   const sortedCandidates = [...candidates].sort((a, b) => b.percent - a.percent);
+  const tiedIds = new Set(tiedCandidateIds);
+  const hasTie = tiedIds.size > 1;
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
       <h3 className="font-semibold text-slate-800 mb-4">Distribución de Votos</h3>
+      {hasTie && (
+        <p className="mb-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Empate en el primer lugar entre {sortedCandidates
+            .filter((candidate) => tiedIds.has(candidate.id))
+            .map((candidate) => candidate.name)
+            .join(', ')}.
+        </p>
+      )}
       <div className="divide-y divide-slate-100">
         {sortedCandidates.map((candidate) => (
           <CandidateRow
             key={candidate.id}
             candidate={candidate}
-            isLeading={candidate.id === winnerId || (winnerId === null && candidate === sortedCandidates[0])}
+            isLeading={hasTie ? tiedIds.has(candidate.id) : candidate.id === winnerId}
             isPreliminary={isPreliminary}
           />
         ))}
@@ -342,7 +390,7 @@ const PublicElectionDetailPage: React.FC = () => {
   // Obtener el candidato ganador
   const getWinnerCandidate = (): Candidate | null => {
     if (!election || !election.results || !election.winnerCandidateId) return null;
-    return election.results.candidates.find(c => c.id === election.winnerCandidateId) || null;
+    return election.results.candidates.find((c) => c.id === election.winnerCandidateId) || null;
   };
 
   if (isLoading) {
@@ -371,6 +419,8 @@ const PublicElectionDetailPage: React.FC = () => {
 
   const winnerCandidate = getWinnerCandidate();
   const hasResults = Boolean(election.results && election.results.candidates.length > 0);
+  const tiedCandidates = election.results ? getTopCandidates(election.results.candidates) : [];
+  const hasTie = tiedCandidates.length > 1;
   const ballotDescription =
     election.status === 'FINISHED'
       ? 'Conoce a los candidatos y partidos políticos que participaron en esta elección'
@@ -405,14 +455,17 @@ const PublicElectionDetailPage: React.FC = () => {
         </div>
 
         {/* Contenido según estado */}
-        {election.status === 'FINISHED' && hasResults && winnerCandidate && (
+        {election.status === 'FINISHED' && hasResults && (
           <>
-            <div className="mb-6">
-              <WinnerCard candidate={winnerCandidate} />
-            </div>
+            {(hasTie || winnerCandidate) && (
+              <div className="mb-6">
+                {hasTie ? <TieCard candidates={tiedCandidates} /> : winnerCandidate ? <WinnerCard candidate={winnerCandidate} /> : null}
+              </div>
+            )}
             <VoteDistributionSection
               candidates={election.results!.candidates}
-              winnerId={election.winnerCandidateId}
+              winnerId={hasTie ? null : election.winnerCandidateId}
+              tiedCandidateIds={hasTie ? tiedCandidates.map((candidate) => candidate.id) : []}
             />
           </>
         )}
@@ -430,6 +483,7 @@ const PublicElectionDetailPage: React.FC = () => {
               <VoteDistributionSection
                 candidates={election.results!.candidates}
                 winnerId={null}
+                tiedCandidateIds={tiedCandidates.length > 1 ? tiedCandidates.map((candidate) => candidate.id) : []}
                 isPreliminary
               />
             ) : (

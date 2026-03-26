@@ -42,7 +42,7 @@ export interface PublicElectionDetail {
   status: PublicElectionStatus;
   schedule: ElectionSchedule;
   results: ElectionResults | null; // null si UPCOMING
-  winnerCandidateId: string | null; // solo si FINISHED
+  winnerCandidateId: string | null; // solo si FINISHED y no existe empate
   publicEligibilityEnabled: boolean;
   ballotParties: PublicBallotParty[];
 }

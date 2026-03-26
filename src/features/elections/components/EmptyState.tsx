@@ -22,7 +22,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({ onCreateClick }) => {
                 Plataforma para el control electoral
               </p>
               <p className="text-lg text-green-100">
-                Y votaciones
+                y votaciones
               </p>
             </div>
 
@@ -55,7 +55,8 @@ const EmptyState: React.FC<EmptyStateProps> = ({ onCreateClick }) => {
             <p>
               Esta plataforma permite a los ciudadanos bolivianos monitorear y participar
               activamente en el proceso electoral de Bolivia 2026. Aquí podrás encontrar
-              información actualizada sobre las votaciones, resultados en tiempo real, y
+              información actualizada sobre las votaciones, resultados en tiempo real
+              y
               noticias relacionadas con el proceso democrático.
             </p>
             <p>

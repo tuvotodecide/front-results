@@ -19,14 +19,14 @@ const BallotPreview: React.FC<BallotPreviewProps> = ({ parties }) => {
           </svg>
         </button>
         <h1 className="text-lg font-semibold text-gray-800 flex-1 text-center pr-5">
-          Elige a tu Candidato
+          Elige a tu candidato
         </h1>
       </div>
 
       {/* Subtítulo */}
       <div className="px-4 py-3 bg-gray-50">
         <p className="text-sm text-gray-600 text-center">
-          Seleccione al candidato de su preferencia
+          Selecciona al candidato de tu preferencia
         </p>
       </div>
 

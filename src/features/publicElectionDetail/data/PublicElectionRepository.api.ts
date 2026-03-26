@@ -59,7 +59,7 @@ const mapDetailToPublic = (raw: any): PublicElectionDetail => {
   );
 
   const mappedOptionCandidates: MappedCandidate[] = options.map((option: any, idx: number) => {
-    const partyName = String(option?.name ?? `Opcion ${idx + 1}`);
+    const partyName = String(option?.name ?? `Opción ${idx + 1}`);
     const firstCandidate = Array.isArray(option?.candidates) && option.candidates.length > 0
       ? option.candidates[0]
       : null;
@@ -87,10 +87,12 @@ const mapDetailToPublic = (raw: any): PublicElectionDetail => {
 
   const totalVotes = computedTotalVotes;
 
-  const winnerCandidate =
-    candidates.length > 0
-      ? candidates.reduce((max, candidate) => (candidate.votes > max.votes ? candidate : max), candidates[0])
-      : null;
+  const maxVotes = candidates.reduce(
+    (max, candidate) => Math.max(max, candidate.votes),
+    0,
+  );
+  const topCandidates = candidates.filter((candidate) => candidate.votes === maxVotes);
+  const winnerCandidate = topCandidates.length === 1 ? topCandidates[0] : null;
 
   return {
     id: String(raw?.id ?? ''),

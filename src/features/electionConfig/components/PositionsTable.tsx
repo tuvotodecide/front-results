@@ -24,7 +24,7 @@ const PositionsTable: React.FC<PositionsTableProps> = ({
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
         <div className="p-12 text-center">
           <p className="text-gray-500">
-            Aún no tienes cargos creados, debes crear para continuar con la votación
+            Aún no tienes cargos creados. Debes crear al menos uno para continuar con la votación.
           </p>
         </div>
       </div>
