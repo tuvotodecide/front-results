@@ -2,11 +2,12 @@
 // Muestra EmptyState si no hay elecciones, o lista si hay
 // Conectado a backend real con RTK Query
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useDeleteVotingEventMutation, useGetVotingEventsQuery } from '../../store/votingEvents';
 import { selectTenantId, selectIsLoggedIn } from '../../store/auth/authSlice';
+import Modal2 from '../../components/Modal2';
 import EmptyState from './components/EmptyState';
 import type { VotingEvent } from '../../store/votingEvents/types';
 
@@ -36,6 +37,7 @@ const ElectionsPage: React.FC = () => {
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const tenantId = useSelector(selectTenantId);
   const [deleteVotingEvent, { isLoading: deleting }] = useDeleteVotingEventMutation();
+  const [deleteConfirm, setDeleteConfirm] = useState<VotingEvent | null>(null);
 
   // Query de eventos - skip si no hay tenantId
   const { data: events = [], isLoading, error, refetch } = useGetVotingEventsQuery(
@@ -70,13 +72,11 @@ const ElectionsPage: React.FC = () => {
     }
   };
 
-  const handleDeleteElection = async (event: VotingEvent) => {
-    if (!window.confirm(`¿Eliminar la votación "${event.name}"? Esta acción no se puede deshacer.`)) {
-      return;
-    }
-
+  const handleDeleteElection = async () => {
+    if (!deleteConfirm) return;
     try {
-      await deleteVotingEvent(event.id).unwrap();
+      await deleteVotingEvent(deleteConfirm.id).unwrap();
+      setDeleteConfirm(null);
     } catch (error) {
       console.error('Error eliminando votación:', error);
     }
@@ -227,7 +227,7 @@ const ElectionsPage: React.FC = () => {
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        void handleDeleteElection(event);
+                        setDeleteConfirm(event);
                       }}
                       disabled={deleting}
                       className="inline-flex items-center rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50"
@@ -246,6 +246,52 @@ const ElectionsPage: React.FC = () => {
           ))}
         </div>
       </div>
+
+      <Modal2
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        title="Eliminar votación"
+        size="sm"
+        type="plain"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700">
+            ¿Estás seguro de eliminar la votación "{deleteConfirm?.name}"?
+          </p>
+          <p className="text-sm text-gray-500">
+            Esta acción no se puede deshacer.
+          </p>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setDeleteConfirm(null)}
+              disabled={deleting}
+              className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleDeleteElection()}
+              disabled={deleting}
+              className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+            >
+              <span
+                aria-hidden="true"
+                className={`inline-flex h-4 w-4 items-center justify-center ${
+                  deleting ? 'visible' : 'invisible'
+                }`}
+              >
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              </span>
+              <span>{deleting ? 'Eliminando...' : 'Eliminar'}</span>
+            </button>
+          </div>
+        </div>
+      </Modal2>
     </div>
   );
 };
