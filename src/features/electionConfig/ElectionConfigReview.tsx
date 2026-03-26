@@ -6,6 +6,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import PhoneMockup from './components/PhoneMockup';
 import BallotPreview from './components/BallotPreview';
 import ConfigSummaryCard from './components/ConfigSummaryCard';
+import ScheduleSummaryCard from './components/ScheduleSummaryCard';
 import ConfirmActivateModal from './components/ConfirmActivateModal';
 import ActivatedSuccessModal from './components/ActivatedSuccessModal';
 import { useElectionPublish } from './data/useElectionPublish';
@@ -184,8 +185,14 @@ const ElectionConfigReview: React.FC = () => {
             </div>
 
             {/* Columna derecha: Resumen (mobile: arriba, desktop: lado) */}
-            <div className="w-full lg:w-72 order-first lg:order-last">
+            <div className="w-full lg:w-80 order-first lg:order-last space-y-4">
               {configSummary && <ConfigSummaryCard summary={configSummary} />}
+              <ScheduleSummaryCard
+                votingStart={votingEvent?.votingStart}
+                votingEnd={votingEvent?.votingEnd}
+                resultsPublishAt={votingEvent?.resultsPublishAt}
+                compact
+              />
             </div>
           </div>
         </div>

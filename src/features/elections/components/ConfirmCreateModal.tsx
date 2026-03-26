@@ -4,6 +4,7 @@
 import React from 'react';
 import Modal2 from '../../../components/Modal2';
 import type { ElectionFormData } from '../types';
+import ScheduleSummaryCard from '../../electionConfig/components/ScheduleSummaryCard';
 
 interface ConfirmCreateModalProps {
   isOpen: boolean;
@@ -12,23 +13,6 @@ interface ConfirmCreateModalProps {
   formData: ElectionFormData | null;
   isLoading: boolean;
 }
-
-// Helper para formatear fecha
-const formatDate = (dateStr: string): string => {
-  if (!dateStr) return '-';
-  try {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('es-ES', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return dateStr;
-  }
-};
 
 const ConfirmCreateModal: React.FC<ConfirmCreateModalProps> = ({
   isOpen,
@@ -47,8 +31,7 @@ const ConfirmCreateModal: React.FC<ConfirmCreateModalProps> = ({
       size="md"
     >
       <div className="space-y-4">
-        {/* Resumen */}
-        <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-3">
           <div>
             <p className="text-sm text-gray-500">Institución</p>
             <p className="font-medium text-gray-900">{formData.institution}</p>
@@ -60,23 +43,15 @@ const ConfirmCreateModal: React.FC<ConfirmCreateModalProps> = ({
               <p className="text-gray-700 text-sm">{formData.description}</p>
             </div>
           )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-gray-200">
-            <div>
-              <p className="text-sm text-gray-500">Apertura</p>
-              <p className="text-sm font-medium">{formatDate(formData.votingStartDate)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Cierre</p>
-              <p className="text-sm font-medium">{formatDate(formData.votingEndDate)}</p>
-            </div>
-          </div>
-
-          <div>
-            <p className="text-sm text-gray-500">Publicación de resultados</p>
-            <p className="text-sm font-medium">{formatDate(formData.resultsDate)}</p>
-          </div>
         </div>
+
+        <ScheduleSummaryCard
+          votingStart={formData.votingStartDate}
+          votingEnd={formData.votingEndDate}
+          resultsPublishAt={formData.resultsDate}
+          title="Fechas de la votación"
+          compact
+        />
 
         {/* Botones */}
         <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">

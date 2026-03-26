@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { PencilSquareIcon } from "@heroicons/react/24/outline";
 import ConfigStepsTabs from "./components/ConfigStepsTabs";
 import PositionsTable from "./components/PositionsTable";
 import PartiesTable from "./components/PartiesTable";
@@ -13,6 +14,7 @@ import {
   useGetPadronVotersQuery,
   useGetEventResultsQuery,
   useLazyDownloadPadronCsvQuery,
+  useUpdateEventScheduleMutation,
 } from "../../store/votingEvents";
 import type { ConfigStep, PartyWithCandidates, Position, Voter } from "./types";
 import type {
@@ -22,6 +24,7 @@ import type {
 } from "../../store/votingEvents/types";
 import { selectTenantId } from "../../store/auth/authSlice";
 import { useSelector } from "react-redux";
+import Modal2 from "../../components/Modal2";
 
 const roleToPosition = (role: EventRole): Position => ({
   id: role.id,
@@ -56,6 +59,32 @@ const formatDateTime = (value?: string | null) => {
     hour: "2-digit",
     minute: "2-digit",
   });
+};
+
+const toDateTimeLocalValue = (value?: string | null) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const pad = (part: number) => String(part).padStart(2, "0");
+
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+    date.getHours(),
+  )}:${pad(date.getMinutes())}`;
+};
+
+const canEditSchedule = (event?: {
+  state?: string | null;
+  status?: string | null;
+  votingStart?: string | null;
+}) => {
+  if (!event) return false;
+
+  const state = event.state ?? event.status ?? "DRAFT";
+  if (state === "DRAFT") return true;
+  if (state !== "PUBLISHED" || !event.votingStart) return false;
+
+  return new Date(event.votingStart).getTime() - Date.now() >= 24 * 60 * 60 * 1000;
 };
 
 const getInitial = (value?: string | null) =>
@@ -115,12 +144,25 @@ const StatusBadge: React.FC<{ state?: string }> = ({ state }) => {
   );
 };
 
-const TopInfoCard: React.FC<{ title: string; lines: Array<{ label: string; value: string }> }> = ({
+const TopInfoCard: React.FC<{
+  title: string;
+  lines: Array<{ label: string; value: string }>;
+  action?: React.ReactNode;
+  note?: string;
+}> = ({
   title,
   lines,
+  action,
+  note,
 }) => (
   <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-    <h3 className="font-semibold text-gray-800 mb-3">{title}</h3>
+    <div className="mb-3 flex items-start justify-between gap-4">
+      <div>
+        <h3 className="font-semibold text-gray-800">{title}</h3>
+        {note ? <p className="mt-1 text-xs text-gray-500">{note}</p> : null}
+      </div>
+      {action}
+    </div>
     <div className="space-y-2 text-sm text-gray-600">
       {lines.map((line) => (
         <p key={`${line.label}-${line.value}`}>
@@ -140,6 +182,14 @@ const ActiveElectionStatusPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ConfigStep>(1);
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
+  const [scheduleSuccess, setScheduleSuccess] = useState<string | null>(null);
+  const [scheduleForm, setScheduleForm] = useState({
+    votingStart: "",
+    votingEnd: "",
+    resultsPublishAt: "",
+  });
 
   const { data: event, isLoading: loadingEvent } = useGetVotingEventQuery(
     actualElectionId,
@@ -177,6 +227,8 @@ const ActiveElectionStatusPage: React.FC = () => {
   const { data: resultsData } = useGetEventResultsQuery(actualElectionId, {
     skip: !actualElectionId || !shouldShowResults,
   });
+  const [updateEventSchedule, { isLoading: updatingSchedule }] =
+    useUpdateEventScheduleMutation();
   const [downloadPadronCsv, { isFetching: downloadingCsv }] =
     useLazyDownloadPadronCsvQuery();
 
@@ -213,6 +265,15 @@ const ActiveElectionStatusPage: React.FC = () => {
     () => events.filter((item) => item.id !== actualElectionId),
     [events, actualElectionId],
   );
+  const scheduleEditable = canEditSchedule(event);
+
+  useEffect(() => {
+    setScheduleForm({
+      votingStart: toDateTimeLocalValue(event?.votingStart),
+      votingEnd: toDateTimeLocalValue(event?.votingEnd),
+      resultsPublishAt: toDateTimeLocalValue(event?.resultsPublishAt),
+    });
+  }, [event?.resultsPublishAt, event?.votingEnd, event?.votingStart]);
 
   const loading =
     loadingEvent ||
@@ -240,6 +301,45 @@ const ActiveElectionStatusPage: React.FC = () => {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  const handleScheduleInputChange = (
+    key: "votingStart" | "votingEnd" | "resultsPublishAt",
+    value: string,
+  ) => {
+    setScheduleForm((current) => ({ ...current, [key]: value }));
+    setScheduleError(null);
+    setScheduleSuccess(null);
+  };
+
+  const handleScheduleSave = async () => {
+    if (!scheduleEditable || !actualElectionId) return;
+
+    if (
+      !scheduleForm.votingStart.trim() ||
+      !scheduleForm.votingEnd.trim() ||
+      !scheduleForm.resultsPublishAt.trim()
+    ) {
+      setScheduleError("Debes completar las tres fechas para guardar el cronograma.");
+      return;
+    }
+
+    try {
+      await updateEventSchedule({
+        eventId: actualElectionId,
+        data: {
+          votingStart: new Date(scheduleForm.votingStart).toISOString(),
+          votingEnd: new Date(scheduleForm.votingEnd).toISOString(),
+          resultsPublishAt: new Date(scheduleForm.resultsPublishAt).toISOString(),
+        },
+      }).unwrap();
+
+      setScheduleSuccess("Horario actualizado correctamente.");
+      setScheduleError(null);
+      setIsScheduleModalOpen(false);
+    } catch (error: any) {
+      setScheduleError(error?.data?.message || "No se pudo actualizar el horario.");
+    }
   };
 
   if (!actualElectionId) {
@@ -286,9 +386,31 @@ const ActiveElectionStatusPage: React.FC = () => {
         <div className="grid gap-4 md:grid-cols-2">
           <TopInfoCard
             title="Horario de Votación"
+            note={
+              scheduleEditable
+                ? "Puedes modificarlo mientras siga en borrador o si faltan al menos 24 horas para el inicio."
+                : "El cronograma ya no puede modificarse porque la votación está muy próxima o ya comenzó."
+            }
+            action={
+              scheduleEditable ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScheduleError(null);
+                    setScheduleSuccess(null);
+                    setIsScheduleModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-lg border border-[#459151]/20 bg-[#EFF7F0] px-3 py-2 text-sm font-medium text-[#2E6A38] transition-colors hover:bg-[#E4F3E7]"
+                >
+                  <PencilSquareIcon className="h-4 w-4" />
+                  Modificar horarios
+                </button>
+              ) : null
+            }
             lines={[
               { label: "Desde", value: formatDateTime(event?.votingStart) },
               { label: "Hasta", value: formatDateTime(event?.votingEnd) },
+              { label: "Resultados", value: formatDateTime(event?.resultsPublishAt) },
             ]}
           />
           <TopInfoCard
@@ -307,10 +429,15 @@ const ActiveElectionStatusPage: React.FC = () => {
                           ? "Próxima / publicada"
                           : "Borrador",
               },
-              { label: "Resultados", value: formatDateTime(event?.resultsPublishAt) },
             ]}
           />
         </div>
+
+        {scheduleSuccess ? (
+          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            {scheduleSuccess}
+          </div>
+        ) : null}
 
         {shouldShowResults && resultsData && (
           <div className="rounded-2xl border border-violet-200 bg-violet-50 p-5 shadow-sm">
@@ -471,6 +598,88 @@ const ActiveElectionStatusPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      <Modal2
+        isOpen={isScheduleModalOpen}
+        onClose={() => {
+          setIsScheduleModalOpen(false);
+          setScheduleError(null);
+        }}
+        title="Modificar horarios"
+        size="lg"
+      >
+        <div className="space-y-5">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            El backend solo permite editar el cronograma en borrador o cuando faltan al menos 24
+            horas para el inicio de la votación.
+          </div>
+
+          {scheduleError ? (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {scheduleError}
+            </div>
+          ) : null}
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium text-gray-700">Inicio de votación</span>
+              <input
+                type="datetime-local"
+                value={scheduleForm.votingStart}
+                onChange={(event) => handleScheduleInputChange("votingStart", event.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-800 outline-none transition focus:border-[#459151] focus:ring-2 focus:ring-[#459151]/15"
+              />
+            </label>
+
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium text-gray-700">Fin de votación</span>
+              <input
+                type="datetime-local"
+                value={scheduleForm.votingEnd}
+                onChange={(event) => handleScheduleInputChange("votingEnd", event.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-800 outline-none transition focus:border-[#459151] focus:ring-2 focus:ring-[#459151]/15"
+              />
+            </label>
+
+            <label className="block md:col-span-2">
+              <span className="mb-2 block text-sm font-medium text-gray-700">
+                Publicación de resultados
+              </span>
+              <input
+                type="datetime-local"
+                value={scheduleForm.resultsPublishAt}
+                onChange={(event) =>
+                  handleScheduleInputChange("resultsPublishAt", event.target.value)
+                }
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-800 outline-none transition focus:border-[#459151] focus:ring-2 focus:ring-[#459151]/15"
+              />
+            </label>
+          </div>
+
+          <p className="text-sm text-gray-500">
+            El sistema no está enviando una notificación automática al padrón cuando este horario
+            cambia. Si eso debe ser obligatorio, hay que agregarlo en backend.
+          </p>
+
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={() => setIsScheduleModalOpen(false)}
+              className="rounded-lg border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleScheduleSave}
+              disabled={updatingSchedule}
+              className="rounded-lg bg-[#459151] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#3a7a44] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {updatingSchedule ? "Guardando..." : "Guardar horarios"}
+            </button>
+          </div>
+        </div>
+      </Modal2>
     </div>
   );
 };
