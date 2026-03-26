@@ -254,19 +254,31 @@ const ElectionsPage: React.FC = () => {
         size="sm"
         type="plain"
       >
-        <div className="space-y-4">
-          <p className="text-gray-700">
-            ¿Estás seguro de eliminar la votación "{deleteConfirm?.name}"?
-          </p>
-          <p className="text-sm text-gray-500">
-            Esta acción no se puede deshacer.
-          </p>
-          <div className="flex justify-end gap-3 pt-2">
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-red-100 bg-red-50/70 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-red-100 text-red-600">
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86l-7.5 13A1 1 0 003.65 18h16.7a1 1 0 00.86-1.5l-7.5-13a1 1 0 00-1.72 0z" />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-slate-900">
+                  ¿Estás seguro de eliminar la votación "{deleteConfirm?.name}"?
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Esta acción eliminará la votación borrador y no se puede deshacer.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col-reverse gap-3 pt-1 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={() => setDeleteConfirm(null)}
               disabled={deleting}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors disabled:opacity-50"
+              className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50"
             >
               Cancelar
             </button>
@@ -274,19 +286,18 @@ const ElectionsPage: React.FC = () => {
               type="button"
               onClick={() => void handleDeleteElection()}
               disabled={deleting}
-              className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 disabled:opacity-50"
             >
-              <span
-                aria-hidden="true"
-                className={`inline-flex h-4 w-4 items-center justify-center ${
-                  deleting ? 'visible' : 'invisible'
-                }`}
-              >
+              {deleting ? (
                 <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-              </span>
+              ) : (
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              )}
               <span>{deleting ? 'Eliminando...' : 'Eliminar'}</span>
             </button>
           </div>
