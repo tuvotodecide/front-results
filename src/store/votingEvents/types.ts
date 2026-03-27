@@ -156,6 +156,12 @@ export interface PadronVersion {
   isCurrent: boolean;
 }
 
+export interface PadronSummary {
+  total: number,
+  enabledToVote: number,
+  disabledToVote: number,
+}
+
 export interface PadronVoter {
   id: string;
   carnet: string;

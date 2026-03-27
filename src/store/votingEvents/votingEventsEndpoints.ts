@@ -12,6 +12,7 @@ import type {
   EventRole,
   PadronCsvDownload,
   PadronImportResult,
+  PadronSummary,
   PadronVersion,
   PadronVoter,
   ParticipationStatus,
@@ -314,6 +315,11 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
       providesTags: (_result, _error, eventId) => [{ type: "VotingEventPadron", id: eventId }],
     }),
 
+    getPadronSummary: builder.query<PadronSummary, string>({
+      query: (eventId) => `/voting/events/${eventId}/padron/voters/summary`,
+      providesTags: (_result, _error, eventId) => [{ type: "VotingEventPadronSummary", id: eventId }],
+    }),
+
     getPadronVoters: builder.query<
       { voters: PadronVoter[]; total: number; page: number; limit: number; totalPages: number },
       { eventId: string; page?: number; limit?: number }
@@ -513,6 +519,7 @@ export const {
   useImportPadronMutation,
   useGetPadronVersionsQuery,
   useLazyGetPadronVersionsQuery,
+  useGetPadronSummaryQuery,
   useGetPadronVotersQuery,
   useLazyGetPadronVotersQuery,
   useLazyDownloadPadronCsvQuery,

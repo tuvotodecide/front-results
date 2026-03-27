@@ -102,6 +102,29 @@ export async function createVoting(signer: ethers.JsonRpcSigner, votingEvent: Vo
   await tx.wait();
 }
 
+export async function updateVotingSchedule(
+  signer: ethers.JsonRpcSigner,
+  votingEventId: string,
+  newStart: string,
+  newEnd: string,
+  newResults: string
+) {
+  const voteContract = new Contract(
+    import.meta.env.VITE_VOTE_CONTRACT_ADDRESS,
+    votingContractAbi,
+    signer,
+  );
+
+  const tx = await voteContract.updateVoteDates(
+    votingEventId,
+    dateStringToUnixSeconds(newStart),
+    dateStringToUnixSeconds(newEnd),
+    dateStringToUnixSeconds(newResults)
+  );
+
+  await tx.wait();
+}
+
 export const useWallet = () => {
   const [account, setAccount] = useState<string | null>(null);
   const [connectionState, setConnectionState] = useState<'disconnected' | 'connecting' | 'connected' | 'notInstalled'>('disconnected');
@@ -136,6 +159,16 @@ export const useWallet = () => {
     }
   };
 
+  const handleTransactionError = (error: any) => {
+    if (error.message.includes('user rejected action')) {
+      setTransactionState('canceled');
+      return new Error('tx_canceled');
+    } else {
+      setTransactionState('error');
+    }
+    return error;
+  }
+
   const callCreateVoting = async (votingEvent: VotingEvent, votersCount: number): Promise<string[]> => {
     if (!accSigner.current) {
       throw new Error('Wallet not connected');
@@ -147,13 +180,20 @@ export const useWallet = () => {
       setTransactionState('success');
       return userNullifiers;
     } catch (error: any) {
-      if (error.message.includes('user rejected action')) {
-        setTransactionState('canceled');
-        throw new Error('tx_canceled');
-      } else {
-        setTransactionState('error');
-      }
-      throw error;
+      throw handleTransactionError(error);
+    }
+  }
+
+  const callUpdateSchedule = async (votingEventId: string, newStart: string, newEnd: string, newResults: string) => {
+    if (!accSigner.current) {
+      throw new Error('Wallet not connected');
+    }
+    setTransactionState('pending');
+    try {
+      await updateVotingSchedule(accSigner.current, votingEventId, newStart, newEnd, newResults);
+      setTransactionState('success');
+    } catch (error: any) {
+      throw handleTransactionError(error);
     }
   }
 
@@ -163,6 +203,7 @@ export const useWallet = () => {
     account,
     connectWallet,
     callCreateVoting,
+    callUpdateSchedule,
     resetConnectionState,
     resetTransactionState
   };
