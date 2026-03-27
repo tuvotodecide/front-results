@@ -64,11 +64,11 @@ const ElectionConfigReview: React.FC = () => {
 
   const handleActivate = async () => {
     try {
-      if (!votingEvent || !configSummary?.votersCount) {
+      if (!votingEvent || !configSummary?.enabledToVoteCount) {
         throw new Error('Could not load voting event data');
       }
       // on-chain call
-      const nullifiers = await callCreateVoting(votingEvent, configSummary.votersCount);
+      const nullifiers = await callCreateVoting(votingEvent, configSummary.enabledToVoteCount);
       // call backend to activate election with nullifiers
       await activateElection(nullifiers);
       setShowConfirmModal(false);

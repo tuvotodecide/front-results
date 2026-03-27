@@ -2,6 +2,7 @@ import { useMemo, useState, useCallback } from 'react';
 import {
   useGetEventOptionsQuery,
   useGetEventRolesQuery,
+  useGetPadronSummaryQuery,
   useGetPadronVersionsQuery,
   useGetVotingEventQuery,
   usePublishVotingEventMutation,
@@ -39,6 +40,9 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
     useGetEventOptionsQuery(electionId, { skip: !electionId });
   const { data: padronVersions = [], isLoading: loadingPadron, refetch: refetchPadron } =
     useGetPadronVersionsQuery(electionId, { skip: !electionId });
+  const { data: padronSummary, isLoading: loadingPadronSummary, refetch: refetchPadronSummary } =
+    useGetPadronSummaryQuery(electionId, { skip: !electionId });
+
 
   const [publishVotingEvent, { isLoading: activating }] = usePublishVotingEventMutation();
   const [activationResult, setActivationResult] = useState<ActivationResult | null>(null);
@@ -77,6 +81,8 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
     const currentPadron = padronVersions.find((v) => v.isCurrent) ?? padronVersions[0];
     const votersCount = currentPadron?.validCount ?? 0;
     const invalidCount = currentPadron?.invalidCount ?? 0;
+    const enabledToVoteCount = padronSummary?.enabledToVote ?? 0;
+    const disabledToVoteCount = padronSummary?.disabledToVote ?? 0;
 
     return {
       positionsOk: positionsCount > 0,
@@ -85,8 +91,10 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
       positionsCount,
       partiesCount,
       votersCount,
+      enabledToVoteCount,
+      disabledToVoteCount,
     };
-  }, [roles, options, padronVersions]);
+  }, [roles, options, padronVersions, padronSummary]);
 
   const electionStatus: ElectionStatus = useMemo(() => {
     if (!event) return 'DRAFT';
@@ -129,15 +137,15 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
   }, []);
 
   const refetch = useCallback(async () => {
-    await Promise.all([refetchEvent(), refetchRoles(), refetchOptions(), refetchPadron()]);
-  }, [refetchEvent, refetchRoles, refetchOptions, refetchPadron]);
+    await Promise.all([refetchEvent(), refetchRoles(), refetchOptions(), refetchPadron(), refetchPadronSummary()]);
+  }, [refetchEvent, refetchRoles, refetchOptions, refetchPadron, refetchPadronSummary]);
 
   return {
     votingEvent: event,
     ballotPreview,
     configSummary,
     electionStatus,
-    loading: loadingEvent || loadingRoles || loadingOptions || loadingPadron,
+    loading: loadingEvent || loadingRoles || loadingOptions || loadingPadron || loadingPadronSummary,
     error: null,
     activateElection,
     activating,

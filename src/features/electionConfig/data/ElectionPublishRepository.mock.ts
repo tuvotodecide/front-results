@@ -16,6 +16,8 @@ export interface ConfigSummary {
   positionsCount: number;
   partiesCount: number;
   votersCount: number;
+  enabledToVoteCount: number;
+  disabledToVoteCount: number;
 }
 
 export interface ActivationResult {
@@ -166,6 +168,8 @@ export const createMockElectionPublishRepository = (): ElectionPublishRepository
         positionsCount,
         partiesCount,
         votersCount,
+        enabledToVoteCount: 0,
+        disabledToVoteCount: 0,
       };
     },
 

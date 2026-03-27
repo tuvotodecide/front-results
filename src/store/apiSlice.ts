@@ -108,6 +108,7 @@ export const apiSlice = createApi({
     "VotingEventRoles",
     "VotingEventOptions",
     "VotingEventPadron",
+    "VotingEventPadronSummary",
     "VotingEventResults",
     "VotingEventNews",
     "InstitutionalTenants",
