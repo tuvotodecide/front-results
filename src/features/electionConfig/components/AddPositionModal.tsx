@@ -11,6 +11,7 @@ interface AddPositionModalProps {
   onSave: (name: string) => Promise<void>;
   isLoading: boolean;
   editingPosition?: Position | null;
+  submitError?: string | null;
 }
 
 const AddPositionModal: React.FC<AddPositionModalProps> = ({
@@ -19,6 +20,7 @@ const AddPositionModal: React.FC<AddPositionModalProps> = ({
   onSave,
   isLoading,
   editingPosition,
+  submitError,
 }) => {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
@@ -50,8 +52,8 @@ const AddPositionModal: React.FC<AddPositionModalProps> = ({
     try {
       await onSave(trimmedName);
       onClose();
-    } catch (err) {
-      setError('Error al guardar. Intenta de nuevo.');
+    } catch {
+      // El mensaje del guardado lo define el contenedor para poder distinguir offline/backend.
     }
   };
 
@@ -72,6 +74,11 @@ const AddPositionModal: React.FC<AddPositionModalProps> = ({
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Label */}
         <div>
+          {submitError && (
+            <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {submitError}
+            </div>
+          )}
           <label
             htmlFor="positionName"
             className="block text-sm font-medium text-gray-700 mb-2"

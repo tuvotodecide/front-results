@@ -9,6 +9,7 @@ import PartiesTable from './components/PartiesTable';
 import PartyModal from './components/PartyModal';
 import CandidatesModal from './components/CandidatesModal';
 import ConfigPageFallback from './components/ConfigPageFallback';
+import { getRequestErrorMessage } from './requestErrorMessage';
 import {
   useGetVotingEventQuery,
   useGetEventRolesQuery,
@@ -275,7 +276,7 @@ const ElectionConfigPlanchas: React.FC = () => {
         };
       }
     } catch (err: any) {
-      setError(err?.data?.message || 'Error al guardar el partido');
+      setError(getRequestErrorMessage(err, 'Error al guardar el partido'));
       throw err;
     }
   };
@@ -301,7 +302,8 @@ const ElectionConfigPlanchas: React.FC = () => {
       setIsCandidatesModalOpen(false);
       setCurrentPartyForCandidates(null);
     } catch (err: any) {
-      setError(err?.data?.message || 'Error al guardar los candidatos');
+      setError(getRequestErrorMessage(err, 'Error al guardar los candidatos'));
+      throw err;
     }
   };
 
@@ -316,7 +318,7 @@ const ElectionConfigPlanchas: React.FC = () => {
       }).unwrap();
       setDeleteConfirm(null);
     } catch (err: any) {
-      setError(err?.data?.message || 'Error al eliminar el partido');
+      setError(getRequestErrorMessage(err, 'Error al eliminar el partido'));
     }
   };
 
@@ -501,6 +503,7 @@ const ElectionConfigPlanchas: React.FC = () => {
         onSave={handleSaveParty}
         isLoading={creating || updating}
         editingParty={editingParty}
+        submitError={error}
       />
 
       {/* Modal Gestión de Candidatos */}
@@ -515,6 +518,7 @@ const ElectionConfigPlanchas: React.FC = () => {
         positions={positions}
         existingCandidates={currentPartyForCandidates?.candidates || []}
         partyName={currentPartyForCandidates?.name}
+        submitError={error}
       />
 
       {/* Modal Confirmar Eliminación */}

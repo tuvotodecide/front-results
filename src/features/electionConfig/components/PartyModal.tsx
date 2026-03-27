@@ -11,6 +11,7 @@ interface PartyModalProps {
   onSave: (data: CreatePartyPayload) => Promise<Party>;
   isLoading: boolean;
   editingParty?: Party | null;
+  submitError?: string | null;
 }
 
 const DEFAULT_COLOR = '#2E7D32';
@@ -21,6 +22,7 @@ const PartyModal: React.FC<PartyModalProps> = ({
   onSave,
   isLoading,
   editingParty,
+  submitError,
 }) => {
   const [name, setName] = useState('');
   const [colorHex, setColorHex] = useState(DEFAULT_COLOR);
@@ -144,6 +146,12 @@ const PartyModal: React.FC<PartyModalProps> = ({
       closeOnEscape={false}
     >
       <form onSubmit={handleSubmit} className="space-y-5">
+        {submitError && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {submitError}
+          </div>
+        )}
+
         {/* Nombre del Partido */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">

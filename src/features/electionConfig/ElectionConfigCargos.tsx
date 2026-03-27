@@ -9,6 +9,7 @@ import InfoPopover from './components/InfoPopover';
 import PositionsTable from './components/PositionsTable';
 import AddPositionModal from './components/AddPositionModal';
 import ConfigPageFallback from './components/ConfigPageFallback';
+import { getRequestErrorMessage } from './requestErrorMessage';
 import {
   useGetVotingEventQuery,
   useGetEventRolesQuery,
@@ -111,7 +112,7 @@ const ElectionConfigCargos: React.FC = () => {
       setIsAddModalOpen(false);
       setEditingPosition(null);
     } catch (err: any) {
-      setError(err?.data?.message || 'Error al guardar el cargo');
+      setError(getRequestErrorMessage(err, 'Error al guardar el cargo'));
       throw err; // Re-throw para que el modal lo maneje
     }
   };
@@ -126,7 +127,7 @@ const ElectionConfigCargos: React.FC = () => {
       }).unwrap();
       setDeleteConfirm(null);
     } catch (err: any) {
-      setError(err?.data?.message || 'Error al eliminar el cargo');
+      setError(getRequestErrorMessage(err, 'Error al eliminar el cargo'));
     }
   };
 
@@ -298,6 +299,7 @@ const ElectionConfigCargos: React.FC = () => {
         onSave={handleSavePosition}
         isLoading={creating || updating}
         editingPosition={editingPosition}
+        submitError={error}
       />
 
       {/* Modal Confirmar Eliminación */}

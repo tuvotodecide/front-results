@@ -25,6 +25,7 @@ import type {
 import { selectTenantId } from "../../store/auth/authSlice";
 import { useSelector } from "react-redux";
 import Modal2 from "../../components/Modal2";
+import { getRequestErrorMessage } from "./requestErrorMessage";
 
 const roleToPosition = (role: EventRole): Position => ({
   id: role.id,
@@ -376,7 +377,7 @@ const ActiveElectionStatusPage: React.FC = () => {
       setScheduleError(null);
       setIsScheduleModalOpen(false);
     } catch (error: any) {
-      setScheduleError(error?.data?.message || "No se pudo actualizar el horario.");
+      setScheduleError(getRequestErrorMessage(error, "No se pudo actualizar el horario."));
     }
   };
 

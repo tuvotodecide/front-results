@@ -11,6 +11,7 @@ import UploadSummaryModal from './components/UploadSummaryModal';
 import FixInvalidModal from './components/FixInvalidModal';
 import LoadedPadronView from './components/LoadedPadronView';
 import ConfigPageFallback from './components/ConfigPageFallback';
+import { getRequestErrorMessage } from './requestErrorMessage';
 import {
   useGetVotingEventQuery,
   useGetEventRolesQuery,
@@ -303,7 +304,7 @@ const ElectionConfigPadron: React.FC = () => {
       setModalState('none');
     } catch (err: any) {
       clearInterval(progressInterval);
-      setError(err?.data?.message || 'Error al cargar el archivo');
+      setError(getRequestErrorMessage(err, 'Error al cargar el archivo'));
       setModalState('none');
     }
   };
@@ -432,7 +433,7 @@ const ElectionConfigPadron: React.FC = () => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (err: any) {
-      setError(err?.data?.message || 'No se pudo descargar el padrón');
+      setError(getRequestErrorMessage(err, 'No se pudo descargar el padrón'));
     }
   };
 

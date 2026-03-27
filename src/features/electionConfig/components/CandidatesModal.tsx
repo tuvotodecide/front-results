@@ -13,6 +13,7 @@ interface CandidatesModalProps {
   positions: Position[];
   existingCandidates?: Candidate[];
   partyName?: string;
+  submitError?: string | null;
 }
 
 interface CandidateFormData {
@@ -34,6 +35,7 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
   positions,
   existingCandidates = [],
   partyName,
+  submitError,
 }) => {
   const [candidates, setCandidates] = useState<CandidateFormData[]>([]);
   const [showValidation, setShowValidation] = useState(false);
@@ -123,6 +125,12 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
       closeOnEscape={false}
     >
       <form onSubmit={handleSubmit} className="space-y-6">
+        {submitError && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {submitError}
+          </div>
+        )}
+
         {partyName && (
           <p className="text-sm text-gray-500 -mt-2">
             Partido: <span className="font-medium text-gray-700">{partyName}</span>
