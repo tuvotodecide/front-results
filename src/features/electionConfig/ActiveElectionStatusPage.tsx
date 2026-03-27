@@ -73,6 +73,43 @@ const toDateTimeLocalValue = (value?: string | null) => {
   )}:${pad(date.getMinutes())}`;
 };
 
+const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+
+const validateScheduleForm = (
+  form: { votingStart: string; votingEnd: string; resultsPublishAt: string },
+  enforceWindowRule: boolean,
+) => {
+  if (!form.votingStart.trim() || !form.votingEnd.trim() || !form.resultsPublishAt.trim()) {
+    return "Debes completar las tres fechas para guardar el cronograma.";
+  }
+
+  const votingStart = new Date(form.votingStart);
+  const votingEnd = new Date(form.votingEnd);
+  const resultsPublishAt = new Date(form.resultsPublishAt);
+
+  if (
+    Number.isNaN(votingStart.getTime()) ||
+    Number.isNaN(votingEnd.getTime()) ||
+    Number.isNaN(resultsPublishAt.getTime())
+  ) {
+    return "Debes ingresar fechas válidas para guardar el cronograma.";
+  }
+
+  if (votingStart >= votingEnd) {
+    return "La fecha de inicio debe ser anterior a la fecha de fin.";
+  }
+
+  if (resultsPublishAt <= votingEnd) {
+    return "La publicación de resultados debe ser posterior al fin de la votación.";
+  }
+
+  if (enforceWindowRule && votingStart.getTime() - Date.now() < TWENTY_FOUR_HOURS_MS) {
+    return "La fecha de inicio debe poder modificarse hasta 24 horas antes de iniciar.";
+  }
+
+  return null;
+};
+
 const canEditSchedule = (event?: {
   state?: string | null;
   status?: string | null;
@@ -84,7 +121,7 @@ const canEditSchedule = (event?: {
   if (state === "DRAFT") return true;
   if (state !== "PUBLISHED" || !event.votingStart) return false;
 
-  return new Date(event.votingStart).getTime() - Date.now() >= 24 * 60 * 60 * 1000;
+  return new Date(event.votingStart).getTime() - Date.now() >= TWENTY_FOUR_HOURS_MS;
 };
 
 const getInitial = (value?: string | null) =>
@@ -315,12 +352,13 @@ const ActiveElectionStatusPage: React.FC = () => {
   const handleScheduleSave = async () => {
     if (!scheduleEditable || !actualElectionId) return;
 
-    if (
-      !scheduleForm.votingStart.trim() ||
-      !scheduleForm.votingEnd.trim() ||
-      !scheduleForm.resultsPublishAt.trim()
-    ) {
-      setScheduleError("Debes completar las tres fechas para guardar el cronograma.");
+    const scheduleValidationError = validateScheduleForm(
+      scheduleForm,
+      (event?.state ?? event?.status ?? "DRAFT") !== "DRAFT",
+    );
+
+    if (scheduleValidationError) {
+      setScheduleError(scheduleValidationError);
       return;
     }
 
@@ -426,7 +464,7 @@ const ActiveElectionStatusPage: React.FC = () => {
                       : lifecycle === "ACTIVE"
                         ? "En votación"
                         : lifecycle === "PUBLISHED"
-                          ? "Próxima / publicada"
+                          ? "Próxima"
                           : "Borrador",
               },
             ]}

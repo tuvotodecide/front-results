@@ -84,7 +84,6 @@ const InfoPopover: React.FC<InfoPopoverProps> = ({ className = '' }) => {
             <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
               <li>Presidente (elige 1)</li>
               <li>Vicepresidente (elige 1)</li>
-              <li>Delegados (elige 3)</li>
             </ul>
           </div>
         </div>
