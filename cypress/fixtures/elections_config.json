@@ -1,0 +1,4 @@
+[
+  { "_id": "election-mock-1", "name": "Presidencial", "electionType": "presidential" },
+  { "_id": "election-mock-2", "name": "Alcalde", "electionType": "mayor" }
+]

@@ -8,9 +8,10 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run",
     "cy:open": "cypress open",
-    "cy:run": "cypress run",
-    "test:e2e": "cypress run"
+    "cy:run": "cypress run"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -44,16 +45,22 @@
     "@types/react-modal": "^3.16.3",
     "@types/react-router-dom": "^5.3.3",
     "@vitejs/plugin-react-swc": "^3.8.0",
-    "cypress": "^15.12.0",
+    "cypress": "^15.11.0",
     "eslint": "^9.21.0",
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^15.15.0",
+    "msw": "^2.12.10",
     "tailwindcss": "^4.1.4",
     "ts-node": "^10.9.2",
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.24.1",
     "vite": "^6.2.0",
     "vite-tsconfig-paths": "^5.1.4"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }

@@ -1,0 +1,14 @@
+{
+  "results": [
+    { "partyId": "MAS", "totalVotes": 5500 },
+    { "partyId": "CC", "totalVotes": 4800 },
+    { "partyId": "CREEMOS", "totalVotes": 1200 }
+  ],
+  "summary": {
+    "validVotes": 11500,
+    "nullVotes": 300,
+    "blankVotes": 150,
+    "tablesProcessed": 45,
+    "totalTables": 1000
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "hasActiveConfig": true,
+  "isVotingPeriod": true,
+  "isResultsPeriod": false,
+  "config": {
+    "name": "Elección Mock",
+    "status": "active",
+    "resultsStartDateBolivia": "2026-12-31T18:00:00.000Z"
+  }
+}
