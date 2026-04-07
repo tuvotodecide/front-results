@@ -1,20 +1,14 @@
-// Página principal del Landing Público
-// Compone las 4 secciones: Hero, Cómo funciona, Elecciones activas, Contacto
-
 import React from 'react';
 import { useLandingData } from './data/usePublicLandingRepository';
 import HeroSection from './components/HeroSection';
+import BenefitsSection from './components/BenefitsSection';
+import TrustSection from './components/TrustSection';
 import HowItWorksSection from './components/HowItWorksSection';
-import ActiveElectionsSection from './components/ActiveElectionsSection';
 import ContactSection from './components/ContactSection';
 
 const PublicLandingPage: React.FC = () => {
   const { data, loading, error } = useLandingData();
-  const hasActiveElections = Boolean(
-    data?.activeElections?.featured || (data?.activeElections?.others?.length ?? 0) > 0,
-  );
 
-  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -26,7 +20,6 @@ const PublicLandingPage: React.FC = () => {
     );
   }
 
-  // Error state
   if (error || !data) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center p-4">
@@ -51,43 +44,11 @@ const PublicLandingPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Sección 1: Hero */}
-      <HeroSection
-        title={data.hero.title}
-        subtitle={data.hero.subtitle}
-        ctaText={data.hero.ctaText}
-        ctaSubtext={data.hero.ctaSubtext}
-        benefits={data.benefits}
-        whatsappNumber={data.contact.whatsappNumber}
-      />
-
-      {/* Sección 2: Cómo funciona */}
-      <HowItWorksSection
-        title={data.howItWorks.title}
-        subtitle={data.howItWorks.subtitle}
-        steps={data.howItWorks.steps}
-      />
-
-      {/* Sección 3: Elecciones activas */}
-      {hasActiveElections && (
-        <ActiveElectionsSection
-          title={data.activeElections.title}
-          featured={data.activeElections.featured}
-          others={data.activeElections.others}
-        />
-      )}
-
-      {/* Sección 4: Contacto */}
-      <ContactSection contact={data.contact} />
-
-      {/* Footer */}
-      <footer className="bg-slate-800 text-slate-400 py-8">
-        <div className="max-w-5xl mx-auto px-4 text-center">
-          <p className="text-sm">
-            © {new Date().getFullYear()} Tu Voto Decide. Todos los derechos reservados.
-          </p>
-        </div>
-      </footer>
+      <HeroSection hero={data.hero} />
+      <BenefitsSection benefits={data.benefits} />
+      <TrustSection trust={data.trust} />
+      <HowItWorksSection title={data.howItWorks.title} steps={data.howItWorks.steps} />
+      <ContactSection cards={data.finalCta} contact={data.contact} />
     </div>
   );
 };

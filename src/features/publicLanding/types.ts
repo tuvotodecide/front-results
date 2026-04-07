@@ -1,12 +1,70 @@
-// Tipos para el landing público
+export interface LandingHero {
+  title: {
+    prefix: string;
+    highlight: string;
+  };
+  subtitle: string;
+  ctaText: string;
+  videoEmbedUrl: string;
+}
 
 export type ElectionStatus = 'ACTIVA' | 'FINALIZADA' | 'PROXIMA';
 
-export interface Benefit {
+export interface ActiveElection {
+  id: string;
+  title: string;
+  organization: string;
+  status: ElectionStatus;
+  closesIn?: string;
+  votingSchedule?: {
+    from: string;
+    to: string;
+  };
+  isFeatured: boolean;
+}
+
+export interface BenefitCard {
   id: string;
   title: string;
   description: string;
-  icon: 'padron' | 'cargos' | 'resultados';
+  icon:
+    | "desktop"
+    | "users"
+    | "file-search"
+    | "shield"
+    | "id"
+    | "check"
+    | "mobile";
+}
+
+export interface BenefitAudience {
+  id: "organizers" | "voters";
+  label: string;
+  cards: BenefitCard[];
+}
+
+export interface BenefitsSectionData {
+  title: string;
+  audiences: BenefitAudience[];
+}
+
+export interface TrustBrand {
+  id: string;
+  name: string;
+  accent?: string;
+  logoSrc?: string;
+  logoAlt?: string;
+}
+
+export interface TrustSectionData {
+  title: string;
+  institutionsLabel: string;
+  institutionsValue: string;
+  electionsLabel: string;
+  electionsValue: string;
+  trustedTitle: string;
+  trustedSubtitle: string;
+  brands: TrustBrand[];
 }
 
 export interface Step {
@@ -14,45 +72,43 @@ export interface Step {
   number: number;
   title: string;
   description: string;
-  icon: 'crear' | 'cargar' | 'publicar';
+  icon: "user-plus" | "settings" | "users" | "pulse" | "mobile";
 }
 
-export interface ActiveElection {
-  id: string;
+export interface FinalCtaCard {
   title: string;
-  organization: string;
-  status: ElectionStatus;
-  closesIn?: string; // Ej: "2h"
-  votingSchedule?: {
-    from: string; // Ej: "12 de febrero de 2026 - 08:00 hrs"
-    to: string;   // Ej: "12 de febrero de 2026 - 18:00 hrs"
-  };
-  isFeatured: boolean;
+  description: string;
+  icon: "institution" | "mobile";
+  buttonText: string;
+  buttonHref: string;
+  buttonSubtext?: string;
+  dark?: boolean;
 }
 
 export interface ContactInfo {
   whatsappNumber: string;
   email: string;
-  attentionHours: string; // Ej: "08:30–20:00"
+  attentionHours: string;
+  brandName: string;
+  socialLinks: Array<{
+    id: string;
+    href: string;
+    label: string;
+    icon: "facebook" | "twitter" | "instagram" | "linkedin";
+  }>;
 }
 
 export interface PublicLandingData {
-  hero: {
-    title: string;
-    subtitle: string;
-    ctaText: string;
-    ctaSubtext: string;
-  };
-  benefits: Benefit[];
+  hero: LandingHero;
+  benefits: BenefitsSectionData;
+  trust: TrustSectionData;
   howItWorks: {
     title: string;
-    subtitle: string;
     steps: Step[];
   };
-  activeElections: {
-    title: string;
-    featured: ActiveElection | null;
-    others: ActiveElection[];
+  finalCta: {
+    institutions: FinalCtaCard;
+    voters: FinalCtaCard;
   };
   contact: ContactInfo;
 }

@@ -80,3 +80,36 @@ export const useActiveElections = (): UseActiveElectionsResult => {
 
   return { featured, others, loading, error, refetch: fetchData };
 };
+
+interface UsePastElectionsResult {
+  elections: ActiveElection[];
+  loading: boolean;
+  error: Error | null;
+  refetch: () => void;
+}
+
+export const usePastElections = (): UsePastElectionsResult => {
+  const [elections, setElections] = useState<ActiveElection[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const repository = getRepository();
+      const result = await repository.getPastElections();
+      setElections(result);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Error desconocido'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  return { elections, loading, error, refetch: fetchData };
+};

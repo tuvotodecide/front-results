@@ -49,16 +49,7 @@ const mapLandingEvent = (event: any, status: ActiveElection['status']): ActiveEl
 
 export class PublicLandingRepositoryApi implements IPublicLandingRepository {
   async getLandingData(): Promise<PublicLandingData> {
-    const base = await publicLandingRepositoryMock.getLandingData();
-    const { featured, others } = await this.getActiveElections();
-    return {
-      ...base,
-      activeElections: {
-        ...base.activeElections,
-        featured,
-        others,
-      },
-    };
+    return publicLandingRepositoryMock.getLandingData();
   }
 
   async getActiveElections(): Promise<{ featured: ActiveElection | null; others: ActiveElection[] }> {
@@ -88,6 +79,26 @@ export class PublicLandingRepositoryApi implements IPublicLandingRepository {
       : [];
 
     return { featured, others };
+  }
+
+  async getPastElections(): Promise<ActiveElection[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/voting/events/public/landing`, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error('No se pudieron cargar las elecciones pasadas');
+      }
+
+      const data = await response.json();
+      const results = Array.isArray(data?.results) ? data.results : [];
+
+      return results.map((event: any) => mapLandingEvent(event, 'FINALIZADA'));
+    } catch {
+      return publicLandingRepositoryMock.getPastElections();
+    }
   }
 }
 

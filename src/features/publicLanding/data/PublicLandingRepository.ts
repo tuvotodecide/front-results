@@ -16,4 +16,6 @@ export interface IPublicLandingRepository {
     featured: ActiveElection | null;
     others: ActiveElection[];
   }>;
+
+  getPastElections(): Promise<ActiveElection[]>;
 }

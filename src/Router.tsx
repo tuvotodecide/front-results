@@ -46,6 +46,9 @@ const PublicLayout = React.lazy(() => import("./components/PublicLayout"));
 const PublicLandingPage = React.lazy(() =>
   import("./features/publicLanding").then((m) => ({ default: m.PublicLandingPage }))
 );
+const PastElectionsPage = React.lazy(() =>
+  import("./features/publicLanding").then((m) => ({ default: m.PastElectionsPage }))
+);
 const ElectionsPage = React.lazy(() =>
   import("./features/elections").then((m) => ({ default: m.ElectionsPage }))
 );
@@ -75,6 +78,17 @@ const ActiveElectionStatusPage = React.lazy(() =>
 const LandingOrHomeRoute: React.FC = () => {
   const isLoggedIn = useSelector(selectIsLoggedIn);
 
+  // Modo Results: conservar comportamiento histórico del router anterior.
+  // El home de resultados siempre vivía bajo BasicLayout y resolvía por sí mismo
+  // contratos públicos / contratos del usuario / navegación a resultados.
+  if (!isVotingMode()) {
+    return (
+      <BasicLayout>
+        <Home />
+      </BasicLayout>
+    );
+  }
+
   // Modo Voting: Redirigir a /elections si está logueado
   if (isVotingMode()) {
     if (isLoggedIn) {
@@ -88,20 +102,7 @@ const LandingOrHomeRoute: React.FC = () => {
     );
   }
 
-  // Modo Results (anterior): comportamiento original
-  if (isLoggedIn) {
-    return (
-      <BasicLayout>
-        <Home />
-      </BasicLayout>
-    );
-  }
-
-  return (
-    <PublicLayout>
-      <PublicLandingPage />
-    </PublicLayout>
-  );
+  return null;
 };
 
 const AppRouter: React.FC = () => {
@@ -135,6 +136,14 @@ const AppRouter: React.FC = () => {
             element={
               <PublicLayout>
                 <PublicElectionDetailPage />
+              </PublicLayout>
+            }
+          />
+          <Route
+            path="/elections/past"
+            element={
+              <PublicLayout>
+                <PastElectionsPage />
               </PublicLayout>
             }
           />
