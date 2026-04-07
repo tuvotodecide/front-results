@@ -69,6 +69,28 @@ export interface DelegateActivityTableRow {
   ballotsCount?: number;
 }
 
+export interface DelegateAttestationDetail {
+  dni?: string;
+  delegateName?: string;
+  ballotId?: string;
+  support?: boolean;
+  attestedAt?: string;
+}
+
+export interface DelegateActivityByTableRow extends DelegateActivityTableRow {
+  ballotId?: string;
+  tableNumber?: string | number;
+  attestationDetails?: DelegateAttestationDetail[];
+}
+
+export interface DelegateActivityByDelegateRow {
+  dni: string;
+  name?: string;
+  totalAttestations: number;
+}
+
+export type DelegateActivityRow = DelegateActivityByTableRow | DelegateActivityByDelegateRow;
+
 export interface DelegateActivityResponse {
   groupBy: GroupBy;
 
@@ -80,7 +102,7 @@ export interface DelegateActivityResponse {
   totalTables?: number;
   totalLocations?: number;
 
-  data: any[];
+  data: DelegateActivityRow[];
 }
 
 export const clientReportsApi = apiSlice.injectEndpoints({
@@ -104,7 +126,7 @@ export const clientReportsApi = apiSlice.injectEndpoints({
       providesTags: ["ClientReports"],
     }),
     
-    getMyActiveContract: builder.query<MyActiveContractResponse, {}>({
+    getMyActiveContract: builder.query<MyActiveContractResponse, void>({
       query: () => `/client-reports/my-active-contract`,
       providesTags: ["ClientReports"],
     }),

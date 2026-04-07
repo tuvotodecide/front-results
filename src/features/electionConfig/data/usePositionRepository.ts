@@ -11,7 +11,7 @@ interface UsePositionsResult {
   positions: Position[];
   loading: boolean;
   error: Error | null;
-  refetch: () => Promise<any>;
+  refetch: () => Promise<unknown>;
   createPosition: (payload: CreatePositionPayload) => Promise<Position>;
   updatePosition: (payload: UpdatePositionPayload) => Promise<Position>;
   deletePosition: (positionId: string) => Promise<void>;

@@ -5,17 +5,19 @@ import {
   useGetVotingEventsQuery,
 } from '../../../store/votingEvents';
 import { selectTenantId } from '../../../store/auth/authSlice';
+import { readStoredUser } from '@/shared/auth/storage';
 import type { Election, CreateElectionPayload } from '../types';
+import type { VotingEvent } from '../../../store/votingEvents/types';
 
 interface UseElectionsResult {
   elections: Election[];
   loading: boolean;
   error: Error | null;
-  refetch: () => Promise<any>;
+  refetch: () => Promise<unknown>;
   isEmpty: boolean;
 }
 
-const mapEventToElection = (event: any): Election => ({
+const mapEventToElection = (event: VotingEvent): Election => ({
   id: String(event?.id ?? ''),
   institution: String(event?.name ?? ''),
   description: String(event?.objective ?? ''),
@@ -34,7 +36,10 @@ const mapEventToElection = (event: any): Election => ({
 });
 
 export const useElections = (): UseElectionsResult => {
-  const { data = [], isLoading, error, refetch } = useGetVotingEventsQuery();
+  const tenantId = useSelector(selectTenantId);
+  const { data = [], isLoading, error, refetch } = useGetVotingEventsQuery(
+    tenantId ? { tenantId } : undefined,
+  );
 
   const elections = useMemo(() => data.map(mapEventToElection), [data]);
 
@@ -58,7 +63,8 @@ export const useCreateElection = (): UseCreateElectionResult => {
   const [createVotingEvent, createState] = useCreateVotingEventMutation();
 
   const createElection = async (payload: CreateElectionPayload): Promise<Election> => {
-    const effectiveTenantId = tenantId || localStorage.getItem('tenantId') || '';
+    const storedUser = readStoredUser();
+    const effectiveTenantId = tenantId || storedUser?.tenantId || '';
     if (!effectiveTenantId) {
       throw new Error('No se encontró tenantId en sesión. Solicita al superadmin tu tenantId.');
     }

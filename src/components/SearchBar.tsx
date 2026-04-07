@@ -5,6 +5,17 @@ interface SearchBarProps {
   className?: string;
 }
 
+const MOCK_SUGGESTIONS = [
+  'react components',
+  'react hooks tutorial',
+  'react best practices',
+  'react router',
+  'react state management',
+  'react performance optimization',
+  'react testing',
+  'react native',
+];
+
 export default function SearchBar(props: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
@@ -12,21 +23,9 @@ export default function SearchBar(props: SearchBarProps) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Mock suggestions - in a real app, these would come from an API
-  const mockSuggestions = [
-    'react components',
-    'react hooks tutorial',
-    'react best practices',
-    'react router',
-    'react state management',
-    'react performance optimization',
-    'react testing',
-    'react native',
-  ];
-
   useEffect(() => {
     if (query.length > 0) {
-      const filtered = mockSuggestions.filter((suggestion) =>
+      const filtered = MOCK_SUGGESTIONS.filter((suggestion) =>
         suggestion.toLowerCase().includes(query.toLowerCase())
       );
       setSuggestions(filtered.slice(0, 5));

@@ -1,11 +1,13 @@
+"use client";
+
 // Página de detalle público de una elección
 // Muestra resultados, estado y distribución de votos
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import { publicElectionRepository } from './data/PublicElectionRepository.api';
 import type { PublicElectionDetail, Candidate } from './types';
 import { PadronCheckModal } from '../padronCheck';
+import { pushBrowserUrl, useBrowserLocation } from '@/shared/routing/browserLocation';
 
 // Iconos
 const ArrowLeftIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
@@ -350,9 +352,18 @@ const PadronCheckSection: React.FC<{ onOpenModal: () => void }> = ({ onOpenModal
 );
 
 // Componente principal
-const PublicElectionDetailPage: React.FC = () => {
-  const { electionId } = useParams<{ electionId: string }>();
-  const navigate = useNavigate();
+interface PublicElectionDetailPageProps {
+  electionId?: string;
+}
+
+const resolveElectionIdFromPathname = (pathname: string) => {
+  const match = pathname.match(/^\/elections\/([^/]+)\/public\/?$/);
+  return match?.[1] ? decodeURIComponent(match[1]) : undefined;
+};
+
+const PublicElectionDetailPage: React.FC<PublicElectionDetailPageProps> = ({ electionId: electionIdProp }) => {
+  const { pathname } = useBrowserLocation();
+  const electionId = electionIdProp ?? resolveElectionIdFromPathname(pathname);
   const [election, setElection] = useState<PublicElectionDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -373,7 +384,7 @@ const PublicElectionDetailPage: React.FC = () => {
         } else {
           setElection(data);
         }
-      } catch (err) {
+      } catch {
         setError('Error al cargar la elección');
       } finally {
         setIsLoading(false);
@@ -384,7 +395,7 @@ const PublicElectionDetailPage: React.FC = () => {
   }, [electionId]);
 
   const handleBack = () => {
-    navigate('/');
+    pushBrowserUrl({ pathname: '/' });
   };
 
   // Obtener el candidato ganador

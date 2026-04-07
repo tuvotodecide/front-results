@@ -1,18 +1,19 @@
+"use client";
+
 import { useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useGetPublicActiveContractsQuery } from "../store/contracts/contractsEndpoints";
+import { normalizeResultsElectionType } from "@/domains/results/lib/queryParams";
+import { useBrowserSearchParams } from "@/shared/routing/browserLocation";
 import {
   selectFilterIds,
   selectFilters,
 } from "../store/resultados/resultadosSlice";
 import { selectIsLoggedIn } from "../store/auth/authSlice";
 
-type ElectionType = "municipal" | "departamental" | "presidential" | string;
-
 interface UsePublicResultsScopeParams {
   electionId?: string;
-  electionType?: ElectionType;
+  electionType?: string;
 }
 
 export function usePublicResultsScope({
@@ -22,20 +23,12 @@ export function usePublicResultsScope({
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const filterIds = useSelector(selectFilterIds);
   const filters = useSelector(selectFilters);
-  const [searchParams] = useSearchParams();
+  const searchParams = useBrowserSearchParams();
 
-  const normalizedElectionType = useMemo(() => {
-    if (electionType === "municipal" || electionType === "council") {
-      return "municipal";
-    }
-    if (electionType === "departamental" || electionType === "assembly") {
-      return "departamental";
-    }
-    if (electionType === "presidential" || electionType === "deputies") {
-      return "presidential";
-    }
-    return undefined;
-  }, [electionType]);
+  const normalizedElectionType = useMemo(
+    () => normalizeResultsElectionType(electionType),
+    [electionType],
+  );
 
   const { data: publicContractsData, isLoading } = useGetPublicActiveContractsQuery(
     electionId

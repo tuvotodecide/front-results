@@ -1,20 +1,23 @@
 import {
-  BaseQueryApi,
+  type BaseQueryApi,
   FetchArgs,
   createApi,
   fetchBaseQuery,
+  type FetchBaseQueryError,
 } from "@reduxjs/toolkit/query/react";
 import { logOut } from "./auth/authSlice";
+import { publicEnv } from "@/shared/env/public";
+import { isBrowser } from "@/shared/platform/browser";
+import { readStorageItem } from "@/shared/auth/storage";
+import type { RootState } from "./index";
 
-const { VITE_BASE_API_URL } = import.meta.env;
-const baseApiUrl = VITE_BASE_API_URL || "http://localhost:3000/api/v1";
-const appMode = String(import.meta.env.VITE_APP_MODE || "voting").toLowerCase();
+const baseApiUrl = publicEnv.baseApiUrl;
 
 const baseQuery = fetchBaseQuery({
   baseUrl: baseApiUrl,
 
   prepareHeaders: (headers, { getState }) => {
-    const state = getState() as any;
+    const state = getState() as RootState;
     const token = state.auth.token;
     headers.set("Accept", "application/json");
     if (token) {
@@ -43,27 +46,25 @@ const needsElectionId = (path: string) => {
 const baseQueryWrapper = async (
   args: string | FetchArgs,
   api: BaseQueryApi,
-  extraOptions: {},
+  extraOptions: Parameters<typeof baseQuery>[2],
 ) => {
-  const state = api.getState() as any;
+  const state = api.getState() as RootState;
   const urlElectionId =
-    typeof window !== "undefined"
+    isBrowser()
       ? new URLSearchParams(window.location.search).get("electionId")
       : null;
   const eid =
     urlElectionId ??
     state?.election?.selectedElectionId ??
-    (typeof localStorage !== "undefined"
-      ? localStorage.getItem("selectedElectionId")
-      : null);
+    readStorageItem("selectedElectionId");
 
-  let adjusted: FetchArgs =
+  const adjusted: FetchArgs =
     typeof args === "string" ? { url: args } : { ...args };
 
 
   const urlPath = typeof args === "string" ? args : (args.url as string);
   if (eid && needsElectionId(urlPath)) {
-    const prevParams = (adjusted.params as Record<string, any>) || {};
+    const prevParams = (adjusted.params as Record<string, unknown>) || {};
     if (!("electionId" in prevParams)) {
       adjusted.params = { ...prevParams, electionId: eid };
     }
@@ -71,10 +72,10 @@ const baseQueryWrapper = async (
 
   const result = await baseQuery(adjusted, api, extraOptions);
 
-  if (result.error?.status === 401 && state?.auth?.token) {
+  if ((result.error as FetchBaseQueryError | undefined)?.status === 401 && state?.auth?.token) {
     api.dispatch(logOut());
-    if (typeof window !== "undefined") {
-      const target = appMode === "voting" ? "/" : "/login";
+    if (isBrowser()) {
+      const target = publicEnv.appMode === "voting" ? "/" : "/login";
       if (window.location.pathname !== target) {
         window.location.assign(target);
       }

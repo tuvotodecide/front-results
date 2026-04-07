@@ -1,7 +1,10 @@
+"use client";
+
 import { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
-import { useLocation } from "react-router-dom";
-import { RootState } from "../store";
+import { readElectionIdParam } from "@/domains/results/lib/queryParams";
+import { useBrowserSearchParams } from "@/shared/routing/browserLocation";
+import type { RootState } from "../store";
 import { useGetConfigurationStatusQuery } from "../store/configurations/configurationsEndpoints";
 import { ElectionStatusType } from "../types";
 import {
@@ -31,12 +34,9 @@ interface ElectionConfig {
  * along with derived properties that match the old API format.
  */
 export default function useElectionConfig(): ElectionConfig {
-  const location = useLocation();
+  const searchParams = useBrowserSearchParams();
   const selectedElectionId = useSelector((s: RootState) => s.election.selectedElectionId);
-  const electionIdFromUrl = useMemo(() => {
-    const value = new URLSearchParams(location.search).get("electionId");
-    return value?.trim() || null;
-  }, [location.search]);
+  const electionIdFromUrl = readElectionIdParam(searchParams);
   const effectiveElectionId = electionIdFromUrl ?? selectedElectionId;
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [knownActiveElections, setKnownActiveElections] = useState<ElectionStatusType[]>([]);
@@ -103,11 +103,11 @@ export default function useElectionConfig(): ElectionConfig {
       currentElection = activeElections[0];
     }
 
-    // Legacy fallback: if using old API format
+    // Fallback for single-config responses
     if (!currentElection && status.config) {
       currentElection = {
         ...status.config,
-        type: "presidential", // default type for legacy
+        type: "presidential",
         round: 1,
         isVotingPeriod: status.isVotingPeriod ?? false,
         isResultsPeriod: status.isResultsPeriod ?? false,

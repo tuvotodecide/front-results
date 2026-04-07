@@ -178,7 +178,7 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
       .style('fill', '#475569')
       .style('letter-spacing', '0.3px')
       .text((d) => `${d.value?.toLocaleString()} votos`);
-  }, [dataWithPercentage, dimensions]);
+  }, [dataWithPercentage, dimensions, maxPercentageWithMargin]);
 
   if (data.length === 0) {
     return (

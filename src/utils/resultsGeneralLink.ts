@@ -1,31 +1,11 @@
-export interface GeneralResultsLinkParams {
-  electionId?: string | null;
-  electionType?: string | null;
-  departmentId?: string | null;
-  municipalityId?: string | null;
-}
+import {
+  buildResultsSearch,
+  type ResultsContextParams,
+} from "@/domains/results/lib/queryParams";
 
-export const buildGeneralResultsLink = (
-  params?: GeneralResultsLinkParams,
-) => {
-  const search = new URLSearchParams();
+export type GeneralResultsLinkParams = ResultsContextParams;
 
-  if (params?.electionId) {
-    search.set("electionId", params.electionId);
-  }
-
-  if (params?.electionType) {
-    search.set("electionType", params.electionType);
-  }
-
-  if (params?.departmentId) {
-    search.set("department", params.departmentId);
-  }
-
-  if (params?.municipalityId) {
-    search.set("municipality", params.municipalityId);
-  }
-
-  const query = search.toString();
+export const buildGeneralResultsLink = (params?: GeneralResultsLinkParams) => {
+  const query = buildResultsSearch(params);
   return query ? `/resultados?${query}` : "/resultados";
 };

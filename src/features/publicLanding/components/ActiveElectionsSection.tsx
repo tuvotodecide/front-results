@@ -2,9 +2,9 @@
 // Basado en captura 03_active_elections.png
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import type { ActiveElection, ElectionStatus } from '../types';
 import PadronCheckModal from '../../padronCheck/PadronCheckModal';
+import { pushBrowserUrl } from '@/shared/routing/browserLocation';
 
 // Badge de estado
 const StatusBadge: React.FC<{ status: ElectionStatus }> = ({ status }) => {
@@ -54,7 +54,6 @@ const ActiveElectionsSection: React.FC<ActiveElectionsSectionProps> = ({
   others,
   onConsultarHabilitado,
 }) => {
-  const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
 
   const handleConsultar = () => {
@@ -66,7 +65,9 @@ const ActiveElectionsSection: React.FC<ActiveElectionsSectionProps> = ({
   };
 
   const handleViewElection = (electionId: string) => {
-    navigate(`/elections/${electionId}/public`);
+    pushBrowserUrl({
+      pathname: `/elections/${electionId}/public`,
+    });
   };
 
   return (

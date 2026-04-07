@@ -26,6 +26,21 @@ import { selectTenantId } from "../../store/auth/authSlice";
 import { useSelector } from "react-redux";
 import Modal2 from "../../components/Modal2";
 
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "data" in error &&
+    typeof (error as { data?: { message?: unknown } }).data?.message === "string"
+  ) {
+    return (error as { data: { message: string } }).data.message;
+  }
+  return fallback;
+};
+
 const roleToPosition = (role: EventRole): Position => ({
   id: role.id,
   name: role.name,
@@ -375,8 +390,10 @@ const ActiveElectionStatusPage: React.FC = () => {
       setScheduleSuccess("Horario actualizado correctamente.");
       setScheduleError(null);
       setIsScheduleModalOpen(false);
-    } catch (error: any) {
-      setScheduleError(error?.data?.message || "No se pudo actualizar el horario.");
+    } catch (error: unknown) {
+      setScheduleError(
+        getErrorMessage(error, "No se pudo actualizar el horario."),
+      );
     }
   };
 

@@ -1,9 +1,13 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef } from "react";
 import styles from "./Breadcrumb.module.css";
 import { ChevronRight } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
-import { useSearchParams } from "react-router-dom";
 import Fuse from "fuse.js";
+import {
+  replaceBrowserUrl,
+  useBrowserSearchParams,
+} from "@/shared/routing/browserLocation";
 import { selectDepartments } from "../store/departments/departmentsSlice";
 import { useLazyGetDepartmentQuery } from "../store/departments/departmentsEndpoints";
 import {
@@ -37,6 +41,19 @@ import { useMyContract } from "../hooks/useMyContract";
 interface LevelOption {
   _id: string;
   name: string;
+}
+
+interface NestedLocationEntity {
+  _id: string;
+  name: string;
+  departmentId?: NestedLocationEntity;
+}
+
+interface BreadcrumbEntity {
+  _id: string;
+  name: string;
+  departmentId?: NestedLocationEntity;
+  provinceId?: NestedLocationEntity;
 }
 
 interface breadcrumbOptions {
@@ -93,7 +110,7 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
   const { user } = useSelector(selectAuth);
   const queryParamsResults = useSelector(selectQueryParamsResults);
   const { hasContract, contract } = useMyContract();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const searchParams = useBrowserSearchParams();
   const [getDepartment] = useLazyGetDepartmentQuery();
   const [getProvince] = useLazyGetProvinceQuery();
   const [getMunicipality] = useLazyGetMunicipalityQuery();
@@ -513,16 +530,16 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
       if (electionType) {
         nextParams.set("electionType", electionType);
       }
-      setSearchParams(nextParams);
+      replaceBrowserUrl({ search: nextParams.toString() });
     }
     prevUserRef.current = user;
-  }, [user, dispatch, searchParams, setSearchParams]);
+  }, [user, dispatch, searchParams]);
 
   // Update URL whenever selectedPath2 changes
   useEffect(() => {
     const params = buildQueryParams(selectedPath2);
-    setSearchParams(params);
-  }, [selectedPath2, setSearchParams]);
+    replaceBrowserUrl({ search: params.toString() });
+  }, [selectedPath2]);
 
   const searchParamsString = searchParams.toString();
 
@@ -535,6 +552,9 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
       return;
     }
     const paramsSnapshot = new URLSearchParams(searchParamsString);
+    const paramsObject = Object.fromEntries(
+      paramsSnapshot.entries(),
+    ) as Record<string, string>;
     if (!isInitialized && paramsSnapshot.size > 0 && selectedPath2.length === 0) {
       // console.log(
       //   '%cInitializing from URL params:',
@@ -550,22 +570,20 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
       ];
 
       const promises = fetchers
-        .filter((f) =>
-          Boolean((Object.fromEntries(paramsSnapshot.entries()) as any)[f.key]),
-        )
+        .filter((f) => Boolean(paramsObject[f.key]))
         .map((f) => {
-          const id = (Object.fromEntries(paramsSnapshot.entries()) as any)[f.key];
-          return f.fetch(id).then((resp: any) => ({
+          const id = paramsObject[f.key];
+          return f.fetch(id).then((resp) => ({
             index: f.index,
             key: f.key,
-            data: resp.data,
+            data: (resp as { data?: BreadcrumbEntity }).data,
           }));
         });
 
       if (promises.length > 0) {
         Promise.allSettled(promises).then((results) => {
           const map = new Map<number, PathItem2>();
-          const rawDataByKey = new Map<string, any>();
+          const rawDataByKey = new Map<string, BreadcrumbEntity>();
 
           results.forEach((r) => {
             if (r.status === "fulfilled" && r.value?.data?._id) {
@@ -754,7 +772,6 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
     }
   }, [
     searchParamsString,
-    queryParamsResults,
     allowManualPick,
     isInitialized,
     selectedPath2.length,
@@ -861,7 +878,7 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
       return [];
     }
     switch (levelIndex) {
-      case 0:
+      case 0: {
         // GET departments
         // console.log(
         //   '%cDepartments fetched:',
@@ -869,7 +886,8 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
         //   options.departments
         // );
         return options.departments;
-      case 1:
+      }
+      case 1: {
         const resp = await getProvincesByDepartmentId(idParentOption).unwrap();
         // console.log(
         //   '%cProvinces fetched for department222222:',
@@ -878,7 +896,8 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
         // );
         // GET provinces based on selected department
         return resp;
-      case 2:
+      }
+      case 2: {
         const municipalitiesResp =
           await getMunicipalitiesByProvinceId(idParentOption).unwrap();
         // console.log(
@@ -887,7 +906,8 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
         //   municipalitiesResp
         // );
         return municipalitiesResp;
-      case 3:
+      }
+      case 3: {
         const electoralSeatsResp =
           await getElectoralSeatsByMunicipalityId(idParentOption).unwrap();
         // console.log(
@@ -896,7 +916,8 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
         //   electoralSeatsResp
         // );
         return electoralSeatsResp;
-      case 4:
+      }
+      case 4: {
         const electoralLocationsResp =
           await getElectoralLocationsByElectoralSeatId(idParentOption).unwrap();
         // console.log(
@@ -905,6 +926,7 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
         //   electoralLocationsResp
         // );
         return electoralLocationsResp;
+      }
       default:
         return [];
     }

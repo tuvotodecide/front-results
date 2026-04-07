@@ -1,8 +1,9 @@
 import { createSlice } from '@reduxjs/toolkit';
+import type { ConfigurationType } from '../../types';
 
 export interface configurationsState {
-  configurations: any[];
-  configuration: any | null;
+  configurations: ConfigurationType[];
+  configuration: ConfigurationType | null;
 }
 
 const initialState: configurationsState = {

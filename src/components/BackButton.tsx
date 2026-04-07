@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { pushBrowserUrl } from "@/shared/routing/browserLocation";
 
 interface BackButtonProps {
   className?: string;
@@ -7,11 +7,23 @@ interface BackButtonProps {
 }
 
 const BackButton: React.FC<BackButtonProps> = ({ className = "", to }) => {
-  const navigate = useNavigate();
+  const handleClick = () => {
+    if (!to) {
+      window.history.back();
+      return;
+    }
+
+    const url = new URL(to, window.location.origin);
+    pushBrowserUrl({
+      pathname: url.pathname,
+      search: url.search,
+      hash: url.hash,
+    });
+  };
 
   return (
     <button
-      onClick={() => (to ? navigate(to) : navigate(-1))}
+      onClick={handleClick}
       className={`p-2 rounded-full hover:bg-gray-100 transition-colors duration-200 ${className}`}
       title="Volver"
     >

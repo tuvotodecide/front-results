@@ -11,7 +11,7 @@ interface ResultsTableProps {
 }
 
 const ResultsTable: React.FC<ResultsTableProps> = ({ resultsData }) => {
-  const safeNumber = (n: any) => {
+  const safeNumber = (n: number | string | null | undefined) => {
     const v = Number(n);
     return Number.isFinite(v) ? v : 0;
   };
@@ -20,7 +20,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ resultsData }) => {
     0
   );
 
-  const percent = (value: any) => {
+  const percent = (value: number | string | null | undefined) => {
     const v = safeNumber(value);
     if (totalVotes <= 0) return 0;
     return (v / totalVotes) * 100;

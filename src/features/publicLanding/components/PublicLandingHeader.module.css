@@ -1,0 +1,242 @@
+.header {
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 16px;
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f2937;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex-shrink: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logoImage {
+  height: 40px;
+  width: auto;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.logoText {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.userMenuContainer {
+  position: relative;
+  cursor: pointer;
+}
+
+.userName {
+  padding: 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  background-color: transparent;
+  cursor: pointer;
+  user-select: none;
+  color: #459151;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #f3f4f6;
+}
+
+.userName:hover,
+.userNameActive {
+  background-color: #e5e7eb;
+}
+
+.userMenu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  min-width: 180px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.2s ease;
+  z-index: 50;
+  padding: 8px 0;
+}
+
+.userMenuShow {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.menuHeader {
+  padding: 4px 16px 10px;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 6px;
+}
+
+.menuEmail {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+}
+
+.menuItem {
+  display: block;
+  width: 100%;
+  padding: 8px 16px;
+  text-align: left;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #374151;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.menuItem:hover {
+  background-color: #f3f4f6;
+}
+
+.loginButton {
+  background-color: transparent;
+  color: #459151;
+  padding: 8px 20px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  border: 2px solid #459151;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.loginButton:hover {
+  background-color: #459151;
+  color: white;
+  box-shadow: 0 4px 6px rgba(46, 125, 50, 0.2);
+  transform: translateY(-1px);
+}
+
+.userButton {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 6px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #1e293b;
+}
+
+.userButton:hover,
+.userButtonActive {
+  background-color: #ffffff;
+  border-color: #459151;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.avatar {
+  background-color: #459151;
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.userNameText {
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chevron {
+  color: #94a3b8;
+  transition: transform 0.2s ease;
+}
+
+.chevronRotate {
+  transform: rotate(180deg);
+}
+
+.menuToggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #565656;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.menuToggle svg {
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.menuToggle:hover {
+  background: #f3f4f6;
+}
+
+.menuToggle:hover svg {
+  color: #2b2b2b;
+  transform: scale(1.1);
+}
+
+.spacer {
+  height: 64px;
+}
+
+@media (max-width: 640px) {
+  .header {
+    padding: 0 16px;
+  }
+
+  .logoText {
+    display: none;
+  }
+}

@@ -68,7 +68,9 @@ export const createMockElectionPublishRepository = (): ElectionPublishRepository
           const election = elections.find((e: { id: string }) => e.id === electionId);
           if (election) electionTitle = election.institution;
         }
-      } catch {}
+      } catch {
+        // noop: mock localStorage may be empty or malformed
+      }
 
       // Obtener partidos con candidatos
       const parties: PartyWithCandidates[] = [];
@@ -95,7 +97,9 @@ export const createMockElectionPublishRepository = (): ElectionPublishRepository
             });
           }
         }
-      } catch {}
+      } catch {
+        // noop: mock localStorage may be empty or malformed
+      }
 
       return {
         electionId,
@@ -122,7 +126,9 @@ export const createMockElectionPublishRepository = (): ElectionPublishRepository
             : (parsedPositions[electionId] || []);
           positionsCount = electionPositions.length;
         }
-      } catch {}
+      } catch {
+        // noop: mock localStorage may be empty or malformed
+      }
 
       // Contar partidos y verificar si tienen candidatos
       try {
@@ -145,7 +151,9 @@ export const createMockElectionPublishRepository = (): ElectionPublishRepository
             return (parsedCandidates[key] || []).length > 0;
           }).length;
         }
-      } catch {}
+      } catch {
+        // noop: mock localStorage may be empty or malformed
+      }
 
       // Contar votantes válidos
       try {
@@ -157,7 +165,9 @@ export const createMockElectionPublishRepository = (): ElectionPublishRepository
             votersCount = state.file.validCount || 0;
           }
         }
-      } catch {}
+      } catch {
+        // noop: mock localStorage may be empty or malformed
+      }
 
       return {
         positionsOk: positionsCount > 0,
@@ -184,7 +194,9 @@ export const createMockElectionPublishRepository = (): ElectionPublishRepository
             localStorage.setItem(STORAGE_KEY_ELECTIONS, JSON.stringify(elections));
           }
         }
-      } catch {}
+      } catch {
+        // noop: mock localStorage may be empty or malformed
+      }
 
       const publicUrl = `${window.location.origin}/votar/${electionId}`;
       const shareText = `¡Participa en las elecciones! Vota aquí: ${publicUrl}`;
@@ -215,7 +227,9 @@ export const createMockElectionPublishRepository = (): ElectionPublishRepository
             return election.status as ElectionStatus;
           }
         }
-      } catch {}
+      } catch {
+        // noop: mock localStorage may be empty or malformed
+      }
 
       return 'DRAFT';
     },

@@ -1,6 +1,47 @@
 import type { IPublicElectionRepository, PublicElectionDetail, PublicElectionStatus } from '../types';
+import { publicEnv } from '@/shared/env/public';
 
-const API_BASE_URL = import.meta.env.VITE_BASE_API_URL || 'http://localhost:3000/api/v1';
+const API_BASE_URL = publicEnv.baseApiUrl;
+
+interface PublicElectionCandidateDto {
+  id?: string | number | null;
+  name?: string | null;
+  roleName?: string | null;
+  photoUrl?: string | null;
+}
+
+interface PublicElectionOptionDto {
+  id?: string | number | null;
+  name?: string | null;
+  color?: string | null;
+  logoUrl?: string | null;
+  candidates?: PublicElectionCandidateDto[] | null;
+}
+
+interface PublicElectionResultDto {
+  option?: string | null;
+  votes?: number | string | null;
+}
+
+interface PublicElectionDetailDto {
+  id?: string | number | null;
+  name?: string | null;
+  objective?: string | null;
+  phase?: string | null;
+  state?: string | null;
+  votingStart?: string | null;
+  votingEnd?: string | null;
+  resultsAvailable?: boolean | null;
+  publicEligibilityEnabled?: boolean | null;
+  options?: PublicElectionOptionDto[] | null;
+  results?: PublicElectionResultDto[] | null;
+}
+
+interface PublicElectionLandingResponseDto {
+  active?: PublicElectionDetailDto[];
+  upcoming?: PublicElectionDetailDto[];
+  results?: PublicElectionDetailDto[];
+}
 
 const colorPalette = [
   '#1e40af',
@@ -38,7 +79,7 @@ const mapPhaseToStatus = (phase?: string | null): PublicElectionStatus => {
   return 'UPCOMING';
 };
 
-const mapDetailToPublic = (raw: any): PublicElectionDetail => {
+const mapDetailToPublic = (raw: PublicElectionDetailDto): PublicElectionDetail => {
   type MappedCandidate = {
     id: string;
     name: string;
@@ -55,10 +96,10 @@ const mapDetailToPublic = (raw: any): PublicElectionDetail => {
 
   const resultRows = Array.isArray(raw?.results) ? raw.results : [];
   const votesByOption = new Map<string, number>(
-    resultRows.map((result: any) => [String(result?.option ?? ''), Number(result?.votes ?? 0)]),
+    resultRows.map((result) => [String(result?.option ?? ''), Number(result?.votes ?? 0)]),
   );
 
-  const mappedOptionCandidates: MappedCandidate[] = options.map((option: any, idx: number) => {
+  const mappedOptionCandidates: MappedCandidate[] = options.map((option, idx: number) => {
     const partyName = String(option?.name ?? `Opción ${idx + 1}`);
     const firstCandidate = Array.isArray(option?.candidates) && option.candidates.length > 0
       ? option.candidates[0]
@@ -106,13 +147,13 @@ const mapDetailToPublic = (raw: any): PublicElectionDetail => {
         : null,
     winnerCandidateId: winnerCandidate?.id ?? null,
     publicEligibilityEnabled: Boolean(raw?.publicEligibilityEnabled),
-    ballotParties: options.map((option: any, index: number) => ({
+    ballotParties: options.map((option, index: number) => ({
       id: String(option?.id ?? `option-${index + 1}`),
       name: option?.name ?? '',
       colorHex: option?.color ?? colorPalette[index % colorPalette.length],
       logoUrl: option?.logoUrl ?? undefined,
       candidates: Array.isArray(option?.candidates)
-        ? option.candidates.map((candidate: any, candidateIndex: number) => ({
+        ? option.candidates.map((candidate, candidateIndex: number) => ({
             id: String(candidate?.id ?? `${String(option?.id ?? index)}-${candidateIndex + 1}`),
             fullName: candidate?.name ?? '',
             positionName: candidate?.roleName ?? '',
@@ -134,7 +175,7 @@ export class PublicElectionRepositoryApi implements IPublicElectionRepository {
       throw new Error('No se pudo cargar el landing público');
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as PublicElectionLandingResponseDto;
     const list = [
       ...(Array.isArray(data?.active) ? data.active : []),
       ...(Array.isArray(data?.upcoming) ? data.upcoming : []),
@@ -167,7 +208,7 @@ export class PublicElectionRepositoryApi implements IPublicElectionRepository {
       throw new Error('No se pudo cargar el detalle público');
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as PublicElectionDetailDto;
     return mapDetailToPublic(data);
   }
 }

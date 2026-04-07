@@ -1,6 +1,13 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { RootState } from "../index";
 import { jwtDecode } from "jwt-decode";
+import {
+  clearSessionStorage,
+  readStoredToken,
+  readStoredUser,
+  writeStoredToken,
+  writeStoredUser,
+} from "@/shared/auth/storage";
 type JwtPayload = {
   sub?: string;
   dni?: string;
@@ -31,6 +38,11 @@ export interface AuthState {
     tenantName?: string;
   } | null;
 }
+
+type AuthUserInput = Partial<NonNullable<AuthState["user"]>> & {
+  _id?: string;
+  isApproved?: boolean;
+};
 const decodeToken = (token: string | null): JwtPayload | null => {
   if (!token) return null;
   try {
@@ -46,7 +58,7 @@ const isTokenExpired = (token: string | null) => {
 
   return decoded.exp * 1000 <= Date.now();
 };
-const normalizeRole = (role: any) => {
+const normalizeRole = (role: unknown) => {
   const r = String(role || "").toUpperCase();
 
   if (r === "ALCALDE" || r === "MAYOR") return "MAYOR";
@@ -56,7 +68,7 @@ const normalizeRole = (role: any) => {
   return "publico";
 };
 
-const normalizeUser = (u: any): AuthState["user"] => {
+const normalizeUser = (u: AuthUserInput | null | undefined): AuthState["user"] => {
   if (!u) return null;
 
   const role = normalizeRole(u.role);
@@ -78,19 +90,12 @@ const normalizeUser = (u: any): AuthState["user"] => {
     tenantName: u.tenantName,
   };
 };
-let rawUser: any = null;
-try {
-  rawUser = JSON.parse(localStorage.getItem("user") ?? "null");
-} catch {
-  rawUser = null;
-}
-
-const storedToken = localStorage.getItem("token");
+const rawUser = readStoredUser();
+const storedToken = readStoredToken();
 const initialToken = storedToken && !isTokenExpired(storedToken) ? storedToken : null;
 
 if (!initialToken) {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
+  clearSessionStorage();
 }
 
 const initialState: AuthState = {
@@ -154,25 +159,21 @@ export const authSlice = createSlice({
       state.user = validToken ? user : null;
 
       if (validToken && user) {
-        localStorage.setItem("user", JSON.stringify(user));
+        writeStoredUser(user);
       } else {
-        localStorage.removeItem("user");
+        writeStoredUser(null);
       }
 
       if (validToken) {
-        localStorage.setItem("token", validToken);
+        writeStoredToken(validToken);
       } else {
-        localStorage.removeItem("token");
+        writeStoredToken(null);
       }
     },
     logOut: (state) => {
       state.token = null;
       state.user = null;
-      localStorage.removeItem("user");
-      localStorage.removeItem("token");
-      localStorage.removeItem("selectedElectionId");
-      localStorage.removeItem("pendingEmail");
-      localStorage.removeItem("pendingReason");
+      clearSessionStorage();
     },
   },
 });

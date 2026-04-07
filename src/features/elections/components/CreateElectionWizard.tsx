@@ -10,6 +10,16 @@ import ConfirmCreateModal from './ConfirmCreateModal';
 import { useCreateElection } from '../data/useElectionRepository';
 import type { ElectionFormData, ElectionFormStep1, ElectionFormStep2 } from '../types';
 
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const { message } = error as { message?: string };
+    if (typeof message === 'string') {
+      return message;
+    }
+  }
+  return fallback;
+};
+
 const getCurrentLocalDateTime = () => {
   const now = new Date();
   const timezoneOffset = now.getTimezoneOffset() * 60000;
@@ -134,12 +144,10 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
       } else {
         navigate(`/elections/${newElection.id}/config/cargos`, { replace: true });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creando elección:', error);
       setShowConfirmModal(false);
-      setSubmitError(
-        error?.message || 'No se pudo continuar al siguiente paso. Intenta nuevamente.',
-      );
+      setSubmitError(getErrorMessage(error, 'No se pudo continuar al siguiente paso. Intenta nuevamente.'));
     }
   };
 

@@ -1,8 +1,9 @@
 import { createSlice } from '@reduxjs/toolkit';
+import type { PoliticalPartiesType } from '../../types';
 
 export interface PoliticalPartiesState {
-  politicalParty: any | null;
-  politicalParties: any[];
+  politicalParty: PoliticalPartiesType | null;
+  politicalParties: PoliticalPartiesType[];
 }
 
 const initialState: PoliticalPartiesState = {

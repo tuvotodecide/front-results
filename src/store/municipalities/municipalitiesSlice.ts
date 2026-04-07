@@ -1,8 +1,9 @@
 import { createSlice } from '@reduxjs/toolkit';
+import type { MunicipalitiesType } from '../../types';
 
 export interface municipalitiesState {
-  municipalities: any[];
-  municipality: any | null;
+  municipalities: MunicipalitiesType[];
+  municipality: MunicipalitiesType | null;
 }
 
 const initialState: municipalitiesState = {

@@ -3,12 +3,30 @@ import { useRef, useState } from 'react';
 import { VotingEvent } from '../store/votingEvents';
 import { votingContractAbi } from '../abi/votingContract';
 import { v4 as uuidv4 } from 'uuid';
+import { publicEnv } from '@/shared/env/public';
+
+type EthereumRequestParams = {
+  method: string;
+  params?: unknown[] | Record<string, unknown>;
+};
+
+type EthereumProvider = {
+  request: (params: EthereumRequestParams) => Promise<unknown>;
+};
+
+type WalletError = Error & { code?: number };
+
+declare global {
+  interface Window {
+    ethereum?: EthereumProvider | null;
+  }
+}
 
 export async function connectMetamask() {
   if(window.ethereum == null) {
     throw new Error('MetaMask is not installed');
   } else {
-    const chainId = import.meta.env.VITE_VOTE_CHAIN_ID ? parseInt(import.meta.env.VITE_VOTE_CHAIN_ID) : undefined;
+    const chainId = publicEnv.voteChainId ? parseInt(publicEnv.voteChainId) : undefined;
     const chainIdHex = chainId != null ? `0x${chainId.toString(16)}` : undefined;
     const provider = new ethers.BrowserProvider(
       window.ethereum,
@@ -22,12 +40,13 @@ export async function connectMetamask() {
           method: 'wallet_switchEthereumChain',
           params: [{ chainId: chainIdHex }]
         });
-      } catch (switchError: any) {
+      } catch (switchError: unknown) {
+        const walletError = switchError as WalletError;
         // 4902 = unknown chain in wallet, attempt to add it and switch again.
-        if (switchError?.code === 4902) {
-          const chainName = import.meta.env.VITE_VOTE_CHAIN_NAME ?? 'Custom Network';
-          const rpcUrl = import.meta.env.VITE_VOTE_CHAIN_RPC_URL;
-          const blockExplorerUrl = import.meta.env.VITE_VOTE_CHAIN_BLOCK_EXPLORER_URL;
+        if (walletError?.code === 4902) {
+          const chainName = publicEnv.voteChainName || 'Custom Network';
+          const rpcUrl = publicEnv.voteChainRpcUrl;
+          const blockExplorerUrl = publicEnv.voteChainBlockExplorerUrl;
 
           if (!rpcUrl) {
             throw new Error('Missing VITE_VOTE_CHAIN_RPC_URL for wallet_addEthereumChain');
@@ -41,8 +60,8 @@ export async function connectMetamask() {
               rpcUrls: [rpcUrl],
               blockExplorerUrls: blockExplorerUrl ? [blockExplorerUrl] : undefined,
               nativeCurrency: {
-                name: import.meta.env.VITE_VOTE_CHAIN_CURRENCY_NAME ?? 'Ether',
-                symbol: import.meta.env.VITE_VOTE_CHAIN_CURRENCY_SYMBOL ?? 'ETH',
+                name: publicEnv.voteChainCurrencyName || 'Ether',
+                symbol: publicEnv.voteChainCurrencySymbol || 'ETH',
                 decimals: 18,
               },
             }]
@@ -53,7 +72,7 @@ export async function connectMetamask() {
             params: [{ chainId: chainIdHex }]
           });
         } else {
-          console.log('Error switching chain:', switchError);
+          console.log('Error switching chain:', walletError);
         }
       }
     }
@@ -84,7 +103,7 @@ export async function createVoting(signer: ethers.JsonRpcSigner, votingEvent: Vo
   }
 
   const voteContract = new Contract(
-    import.meta.env.VITE_VOTE_CONTRACT_ADDRESS,
+    publicEnv.voteContractAddress,
     votingContractAbi,
     signer,
   );
@@ -127,8 +146,9 @@ export const useWallet = () => {
       accSigner.current = signer;
       setAccount(await accSigner.current.getAddress());
       setConnectionState('connected');
-    } catch (error: any) {
-      if (error.message === 'MetaMask is not installed') {
+    } catch (error: unknown) {
+      const walletError = error as Error;
+      if (walletError.message === 'MetaMask is not installed') {
         setConnectionState('notInstalled');
       } else {
         setConnectionState('disconnected');
@@ -146,14 +166,15 @@ export const useWallet = () => {
       await createVoting(accSigner.current, votingEvent, userNullifiers);
       setTransactionState('success');
       return userNullifiers;
-    } catch (error: any) {
-      if (error.message.includes('user rejected action')) {
+    } catch (error: unknown) {
+      const walletError = error as Error;
+      if (walletError.message.includes('user rejected action')) {
         setTransactionState('canceled');
         throw new Error('tx_canceled');
       } else {
         setTransactionState('error');
       }
-      throw error;
+      throw walletError;
     }
   }
 

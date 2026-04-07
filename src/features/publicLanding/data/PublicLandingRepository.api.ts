@@ -1,8 +1,23 @@
 import type { IPublicLandingRepository } from './PublicLandingRepository';
 import type { ActiveElection, PublicLandingData } from '../types';
 import { publicLandingRepositoryMock } from './PublicLandingRepository.mock';
+import { publicEnv } from '@/shared/env/public';
 
-const API_BASE_URL = import.meta.env.VITE_BASE_API_URL || 'http://localhost:3000/api/v1';
+const API_BASE_URL = publicEnv.baseApiUrl;
+
+interface PublicLandingEventDto {
+  id?: string | number | null;
+  name?: string | null;
+  objective?: string | null;
+  votingStart?: string | null;
+  votingEnd?: string | null;
+}
+
+interface PublicLandingResponseDto {
+  active?: PublicLandingEventDto[];
+  upcoming?: PublicLandingEventDto[];
+  results?: PublicLandingEventDto[];
+}
 
 const formatSchedule = (from?: string | null, to?: string | null) => {
   const format = (value?: string | null) => {
@@ -35,7 +50,10 @@ const formatClosesIn = (end?: string | null) => {
   return `${days}d`;
 };
 
-const mapLandingEvent = (event: any, status: ActiveElection['status']): ActiveElection => ({
+const mapLandingEvent = (
+  event: PublicLandingEventDto,
+  status: ActiveElection['status'],
+): ActiveElection => ({
   id: String(event?.id ?? ''),
   title: event?.name ?? '',
   organization: event?.objective ?? '',
@@ -71,14 +89,14 @@ export class PublicLandingRepositoryApi implements IPublicLandingRepository {
       throw new Error('No se pudieron cargar las elecciones públicas');
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as PublicLandingResponseDto;
     const active = Array.isArray(data?.active) ? data.active : [];
     const upcoming = Array.isArray(data?.upcoming) ? data.upcoming : [];
     const results = Array.isArray(data?.results) ? data.results : [];
 
-    const mappedActive = active.map((e: any) => mapLandingEvent(e, 'ACTIVA'));
-    const mappedUpcoming = upcoming.map((e: any) => mapLandingEvent(e, 'PROXIMA'));
-    const mappedResults = results.map((e: any) => mapLandingEvent(e, 'FINALIZADA'));
+    const mappedActive = active.map((e) => mapLandingEvent(e, 'ACTIVA'));
+    const mappedUpcoming = upcoming.map((e) => mapLandingEvent(e, 'PROXIMA'));
+    const mappedResults = results.map((e) => mapLandingEvent(e, 'FINALIZADA'));
 
     const featuredBase = mappedActive[0] ?? mappedUpcoming[0] ?? mappedResults[0] ?? null;
     const featured = featuredBase ? { ...featuredBase, isFeatured: true } : null;

@@ -20,7 +20,14 @@ import {
   useLazyDownloadPadronCsvQuery,
   useImportPadronMutation,
 } from '../../store/votingEvents';
-import type { Voter, CorrectionInput, PadronUploadResult, PadronFile, ConfigStep } from './types';
+import type {
+  Voter,
+  CorrectionInput,
+  PadronUploadResult,
+  PadronFile,
+  ConfigStep,
+  InvalidReason,
+} from './types';
 
 type ModalState = 'none' | 'uploading' | 'summary' | 'fixing' | 'revalidating' | 'deleteConfirm';
 
@@ -29,12 +36,20 @@ const HEADER_CARNET = 'carnet';
 const HEADER_ENABLED = 'habilitado';
 const BOLIVIAN_CARNET_REGEX = /^\d{5,10}[A-Z]{0,2}$/;
 
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (typeof error === 'object' && error !== null) {
+    const candidate = error as { data?: { message?: string }; message?: string };
+    return candidate.data?.message ?? candidate.message ?? fallback;
+  }
+  return fallback;
+};
+
 const normalizeCell = (value: string) => value.replace(/^"|"$/g, '').trim();
 
 const normalizeCarnet = (value: string) =>
   normalizeCell(value)
     .toUpperCase()
-    .replace(/[\s.\-]/g, '');
+    .replace(/[\s.-]/g, '');
 
 const isValidCarnet = (value: string) => BOLIVIAN_CARNET_REGEX.test(normalizeCarnet(value));
 
@@ -204,7 +219,7 @@ const ElectionConfigPadron: React.FC = () => {
     fullName: v.fullName || '',
     enabled: v.enabled !== false,
     status: v.status,
-    invalidReason: v.invalidReason as any,
+    invalidReason: v.invalidReason as InvalidReason | undefined,
   }));
 
   // Filtrar por búsqueda local (si el backend no lo soporta)
@@ -254,8 +269,8 @@ const ElectionConfigPadron: React.FC = () => {
         voters: parsed.rows,
       });
       setModalState('summary');
-    } catch (err: any) {
-      setError(err?.message || 'No se pudo leer el CSV');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'No se pudo leer el CSV'));
       setModalState('none');
     }
   };
@@ -301,9 +316,9 @@ const ElectionConfigPadron: React.FC = () => {
       setPendingRows(null);
       setPendingFileName(null);
       setModalState('none');
-    } catch (err: any) {
+    } catch (err: unknown) {
       clearInterval(progressInterval);
-      setError(err?.data?.message || 'Error al cargar el archivo');
+      setError(getErrorMessage(err, 'Error al cargar el archivo'));
       setModalState('none');
     }
   };
@@ -431,8 +446,8 @@ const ElectionConfigPadron: React.FC = () => {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-    } catch (err: any) {
-      setError(err?.data?.message || 'No se pudo descargar el padrón');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'No se pudo descargar el padrón'));
     }
   };
 

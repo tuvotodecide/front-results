@@ -48,7 +48,7 @@ export interface ConfigurationStatusType {
   currentTime: string;
   currentTimeBolivia: string;
   elections: ElectionStatusType[];
-  // Legacy single config support (backward compatibility)
+  // Single-config support for backward-compatible responses
   isVotingPeriod?: boolean;
   isResultsPeriod?: boolean;
   hasActiveConfig?: boolean;

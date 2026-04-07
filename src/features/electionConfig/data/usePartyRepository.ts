@@ -19,7 +19,7 @@ interface UsePartiesResult {
   parties: PartyWithCandidates[];
   loading: boolean;
   error: Error | null;
-  refetch: () => Promise<any>;
+  refetch: () => Promise<unknown>;
   createParty: (payload: CreatePartyPayload) => Promise<Party>;
   updateParty: (payload: UpdatePartyPayload) => Promise<Party>;
   deleteParty: (partyId: string) => Promise<void>;

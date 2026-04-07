@@ -19,19 +19,25 @@ export const configurationsApiSlice = apiSlice.injectEndpoints({
     getConfiguration: builder.query<ConfigurationType, string>({
       query: (id) => `/elections/config/${id}`,
       keepUnusedDataFor: 60,
-      providesTags: (_result, _error, id) => [
-        { type: "Configurations" as const, id },
-      ],
+      providesTags: (result, error, id) => {
+        void result;
+        void error;
+        return [{ type: "Configurations" as const, id }];
+      },
     }),
     getActiveConfiguration: builder.query<ConfigurationType, void>({
       query: () => `/elections/config/active`,
       keepUnusedDataFor: 60,
-      providesTags: (_result, _error) => [{ type: "Configurations" as const }],
+      providesTags: () => [{ type: "Configurations" as const }],
     }),
     getConfigurationStatus: builder.query<ConfigurationStatusType, void>({
       query: () => `/elections/config/status`,
       keepUnusedDataFor: 60,
-      providesTags: (_result, _error) => [{ type: 'Configurations' as const }],
+      providesTags: (result, error) => {
+        void result;
+        void error;
+        return [{ type: 'Configurations' as const }];
+      },
     }),
     // getConfigurationStatus: builder.query<any, void>({
     //   async queryFn() {
@@ -70,20 +76,28 @@ export const configurationsApiSlice = apiSlice.injectEndpoints({
         method: "PATCH",
         body: item,
       }),
-      invalidatesTags: (_result, _error, { id }) => [
-        { type: "Configurations", id: "LIST" },
-        { type: "Configurations", id },
-      ],
+      invalidatesTags: (result, error, { id }) => {
+        void result;
+        void error;
+        return [
+          { type: "Configurations", id: "LIST" },
+          { type: "Configurations", id },
+        ];
+      },
     }),
     deleteConfiguration: builder.mutation<void, string>({
       query: (id) => ({
         url: `/elections/config/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: (_result, _error, id) => [
-        { type: "Configurations", id: "LIST" },
-        { type: "Configurations", id },
-      ],
+      invalidatesTags: (result, error, id) => {
+        void result;
+        void error;
+        return [
+          { type: "Configurations", id: "LIST" },
+          { type: "Configurations", id },
+        ];
+      },
     }),
   }),
 });

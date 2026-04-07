@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLazyGetBallotQuery } from '../store/ballots/ballotsEndpoints';
 import { BallotType } from '../types';
 
@@ -14,6 +14,7 @@ export const useMultipleBallots = (ballotIds: string[]): UseMultipleBallotsResul
   const [error, setError] = useState(false);
 
   const [getBallot] = useLazyGetBallotQuery();
+  const ballotIdsKey = useMemo(() => ballotIds.join(','), [ballotIds]);
 
   useEffect(() => {
     if (ballotIds.length === 0) {
@@ -52,7 +53,7 @@ export const useMultipleBallots = (ballotIds: string[]): UseMultipleBallotsResul
     };
 
     fetchBallots();
-  }, [ballotIds.join(','), getBallot]);
+  }, [ballotIds, ballotIdsKey, getBallot]);
 
   return { ballots, loading, error };
 };

@@ -14,6 +14,12 @@ import { useWallet } from '../../hooks/useWallet';
 import Modal2 from '../../components/Modal2';
 import ConfigPageFallback from './components/ConfigPageFallback';
 
+const isTxCanceled = (error: unknown) =>
+  typeof error === 'object' &&
+  error !== null &&
+  'message' in error &&
+  (error as { message?: string }).message === 'tx_canceled';
+
 const hasDraftAlreadyStarted = (event?: { status?: string | null; votingStart?: string | null }) =>
   event?.status === 'DRAFT' &&
   Boolean(event.votingStart && new Date(event.votingStart).getTime() <= Date.now());
@@ -45,7 +51,7 @@ const ElectionConfigReview: React.FC = () => {
 
   useEffect(() => {
     refetch();
-  }, []);
+  }, [refetch]);
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -73,9 +79,9 @@ const ElectionConfigReview: React.FC = () => {
       await activateElection(nullifiers);
       setShowConfirmModal(false);
       setShowSuccessModal(true);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setShowConfirmModal(false);
-      if (error.message === 'tx_canceled') {
+      if (isTxCanceled(error)) {
         return;
       }
       console.error('Error activating election:', error);
@@ -97,7 +103,7 @@ const ElectionConfigReview: React.FC = () => {
       return;
     }
     connectWallet();
-  }
+  };
 
   const renderButtonText = () => {
     switch (connectionState) {
@@ -112,7 +118,7 @@ const ElectionConfigReview: React.FC = () => {
       default:
         return 'Conectarse a MetaMask para publicar';
     }
-  }
+  };
 
   const isPublishButtonDisabled = () => {
     return (

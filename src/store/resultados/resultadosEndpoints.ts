@@ -1,4 +1,5 @@
 import { apiSlice } from "../apiSlice";
+import type { BallotType } from "../../types";
 
 interface GetResultsParams {
   department?: string;
@@ -22,8 +23,28 @@ interface GetCountedBallotsParams {
   limit?: number;
 }
 
+export type BallotResultItem = BallotType;
+
+export interface ResultsSummary {
+  validVotes?: number;
+  nullVotes?: number;
+  blankVotes?: number;
+  tablesProcessed?: number;
+  totalTables?: number;
+  totalVoters?: number;
+  registrationProgress?: number;
+}
+
+export interface ResultsByLocationResponse {
+  results: Array<{
+    partyId: string;
+    totalVotes: number;
+  }>;
+  summary?: ResultsSummary;
+}
+
 interface CountedBallotsResponse {
-  data: any[];
+  data: BallotResultItem[];
   total: number;
   page: number;
   limit: number;
@@ -31,9 +52,12 @@ interface CountedBallotsResponse {
   mode: string;
 }
 
+type StatisticsResponse = Record<string, unknown>;
+type RegistrationProgressResponse = Record<string, unknown>;
+
 export const resultadosApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    getResultsByLocation: builder.query<any, GetResultsParams>({
+    getResultsByLocation: builder.query<ResultsByLocationResponse, GetResultsParams>({
       query: (params) => ({
         url: "/results/by-location",
         params,
@@ -68,7 +92,7 @@ export const resultadosApiSlice = apiSlice.injectEndpoints({
     //     };
     //   },
     // }),
-    getLiveResultsByLocation: builder.query<any, GetResultsParams>({
+    getLiveResultsByLocation: builder.query<ResultsByLocationResponse, GetResultsParams>({
       query: (params) => ({
         url: "/results/live/by-location",
         params,
@@ -97,11 +121,11 @@ export const resultadosApiSlice = apiSlice.injectEndpoints({
     //     };
     //   },
     // }),
-    getStatistics: builder.query<any, void>({
+    getStatistics: builder.query<StatisticsResponse, void>({
       query: () => "/results/statistics",
       keepUnusedDataFor: 60,
     }),
-    getRegistrationProgress: builder.query<any, GetResultsParams>({
+    getRegistrationProgress: builder.query<RegistrationProgressResponse, GetResultsParams>({
       query: (params) => ({
         url: `/results/registration-progress`,
         params,
@@ -118,10 +142,16 @@ export const resultadosApiSlice = apiSlice.injectEndpoints({
     }),
     // Obtener ballots que cuentan en resultados FINALES
     getFinalCountedBallots: builder.query<CountedBallotsResponse, GetCountedBallotsParams>({
-      query: (params) => ({
+      query: (queryParams) => {
+        const params = { ...queryParams };
+        delete params.page;
+        delete params.limit;
+
+        return ({
         url: "/results/final/ballots",
         params,
-      }),
+        });
+      },
       keepUnusedDataFor: 60,
     }),
   }),

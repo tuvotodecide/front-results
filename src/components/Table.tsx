@@ -10,7 +10,7 @@ import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 
 interface TableProps<T extends object> {
   data: T[];
-  columns: ColumnDef<T, any>[];
+  columns: ColumnDef<T, unknown>[];
   onEdit?: (row: T) => void;
   onDelete?: (row: T) => void;
   children?: React.ReactNode;

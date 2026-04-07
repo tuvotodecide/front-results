@@ -1,8 +1,9 @@
 import { createSlice } from '@reduxjs/toolkit';
+import type { DepartmentType } from '../../types';
 
 export interface departmentsState {
-  departments: any[];
-  department: any | null;
+  departments: DepartmentType[];
+  department: DepartmentType | null;
 }
 
 const initialState: departmentsState = {

@@ -1,4 +1,28 @@
 import { apiSlice } from "../apiSlice";
+import type { AuthState } from "./authSlice";
+
+interface AuthTokensResponse {
+  access_token?: string;
+  accessToken?: string;
+  token?: string;
+}
+
+type AuthUser = NonNullable<AuthState["user"]>;
+
+export interface AuthResponse extends AuthTokensResponse {
+  user?: AuthState["user"];
+  active?: boolean;
+  role?: string;
+}
+
+export interface ProfileResponse extends Partial<AuthUser> {
+  id?: string;
+  _id?: string;
+  sub?: string;
+  tenantId?: string;
+  votingDepartmentId?: string;
+  votingMunicipalityId?: string;
+}
 
 export interface RegisterTenantAdminPayload {
   dni: string;
@@ -19,13 +43,13 @@ export interface CreateInstitutionalAdminApplicationPayload {
 
 export const authApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    getProfile: builder.query<any, void>({
+    getProfile: builder.query<ProfileResponse, void>({
       query: () => "/auth/profile",
       keepUnusedDataFor: 60,
       providesTags: () => ["Profile"],
     }),
 
-    createUser: builder.mutation<any, any>({
+    createUser: builder.mutation<AuthResponse, Record<string, unknown>>({
       query: (user) => ({
         url: "/auth/register",
         method: "POST",
@@ -33,7 +57,7 @@ export const authApiSlice = apiSlice.injectEndpoints({
       }),
     }),
 
-    registerTenantAdmin: builder.mutation<any, RegisterTenantAdminPayload>({
+    registerTenantAdmin: builder.mutation<AuthResponse, RegisterTenantAdminPayload>({
       query: (data) => ({
         url: "/auth/register",
         method: "POST",
@@ -48,7 +72,7 @@ export const authApiSlice = apiSlice.injectEndpoints({
     }),
 
     createInstitutionalAdminApplication: builder.mutation<
-      any,
+      AuthResponse,
       CreateInstitutionalAdminApplicationPayload
     >({
       query: (data) => ({
@@ -64,7 +88,7 @@ export const authApiSlice = apiSlice.injectEndpoints({
       }),
     }),
 
-    verifyInstitutionalAdminApplication: builder.mutation<any, { token: string }>({
+    verifyInstitutionalAdminApplication: builder.mutation<AuthResponse, { token: string }>({
       query: ({ token }) => ({
         url: "/institutional-admin-applications/verify-email",
         method: "POST",
@@ -72,7 +96,7 @@ export const authApiSlice = apiSlice.injectEndpoints({
       }),
     }),
 
-    loginUser: builder.mutation<any, { email: string; password: string }>({
+    loginUser: builder.mutation<AuthResponse, { email: string; password: string }>({
       query: (data) => ({
         url: "/auth/login",
         method: "POST",
@@ -80,7 +104,7 @@ export const authApiSlice = apiSlice.injectEndpoints({
       }),
     }),
 
-    forgotPassword: builder.mutation<any, { email: string }>({
+    forgotPassword: builder.mutation<{ message?: string }, { email: string }>({
       query: (data) => ({
         url: "/auth/forgot-password",
         method: "POST",
@@ -88,7 +112,7 @@ export const authApiSlice = apiSlice.injectEndpoints({
       }),
     }),
 
-    resetPassword: builder.mutation<any, { token: string; password: string }>({
+    resetPassword: builder.mutation<{ message?: string }, { token: string; password: string }>({
       query: (data) => ({
         url: "/auth/reset-password",
         method: "POST",
@@ -96,7 +120,7 @@ export const authApiSlice = apiSlice.injectEndpoints({
       }),
     }),
 
-    verifyEmail: builder.query<any, { token: string }>({
+    verifyEmail: builder.query<{ message?: string }, { token: string }>({
       query: ({ token }) => ({
         url: `/auth/verify-email`,
         method: "GET",

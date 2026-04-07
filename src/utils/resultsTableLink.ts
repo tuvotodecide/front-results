@@ -1,23 +1,24 @@
-export interface TableResultsLinkParams {
-  electionId?: string | null;
-  electionType?: string | null;
-}
+import {
+  buildResultsSearch,
+  type ResultsContextParams,
+} from "@/domains/results/lib/queryParams";
+
+export type TableResultsLinkParams = Pick<
+  ResultsContextParams,
+  | "electionId"
+  | "electionType"
+  | "departmentId"
+  | "provinceId"
+  | "municipalityId"
+  | "electoralSeatId"
+  | "electoralLocationId"
+>;
 
 export const buildResultsTableLink = (
   tableCode: string,
   params?: TableResultsLinkParams,
 ) => {
-  const search = new URLSearchParams();
-
-  if (params?.electionId) {
-    search.set("electionId", params.electionId);
-  }
-
-  if (params?.electionType) {
-    search.set("electionType", params.electionType);
-  }
-
-  const query = search.toString();
+  const query = buildResultsSearch(params);
   return query
     ? `/resultados/mesa/${tableCode}?${query}`
     : `/resultados/mesa/${tableCode}`;

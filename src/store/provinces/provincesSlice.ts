@@ -1,8 +1,9 @@
 import { createSlice } from '@reduxjs/toolkit';
+import type { ProvincesType } from '../../types';
 
 export interface provincesState {
-  provinces: any[];
-  province: any | null;
+  provinces: ProvincesType[];
+  province: ProvincesType | null;
 }
 
 const initialState: provincesState = {

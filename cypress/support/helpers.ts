@@ -125,9 +125,14 @@ export const waitUntil = (
 /**
  * Genera datos de resultados mock
  */
+interface MockResultItem {
+  partyId: string;
+  totalVotes: number;
+}
+
 export const generateMockResults = (partiesCount: number = 5) => {
   const parties = ['MAS', 'CC', 'CREEMOS', 'UCS', 'OTROS'];
-  const results = [];
+  const results: MockResultItem[] = [];
   
   let totalVotes = 0;
   for (let i = 0; i < partiesCount && i < parties.length; i++) {
@@ -240,7 +245,7 @@ export const shouldUseMocks = (): boolean => {
 /**
  * Log personalizado para debugging
  */
-export const debugLog = (message: string, data?: any) => {
+export const debugLog = (message: string, data?: unknown) => {
   if (Cypress.env('DEBUG') === true) {
     cy.task('log', `🐛 [DEBUG] ${message}`);
     if (data) {

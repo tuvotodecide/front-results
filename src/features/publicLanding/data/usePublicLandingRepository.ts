@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import type { IPublicLandingRepository } from './PublicLandingRepository';
 import { publicLandingRepository } from './PublicLandingRepository.api';
+import { publicLandingRepositoryMock } from './PublicLandingRepository.mock';
 import type { PublicLandingData, ActiveElection } from '../types';
 
 // Selecciona la implementación del repositorio
@@ -33,6 +34,15 @@ export const useLandingData = (): UseLandingDataResult => {
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Error desconocido'));
+      const fallback = await publicLandingRepositoryMock.getLandingData();
+      setData({
+        ...fallback,
+        activeElections: {
+          ...fallback.activeElections,
+          featured: null,
+          others: [],
+        },
+      });
     } finally {
       setLoading(false);
     }

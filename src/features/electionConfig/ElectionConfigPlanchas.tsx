@@ -22,6 +22,14 @@ import {
 import type { Party, PartyWithCandidates, CandidateInput, CreatePartyPayload, Position, ConfigStep } from './types';
 import type { VotingOption, EventRole, OptionCandidate } from '../../store/votingEvents/types';
 
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (typeof error === 'object' && error !== null) {
+    const candidate = error as { data?: { message?: string }; message?: string };
+    return candidate.data?.message ?? candidate.message ?? fallback;
+  }
+  return fallback;
+};
+
 // Adaptar VotingOption a PartyWithCandidates
 const optionToPartyWithCandidates = (option: VotingOption): PartyWithCandidates => ({
   id: option.id,
@@ -274,8 +282,8 @@ const ElectionConfigPlanchas: React.FC = () => {
           createdAt: created.createdAt ?? new Date().toISOString(),
         };
       }
-    } catch (err: any) {
-      setError(err?.data?.message || 'Error al guardar el partido');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Error al guardar el partido'));
       throw err;
     }
   };
@@ -300,8 +308,8 @@ const ElectionConfigPlanchas: React.FC = () => {
 
       setIsCandidatesModalOpen(false);
       setCurrentPartyForCandidates(null);
-    } catch (err: any) {
-      setError(err?.data?.message || 'Error al guardar los candidatos');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Error al guardar los candidatos'));
     }
   };
 
@@ -315,8 +323,8 @@ const ElectionConfigPlanchas: React.FC = () => {
         optionId: deleteConfirm.id,
       }).unwrap();
       setDeleteConfirm(null);
-    } catch (err: any) {
-      setError(err?.data?.message || 'Error al eliminar el partido');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Error al eliminar el partido'));
     }
   };
 

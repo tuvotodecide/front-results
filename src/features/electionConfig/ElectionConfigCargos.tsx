@@ -21,6 +21,14 @@ import {
 import type { Position, ConfigStep } from './types';
 import type { EventRole } from '../../store/votingEvents/types';
 
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (typeof error === 'object' && error !== null) {
+    const candidate = error as { data?: { message?: string }; message?: string };
+    return candidate.data?.message ?? candidate.message ?? fallback;
+  }
+  return fallback;
+};
+
 // Adaptar EventRole a Position para compatibilidad con componentes existentes
 const roleToPosition = (role: EventRole): Position => ({
   id: role.id,
@@ -110,8 +118,8 @@ const ElectionConfigCargos: React.FC = () => {
       }
       setIsAddModalOpen(false);
       setEditingPosition(null);
-    } catch (err: any) {
-      setError(err?.data?.message || 'Error al guardar el cargo');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Error al guardar el cargo'));
       throw err; // Re-throw para que el modal lo maneje
     }
   };
@@ -125,8 +133,8 @@ const ElectionConfigCargos: React.FC = () => {
         roleId: deleteConfirm.id,
       }).unwrap();
       setDeleteConfirm(null);
-    } catch (err: any) {
-      setError(err?.data?.message || 'Error al eliminar el cargo');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Error al eliminar el cargo'));
     }
   };
 

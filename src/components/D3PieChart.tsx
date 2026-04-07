@@ -150,7 +150,7 @@ const D3PieChart: React.FC<PieChartProps> = ({ data }) => {
       if (text.length <= maxLength) return [text];
 
       const words = text.split(' ');
-      const lines = [];
+      const lines: string[] = [];
       let currentLine = '';
 
       for (const word of words) {
@@ -218,7 +218,7 @@ const D3PieChart: React.FC<PieChartProps> = ({ data }) => {
         )
         .attr('preserveAspectRatio', 'xMidYMid meet');
     }
-  }, [sortedData]);
+  }, [height, pie, sortedData]);
 
   if (sortedData.length === 0) {
     return (

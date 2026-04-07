@@ -1,10 +1,21 @@
 import type {
   IPadronCheckService,
   PadronCheckResult,
+  PadronCheckEventResult,
   PublicEligibilityStatus,
 } from './types';
+import { publicEnv } from '@/shared/env/public';
 
-const API_BASE_URL = import.meta.env.VITE_BASE_API_URL || 'http://localhost:3000/api/v1';
+const API_BASE_URL = publicEnv.baseApiUrl || 'http://localhost:3000/api/v1';
+type EligibilityEventRecord = {
+  eventId?: string;
+  tenantId?: string;
+  name?: string;
+  phase?: string;
+  status?: string;
+  eligible?: boolean;
+  referenceVersion?: string | null;
+};
 
 export class PadronCheckServiceApi implements IPadronCheckService {
   async checkStatus(carnet: string, eventId?: string): Promise<PadronCheckResult> {
@@ -87,7 +98,7 @@ export class PadronCheckServiceApi implements IPadronCheckService {
 
     const data = await response.json();
     const events = Array.isArray(data?.events)
-      ? data.events.map((event: any) => ({
+      ? data.events.map((event: EligibilityEventRecord): PadronCheckEventResult => ({
           eventId: String(event?.eventId ?? ''),
           tenantId: event?.tenantId ? String(event.tenantId) : undefined,
           name: event?.name ?? '',

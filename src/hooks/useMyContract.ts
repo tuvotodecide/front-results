@@ -1,3 +1,5 @@
+"use client";
+
 import { useMemo } from "react";
 import { useSelector } from "react-redux";
 import { selectAuth } from "../store/auth/authSlice";
@@ -61,7 +63,7 @@ export function useMyContract(): UseMyContractResult {
     isLoading: activeContractLoading,
     isError: activeContractError,
   } = useGetMyActiveContractQuery(
-    {},
+    undefined,
     {
       skip: !isClient,
     }

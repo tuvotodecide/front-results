@@ -28,7 +28,7 @@ const normalizeCarnet = (carnet: string): string =>
   String(carnet || '')
     .trim()
     .toUpperCase()
-    .replace(/[\s.\-]/g, '');
+    .replace(/[\s.-]/g, '');
 
 const getValidationReason = (carnet: string): InvalidReason | undefined => {
   const cleaned = normalizeCarnet(carnet);

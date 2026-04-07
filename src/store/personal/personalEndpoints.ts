@@ -28,9 +28,25 @@ export interface AuditMatchResponse {
   details: AuditMatchDetail[];
 }
 
+interface PersonalParticipationResponse {
+  summary: {
+    contratados: number;
+    participaron: number;
+    faltantes: number;
+  };
+  details: Array<{
+    _id: string;
+    recinto: string;
+    mesa: string;
+    usuario: string;
+    estado: string;
+    ballotId: string | null;
+  }>;
+}
+
 export const personalApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    getParticipacionPersonal: builder.query<any, any>({
+    getParticipacionPersonal: builder.query<PersonalParticipationResponse, void>({
       async queryFn() {
         const mockData = [
           {
@@ -83,7 +99,7 @@ export const personalApiSlice = apiSlice.injectEndpoints({
         };
       },
     }),
-    getAuditoriaTSE: builder.query<AuditMatchResponse, any>({
+    getAuditoriaTSE: builder.query<AuditMatchResponse, Record<string, string | undefined>>({
       query: (filters) => ({
         url: "/client-reports/audit-match",
         params: filters,

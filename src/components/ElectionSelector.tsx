@@ -1,21 +1,21 @@
 import { useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useLocation } from "react-router-dom";
 import {
   useGetConfigurationsQuery,
   useGetConfigurationStatusQuery,
 } from "../store/configurations/configurationsEndpoints";
 import { RootState } from "../store";
 import {
-  hydrateElectionFromStorage,
   setSelectedElection,
 } from "../store/election/electionSlice";
 import { useMyContract } from "../hooks/useMyContract";
 import { AlertCircle, Lock } from "lucide-react";
+import { useBrowserSearchParams } from "@/shared/routing/browserLocation";
+import { readElectionIdParam } from "@/domains/results/lib/queryParams";
 
 export default function ElectionSelector() {
   const dispatch = useDispatch();
-  const location = useLocation();
+  const searchParams = useBrowserSearchParams();
   const { data: configs, isLoading: configsLoading } =
     useGetConfigurationsQuery();
   const { data: status, isLoading: statusLoading } =
@@ -26,10 +26,10 @@ export default function ElectionSelector() {
 
   const { status: contractStatus, contract, isClient, elections } =
     useMyContract();
-  const electionIdFromUrl = useMemo(() => {
-    const value = new URLSearchParams(location.search).get("electionId");
-    return value?.trim() || null;
-  }, [location.search]);
+  const electionIdFromUrl = useMemo(
+    () => readElectionIdParam(searchParams),
+    [searchParams],
+  );
 
   // Get active elections from new API format
   const activeElections = useMemo(() => {
@@ -38,11 +38,6 @@ export default function ElectionSelector() {
 
   // First active election (for auto-selection)
   const firstActiveElection = activeElections[0] ?? null;
-
-  // Hidratar elección del localStorage al inicio
-  useEffect(() => {
-    dispatch(hydrateElectionFromStorage());
-  }, [dispatch]);
 
   // Auto-seleccionar elección basada en contrato o elección activa
   useEffect(() => {

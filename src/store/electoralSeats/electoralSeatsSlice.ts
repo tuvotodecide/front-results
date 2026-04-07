@@ -1,8 +1,9 @@
 import { createSlice } from '@reduxjs/toolkit';
+import type { ElectoralSeatsType } from '../../types';
 
 export interface electoralSeatsState {
-  electoralSeats: any[];
-  electoralSeat: any | null;
+  electoralSeats: ElectoralSeatsType[];
+  electoralSeat: ElectoralSeatsType | null;
 }
 
 const initialState: electoralSeatsState = {

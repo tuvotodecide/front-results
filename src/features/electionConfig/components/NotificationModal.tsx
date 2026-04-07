@@ -33,7 +33,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
       setTitle('');
       setMessage('');
       onClose();
-    } catch (err) {
+    } catch {
       setError('Error al enviar la notificación. Intenta de nuevo.');
     }
   };

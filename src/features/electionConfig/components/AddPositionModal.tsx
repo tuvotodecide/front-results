@@ -50,7 +50,7 @@ const AddPositionModal: React.FC<AddPositionModalProps> = ({
     try {
       await onSave(trimmedName);
       onClose();
-    } catch (err) {
+    } catch {
       setError('Error al guardar. Intenta de nuevo.');
     }
   };

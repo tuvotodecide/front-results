@@ -1,8 +1,8 @@
-  import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
 export interface ResultsState {
-  recintos: any[];
-  recinto: any | null;
+  recintos: unknown[];
+  recinto: unknown | null;
   filters: {
     department: string;
     province: string;
@@ -22,23 +22,43 @@ export interface ResultsState {
   queryParamsResults: string;
 }
 
+export interface ResultsFilters {
+  department: string;
+  province: string;
+  municipality: string;
+  electoralLocation: string;
+  electoralSeat: string;
+}
+
+export interface ResultsFilterIds {
+  departmentId: string;
+  provinceId: string;
+  municipalityId: string;
+  electoralLocationId: string;
+  electoralSeatId: string;
+}
+
+const emptyFilters = {
+  department: '',
+  province: '',
+  municipality: '',
+  electoralLocation: '',
+  electoralSeat: '',
+} satisfies ResultsFilters;
+
+const emptyFilterIds = {
+  departmentId: '',
+  provinceId: '',
+  municipalityId: '',
+  electoralLocationId: '',
+  electoralSeatId: '',
+} satisfies ResultsFilterIds;
+
 const initialState: ResultsState = {
   recintos: [],
   recinto: null,
-  filters: {
-    department: '',
-    province: '',
-    municipality: '',
-    electoralLocation: '',
-    electoralSeat: '',
-  },
-  filterIds: {
-    departmentId: '',
-    provinceId: '',
-    municipalityId: '',
-    electoralLocationId: '',
-    electoralSeatId: '',
-  },
+  filters: emptyFilters,
+  filterIds: emptyFilterIds,
   currentTable: null,
   currentBallot: null,
   queryParamsResults: '',
@@ -48,20 +68,19 @@ export const resultsSlice = createSlice({
   name: 'results',
   initialState,
   reducers: {
-    setFilters: (state, action) => {
-      // console.log('setFilters action payload:', action.payload);
-      state.filters = action.payload;
+    setFilters: (state, action: PayloadAction<Partial<ResultsFilters>>) => {
+      state.filters = { ...emptyFilters, ...action.payload };
     },
-    setFilterIds: (state, action) => {
-      state.filterIds = action.payload;
+    setFilterIds: (state, action: PayloadAction<Partial<ResultsFilterIds>>) => {
+      state.filterIds = { ...emptyFilterIds, ...action.payload };
     },
-    setCurrentTable: (state, action) => {
+    setCurrentTable: (state, action: PayloadAction<string | null>) => {
       state.currentTable = action.payload;
     },
-    setCurrentBallot: (state, action) => {
+    setCurrentBallot: (state, action: PayloadAction<string | null>) => {
       state.currentBallot = action.payload;
     },
-    setQueryParamsResults: (state, action) => {
+    setQueryParamsResults: (state, action: PayloadAction<string>) => {
       state.queryParamsResults = action.payload;
     },
     resetResults: () => initialState,

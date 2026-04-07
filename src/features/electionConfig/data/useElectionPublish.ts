@@ -7,6 +7,7 @@ import {
   usePublishVotingEventMutation,
   VotingEvent,
 } from '../../../store/votingEvents';
+import { publicEnv } from '@/shared/env/public';
 import type { PartyWithCandidates } from '../types';
 import type {
   ActivationResult,
@@ -31,6 +32,15 @@ export interface UseElectionPublishReturn {
 }
 
 export const useElectionPublish = (electionId: string): UseElectionPublishReturn => {
+  const getPublicBaseUrl = useCallback(() => {
+    if (typeof window !== 'undefined' && window.location?.origin) {
+      return window.location.origin;
+    }
+
+    const apiBase = publicEnv.baseApiUrl.replace(/\/api(?:\/v\d+)?\/?$/, "");
+    return apiBase.replace(/\/$/, "");
+  }, []);
+
   const { data: event, isLoading: loadingEvent, refetch: refetchEvent } =
     useGetVotingEventQuery(electionId, { skip: !electionId });
   const { data: roles = [], isLoading: loadingRoles, refetch: refetchRoles } =
@@ -98,7 +108,7 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
   const activateElection = useCallback(async (nullifiers: string[]): Promise<ActivationResult> => {
     const response = await publishVotingEvent({electionId, nullifiers}).unwrap();
 
-    const publicUrl = `${window.location.origin}/elections/${electionId}/public`;
+    const publicUrl = `${getPublicBaseUrl()}/elections/${electionId}/public`;
     const shareText = `Participa en la votación: ${publicUrl}`;
     const out: ActivationResult = {
       publicUrl,
@@ -110,11 +120,11 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
 
     setActivationResult(out);
     return out;
-  }, [publishVotingEvent, electionId, event?.votingStart]);
+  }, [publishVotingEvent, electionId, event?.votingStart, getPublicBaseUrl]);
 
   const getShareUrl = useCallback(async (): Promise<string> => {
-    return `${window.location.origin}/elections/${electionId}/public`;
-  }, [electionId]);
+    return `${getPublicBaseUrl()}/elections/${electionId}/public`;
+  }, [electionId, getPublicBaseUrl]);
 
   const copyToClipboard = useCallback(async (text: string): Promise<boolean> => {
     try {

@@ -1,7 +1,10 @@
+"use client";
+
 import { useMemo } from 'react';
 import {
   useGetLiveCountedBallotsQuery,
   useGetFinalCountedBallotsQuery,
+  type BallotResultItem,
 } from '../store/resultados/resultadosEndpoints';
 import { ballotsToElectoralTables } from '../utils/ballotToElectoralTable';
 import { ElectoralTableType } from '../types';
@@ -23,7 +26,7 @@ interface UseCountedBallotsParams {
 
 interface UseCountedBallotsResult {
   tables: ElectoralTableType[];
-  ballots: any[];
+  ballots: BallotResultItem[];
   total: number;
   page: number;
   totalPages: number;

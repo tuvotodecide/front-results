@@ -27,10 +27,92 @@ import type {
   VotingOption,
 } from "./types";
 
-const unwrapApiData = (raw: any) => raw?.data ?? raw;
+type ApiRecord = Record<string, unknown>;
+type ApiRole = ApiRecord & {
+  id?: string;
+  _id?: string;
+  eventId?: string;
+  name?: string;
+  maxWinners?: number;
+  createdAt?: string;
+};
+type ApiOption = ApiRecord & {
+  id?: string;
+  _id?: string;
+  eventId?: string;
+  name?: string;
+  color?: string;
+  logoUrl?: string;
+  active?: boolean;
+  createdAt?: string;
+  candidates?: unknown[];
+};
+type ApiCandidate = ApiRecord & {
+  id?: string;
+  _id?: string;
+  name?: string;
+  photoUrl?: string;
+  roleName?: string;
+};
+type ApiVotingEvent = ApiRecord & {
+  id?: string;
+  _id?: string;
+  tenantId?: string;
+  chainRequestId?: string;
+  name?: string;
+  objective?: string;
+  votingStart?: string | null;
+  votingEnd?: string | null;
+  resultsPublishAt?: string | null;
+  state?: string;
+  status?: string;
+  publicEligibilityEnabled?: boolean;
+  roles?: unknown[];
+  options?: unknown[];
+};
+type ApiPadronVersion = ApiRecord & {
+  id?: string;
+  padronVersionId?: string;
+  fileDigest?: string;
+  totals?: {
+    validCount?: number;
+    invalidCount?: number;
+    duplicateCount?: number;
+  };
+  createdAt?: string;
+  createdBy?: string;
+  isCurrent?: boolean;
+};
+type ApiPadronVoter = ApiRecord & {
+  id?: string;
+  _id?: string;
+  carnetNorm?: string;
+  enabled?: boolean;
+  createdAt?: string;
+};
+type ApiRankingItem = ApiRecord & {
+  optionId?: string;
+  optionName?: string;
+  votes?: number;
+  percentage?: number;
+};
+type ApiResultsRole = ApiRecord & {
+  roleName?: string;
+  total?: number;
+  ranking?: unknown[];
+  winners?: string[];
+};
 
-const toVotingEvent = (raw: any): VotingEvent => {
-  const source = unwrapApiData(raw);
+const asRecord = (value: unknown): ApiRecord =>
+  typeof value === "object" && value !== null ? (value as ApiRecord) : {};
+
+const unwrapApiData = <T = unknown>(raw: unknown): T | ApiRecord => {
+  const record = asRecord(raw);
+  return (record.data as T | undefined) ?? record;
+};
+
+const toVotingEvent = (raw: unknown): VotingEvent => {
+  const source = unwrapApiData<ApiVotingEvent>(raw) as ApiVotingEvent;
   const state = (source?.state ?? source?.status ?? "DRAFT") as VotingEvent["state"];
   return {
     id: String(source?.id ?? source?._id ?? ""),
@@ -46,16 +128,21 @@ const toVotingEvent = (raw: any): VotingEvent => {
     publicEligibilityEnabled: Boolean(source?.publicEligibilityEnabled),
     publicEligibility: Boolean(source?.publicEligibilityEnabled),
     roles: Array.isArray(source?.roles)
-      ? source.roles.map((r: any) => ({
+      ? source.roles.map((rawRole) => {
+          const r = asRecord(rawRole) as ApiRole;
+          return {
           id: String(r?.id ?? r?._id ?? ""),
           eventId: String(r?.eventId ?? source?.id ?? source?._id ?? ""),
           name: r?.name ?? "",
           maxWinners: Number(r?.maxWinners ?? 1),
           createdAt: r?.createdAt,
-        }))
+          };
+        })
       : undefined,
     options: Array.isArray(source?.options)
-      ? source.options.map((o: any) => ({
+      ? source.options.map((rawOption) => {
+          const o = asRecord(rawOption) as ApiOption;
+          return {
           id: String(o?.id ?? o?._id ?? ""),
           eventId: String(o?.eventId ?? source?.id ?? source?._id ?? ""),
           name: o?.name ?? "",
@@ -64,21 +151,25 @@ const toVotingEvent = (raw: any): VotingEvent => {
           active: Boolean(o?.active ?? true),
           createdAt: o?.createdAt,
           candidates: Array.isArray(o?.candidates)
-            ? o.candidates.map((c: any, idx: number) => ({
+            ? o.candidates.map((rawCandidate, idx: number) => {
+                const c = asRecord(rawCandidate) as ApiCandidate;
+                return {
                 id: String(c?.id ?? c?._id ?? `${String(o?.id ?? o?._id ?? "opt")}-${idx}`),
                 optionId: String(o?.id ?? o?._id ?? ""),
                 name: c?.name ?? "",
                 photoUrl: c?.photoUrl ?? undefined,
                 roleName: c?.roleName ?? "",
-              }))
+                };
+              })
             : [],
-        }))
+          };
+        })
       : undefined,
   };
 };
 
-const toRole = (raw: any): EventRole => {
-  const source = unwrapApiData(raw);
+const toRole = (raw: unknown): EventRole => {
+  const source = unwrapApiData<ApiRole>(raw) as ApiRole;
   return {
     id: String(source?.id ?? source?._id ?? ""),
     eventId: String(source?.eventId ?? ""),
@@ -88,8 +179,8 @@ const toRole = (raw: any): EventRole => {
   };
 };
 
-const toOption = (raw: any): VotingOption => {
-  const source = unwrapApiData(raw);
+const toOption = (raw: unknown): VotingOption => {
+  const source = unwrapApiData<ApiOption>(raw) as ApiOption;
   return {
     id: String(source?.id ?? source?._id ?? ""),
     eventId: String(source?.eventId ?? ""),
@@ -99,13 +190,16 @@ const toOption = (raw: any): VotingOption => {
     active: Boolean(source?.active ?? true),
     createdAt: source?.createdAt,
     candidates: Array.isArray(source?.candidates)
-      ? source.candidates.map((c: any, idx: number) => ({
+      ? source.candidates.map((rawCandidate, idx: number) => {
+          const c = asRecord(rawCandidate) as ApiCandidate;
+          return {
           id: String(c?.id ?? c?._id ?? `${String(source?.id ?? source?._id ?? "opt")}-${idx}`),
           optionId: String(source?.id ?? source?._id ?? ""),
           name: c?.name ?? "",
           photoUrl: c?.photoUrl ?? undefined,
           roleName: c?.roleName ?? "",
-        }))
+          };
+        })
       : [],
   };
 };
@@ -117,14 +211,16 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
         url: "/voting/events",
         params: params || {},
       }),
-      transformResponse: (response: any) =>
-        Array.isArray(response?.data) ? response.data.map(toVotingEvent) : [],
+      transformResponse: (response: unknown) => {
+        const data = (asRecord(response).data as unknown[]) ?? [];
+        return Array.isArray(data) ? data.map(toVotingEvent) : [];
+      },
       providesTags: ["VotingEvents"],
     }),
 
     getVotingEvent: builder.query<VotingEvent, string>({
       query: (eventId) => `/voting/events/${eventId}`,
-      transformResponse: (response: any) => toVotingEvent(response),
+      transformResponse: (response: unknown) => toVotingEvent(response),
       providesTags: (_result, _error, eventId) => [{ type: "VotingEvents", id: eventId }],
     }),
 
@@ -134,7 +230,7 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
         method: "POST",
         body,
       }),
-      transformResponse: (response: any) => toVotingEvent(response),
+      transformResponse: (response: unknown) => toVotingEvent(response),
       invalidatesTags: ["VotingEvents"],
     }),
 
@@ -147,7 +243,7 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
         method: "PATCH",
         body: data,
       }),
-      transformResponse: (response: any) => toVotingEvent(response),
+      transformResponse: (response: unknown) => toVotingEvent(response),
       invalidatesTags: (_result, _error, { eventId }) => [{ type: "VotingEvents", id: eventId }],
     }),
 
@@ -170,8 +266,10 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
 
     getEventRoles: builder.query<EventRole[], string>({
       query: (eventId) => `/voting/events/${eventId}/roles`,
-      transformResponse: (response: any) =>
-        Array.isArray(response?.data) ? response.data.map(toRole) : [],
+      transformResponse: (response: unknown) => {
+        const data = (asRecord(response).data as unknown[]) ?? [];
+        return Array.isArray(data) ? data.map(toRole) : [];
+      },
       providesTags: (_result, _error, eventId) => [{ type: "VotingEventRoles", id: eventId }],
     }),
 
@@ -181,7 +279,7 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
         method: "POST",
         body: data,
       }),
-      transformResponse: (response: any) => toRole(response),
+      transformResponse: (response: unknown) => toRole(response),
       invalidatesTags: (_result, _error, { eventId }) => [{ type: "VotingEventRoles", id: eventId }],
     }),
 
@@ -194,7 +292,7 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
         method: "PATCH",
         body: data,
       }),
-      transformResponse: (response: any) => toRole(response),
+      transformResponse: (response: unknown) => toRole(response),
       invalidatesTags: (_result, _error, { eventId }) => [{ type: "VotingEventRoles", id: eventId }],
     }),
 
@@ -208,8 +306,10 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
 
     getEventOptions: builder.query<VotingOption[], string>({
       query: (eventId) => `/voting/events/${eventId}/options`,
-      transformResponse: (response: any) =>
-        Array.isArray(response?.data) ? response.data.map(toOption) : [],
+      transformResponse: (response: unknown) => {
+        const data = (asRecord(response).data as unknown[]) ?? [];
+        return Array.isArray(data) ? data.map(toOption) : [];
+      },
       providesTags: (_result, _error, eventId) => [{ type: "VotingEventOptions", id: eventId }],
     }),
 
@@ -222,7 +322,7 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
         method: "POST",
         body: data,
       }),
-      transformResponse: (response: any) => toOption(response),
+      transformResponse: (response: unknown) => toOption(response),
       invalidatesTags: (_result, _error, { eventId }) => [{ type: "VotingEventOptions", id: eventId }],
     }),
 
@@ -235,7 +335,7 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
         method: "PATCH",
         body: data,
       }),
-      transformResponse: (response: any) => toOption(response),
+      transformResponse: (response: unknown) => toOption(response),
       invalidatesTags: (_result, _error, { eventId }) => [{ type: "VotingEventOptions", id: eventId }],
     }),
 
@@ -248,7 +348,7 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
         method: "PUT",
         body: data,
       }),
-      transformResponse: (response: any) => toOption(response),
+      transformResponse: (response: unknown) => toOption(response),
       invalidatesTags: (_result, _error, { eventId }) => [{ type: "VotingEventOptions", id: eventId }],
     }),
 
@@ -278,39 +378,52 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
           body: formData,
         };
       },
-      transformResponse: (response: any) => ({
-        versionId: String(response?.padronVersionId ?? ""),
-        padronVersionId: String(response?.padronVersionId ?? ""),
-        fileDigest: String(response?.fileDigest ?? ""),
-        totalRecords: Number(response?.totals?.validCount ?? 0),
-        validCount: Number(response?.totals?.validCount ?? 0),
-        invalidCount: Number(response?.totals?.invalidCount ?? 0),
-        duplicateCount: Number(response?.totals?.duplicateCount ?? 0),
-        uploadedAt: response?.createdAt,
-        totals: response?.totals,
-      }),
+      transformResponse: (response: unknown) => {
+        const payload = asRecord(response) as ApiRecord & {
+          padronVersionId?: string;
+          fileDigest?: string;
+          totals?: PadronImportResult["totals"];
+          createdAt?: string;
+        };
+        return {
+        versionId: String(payload.padronVersionId ?? ""),
+        padronVersionId: String(payload.padronVersionId ?? ""),
+        fileDigest: String(payload.fileDigest ?? ""),
+        totalRecords: Number(payload.totals?.validCount ?? 0),
+        validCount: Number(payload.totals?.validCount ?? 0),
+        invalidCount: Number(payload.totals?.invalidCount ?? 0),
+        duplicateCount: Number(payload.totals?.duplicateCount ?? 0),
+        uploadedAt: payload.createdAt,
+        totals: payload.totals,
+        };
+      },
       invalidatesTags: (_result, _error, { eventId }) => [{ type: "VotingEventPadron", id: eventId }],
     }),
 
     getPadronVersions: builder.query<PadronVersion[], string>({
       query: (eventId) => `/voting/events/${eventId}/padron/versions`,
-      transformResponse: (response: any) =>
-        Array.isArray(response?.data)
-          ? response.data.map((v: any) => ({
-              id: String(v?.padronVersionId ?? v?.id ?? ""),
-              padronVersionId: String(v?.padronVersionId ?? v?.id ?? ""),
-              fileDigest: String(v?.fileDigest ?? ""),
-              fileName: `padron-${String(v?.padronVersionId ?? v?.id ?? "")}.csv`,
-              totalRecords: Number(v?.totals?.validCount ?? 0),
-              validCount: Number(v?.totals?.validCount ?? 0),
-              invalidCount: Number(v?.totals?.invalidCount ?? 0),
-              duplicateCount: Number(v?.totals?.duplicateCount ?? 0),
-              uploadedAt: v?.createdAt,
-              createdAt: v?.createdAt,
-              createdBy: v?.createdBy,
-              isCurrent: Boolean(v?.isCurrent),
-            }))
-          : [],
+      transformResponse: (response: unknown) => {
+        const data = (asRecord(response).data as unknown[]) ?? [];
+        return Array.isArray(data)
+          ? data.map((v) => {
+              const version = asRecord(v) as ApiPadronVersion;
+              return {
+                id: String(version.padronVersionId ?? version.id ?? ""),
+                padronVersionId: String(version.padronVersionId ?? version.id ?? ""),
+                fileDigest: String(version.fileDigest ?? ""),
+                fileName: `padron-${String(version.padronVersionId ?? version.id ?? "")}.csv`,
+                totalRecords: Number(version.totals?.validCount ?? 0),
+                validCount: Number(version.totals?.validCount ?? 0),
+                invalidCount: Number(version.totals?.invalidCount ?? 0),
+                duplicateCount: Number(version.totals?.duplicateCount ?? 0),
+                uploadedAt: version.createdAt ?? "",
+                createdAt: version.createdAt ?? "",
+                createdBy: version.createdBy,
+                isCurrent: Boolean(version.isCurrent),
+              };
+            })
+          : [];
+      },
       providesTags: (_result, _error, eventId) => [{ type: "VotingEventPadron", id: eventId }],
     }),
 
@@ -320,22 +433,29 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
     >({
       query: ({ eventId, page = 1, limit = 50 }) =>
         `/voting/events/${eventId}/padron/voters?page=${page}&limit=${limit}`,
-      transformResponse: (response: any) => ({
-        voters: Array.isArray(response?.data)
-          ? response.data.map((v: any) => ({
-              id: String(v?.id ?? v?._id ?? ""),
-              carnet: String(v?.carnetNorm ?? ""),
-              carnetNorm: String(v?.carnetNorm ?? ""),
-              enabled: v?.enabled !== false,
-              status: "valid" as const,
-              createdAt: v?.createdAt,
-            }))
-          : [],
-        total: Number(response?.total ?? 0),
-        page: Number(response?.page ?? 1),
-        limit: Number(response?.limit ?? 50),
-        totalPages: Number(response?.totalPages ?? 0),
-      }),
+      transformResponse: (response: unknown) => {
+        const payload = asRecord(response);
+        const data = (payload.data as unknown[]) ?? [];
+        return {
+          voters: Array.isArray(data)
+            ? data.map((v) => {
+                const voter = asRecord(v) as ApiPadronVoter;
+                return {
+                  id: String(voter.id ?? voter._id ?? ""),
+                  carnet: String(voter.carnetNorm ?? ""),
+                  carnetNorm: String(voter.carnetNorm ?? ""),
+                  enabled: voter.enabled !== false,
+                  status: "valid" as const,
+                  createdAt: voter.createdAt,
+                };
+              })
+            : [],
+          total: Number(payload.total ?? 0),
+          page: Number(payload.page ?? 1),
+          limit: Number(payload.limit ?? 50),
+          totalPages: Number(payload.totalPages ?? 0),
+        };
+      },
       providesTags: (_result, _error, { eventId }) => [{ type: "VotingEventPadron", id: eventId }],
     }),
 
@@ -350,7 +470,7 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
       }),
       transformResponse: (response: string, meta, arg) => {
         const contentDisposition = meta?.response?.headers?.get("content-disposition") ?? "";
-        const fileNameMatch = contentDisposition.match(/filename=\"([^\"]+)\"/i);
+        const fileNameMatch = contentDisposition.match(/filename="([^"]+)"/i);
         return {
           content: String(response ?? ""),
           fileName:
@@ -380,30 +500,40 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
 
     getEventResults: builder.query<EventResults, string>({
       query: (eventId) => `/voting/events/${eventId}/results`,
-      transformResponse: (response: any) => ({
-        eventId: String(response?.eventId ?? ""),
+      transformResponse: (response: unknown) => {
+        const payload = asRecord(response);
+        const roles = (payload.roles as unknown[]) ?? [];
+        return {
+        eventId: String(payload.eventId ?? ""),
         status: "FINAL",
-        roles: Array.isArray(response?.roles)
-          ? response.roles.map((r: any) => ({
-              roleName: r?.roleName ?? "",
-              total: Number(r?.total ?? 0),
-              ranking: Array.isArray(r?.ranking)
-                ? r.ranking.map((rk: any) => ({
-                    optionId: String(rk?.optionId ?? ""),
-                    optionName: rk?.optionName ?? "",
-                    votes: Number(rk?.votes ?? 0),
-                    percentage: Number(rk?.percentage ?? 0),
-                  }))
+        roles: Array.isArray(roles)
+          ? roles.map((r) => {
+              const role = asRecord(r) as ApiResultsRole;
+              return {
+              roleName: role.roleName ?? "",
+              total: Number(role.total ?? 0),
+              ranking: Array.isArray(role.ranking)
+                ? role.ranking.map((rk) => {
+                    const ranking = asRecord(rk) as ApiRankingItem;
+                    return {
+                    optionId: String(ranking.optionId ?? ""),
+                    optionName: ranking.optionName ?? "",
+                    votes: Number(ranking.votes ?? 0),
+                    percentage: Number(ranking.percentage ?? 0),
+                    };
+                  })
                 : [],
-              winners: Array.isArray(r?.winners) ? r.winners : [],
-            }))
+              winners: Array.isArray(role.winners) ? role.winners : [],
+              };
+            })
           : [],
-        publishedAt: response?.publishedAt,
-        lastUpdated: response?.publishedAt,
-        source: response?.source,
-        txHash: response?.txHash ?? undefined,
-        blockNumber: response?.blockNumber ?? undefined,
-      }),
+        publishedAt: typeof payload.publishedAt === "string" ? payload.publishedAt : undefined,
+        lastUpdated: typeof payload.publishedAt === "string" ? payload.publishedAt : undefined,
+        source: typeof payload.source === "string" ? payload.source : undefined,
+        txHash: typeof payload.txHash === "string" ? payload.txHash : undefined,
+        blockNumber: typeof payload.blockNumber === "string" ? payload.blockNumber : undefined,
+        };
+      },
       providesTags: (_result, _error, eventId) => [{ type: "VotingEventResults", id: eventId }],
     }),
 
@@ -427,22 +557,31 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
     checkEligibility: builder.query<EligibilityResult, { eventId: string; carnet: string }>({
       query: ({ eventId, carnet }) =>
         `/voting/events/${eventId}/eligibility?carnet=${encodeURIComponent(carnet)}`,
-      transformResponse: (response: any) => ({
-        status: String(response?.status ?? "NOT_ELIGIBLE"),
-        eligible: String(response?.status ?? "").toUpperCase() === "ELIGIBLE",
-        normalizedCarnet: response?.normalizedCarnet,
-        referenceVersion: response?.referenceVersion ?? null,
-      }),
+      transformResponse: (response: unknown) => {
+        const payload = asRecord(response);
+        return {
+          status: String(payload.status ?? "NOT_ELIGIBLE"),
+          eligible: String(payload.status ?? "").toUpperCase() === "ELIGIBLE",
+          normalizedCarnet:
+            typeof payload.normalizedCarnet === "string" ? payload.normalizedCarnet : undefined,
+          referenceVersion:
+            typeof payload.referenceVersion === "string" ? payload.referenceVersion : null,
+        };
+      },
     }),
 
     checkPublicEligibility: builder.query<EligibilityResult, { eventId: string; carnet: string }>({
       query: ({ eventId, carnet }) =>
         `/voting/events/${eventId}/eligibility/public?carnet=${encodeURIComponent(carnet)}`,
-      transformResponse: (response: any) => ({
-        status: String(response?.status ?? "NOT_ELIGIBLE"),
-        eligible: String(response?.status ?? "").toUpperCase() === "ELIGIBLE",
-        referenceVersion: response?.referenceVersion ?? null,
-      }),
+      transformResponse: (response: unknown) => {
+        const payload = asRecord(response);
+        return {
+          status: String(payload.status ?? "NOT_ELIGIBLE"),
+          eligible: String(payload.status ?? "").toUpperCase() === "ELIGIBLE",
+          referenceVersion:
+            typeof payload.referenceVersion === "string" ? payload.referenceVersion : null,
+        };
+      },
     }),
 
     createParticipation: builder.mutation<
@@ -455,7 +594,7 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
         body: data,
         headers: idempotencyKey ? { "idempotency-key": idempotencyKey } : {},
       }),
-      transformResponse: (response: any, _meta: any) => ({
+      transformResponse: (response: unknown) => ({
         statusCode: 200,
         body: response,
       }),
@@ -464,13 +603,17 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
     getParticipationStatus: builder.query<ParticipationStatus, { eventId: string; carnet: string }>({
       query: ({ eventId, carnet }) =>
         `/voting/events/${eventId}/participations/status?carnet=${encodeURIComponent(carnet)}`,
-      transformResponse: (response: any) => ({
-        status: String(response?.status ?? "UNKNOWN"),
-        hasParticipated: Boolean(response?.alreadyVoted),
-        alreadyVoted: Boolean(response?.alreadyVoted),
-        canVote: Boolean(response?.canVote),
-        participatedAt: response?.participatedAt,
-      }),
+      transformResponse: (response: unknown) => {
+        const payload = asRecord(response);
+        return {
+          status: String(payload.status ?? "UNKNOWN"),
+          hasParticipated: Boolean(payload.alreadyVoted),
+          alreadyVoted: Boolean(payload.alreadyVoted),
+          canVote: Boolean(payload.canVote),
+          participatedAt:
+            typeof payload.participatedAt === "string" ? payload.participatedAt : undefined,
+        };
+      },
     }),
 
     createEventNews: builder.mutation<EventNews, { eventId: string; data: CreateEventNewsDto }>({
@@ -479,11 +622,14 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
         method: "POST",
         body: data,
       }),
-      transformResponse: (response: any) => ({
-        eventId: String(response?.eventId ?? ""),
-        sent: Number(response?.sent ?? 0),
-        skipped: response?.skipped ?? null,
-      }),
+      transformResponse: (response: unknown) => {
+        const payload = asRecord(response);
+        return {
+          eventId: String(payload.eventId ?? ""),
+          sent: Number(payload.sent ?? 0),
+          skipped: typeof payload.skipped === "string" ? payload.skipped : null,
+        };
+      },
       invalidatesTags: (_result, _error, { eventId }) => [{ type: "VotingEventNews", id: eventId }],
     }),
   }),

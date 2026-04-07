@@ -7,6 +7,7 @@ import { useLazyGetMunicipalitiesByProvinceIdQuery } from "../store/municipaliti
 
 type Mode = "GOVERNOR" | "MAYOR";
 type LevelOption = { _id: string; name: string };
+type DepartmentOption = { _id: string; name: string };
 
 type Props = {
   mode: Mode;
@@ -23,7 +24,7 @@ type Props = {
 };
 
 export default function ScopePicker({ mode, value, onChange }: Props) {
-  const departmentsRaw = useSelector(selectDepartments) as any[];
+  const departmentsRaw = useSelector(selectDepartments) as DepartmentOption[];
   const departments: LevelOption[] = useMemo(
     () => (departmentsRaw || []).map((d) => ({ _id: d._id, name: d.name })),
     [departmentsRaw],
@@ -98,7 +99,7 @@ export default function ScopePicker({ mode, value, onChange }: Props) {
       }
     };
     load().catch(() => {});
-  }, [mode, value.departmentId]);
+  }, [getProvincesByDepartmentId, mode, value.departmentId]);
 
   // Load municipalities when province picked (MAYOR)
   useEffect(() => {
@@ -119,7 +120,7 @@ export default function ScopePicker({ mode, value, onChange }: Props) {
       }
     };
     load().catch(() => {});
-  }, [mode, value.provinceId]);
+  }, [getMunicipalitiesByProvinceId, mode, value.provinceId]);
 
   const onPick = (opt: LevelOption) => {
     setSearch("");
