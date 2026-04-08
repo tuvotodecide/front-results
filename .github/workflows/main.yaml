@@ -220,7 +220,7 @@ jobs:
             "docker pull \($reg)/\($repo):\($tag)",
             "docker stop \($name) || true",
             "docker rm \($name) || true",
-            "docker run -d --name \($name) -p \($port):80 --restart unless-stopped \($reg)/\($repo):\($tag)",
+            "docker run -d --name \($name) -p \($port):3000 --restart unless-stopped \($reg)/\($repo):\($tag)",
             "docker image prune -f"
           ]')
 
