@@ -2,7 +2,7 @@
 // Basado en capturas 02_step1.png y 03_step2.png
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/domains/votacion/navigation/compat-private';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import Stepper from './Stepper';
@@ -132,7 +132,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
       if (onSuccess) {
         onSuccess();
       } else {
-        navigate(`/elections/${newElection.id}/config/cargos`, { replace: true });
+        navigate(`/votacion/elecciones/${newElection.id}/config/cargos`, { replace: true });
       }
     } catch (error: any) {
       console.error('Error creando elección:', error);
@@ -149,7 +149,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
     } else if (onCancel) {
       onCancel();
     } else {
-      navigate('/elections');
+      navigate('/votacion/elecciones');
     }
   };
 

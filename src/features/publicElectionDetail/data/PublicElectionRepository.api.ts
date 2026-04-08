@@ -1,6 +1,9 @@
 import type { IPublicElectionRepository, PublicElectionDetail, PublicElectionStatus } from '../types';
+import { getRuntimeEnv } from '../../../shared/system/runtimeEnv';
 
-const API_BASE_URL = import.meta.env.VITE_BASE_API_URL || 'http://localhost:3000/api/v1';
+const API_BASE_URL =
+  getRuntimeEnv('VITE_BASE_API_URL', 'NEXT_PUBLIC_BASE_API_URL') ||
+  'http://localhost:3000/api/v1';
 
 const colorPalette = [
   '#1e40af',

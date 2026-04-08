@@ -3,7 +3,7 @@
 // Conectado a backend real con RTK Query
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/domains/votacion/navigation/compat-private';
 import { useSelector } from 'react-redux';
 import { useDeleteVotingEventMutation, useGetVotingEventsQuery } from '../../store/votingEvents';
 import { selectTenantId, selectIsLoggedIn } from '../../store/auth/authSlice';
@@ -48,7 +48,7 @@ const ElectionsPage: React.FC = () => {
   const isEmpty = events.length === 0;
 
   const handleCreateClick = () => {
-    navigate('/elections/new');
+    navigate('/votacion/elecciones/new');
   };
 
   const handleElectionClick = (event: VotingEvent) => {
@@ -58,17 +58,17 @@ const ElectionsPage: React.FC = () => {
 
     if (event.status === 'DRAFT') {
       // Ir a configuración (Paso 1)
-      navigate(`/elections/${event.id}/config/cargos`);
+      navigate(`/votacion/elecciones/${event.id}/config/cargos`);
     } else if (
       event.status === 'PUBLISHED' ||
       event.status === 'CLOSED' ||
       event.status === 'RESULTS_PUBLISHED'
     ) {
       // Elección publicada/activa/terminada - ir a vista de estado (read-only)
-      navigate(`/elections/${event.id}/status`);
+      navigate(`/votacion/elecciones/${event.id}/status`);
     } else {
       // Fallback a review
-      navigate(`/elections/${event.id}/config/review`);
+      navigate(`/votacion/elecciones/${event.id}/config/review`);
     }
   };
 
@@ -101,7 +101,7 @@ const ElectionsPage: React.FC = () => {
         <div className="text-center">
           <p className="text-gray-600 mb-4">Debes iniciar sesión para ver tus elecciones</p>
           <button
-            onClick={() => navigate('/login')}
+            onClick={() => navigate('/votacion/login')}
             className="bg-[#459151] hover:bg-[#3a7a44] text-white font-semibold px-6 py-2 rounded-lg"
           >
             Iniciar sesión

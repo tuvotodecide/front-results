@@ -1,3 +1,5 @@
+import type { StaticImageData } from "next/image";
+
 export interface LandingHero {
   title: {
     prefix: string;
@@ -52,7 +54,7 @@ export interface TrustBrand {
   id: string;
   name: string;
   accent?: string;
-  logoSrc?: string;
+  logoSrc?: string | StaticImageData;
   logoAlt?: string;
 }
 

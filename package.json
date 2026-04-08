@@ -5,9 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:next": "next dev",
     "build": "tsc -b && vite build",
+    "build:next": "next build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "start:next": "next start",
     "cy:open": "cypress open",
     "cy:run": "cypress run",
     "test:e2e": "cypress run"
@@ -25,6 +28,7 @@
     "fuse.js": "^7.1.0",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.525.0",
+    "next": "15.5.14",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0",
@@ -37,6 +41,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
+    "@tailwindcss/postcss": "4.2.2",
     "@types/d3": "^7.4.3",
     "@types/node": "^22.13.11",
     "@types/react": "^19.0.10",
@@ -49,6 +54,7 @@
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^15.15.0",
+    "postcss": "8.4.31",
     "tailwindcss": "^4.1.4",
     "ts-node": "^10.9.2",
     "typescript": "~5.7.2",

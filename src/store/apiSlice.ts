@@ -5,10 +5,15 @@ import {
   fetchBaseQuery,
 } from "@reduxjs/toolkit/query/react";
 import { logOut } from "./auth/authSlice";
+import { getRuntimeEnv } from "../shared/system/runtimeEnv";
+import { readStorage } from "../shared/system/browserStorage";
 
-const { VITE_BASE_API_URL } = import.meta.env;
-const baseApiUrl = VITE_BASE_API_URL || "http://localhost:3000/api/v1";
-const appMode = String(import.meta.env.VITE_APP_MODE || "voting").toLowerCase();
+const baseApiUrl =
+  getRuntimeEnv("VITE_BASE_API_URL", "NEXT_PUBLIC_BASE_API_URL") ||
+  "http://localhost:3000/api/v1";
+const appMode = String(
+  getRuntimeEnv("VITE_APP_MODE", "NEXT_PUBLIC_APP_MODE") || "voting",
+).toLowerCase();
 
 const baseQuery = fetchBaseQuery({
   baseUrl: baseApiUrl,
@@ -53,9 +58,7 @@ const baseQueryWrapper = async (
   const eid =
     urlElectionId ??
     state?.election?.selectedElectionId ??
-    (typeof localStorage !== "undefined"
-      ? localStorage.getItem("selectedElectionId")
-      : null);
+    readStorage("selectedElectionId");
 
   let adjusted: FetchArgs =
     typeof args === "string" ? { url: args } : { ...args };

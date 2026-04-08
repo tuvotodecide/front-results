@@ -3,12 +3,48 @@ import { useRef, useState } from 'react';
 import { VotingEvent } from '../store/votingEvents';
 import { votingContractAbi } from '../abi/votingContract';
 import { v4 as uuidv4 } from 'uuid';
+import { getRuntimeEnv } from '../shared/system/runtimeEnv';
+
+const VOTE_CHAIN_ID = getRuntimeEnv('VITE_VOTE_CHAIN_ID', 'NEXT_PUBLIC_VOTE_CHAIN_ID');
+const VOTE_CHAIN_NAME =
+  getRuntimeEnv('VITE_VOTE_CHAIN_NAME', 'NEXT_PUBLIC_VOTE_CHAIN_NAME') ??
+  'Custom Network';
+const VOTE_CHAIN_RPC_URL = getRuntimeEnv(
+  'VITE_VOTE_CHAIN_RPC_URL',
+  'NEXT_PUBLIC_VOTE_CHAIN_RPC_URL',
+);
+const VOTE_CHAIN_BLOCK_EXPLORER_URL = getRuntimeEnv(
+  'VITE_VOTE_CHAIN_BLOCK_EXPLORER_URL',
+  'NEXT_PUBLIC_VOTE_CHAIN_BLOCK_EXPLORER_URL',
+);
+const VOTE_CHAIN_CURRENCY_NAME =
+  getRuntimeEnv(
+    'VITE_VOTE_CHAIN_CURRENCY_NAME',
+    'NEXT_PUBLIC_VOTE_CHAIN_CURRENCY_NAME',
+  ) ?? 'Ether';
+const VOTE_CHAIN_CURRENCY_SYMBOL =
+  getRuntimeEnv(
+    'VITE_VOTE_CHAIN_CURRENCY_SYMBOL',
+    'NEXT_PUBLIC_VOTE_CHAIN_CURRENCY_SYMBOL',
+  ) ?? 'ETH';
+const VOTE_CONTRACT_ADDRESS = getRuntimeEnv(
+  'VITE_VOTE_CONTRACT_ADDRESS',
+  'NEXT_PUBLIC_VOTE_CONTRACT_ADDRESS',
+);
+
+function getVoteContractAddress(): string {
+  if (!VOTE_CONTRACT_ADDRESS) {
+    throw new Error('Missing VITE_VOTE_CONTRACT_ADDRESS');
+  }
+
+  return VOTE_CONTRACT_ADDRESS;
+}
 
 export async function connectMetamask() {
   if(window.ethereum == null) {
     throw new Error('MetaMask is not installed');
   } else {
-    const chainId = import.meta.env.VITE_VOTE_CHAIN_ID ? parseInt(import.meta.env.VITE_VOTE_CHAIN_ID) : undefined;
+    const chainId = VOTE_CHAIN_ID ? parseInt(VOTE_CHAIN_ID) : undefined;
     const chainIdHex = chainId != null ? `0x${chainId.toString(16)}` : undefined;
     const provider = new ethers.BrowserProvider(
       window.ethereum,
@@ -25,9 +61,9 @@ export async function connectMetamask() {
       } catch (switchError: any) {
         // 4902 = unknown chain in wallet, attempt to add it and switch again.
         if (switchError?.code === 4902) {
-          const chainName = import.meta.env.VITE_VOTE_CHAIN_NAME ?? 'Custom Network';
-          const rpcUrl = import.meta.env.VITE_VOTE_CHAIN_RPC_URL;
-          const blockExplorerUrl = import.meta.env.VITE_VOTE_CHAIN_BLOCK_EXPLORER_URL;
+          const chainName = VOTE_CHAIN_NAME;
+          const rpcUrl = VOTE_CHAIN_RPC_URL;
+          const blockExplorerUrl = VOTE_CHAIN_BLOCK_EXPLORER_URL;
 
           if (!rpcUrl) {
             throw new Error('Missing VITE_VOTE_CHAIN_RPC_URL for wallet_addEthereumChain');
@@ -41,8 +77,8 @@ export async function connectMetamask() {
               rpcUrls: [rpcUrl],
               blockExplorerUrls: blockExplorerUrl ? [blockExplorerUrl] : undefined,
               nativeCurrency: {
-                name: import.meta.env.VITE_VOTE_CHAIN_CURRENCY_NAME ?? 'Ether',
-                symbol: import.meta.env.VITE_VOTE_CHAIN_CURRENCY_SYMBOL ?? 'ETH',
+                name: VOTE_CHAIN_CURRENCY_NAME,
+                symbol: VOTE_CHAIN_CURRENCY_SYMBOL,
                 decimals: 18,
               },
             }]
@@ -84,7 +120,7 @@ export async function createVoting(signer: ethers.JsonRpcSigner, votingEvent: Vo
   }
 
   const voteContract = new Contract(
-    import.meta.env.VITE_VOTE_CONTRACT_ADDRESS,
+    getVoteContractAddress(),
     votingContractAbi,
     signer,
   );
@@ -110,7 +146,7 @@ export async function updateVotingSchedule(
   newResults: string
 ) {
   const voteContract = new Contract(
-    import.meta.env.VITE_VOTE_CONTRACT_ADDRESS,
+    getVoteContractAddress(),
     votingContractAbi,
     signer,
   );

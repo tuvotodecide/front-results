@@ -2,7 +2,10 @@
 // Conectado a backend real con RTK Query
 
 import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import {
+  useNavigate,
+  useParams,
+} from '@/domains/votacion/navigation/compat-private';
 import Modal2 from '../../components/Modal2';
 import ConfigStepsTabs from './components/ConfigStepsTabs';
 import InfoPopover from './components/InfoPopover';
@@ -132,16 +135,16 @@ const ElectionConfigCargos: React.FC = () => {
   };
 
   const handleNextStep = () => {
-    navigate(`/elections/${actualElectionId}/config/planchas`);
+    navigate(`/votacion/elecciones/${actualElectionId}/config/planchas`);
   };
 
   const handleGoToStep = (step: ConfigStep) => {
     if (step === 1) return;
     if (step === 2 && hasPositions) {
-      navigate(`/elections/${actualElectionId}/config/planchas`);
+      navigate(`/votacion/elecciones/${actualElectionId}/config/planchas`);
     }
     if (step === 3 && hasPositions && hasPartiesWithCandidates) {
-      navigate(`/elections/${actualElectionId}/config/padron`);
+      navigate(`/votacion/elecciones/${actualElectionId}/config/padron`);
     }
   };
 
@@ -152,7 +155,7 @@ const ElectionConfigCargos: React.FC = () => {
         title="ID de votación no válido"
         message="No se pudo resolver la votación seleccionada. Vuelve al listado y entra nuevamente."
         actionLabel="Volver a elecciones"
-        onAction={() => navigate('/elections')}
+        onAction={() => navigate('/votacion/elecciones')}
       />
     );
   }
@@ -176,7 +179,7 @@ const ElectionConfigCargos: React.FC = () => {
         title="Votación no encontrada"
         message="La votación no existe o la respuesta llegó incompleta. Vuelve al listado y selecciónala de nuevo."
         actionLabel="Volver a elecciones"
-        onAction={() => navigate('/elections')}
+        onAction={() => navigate('/votacion/elecciones')}
       />
     );
   }
@@ -187,7 +190,7 @@ const ElectionConfigCargos: React.FC = () => {
         title="La votación ya venció antes de completarse"
         message="Como la hora de inicio ya pasó y el evento sigue en borrador, ya no debe seguir configurándose. Elimínalo desde la lista de votaciones."
         actionLabel="Volver a elecciones"
-        onAction={() => navigate('/elections')}
+        onAction={() => navigate('/votacion/elecciones')}
       />
     );
   }

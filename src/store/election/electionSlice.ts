@@ -1,4 +1,9 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import {
+  readStorage,
+  removeStorage,
+  writeStorage,
+} from '../../shared/system/browserStorage';
 
 export interface ElectionsState {
   selectedElectionId: string | null;
@@ -21,24 +26,24 @@ export const electionsSlice = createSlice({
       state.selectedElectionId = action.payload.id;
       state.selectedElectionName = action.payload.name;
       if (action.payload.id) {
-        localStorage.setItem('selectedElectionId', action.payload.id);
-        localStorage.setItem('selectedElectionName', action.payload.name ?? '');
+        writeStorage('selectedElectionId', action.payload.id);
+        writeStorage('selectedElectionName', action.payload.name ?? '');
       } else {
-        localStorage.removeItem('selectedElectionId');
-        localStorage.removeItem('selectedElectionName');
+        removeStorage('selectedElectionId');
+        removeStorage('selectedElectionName');
       }
     },
     hydrateElectionFromStorage: (state) => {
-      const id = localStorage.getItem('selectedElectionId');
-      const name = localStorage.getItem('selectedElectionName');
+      const id = readStorage('selectedElectionId');
+      const name = readStorage('selectedElectionName');
       state.selectedElectionId = id || null;
       state.selectedElectionName = name || null;
     },
     clearSelectedElection: (state) => {
       state.selectedElectionId = null;
       state.selectedElectionName = null;
-      localStorage.removeItem('selectedElectionId');
-      localStorage.removeItem('selectedElectionName');
+      removeStorage('selectedElectionId');
+      removeStorage('selectedElectionName');
     },
   },
 });

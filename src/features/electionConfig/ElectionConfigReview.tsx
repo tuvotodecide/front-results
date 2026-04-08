@@ -2,7 +2,10 @@
 // Basado en capturas 01-04
 
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import {
+  useNavigate,
+  useParams,
+} from '@/domains/votacion/navigation/compat-private';
 import PhoneMockup from './components/PhoneMockup';
 import BallotPreview from './components/BallotPreview';
 import ConfigSummaryCard from './components/ConfigSummaryCard';
@@ -55,7 +58,7 @@ const ElectionConfigReview: React.FC = () => {
     : false;
 
   const handleBackToEdit = () => {
-    navigate(`/elections/${actualElectionId}/config/cargos`);
+    navigate(`/votacion/elecciones/${actualElectionId}/config/cargos`);
   };
 
   const handleConfirmClick = () => {
@@ -85,7 +88,7 @@ const ElectionConfigReview: React.FC = () => {
   const handleSuccessClose = () => {
     setShowSuccessModal(false);
     // Navegar al dashboard o detalle de la elección
-    navigate('/elections');
+    navigate('/votacion/elecciones');
   };
 
   const connectMetamask = () => {
@@ -130,7 +133,7 @@ const ElectionConfigReview: React.FC = () => {
         title="ID de votación no válido"
         message="No se pudo resolver la votación seleccionada. Vuelve al listado y entra nuevamente."
         actionLabel="Volver a elecciones"
-        onAction={() => navigate('/elections')}
+        onAction={() => navigate('/votacion/elecciones')}
       />
     );
   }
@@ -152,7 +155,7 @@ const ElectionConfigReview: React.FC = () => {
         title="La votación ya venció antes de completarse"
         message="Como la hora de inicio ya pasó y el evento sigue en borrador, ya no debe publicarse ni seguir configurándose. Elimínalo desde la lista de votaciones."
         actionLabel="Volver a elecciones"
-        onAction={() => navigate('/elections')}
+        onAction={() => navigate('/votacion/elecciones')}
       />
     );
   }

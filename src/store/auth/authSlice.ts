@@ -1,6 +1,11 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { RootState } from "../index";
 import { jwtDecode } from "jwt-decode";
+import {
+  readStorage,
+  removeStorage,
+  writeStorage,
+} from "../../shared/system/browserStorage";
 type JwtPayload = {
   sub?: string;
   dni?: string;
@@ -80,17 +85,17 @@ const normalizeUser = (u: any): AuthState["user"] => {
 };
 let rawUser: any = null;
 try {
-  rawUser = JSON.parse(localStorage.getItem("user") ?? "null");
+  rawUser = JSON.parse(readStorage("user") ?? "null");
 } catch {
   rawUser = null;
 }
 
-const storedToken = localStorage.getItem("token");
+const storedToken = readStorage("token");
 const initialToken = storedToken && !isTokenExpired(storedToken) ? storedToken : null;
 
 if (!initialToken) {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
+  removeStorage("token");
+  removeStorage("user");
 }
 
 const initialState: AuthState = {
@@ -154,25 +159,25 @@ export const authSlice = createSlice({
       state.user = validToken ? user : null;
 
       if (validToken && user) {
-        localStorage.setItem("user", JSON.stringify(user));
+        writeStorage("user", JSON.stringify(user));
       } else {
-        localStorage.removeItem("user");
+        removeStorage("user");
       }
 
       if (validToken) {
-        localStorage.setItem("token", validToken);
+        writeStorage("token", validToken);
       } else {
-        localStorage.removeItem("token");
+        removeStorage("token");
       }
     },
     logOut: (state) => {
       state.token = null;
       state.user = null;
-      localStorage.removeItem("user");
-      localStorage.removeItem("token");
-      localStorage.removeItem("selectedElectionId");
-      localStorage.removeItem("pendingEmail");
-      localStorage.removeItem("pendingReason");
+      removeStorage("user");
+      removeStorage("token");
+      removeStorage("selectedElectionId");
+      removeStorage("pendingEmail");
+      removeStorage("pendingReason");
     },
   },
 });

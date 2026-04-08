@@ -1,8 +1,11 @@
 import type { IPublicLandingRepository } from './PublicLandingRepository';
 import type { ActiveElection, PublicLandingData } from '../types';
 import { publicLandingRepositoryMock } from './PublicLandingRepository.mock';
+import { getRuntimeEnv } from '../../../shared/system/runtimeEnv';
 
-const API_BASE_URL = import.meta.env.VITE_BASE_API_URL || 'http://localhost:3000/api/v1';
+const API_BASE_URL =
+  getRuntimeEnv('VITE_BASE_API_URL', 'NEXT_PUBLIC_BASE_API_URL') ||
+  'http://localhost:3000/api/v1';
 
 const formatSchedule = (from?: string | null, to?: string | null) => {
   const format = (value?: string | null) => {

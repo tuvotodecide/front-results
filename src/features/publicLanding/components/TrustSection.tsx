@@ -75,23 +75,30 @@ const TrustSection: React.FC<TrustSectionProps> = ({ trust }) => {
               </p>
 
               <div className="mt-8 grid grid-cols-4 gap-3">
-                {trust.brands.map((brand) => (
-                  <div
-                    key={brand.id}
-                    className="flex min-h-[84px] items-center justify-center overflow-hidden whitespace-pre-line rounded-2xl border border-slate-100 bg-slate-50 px-3 text-center text-lg font-bold shadow-[inset_0_0_0_1px_rgba(226,232,240,0.7)]"
-                    style={{ color: brand.accent ?? '#1e293b' }}
-                  >
-                    {brand.logoSrc ? (
-                      <img
-                        src={brand.logoSrc}
-                        alt={brand.logoAlt ?? brand.name}
-                        className="max-h-12 w-auto object-contain"
-                      />
-                    ) : (
-                      brand.name
-                    )}
-                  </div>
-                ))}
+                {trust.brands.map((brand) => {
+                  const logoSrc =
+                    typeof brand.logoSrc === "string"
+                      ? brand.logoSrc
+                      : brand.logoSrc?.src;
+
+                  return (
+                    <div
+                      key={brand.id}
+                      className="flex min-h-[84px] items-center justify-center overflow-hidden whitespace-pre-line rounded-2xl border border-slate-100 bg-slate-50 px-3 text-center text-lg font-bold shadow-[inset_0_0_0_1px_rgba(226,232,240,0.7)]"
+                      style={{ color: brand.accent ?? '#1e293b' }}
+                    >
+                      {logoSrc ? (
+                        <img
+                          src={logoSrc}
+                          alt={brand.logoAlt ?? brand.name}
+                          className="max-h-12 w-auto object-contain"
+                        />
+                      ) : (
+                        brand.name
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </article>
           </div>

@@ -19,6 +19,8 @@ export const Header: React.FC<HeaderProps> = ({
   isSidebarOpen,
   hideSidebarToggle = false,
 }) => {
+  const logoAsset = tuvotoDecideImage as string | { src: string };
+  const logoSrc = typeof logoAsset === "string" ? logoAsset : logoAsset.src;
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const location = useLocation();
   const isLoginPage = location.pathname === "/login";
@@ -52,7 +54,7 @@ export const Header: React.FC<HeaderProps> = ({
     <header className={styles.header}>
       <a className={styles.logo}>
         <img
-          src={tuvotoDecideImage}
+          src={logoSrc}
           alt="Tu voto decide"
           className={styles.logoImage}
         />

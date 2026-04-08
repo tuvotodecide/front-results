@@ -29,7 +29,7 @@ class AppErrorBoundary extends React.Component<
   };
 
   handleGoHome = () => {
-    window.location.assign("/elections");
+    window.location.assign("/votacion/elecciones");
   };
 
   render() {

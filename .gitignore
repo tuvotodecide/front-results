@@ -30,3 +30,7 @@ docs/ui/*
 .claude
 
 cypress\screenshots
+
+.next
+out
+docs

@@ -4,44 +4,44 @@ import { useDispatch, useSelector } from "react-redux";
 import { setAuth, selectIsLoggedIn } from "./store/auth/authSlice";
 import LoadingSkeleton from "./components/LoadingSkeleton";
 import { isVotingMode } from "./config/appMode";
-import ResultadosGenerales3 from "./pages/Resultados/ResultadosGenerales3";
-import ParticipacionPersonal from "./pages/Resultados/PersonalParticipation";
-import AuditAndMatch from "./pages/Resultados/AuditAndMatch";
-import ResultadosMesa2 from "./pages/Resultados/ResultadosMesa2";
-import ResultadosImagen from "./pages/Resultados/ResultadosImagen";
-import Departments from "./pages/Departments/Departments";
-import DepartmentForm from "./pages/Departments/DepartmentForm";
-import Provinces from "./pages/Provinces/Provinces";
-import ProvincesForm from "./pages/Provinces/ProvincesForm";
-import Municipalities from "./pages/Municipalities/Municipalities";
-import MunicipalityForm from "./pages/Municipalities/MunicipalityForm";
-import ElectoralSeats from "./pages/ElectoralSeats/ElectoralSeats";
-import ElectoralSeatForm from "./pages/ElectoralSeats/ElectoralSeatForm";
-import ElectoralLocations from "./pages/ElectoralLocations/ElectoralLocations";
-import ElectoralLocationForm from "./pages/ElectoralLocations/ElectoralLocationForm";
-import ElectoralTables from "./pages/ElectoralTables/ElectoralTables";
-import ElectoralTableForm from "./pages/ElectoralTables/ElectoralTableForm";
-import Configurations from "./pages/Configurations/Configurations";
-import ConfigurationForm from "./pages/Configurations/ConfigurationForm";
-import PoliticalParties from "./pages/PoliticalParties/PoliticalParties";
-import PoliticalPartyForm from "./pages/PoliticalParties/PoliticalPartyForm";
+import ResultadosGenerales3 from "./legacy-pages/Resultados/ResultadosGenerales3";
+import ParticipacionPersonal from "./legacy-pages/Resultados/PersonalParticipation";
+import AuditAndMatch from "./legacy-pages/Resultados/AuditAndMatch";
+import ResultadosMesa2 from "./legacy-pages/Resultados/ResultadosMesa2";
+import ResultadosImagen from "./legacy-pages/Resultados/ResultadosImagen";
+import Departments from "./legacy-pages/Departments/Departments";
+import DepartmentForm from "./legacy-pages/Departments/DepartmentForm";
+import Provinces from "./legacy-pages/Provinces/Provinces";
+import ProvincesForm from "./legacy-pages/Provinces/ProvincesForm";
+import Municipalities from "./legacy-pages/Municipalities/Municipalities";
+import MunicipalityForm from "./legacy-pages/Municipalities/MunicipalityForm";
+import ElectoralSeats from "./legacy-pages/ElectoralSeats/ElectoralSeats";
+import ElectoralSeatForm from "./legacy-pages/ElectoralSeats/ElectoralSeatForm";
+import ElectoralLocations from "./legacy-pages/ElectoralLocations/ElectoralLocations";
+import ElectoralLocationForm from "./legacy-pages/ElectoralLocations/ElectoralLocationForm";
+import ElectoralTables from "./legacy-pages/ElectoralTables/ElectoralTables";
+import ElectoralTableForm from "./legacy-pages/ElectoralTables/ElectoralTableForm";
+import Configurations from "./legacy-pages/Configurations/Configurations";
+import ConfigurationForm from "./legacy-pages/Configurations/ConfigurationForm";
+import PoliticalParties from "./legacy-pages/PoliticalParties/PoliticalParties";
+import PoliticalPartyForm from "./legacy-pages/PoliticalParties/PoliticalPartyForm";
 
-const Home = React.lazy(() => import("./pages/Home"));
-const Login = React.lazy(() => import("./pages/Auth/Login"));
-const PanelControl = React.lazy(() => import("./pages/PanelControl"));
-const Rejected = React.lazy(() => import("./pages/Auth/Rejected"));
+const Home = React.lazy(() => import("./legacy-pages/Home"));
+const Login = React.lazy(() => import("./legacy-pages/Auth/Login"));
+const PanelControl = React.lazy(() => import("./legacy-pages/PanelControl"));
+const Rejected = React.lazy(() => import("./legacy-pages/Auth/Rejected"));
 
-const Register = React.lazy(() => import("./pages/Auth/Register"));
-const VerifyEmail = React.lazy(() => import("./pages/Auth/VerifyEmail"));
-const ForgotPassword = React.lazy(() => import("./pages/Auth/ForgotPassword"));
-const ResetPassword = React.lazy(() => import("./pages/Auth/ResetPassword"));
+const Register = React.lazy(() => import("./legacy-pages/Auth/Register"));
+const VerifyEmail = React.lazy(() => import("./legacy-pages/Auth/VerifyEmail"));
+const ForgotPassword = React.lazy(() => import("./legacy-pages/Auth/ForgotPassword"));
+const ResetPassword = React.lazy(() => import("./legacy-pages/Auth/ResetPassword"));
 const WaitingApproval = React.lazy(
-  () => import("./pages/Auth/WaitingApproval")
+  () => import("./legacy-pages/Auth/WaitingApproval")
 );
-const ProtectedRoutes = React.lazy(() => import("./pages/ProtectedRoutes"));
+const ProtectedRoutes = React.lazy(() => import("./legacy-pages/ProtectedRoutes"));
 const BasicLayout = React.lazy(() => import("./components/BasicLayout"));
-const Partidos = React.lazy(() => import("./pages/Partidos/Partidos"));
-const PartidoForm = React.lazy(() => import("./pages/Partidos/PartidoForm"));
+const Partidos = React.lazy(() => import("./legacy-pages/Partidos/Partidos"));
+const PartidoForm = React.lazy(() => import("./legacy-pages/Partidos/PartidoForm"));
 const PublicLayout = React.lazy(() => import("./components/PublicLayout"));
 const PublicLandingPage = React.lazy(() =>
   import("./features/publicLanding").then((m) => ({ default: m.PublicLandingPage }))

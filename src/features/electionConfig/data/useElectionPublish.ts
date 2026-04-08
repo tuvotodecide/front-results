@@ -106,7 +106,7 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
   const activateElection = useCallback(async (nullifiers: string[]): Promise<ActivationResult> => {
     const response = await publishVotingEvent({electionId, nullifiers}).unwrap();
 
-    const publicUrl = `${window.location.origin}/elections/${electionId}/public`;
+    const publicUrl = `${window.location.origin}/votacion/elecciones/${electionId}/publica`;
     const shareText = `Participa en la votación: ${publicUrl}`;
     const out: ActivationResult = {
       publicUrl,
@@ -121,7 +121,7 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
   }, [publishVotingEvent, electionId, event?.votingStart]);
 
   const getShareUrl = useCallback(async (): Promise<string> => {
-    return `${window.location.origin}/elections/${electionId}/public`;
+    return `${window.location.origin}/votacion/elecciones/${electionId}/publica`;
   }, [electionId]);
 
   const copyToClipboard = useCallback(async (text: string): Promise<boolean> => {
