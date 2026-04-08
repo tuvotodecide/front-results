@@ -869,7 +869,7 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
         //   options.departments
         // );
         return options.departments;
-      case 1:
+      case 1: {
         const resp = await getProvincesByDepartmentId(idParentOption).unwrap();
         // console.log(
         //   '%cProvinces fetched for department222222:',
@@ -878,7 +878,8 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
         // );
         // GET provinces based on selected department
         return resp;
-      case 2:
+      }
+      case 2: {
         const municipalitiesResp =
           await getMunicipalitiesByProvinceId(idParentOption).unwrap();
         // console.log(
@@ -887,7 +888,8 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
         //   municipalitiesResp
         // );
         return municipalitiesResp;
-      case 3:
+      }
+      case 3: {
         const electoralSeatsResp =
           await getElectoralSeatsByMunicipalityId(idParentOption).unwrap();
         // console.log(
@@ -896,7 +898,8 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
         //   electoralSeatsResp
         // );
         return electoralSeatsResp;
-      case 4:
+      }
+      case 4: {
         const electoralLocationsResp =
           await getElectoralLocationsByElectoralSeatId(idParentOption).unwrap();
         // console.log(
@@ -905,6 +908,7 @@ const Breadcrumb = ({ autoOpen = true }: Breadcrumb2Props) => {
         //   electoralLocationsResp
         // );
         return electoralLocationsResp;
+      }
       default:
         return [];
     }

@@ -356,7 +356,7 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
       }),
       transformResponse: (response: string, meta, arg) => {
         const contentDisposition = meta?.response?.headers?.get("content-disposition") ?? "";
-        const fileNameMatch = contentDisposition.match(/filename=\"([^\"]+)\"/i);
+        const fileNameMatch = contentDisposition.match(/filename="([^"]+)"/i);
         return {
           content: String(response ?? ""),
           fileName:

@@ -20,6 +20,9 @@ import ScopePicker from "../../../components/ScopePicker";
 import Modal2 from "../../../components/Modal2";
 import { useGetDepartmentsQuery } from "../../../store/departments/departmentsEndpoints";
 import { ModalState } from "../../../types";
+import { useSelector } from "react-redux";
+import { selectAuth } from "@/store/auth/authSlice";
+import { resolveAuthResultadosRedirect } from "../utils/resolveAuthRedirect";
 
 interface ResultsFormValues {
   dni: string;
@@ -136,6 +139,7 @@ const EyeOffIcon = () => (
 const RegisterResultadosPage = () => {
   const logoSrc = getLogoSrc();
   const navigate = useNavigate();
+  const { user, token } = useSelector(selectAuth);
   const [createUser] = useCreateUserMutation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -161,6 +165,13 @@ const RegisterResultadosPage = () => {
   const closeModal = () => setModal((current) => ({ ...current, open: false }));
   const openModal = (payload: Omit<ModalState, "open">) =>
     setModal({ open: true, ...payload });
+
+  useEffect(() => {
+    const target = resolveAuthResultadosRedirect(user, token);
+    if (target) {
+      navigate(target, { replace: true });
+    }
+  }, [user, token, navigate]);
 
   const validationSchema = Yup.object({
     dni: Yup.string().trim().required("El carnet es obligatorio"),
@@ -328,6 +339,7 @@ const RegisterResultadosPage = () => {
                     />
                     <button
                       type="button"
+                      onMouseDown={(event) => event.preventDefault()}
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#459151]"
                     >
@@ -354,6 +366,7 @@ const RegisterResultadosPage = () => {
                     />
                     <button
                       type="button"
+                      onMouseDown={(event) => event.preventDefault()}
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#459151]"
                     >

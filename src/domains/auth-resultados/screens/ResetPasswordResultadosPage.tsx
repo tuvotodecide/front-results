@@ -1,12 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import * as Yup from "yup";
 import tuvotoDecideImage from "../../../assets/tuvotodecide.webp";
 import { Link, useNavigate, useSearchParams } from "../navigation/compat";
 import LoadingButton from "../../../components/LoadingButton";
 import { useResetPasswordMutation } from "../../../store/auth/authEndpoints";
+import { useSelector } from "react-redux";
+import { selectAuth } from "@/store/auth/authSlice";
+import { resolveAuthResultadosRedirect } from "../utils/resolveAuthRedirect";
 
 type ResetValues = {
   password: string;
@@ -45,9 +48,17 @@ const ResetPasswordResultadosPage = () => {
   const [searchParams] = useSearchParams();
   const token = useMemo(() => searchParams.get("token") || "", [searchParams]);
   const navigate = useNavigate();
+  const { user, token: authToken } = useSelector(selectAuth);
   const [resetPassword] = useResetPasswordMutation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const target = resolveAuthResultadosRedirect(user, authToken);
+    if (target) {
+      navigate(target, { replace: true });
+    }
+  }, [user, authToken, navigate]);
 
   const validationSchema = Yup.object({
     password: Yup.string()

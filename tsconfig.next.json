@@ -21,25 +21,29 @@
   "include": [
     "next-env.d.ts",
     ".next/types/**/*.ts",
+    "middleware.ts",
+    "src/**/*.d.ts",
     "src/app/**/*.ts",
     "src/app/**/*.tsx",
+    "src/components/**/*.ts",
+    "src/components/**/*.tsx",
     "src/domains/**/*.ts",
     "src/domains/**/*.tsx",
+    "src/features/**/*.ts",
+    "src/features/**/*.tsx",
+    "src/hooks/**/*.ts",
+    "src/hooks/**/*.tsx",
     "src/shared/**/*.d.ts",
     "src/shared/**/*.ts",
     "src/shared/**/*.tsx",
-    "src/store/index.ts",
-    "src/store/rootReducer.ts",
-    "src/store/listeners.ts",
-    "src/store/apiSlice.ts",
-    "src/store/auth/authSlice.ts",
-    "src/store/election/electionSlice.ts",
-    "src/store/recintos/recintosSlice.ts",
-    "src/store/departments/departmentsSlice.ts",
-    "src/store/resultados/resultadosSlice.ts",
-    "src/store/electoralLocations/electoralLocationsSlice.ts"
+    "src/store/**/*.ts",
+    "src/store/**/*.tsx"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "src/legacy-pages/**/*",
+    "src/main.tsx",
+    "src/App.tsx",
+    "src/Router.tsx"
   ]
 }

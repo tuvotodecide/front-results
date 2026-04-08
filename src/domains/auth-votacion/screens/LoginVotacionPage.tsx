@@ -264,7 +264,7 @@ const LoginVotacionPage = () => {
               Tu voto decide
             </h1>
             <p className="text-gray-500 text-sm mt-1">
-              Ingresa tus credenciales
+              Ingresa a tu panel de administración
             </p>
           </div>
 
@@ -303,6 +303,7 @@ const LoginVotacionPage = () => {
                   />
                   <button
                     type="button"
+                    onMouseDown={(event) => event.preventDefault()}
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#459151] transition-colors"
                   >

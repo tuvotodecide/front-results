@@ -373,7 +373,7 @@ const PublicElectionDetailPage: React.FC = () => {
         } else {
           setElection(data);
         }
-      } catch (err) {
+      } catch (_err) {
         setError('Error al cargar la elección');
       } finally {
         setIsLoading(false);

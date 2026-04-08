@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ErrorMessage, Field, Form, Formik, type FormikHelpers } from "formik";
 import * as Yup from "yup";
 import tuvotoDecideImage from "../../../assets/tuvotodecide.webp";
@@ -9,6 +9,9 @@ import { Link, useNavigate } from "../navigation/compat";
 import LoadingButton from "../../../components/LoadingButton";
 import Modal2 from "../../../components/Modal2";
 import { ModalState } from "../../../types";
+import { useSelector } from "react-redux";
+import { selectAuth } from "@/store/auth/authSlice";
+import { resolveAuthVotacionRedirect } from "../utils/resolveAuthRedirect";
 
 type VotingFormValues = {
   dni: string;
@@ -60,6 +63,7 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 const RegisterVotacionPage = () => {
   const logoSrc = getLogoSrc();
   const navigate = useNavigate();
+  const { user, token } = useSelector(selectAuth);
   const [createInstitutionalAdminApplication] =
     useCreateInstitutionalAdminApplicationMutation();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -81,6 +85,13 @@ const RegisterVotacionPage = () => {
   const closeModal = () => setModal((current) => ({ ...current, open: false }));
   const openModal = (payload: Omit<ModalState, "open">) =>
     setModal({ open: true, ...payload });
+
+  useEffect(() => {
+    const target = resolveAuthVotacionRedirect(user, token);
+    if (target) {
+      navigate(target, { replace: true });
+    }
+  }, [user, token, navigate]);
 
   const validationSchema = Yup.object({
     dni: Yup.string()
@@ -157,9 +168,9 @@ const RegisterVotacionPage = () => {
             <h1 className="text-2xl font-bold text-gray-800 tracking-tight">
               Registrarse
             </h1>
-            <p className="text-gray-500 text-sm mt-1">
+            {/* <p className="text-gray-500 text-sm mt-1">
               Crea tu cuenta y administra votaciones
-            </p>
+            </p> */}
           </div>
 
           <Formik<VotingFormValues>
@@ -177,7 +188,7 @@ const RegisterVotacionPage = () => {
             <Form className="space-y-5" autoComplete="off">
               <div className="flex flex-col">
                 <label className="text-sm font-semibold text-gray-700 mb-1 ml-1">
-                  Carnet
+                  Carnet de identidad
                 </label>
                 <Field
                   name="dni"
@@ -239,10 +250,10 @@ const RegisterVotacionPage = () => {
                   component="div"
                   className="text-xs text-red-500 mt-1 ml-1 font-medium"
                 />
-                <p className="text-xs text-gray-500 mt-1 ml-1">
+                {/* <p className="text-xs text-gray-500 mt-1 ml-1">
                   Recibirás un correo para verificar tu solicitud. Luego quedará
                   pendiente de aprobación.
-                </p>
+                </p> */}
               </div>
 
               <div className="flex flex-col">
@@ -258,6 +269,7 @@ const RegisterVotacionPage = () => {
                   />
                   <button
                     type="button"
+                    onMouseDown={(event) => event.preventDefault()}
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#459151]"
                   >
@@ -284,6 +296,7 @@ const RegisterVotacionPage = () => {
                   />
                   <button
                     type="button"
+                    onMouseDown={(event) => event.preventDefault()}
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#459151]"
                   >

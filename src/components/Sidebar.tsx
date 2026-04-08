@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { useScreenSize } from "../hooks/useScreenSize";
 import styles from "./Sidebar.module.css";
 import { Link } from "react-router-dom";
@@ -49,10 +49,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
       });
     };
   }, [closeSidebar, isSmallScreen]);
-
-  useEffect(() => {
-    console.log("Query Params Results changed:", queryParamsResults);
-  }, [queryParamsResults]);
 
   return (
     <>

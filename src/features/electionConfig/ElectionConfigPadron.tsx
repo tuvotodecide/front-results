@@ -38,7 +38,7 @@ const normalizeCell = (value: string) => value.replace(/^"|"$/g, '').trim();
 const normalizeCarnet = (value: string) =>
   normalizeCell(value)
     .toUpperCase()
-    .replace(/[\s.\-]/g, '');
+    .replace(/[\s.-]/g, '');
 
 const isValidCarnet = (value: string) => BOLIVIAN_CARNET_REGEX.test(normalizeCarnet(value));
 

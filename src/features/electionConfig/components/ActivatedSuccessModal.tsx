@@ -40,9 +40,8 @@ const ActivatedSuccessModal: React.FC<ActivatedSuccessModalProps> = ({
           url: publicUrl,
         });
         return;
-      } catch (err) {
+      } catch {
         // Si el usuario cancela o hay error, fallback a copiar
-        console.log('Share cancelled or failed:', err);
       }
     }
 

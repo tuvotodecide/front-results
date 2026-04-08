@@ -7,6 +7,7 @@ import { clearSelectedElection } from "../store/election/electionSlice";
 import { apiSlice } from "../store/apiSlice";
 import tuvotoDecideImage from "../assets/tuvotodecide.webp";
 import { Link, useLocation } from "react-router-dom";
+import { resolveLogoutDestination } from "../shared/system/navigationFeedback";
 
 interface HeaderProps {
   toggleSidebar: () => void;
@@ -48,7 +49,7 @@ export const Header: React.FC<HeaderProps> = ({
     dispatch(clearSelectedElection());
     dispatch(apiSlice.util.resetApiState());
     setIsMenuOpen(false);
-    window.location.replace("/");
+    window.location.replace(resolveLogoutDestination(location.pathname));
   };
   return (
     <header className={styles.header}>

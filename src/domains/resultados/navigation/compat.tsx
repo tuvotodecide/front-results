@@ -9,6 +9,7 @@ import {
 } from "next/navigation";
 import type { ComponentProps } from "react";
 import { useCallback, useMemo } from "react";
+import { emitNavigationStart } from "@/shared/system/navigationFeedback";
 
 type SearchParamsInput =
   | string
@@ -61,6 +62,7 @@ export const useSearchParams = () => {
     (value: SearchParamsInput) => {
       const params = buildSearchParams(value);
       const query = params.toString();
+      emitNavigationStart();
       router.push(query ? `${pathname}?${query}` : pathname, {
         scroll: false,
       });
@@ -83,6 +85,7 @@ export const useNavigate = () => {
         return;
       }
 
+      emitNavigationStart();
       router.push(to, { scroll: false });
     },
     [router],

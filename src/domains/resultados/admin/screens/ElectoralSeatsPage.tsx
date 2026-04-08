@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Table from "@/components/Table";
 import Modal from "@/components/Modal";
 import Pagination from "@/components/Pagination";
@@ -102,13 +102,6 @@ const ElectoralSeats: React.FC = () => {
     setSearchParams(values);
     setCurrentPage(1); // Reset to first page when searching
   };
-
-  // Log municipalities whenever they change
-  useEffect(() => {
-    if (data) {
-      console.log("respp respp respp:", data);
-    }
-  }, [data]);
 
   return (
     <div className="p-6 bg-gray-100">

@@ -2,8 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import tuvotoDecideImage from "../../../assets/tuvotodecide.webp";
-import { Link, useSearchParams } from "../navigation/compat";
+import { Link, useNavigate, useSearchParams } from "../navigation/compat";
 import { useLazyVerifyEmailQuery } from "../../../store/auth/authEndpoints";
+import { useSelector } from "react-redux";
+import { selectAuth } from "@/store/auth/authSlice";
+import { resolveAuthResultadosRedirect } from "../utils/resolveAuthRedirect";
 
 const getLogoSrc = () => {
   const logoAsset = tuvotoDecideImage as string | { src: string };
@@ -34,6 +37,8 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 
 const VerifyResultadosPage = () => {
   const logoSrc = getLogoSrc();
+  const navigate = useNavigate();
+  const { user, token: authToken } = useSelector(selectAuth);
   const [searchParams] = useSearchParams();
   const token = useMemo(() => searchParams.get("token") || "", [searchParams]);
 
@@ -43,6 +48,13 @@ const VerifyResultadosPage = () => {
   );
   const [errorMsg, setErrorMsg] = useState("");
   const attemptedTokenRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const target = resolveAuthResultadosRedirect(user, authToken);
+    if (target) {
+      navigate(target, { replace: true });
+    }
+  }, [user, authToken, navigate]);
 
   useEffect(() => {
     if (!token) {

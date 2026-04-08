@@ -39,7 +39,6 @@ export default function SearchBar(props: SearchBarProps) {
 
   const handleSearch = (searchQuery = query) => {
     if (searchQuery.trim()) {
-      console.log('Searching for:', searchQuery);
       setShowSuggestions(false);
       // In a real app, you would navigate to search results or make an API call
     }

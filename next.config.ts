@@ -26,8 +26,17 @@ const authVotacionLegacyBases = [
 ] as const;
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   eslint: {
-    dirs: ["src/app", "src/domains", "src/shared"],
+    dirs: [
+      "src/app",
+      "src/domains",
+      "src/shared",
+      "src/components",
+      "src/hooks",
+      "src/store",
+      "src/features",
+    ],
   },
   typescript: {
     tsconfigPath: "tsconfig.next.json",

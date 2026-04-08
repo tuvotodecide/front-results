@@ -4,6 +4,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import tuvotoDecideImage from "../../../assets/tuvotodecide.webp";
 import { Link, useSearchParams } from "../navigation/compat";
 import { useVerifyInstitutionalAdminApplicationMutation } from "../../../store/auth/authEndpoints";
+import { useSelector } from "react-redux";
+import { selectAuth } from "@/store/auth/authSlice";
+import { useNavigate } from "../navigation/compat";
+import { resolveAuthVotacionRedirect } from "../utils/resolveAuthRedirect";
+import { CircleCheck } from "lucide-react";
+import { FaWhatsapp } from "react-icons/fa";
 
 const getLogoSrc = () => {
   const logoAsset = tuvotoDecideImage as string | { src: string };
@@ -32,8 +38,17 @@ const getErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
+const WHATSAPP_NUMBER = "59167014222";
+const WHATSAPP_MESSAGE =
+  "Hola, deseo solicitar aprobación de mi cuenta institucional en Tu Voto Decide.";
+const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+  WHATSAPP_MESSAGE,
+)}`;
+
 const VerifyVotacionPage = () => {
   const logoSrc = getLogoSrc();
+  const navigate = useNavigate();
+  const { user, token: authToken } = useSelector(selectAuth);
   const [searchParams] = useSearchParams();
   const token = useMemo(() => searchParams.get("token") || "", [searchParams]);
 
@@ -43,6 +58,13 @@ const VerifyVotacionPage = () => {
   );
   const [errorMsg, setErrorMsg] = useState("");
   const attemptedTokenRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const target = resolveAuthVotacionRedirect(user, authToken);
+    if (target) {
+      navigate(target, { replace: true });
+    }
+  }, [user, authToken, navigate]);
 
   useEffect(() => {
     if (!token) {
@@ -84,40 +106,17 @@ const VerifyVotacionPage = () => {
     if (status === "success") {
       return (
         <>
-          <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-4 border border-green-100">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="#459151"
-              className="w-10 h-10"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+          <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-5 border border-green-100 shadow-sm">
+            <CircleCheck className="w-10 h-10 text-[#459151]" strokeWidth={1.8} />
           </div>
 
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">
-            Correo verificado
+          <h1 className="text-2xl sm:text-[2rem] font-bold text-gray-900 leading-tight mb-2">
+            ¡Escríbenos para solicitar la habilitación de tu acceso.!
           </h1>
-          <p className="text-[#459151] font-semibold text-lg mb-4">
-            Verificación completada
-          </p>
-
-          <div className="space-y-3 text-gray-600 text-sm leading-relaxed text-left w-full">
-            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-              <div className="font-semibold text-gray-800 mb-1">
-                Siguiente paso
-              </div>
-              <p>
-                Tu cuenta ahora queda <b>pendiente de aprobación</b> por un
-                administrador. Una vez aprobada, podrás iniciar sesión.
-              </p>
-            </div>
+          <div className="w-full mt-3">
+            <p className="bg-[#f7faf7] border border-green-100 rounded-2xl px-5 py-4 text-[#459151] font-semibold text-base leading-relaxed">
+              Verificación completada
+            </p>
           </div>
         </>
       );
@@ -168,19 +167,32 @@ const VerifyVotacionPage = () => {
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-64px)] bg-[#459151] px-4">
-      <div className="w-full max-w-[480px] p-8 sm:p-10 bg-white rounded-2xl shadow-xl border border-gray-100 text-center">
+      <div className="w-full max-w-[460px] p-8 sm:p-10 bg-white rounded-3xl shadow-xl border border-gray-100 text-center">
         <div className="flex flex-col items-center mb-6">
           <img src={logoSrc} alt="Logo" className="h-20 w-auto mb-6" />
           {content()}
         </div>
 
         <div className="pt-6 border-t border-gray-100 space-y-3">
-          <Link
-            to="/votacion/login"
-            className="block w-full py-3 border-2 border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 transition-all active:scale-[0.98]"
-          >
-            Ir a Iniciar sesión
-          </Link>
+          {status === "success" ? (
+            <a
+              href={WHATSAPP_LINK}
+              target="_blank"
+              rel="noreferrer"
+              className="flex w-full items-center justify-center gap-2 py-3 text-white font-bold rounded-xl transition-all shadow-lg active:scale-[0.98] hover:brightness-110"
+              style={{ backgroundColor: "#25D366" }}
+            >
+              <FaWhatsapp className="h-5 w-5" />
+              <span>Solicitar aprobación 67014222</span>
+            </a>
+          ) : (
+            <Link
+              to="/votacion/login"
+              className="block w-full py-3 border-2 border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 transition-all active:scale-[0.98]"
+            >
+              Ir a Iniciar sesión
+            </Link>
+          )}
         </div>
       </div>
     </div>

@@ -70,7 +70,6 @@ const PartidoForm: React.FC = () => {
   };
 
   const handleSubmit = async (values: Omit<Partido, "_id">) => {
-    console.log("Form submitted:", values);
     try {
       if (isEditMode && id) {
         await updateItem({ id, partido: values }).unwrap();

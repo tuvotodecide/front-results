@@ -63,7 +63,6 @@ const PartidoForm: React.FC = () => {
   const handleSubmit = async (
     values: UpdatePoliticalPartyType | CreatePoliticalPartyType
   ) => {
-    console.log('Form submitted:', values);
     try {
       if (isEditMode && id) {
         await updateItem({ id, item: values }).unwrap();

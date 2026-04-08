@@ -180,12 +180,6 @@ const ResultadosImagen = () => {
     }
   }, [id]);
 
-  useEffect(() => {
-    if (attestationsData) {
-      console.log("Attestations Data:", attestationsData);
-    }
-  }, [attestationsData]);
-
   // const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   return (

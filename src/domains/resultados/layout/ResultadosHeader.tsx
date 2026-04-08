@@ -13,6 +13,7 @@ import { clearSelectedElection } from "../../../store/election/electionSlice";
 import { apiSlice } from "../../../store/apiSlice";
 import tuvotoDecideImage from "../../../assets/tuvotodecide.webp";
 import { Link, useLocation } from "../navigation/compat";
+import { resolveLogoutDestination } from "@/shared/system/navigationFeedback";
 
 interface HeaderProps {
   toggleSidebar: () => void;
@@ -54,7 +55,7 @@ const ResultadosHeader: React.FC<HeaderProps> = ({
     dispatch(clearSelectedElection());
     dispatch(apiSlice.util.resetApiState());
     setIsMenuOpen(false);
-    window.location.replace("/");
+    window.location.replace(resolveLogoutDestination(location.pathname));
   };
   return (
     <header className={styles.header}>

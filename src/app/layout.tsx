@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { Suspense } from "react";
 import "./globals.css";
 import Providers from "./providers";
+import NavigationProgressBar from "./NavigationProgressBar";
 
 export const metadata: Metadata = {
   title: "Tu voto decide",
@@ -19,6 +21,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
     <html lang="es">
       <body>
         <Providers>{children}</Providers>
+        <Suspense fallback={null}>
+          <NavigationProgressBar />
+        </Suspense>
       </body>
     </html>
   );

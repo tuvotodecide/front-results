@@ -265,7 +265,6 @@ const ElectoralTableForm: React.FC = () => {
     electoralSeatId: string;
     electoralLocationId: string;
   }) => {
-    console.log('Submitting values:', values);
     try {
       if (isEditMode && id) {
         // For updates, only send the fields that can be updated

@@ -14,6 +14,7 @@ import {
 import { resetResults } from "../../../store/resultados/resultadosSlice";
 import { clearSelectedElection } from "../../../store/election/electionSlice";
 import { apiSlice } from "../../../store/apiSlice";
+import { resolveLogoutDestination } from "@/shared/system/navigationFeedback";
 
 const AuthResultadosHeader = () => {
   const logoAsset = tuvotoDecideImage as string | { src: string };
@@ -46,7 +47,7 @@ const AuthResultadosHeader = () => {
     dispatch(clearSelectedElection());
     dispatch(apiSlice.util.resetApiState());
     setIsMenuOpen(false);
-    window.location.replace("/");
+    window.location.replace(resolveLogoutDestination(pathname));
   };
 
   return (

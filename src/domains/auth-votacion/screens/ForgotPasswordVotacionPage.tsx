@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import * as Yup from "yup";
 import tuvotoDecideImage from "../../../assets/tuvotodecide.webp";
-import { Link } from "../navigation/compat";
+import { Link, useNavigate } from "../navigation/compat";
 import LoadingButton from "../../../components/LoadingButton";
 import { useForgotPasswordMutation } from "../../../store/auth/authEndpoints";
+import { useSelector } from "react-redux";
+import { selectAuth } from "@/store/auth/authSlice";
+import { resolveAuthVotacionRedirect } from "../utils/resolveAuthRedirect";
 
 type ForgotValues = {
   email: string;
@@ -41,10 +44,19 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 
 const ForgotPasswordVotacionPage = () => {
   const logoSrc = getLogoSrc();
+  const navigate = useNavigate();
+  const { user, token } = useSelector(selectAuth);
   const [forgotPassword] = useForgotPasswordMutation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const target = resolveAuthVotacionRedirect(user, token);
+    if (target) {
+      navigate(target, { replace: true });
+    }
+  }, [user, token, navigate]);
 
   const validationSchema = Yup.object({
     email: Yup.string()

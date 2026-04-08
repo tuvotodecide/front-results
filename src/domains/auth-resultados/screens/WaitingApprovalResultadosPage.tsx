@@ -12,6 +12,7 @@ import {
   readStorage,
   removeStorage,
 } from "../../../shared/system/browserStorage";
+import { resolveAuthResultadosRedirect } from "../utils/resolveAuthRedirect";
 
 const getLogoSrc = () => {
   const logoAsset = tuvotoDecideImage as string | { src: string };
@@ -21,7 +22,7 @@ const getLogoSrc = () => {
 const WaitingApprovalResultadosPage = () => {
   const logoSrc = getLogoSrc();
   const navigate = useNavigate();
-  const { user } = useSelector(selectAuth);
+  const { user, token } = useSelector(selectAuth);
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const [pendingEmail, setPendingEmail] = useState("");
   const [pendingReason, setPendingReason] = useState("SUPERADMIN_APPROVAL");
@@ -38,15 +39,16 @@ const WaitingApprovalResultadosPage = () => {
       return;
     }
 
-    if (isLoggedIn && user?.active) {
-      navigate("/resultados", { replace: true });
+    const target = resolveAuthResultadosRedirect(user, token);
+    if (target && target !== "/resultados/pendiente") {
+      navigate(target, { replace: true });
       return;
     }
 
     if (!isLoggedIn && !pendingEmail) {
       navigate("/resultados/login", { replace: true });
     }
-  }, [isLoggedIn, user?.active, pendingEmail, navigate, isStorageReady]);
+  }, [isLoggedIn, user, token, pendingEmail, navigate, isStorageReady]);
 
   const goLogin = () => {
     removeStorage("pendingEmail");

@@ -14,6 +14,7 @@ import {
 import { resetResults } from "../../../store/resultados/resultadosSlice";
 import { clearSelectedElection } from "../../../store/election/electionSlice";
 import { apiSlice } from "../../../store/apiSlice";
+import { resolveLogoutDestination } from "@/shared/system/navigationFeedback";
 
 const AuthVotacionHeader = () => {
   const logoAsset = tuvotoDecideImage as string | { src: string };
@@ -23,9 +24,14 @@ const AuthVotacionHeader = () => {
   const { user } = useSelector(selectAuth);
   const dispatch = useDispatch();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [hasMounted, setHasMounted] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
 
   const isLoginPage = pathname === "/votacion/login";
+
+  React.useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -46,8 +52,11 @@ const AuthVotacionHeader = () => {
     dispatch(clearSelectedElection());
     dispatch(apiSlice.util.resetApiState());
     setIsMenuOpen(false);
-    window.location.replace("/");
+    window.location.replace(resolveLogoutDestination(pathname));
   };
+
+  const showUserMenu = hasMounted && isLoggedIn;
+  const showLoginButton = !showUserMenu && !isLoginPage;
 
   return (
     <header className={styles.header}>
@@ -56,7 +65,7 @@ const AuthVotacionHeader = () => {
         <span className={styles.logoText}>Tu voto decide</span>
       </a>
       <div className={styles.headerActions}>
-        {isLoggedIn ? (
+        {showUserMenu ? (
           <div className={styles.userMenuContainer} ref={menuRef}>
             <button
               className={`${styles.userButton} ${
@@ -133,15 +142,11 @@ const AuthVotacionHeader = () => {
               </button>
             </div>
           </div>
-        ) : (
-          <>
-            {!isLoginPage && (
-              <Link href="/votacion/login" className={styles.loginButton}>
-                Iniciar Sesión
-              </Link>
-            )}
-          </>
-        )}
+        ) : showLoginButton ? (
+          <Link href="/votacion/login" className={styles.loginButton}>
+            Iniciar Sesión
+          </Link>
+        ) : null}
       </div>
     </header>
   );

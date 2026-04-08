@@ -1,3 +1,5 @@
+// Legacy React Router tree kept only for historical compatibility.
+// Production routing lives in Next App Router under src/app/**.
 import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";

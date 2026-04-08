@@ -148,7 +148,7 @@ const ContactSection: React.FC<ContactSectionProps> = ({ cards, contact }) => {
             <div className="space-y-4">
               <div className="flex items-center justify-center gap-3 md:justify-start">
                 <img
-                  src={tuvotoDecideImage}
+                  src={tuvotoDecideImage.src}
                   alt={contact.brandName}
                   className="h-12 w-12 rounded-xl object-cover shadow-[inset_0_0_0_1px_rgba(148,163,184,0.18)]"
                 />

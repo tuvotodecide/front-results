@@ -2,8 +2,10 @@ import { createSlice } from "@reduxjs/toolkit";
 import { RootState } from "../index";
 import { jwtDecode } from "jwt-decode";
 import {
+  removeCookie,
   readStorage,
   removeStorage,
+  writeCookie,
   writeStorage,
 } from "../../shared/system/browserStorage";
 type JwtPayload = {
@@ -36,6 +38,14 @@ export interface AuthState {
     tenantName?: string;
   } | null;
 }
+
+const AUTH_COOKIE_KEYS = {
+  token: "tvd_auth_token",
+  role: "tvd_auth_role",
+  status: "tvd_auth_status",
+  active: "tvd_auth_active",
+} as const;
+
 const decodeToken = (token: string | null): JwtPayload | null => {
   if (!token) return null;
   try {
@@ -83,6 +93,30 @@ const normalizeUser = (u: any): AuthState["user"] => {
     tenantName: u.tenantName,
   };
 };
+
+const syncAuthSessionCookies = (
+  token: string | null,
+  user: AuthState["user"],
+) => {
+  if (!token || !user) {
+    removeCookie(AUTH_COOKIE_KEYS.token);
+    removeCookie(AUTH_COOKIE_KEYS.role);
+    removeCookie(AUTH_COOKIE_KEYS.status);
+    removeCookie(AUTH_COOKIE_KEYS.active);
+    return;
+  }
+
+  writeCookie(AUTH_COOKIE_KEYS.token, token);
+  writeCookie(AUTH_COOKIE_KEYS.role, user.role);
+  writeCookie(AUTH_COOKIE_KEYS.active, String(user.active));
+
+  if (user.status) {
+    writeCookie(AUTH_COOKIE_KEYS.status, user.status);
+  } else {
+    removeCookie(AUTH_COOKIE_KEYS.status);
+  }
+};
+
 let rawUser: any = null;
 try {
   rawUser = JSON.parse(readStorage("user") ?? "null");
@@ -102,6 +136,8 @@ const initialState: AuthState = {
   token: initialToken,
   user: initialToken && rawUser ? normalizeUser(rawUser) : null,
 };
+
+syncAuthSessionCookies(initialState.token, initialState.user);
 
 export const authSlice = createSlice({
   name: "auth",
@@ -169,6 +205,8 @@ export const authSlice = createSlice({
       } else {
         removeStorage("token");
       }
+
+      syncAuthSessionCookies(state.token, state.user);
     },
     logOut: (state) => {
       state.token = null;
@@ -178,6 +216,7 @@ export const authSlice = createSlice({
       removeStorage("selectedElectionId");
       removeStorage("pendingEmail");
       removeStorage("pendingReason");
+      syncAuthSessionCookies(null, null);
     },
   },
 });

@@ -79,7 +79,6 @@ const ConfigurationForm = () => {
       ...values,
       allowDataModification: true,
     };
-    console.log('Form values sent to backend:', submissionValues);
     setPendingValues(submissionValues);
     setIsConfirmationModalOpen(true);
   };

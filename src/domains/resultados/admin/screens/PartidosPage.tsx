@@ -87,7 +87,6 @@ const Partidos: React.FC = () => {
     deleteItem(partidoToDelete._id)
       .unwrap()
       .then(() => {
-        console.log("Partido deleted successfully");
         setIsDeleteModalOpen(false);
         setPartidoToDelete(null);
       })

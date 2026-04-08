@@ -1,134 +1,184 @@
-# Sistema de Resultados Electorales
+# Tu Voto Decide Frontend
 
-Aplicación web para visualizar y consultar resultados electorales con filtros territoriales y búsqueda por mesas específicas.
+Frontend web de Tu Voto Decide. La aplicación productiva actual corre sobre **Next.js App Router** y su superficie canónica está organizada por dominios.
 
-## Características Principales
+## Artefacto productivo
 
-- **Resultados Generales**: Visualización de resultados presidenciales y diputados con filtros territoriales
-- **Resultados por Mesa**: Consulta detallada de resultados por mesa electoral con filtros por unidad territorial
-- **Filtros Territoriales**: Sistema jerárquico de filtros (Departamento → Provincia → Municipio → Asiento Electoral → Recinto Electoral)
-- **Búsqueda Directa**: Búsqueda por código de mesa específico
-- **Interfaz Responsiva**: Diseño adaptable para dispositivos móviles y desktop
+- Runtime principal: **Next.js**
+- Build productivo: `npm run build`
+- Start productivo: `npm start`
+- Artefacto de despliegue: **`.next`** y, para contenedores, **`.next/standalone`**
 
-## Cambios Recientes
+Los scripts y entrypoints de Vite/React Router se conservan solo como **legacy/compat**, no como la app principal de producción.
 
-### ✨ Implementación de Filtros Territoriales en Resultados por Mesa
+## Superficie canónica actual
 
-#### Objetivo
-Permitir a los usuarios filtrar y visualizar mesas electorales por unidad territorial (departamento, provincia, municipio, asiento electoral, recinto electoral) en la vista de "Resultados por Mesa".
+### Resultados
 
-#### Cambios Implementados
+- `/`
+  redirige a `/resultados`
+- `/resultados`
+- `/resultados/mesa`
+- `/resultados/mesa/[tableCode]`
+- `/resultados/imagen`
+- `/resultados/imagen/[id]`
 
-**Archivo modificado**: `src/pages/Resultados/ResultadosMesa2.tsx`
+### Auth resultados
 
-##### 1. **Nuevas Importaciones y Dependencias**
-- Agregado `useSearchParams` para manejo de parámetros URL
-- Importado `Breadcrumb2` para filtros territoriales
-- Agregado `selectFilters` para acceso al estado de filtros
-- Importado `useGetDepartmentsQuery` para cargar departamentos
+- `/resultados/login`
+- `/resultados/registrarse`
+- `/resultados/verificar-correo`
+- `/resultados/pendiente`
+- `/resultados/rechazado`
+- `/resultados/recuperar`
+- `/resultados/restablecer`
 
-##### 2. **Nuevos Estados de Componente**
-- `filteredTables`: Array de mesas filtradas por unidad territorial
-- `showAllFilteredTables`: Control de visibilidad para mostrar todas las mesas filtradas
-- `searchParams`: Parámetros de la URL para filtros
-- `filters`: Estado global de filtros desde Redux
+### Resultados privado/admin
 
-##### 3. **Funcionalidad de Filtros Territoriales**
-- **Efecto para filtros territoriales**: Escucha cambios en `searchParams.electoralLocation` y obtiene mesas del recinto seleccionado
-- **Integración con componente `Breadcrumb2`**: Reutilización del sistema de filtros existente de Resultados Generales
+- `/resultados/control-personal`
+- `/resultados/auditoria-tse`
+- `/resultados/panel`
+- `/resultados/configuraciones`
+- `/resultados/configuraciones/nuevo`
+- `/resultados/configuraciones/editar/[id]`
+- `/resultados/partidos`
+- `/resultados/partidos/nuevo`
+- `/resultados/partidos/editar/[id]`
+- `/resultados/partidos-politicos`
+- `/resultados/partidos-politicos/nuevo`
+- `/resultados/partidos-politicos/editar/[id]`
+- `/resultados/departamentos`
+- `/resultados/departamentos/nuevo`
+- `/resultados/departamentos/editar/[id]`
+- `/resultados/provincias`
+- `/resultados/provincias/nuevo`
+- `/resultados/provincias/editar/[id]`
+- `/resultados/municipios`
+- `/resultados/municipios/nuevo`
+- `/resultados/municipios/editar/[id]`
+- `/resultados/asientos-electorales`
+- `/resultados/asientos-electorales/nuevo`
+- `/resultados/asientos-electorales/editar/[id]`
+- `/resultados/recintos-electorales`
+- `/resultados/recintos-electorales/nuevo`
+- `/resultados/recintos-electorales/editar/[id]`
+- `/resultados/mesas`
+- `/resultados/mesas/nuevo`
+- `/resultados/mesas/editar/[id]`
 
-##### 4. **Nueva Interfaz de Usuario**
-- **Vista sin mesa seleccionada**: Ahora incluye filtros territoriales y lista de mesas filtradas
-- **Lista de mesas filtradas**: Grid responsivo con cards de mesas que incluyen:
-  - Número de mesa
-  - Código de mesa  
-  - Nombre del recinto electoral
-  - Enlaces directos a resultados de cada mesa
-- **Botón "Mostrar todas"**: Para mesas cuando hay más de 15 resultados
-- **Vista por defecto mejorada**: Instrucciones para usar filtros territoriales o búsqueda directa
+### Votación pública
 
-##### 5. **Componentes Reutilizables**
-- **`Breadcrumb2`**: Filtros territoriales jerárquicos reutilizados de Resultados Generales
-- **Redux state management**: Uso del estado global para filtros y sincronización con URL
+- `/votacion`
+- `/votacion/elecciones/pasadas`
+- `/votacion/elecciones/[electionId]/publica`
 
-#### Criterios de Aceptación Cumplidos
-✅ **Filtros por unidad territorial**: Implementado sistema completo de filtros  
-✅ **Componentes reutilizables**: Reutilización de `Breadcrumb2` y sistema de filtros existente  
-✅ **Propuesta de visualización**: Lista organizada en grid con información relevante de cada mesa  
+### Auth votación
 
-#### Tecnologías Utilizadas
-- **React 18** con Hooks (useState, useEffect, useSelector)
-- **Redux Toolkit** para gestión de estado
-- **React Router** para navegación y parámetros URL
-- **TypeScript** para type safety
-- **Tailwind CSS** para estilos responsivos
+- `/votacion/login`
+- `/votacion/registrarse`
+- `/votacion/verificar-correo`
+- `/votacion/pendiente`
+- `/votacion/rechazado`
+- `/votacion/recuperar`
+- `/votacion/restablecer`
 
-## Instalación y Desarrollo
+### Votación privada
 
-### Requisitos Previos
-- Node.js >= 16
-- npm o yarn
+- `/votacion/elecciones`
+- `/votacion/elecciones/new`
+- `/votacion/elecciones/[electionId]/config/cargos`
+- `/votacion/elecciones/[electionId]/config/planchas`
+- `/votacion/elecciones/[electionId]/config/padron`
+- `/votacion/elecciones/[electionId]/config/review`
+- `/votacion/elecciones/[electionId]/status`
 
-### Comandos Disponibles
+## Compat legacy externa
+
+Estas rutas existen por compatibilidad externa, bookmarks o enlaces históricos. No deben considerarse la superficie principal:
+
+- Auth votación legacy: `/login`, `/registrarse`, `/verificar-correo`, `/pendiente`, `/rechazado`, `/recuperar`, `/restablecer`
+- Voting legacy: `/elections`, `/elections/past`, `/elections/[electionId]/public`, `/elections/new`, `/elections/[electionId]/config/*`, `/elections/[electionId]/status`
+- Resultados legacy top-level: `/control-personal`, `/auditoria-tse`, `/panel`, `/departamentos`, `/provincias`, `/municipios`, `/asientos-electorales`, `/recintos-electorales`, `/mesas`, `/configuraciones`, `/partidos`, `/partidos-politicos`
+
+## Estructura técnica relevante
+
+- `src/app/**`
+  routing canónico en Next App Router
+- `src/domains/**`
+  pantallas, shells, guards y navegación por dominio
+- `src/store/**`
+  estado compartido y RTK Query
+- `src/shared/**`
+  utilidades transversales
+- `src/main.tsx`, `src/App.tsx`, `src/Router.tsx`
+  entrypoints legacy conservados solo por compat histórica
+
+## Desarrollo
+
+### Requisitos
+
+- Node.js 20+
+- npm
+
+### Comandos principales
+
 ```bash
-# Instalar dependencias
 npm install
-
-# Iniciar servidor de desarrollo
 npm run dev
-
-# Construir para producción
 npm run build
-
-# Verificar tipos TypeScript
-npx tsc --noEmit
-
-# Ejecutar linter
+npm start
 npm run lint
+npm run typecheck
 ```
 
-## Expanding the ESLint configuration
+### Scripts legacy
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+```bash
+npm run dev:legacy
+npm run build:legacy
+npm run preview:legacy
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Úsalos solo para compatibilidad interna o tareas de migración histórica. No son el flujo recomendado de entrega.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Despliegue
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+### Docker
+
+El `Dockerfile` actual empaqueta la app Next en modo `standalone`.
+
+```bash
+docker build -t tuvotodecide-frontend .
+docker run -p 3000:3000 tuvotodecide-frontend
 ```
+
+### Vercel
+
+La app debe desplegarse como proyecto Next.js, sin rewrites de SPA a `index.html`.
+
+## Testing
+
+### Superficie canónica
+
+- `cypress/e2e/registro_admin_e2e.cy.ts`
+  smoke/admin flow sobre rutas canónicas `/votacion/**`
+
+### Compat legacy
+
+- `cypress/e2e/flujo_principal.cy.ts`
+  validaciones de redirección desde rutas legacy hacia la superficie canónica
+
+### Variables opcionales para E2E con backend real
+
+Si quieres ejecutar el flujo autenticado contra un backend real, define:
+
+```bash
+export CYPRESS_BASE_URL=http://localhost:3000
+export CYPRESS_API_URL=http://localhost:3005/api/v1
+export CYPRESS_E2E_SUPERADMIN_EMAIL=...
+export CYPRESS_E2E_SUPERADMIN_PASSWORD=...
+export CYPRESS_E2E_TEST_EMAIL=...
+export CYPRESS_E2E_TEST_PASSWORD=...
+```
+
+Si esas variables no están presentes, los tests dependientes de backend deben saltarse.

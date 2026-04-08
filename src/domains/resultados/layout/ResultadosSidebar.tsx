@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React from "react";
 import { useScreenSize } from "../../../hooks/useScreenSize";
 import styles from "../../../components/Sidebar.module.css";
 import { Link } from "../navigation/compat";
@@ -54,10 +54,6 @@ const ResultadosSidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => 
       });
     };
   }, [closeSidebar, isSmallScreen]);
-
-  useEffect(() => {
-    console.log("Query Params Results changed:", queryParamsResults);
-  }, [queryParamsResults]);
 
   return (
     <>

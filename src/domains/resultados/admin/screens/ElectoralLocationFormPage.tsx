@@ -251,7 +251,6 @@ const ElectoralLocationForm: React.FC = () => {
     municipalityId: string;
     electoralSeatId: string;
   }) => {
-    console.log("Submitting values:", values);
     try {
       if (isEditMode && id) {
         // For updates, only send the fields that can be updated
@@ -291,7 +290,6 @@ const ElectoralLocationForm: React.FC = () => {
             name: "Especial Indígena-Tarija",
           }, // Default circumscription
         };
-        console.log("Creating values:", createPayload);
         await createItem(createPayload).unwrap();
       }
 

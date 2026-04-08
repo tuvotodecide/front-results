@@ -8,6 +8,7 @@ import {
   selectAuth,
   selectIsLoggedIn,
 } from "../../../store/auth/authSlice";
+import { resolveAuthVotacionRedirect } from "../utils/resolveAuthRedirect";
 
 const getLogoSrc = () => {
   const logoAsset = tuvotoDecideImage as string | { src: string };
@@ -17,7 +18,7 @@ const getLogoSrc = () => {
 const RejectedVotacionPage = () => {
   const logoSrc = getLogoSrc();
   const navigate = useNavigate();
-  const { user } = useSelector(selectAuth);
+  const { user, token } = useSelector(selectAuth);
   const isLoggedIn = useSelector(selectIsLoggedIn);
 
   useEffect(() => {
@@ -26,10 +27,11 @@ const RejectedVotacionPage = () => {
       return;
     }
 
-    if (user?.active) {
-      navigate("/resultados", { replace: true });
+    const target = resolveAuthVotacionRedirect(user, token);
+    if (target && target !== "/votacion/rechazado") {
+      navigate(target, { replace: true });
     }
-  }, [isLoggedIn, user?.active, navigate]);
+  }, [isLoggedIn, user, token, navigate]);
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-64px)] bg-[#459151] px-4">

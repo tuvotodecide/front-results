@@ -60,7 +60,7 @@ const baseQueryWrapper = async (
     state?.election?.selectedElectionId ??
     readStorage("selectedElectionId");
 
-  let adjusted: FetchArgs =
+  const adjusted: FetchArgs =
     typeof args === "string" ? { url: args } : { ...args };
 
 

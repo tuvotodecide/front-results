@@ -255,7 +255,7 @@ const PadronCheckModal: React.FC<PadronCheckModalProps> = ({ isOpen, onClose, ev
     const cleaned = value
       .trim()
       .toUpperCase()
-      .replace(/[\s.\-]/g, '');
+      .replace(/[\s.-]/g, '');
     return /^\d{5,10}[A-Z]{0,2}$/.test(cleaned);
   };
 
@@ -275,7 +275,7 @@ const PadronCheckModal: React.FC<PadronCheckModalProps> = ({ isOpen, onClose, ev
     try {
       const checkResult = await padronCheckService.checkStatus(carnet, eventId);
       setResult(checkResult);
-    } catch (err) {
+    } catch (_err) {
       setError('Error al verificar. Por favor intenta nuevamente.');
     } finally {
       setIsLoading(false);
