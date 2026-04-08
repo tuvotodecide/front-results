@@ -119,6 +119,9 @@ export async function createVoting(signer: ethers.JsonRpcSigner, votingEvent: Vo
     throw new Error('Voting event must have at least one option');
   }
 
+  const optionsWithBlank = votingEvent.options.map(option => option.name);
+  optionsWithBlank.push('BLANK'); // Add a blank option for null votes
+
   const voteContract = new Contract(
     getVoteContractAddress(),
     votingContractAbi,
@@ -132,7 +135,7 @@ export async function createVoting(signer: ethers.JsonRpcSigner, votingEvent: Vo
     dateStringToUnixSeconds(votingEvent.votingEnd),
     dateStringToUnixSeconds(votingEvent.resultsPublishAt),
     userNullifiers,
-    votingEvent.options.map(option => option.name)
+    optionsWithBlank
   )
 
   await tx.wait();

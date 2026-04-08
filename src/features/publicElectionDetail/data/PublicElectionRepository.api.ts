@@ -80,6 +80,15 @@ const mapDetailToPublic = (raw: any): PublicElectionDetail => {
   });
 
   const baseCandidates: MappedCandidate[] = mappedOptionCandidates;
+  baseCandidates.push({
+    id: 'blank',
+    name: 'Votos en Blanco',
+    party: 'Votos en Blanco',
+    colorHex: '#6b7280',
+    votes: votesByOption.get('BLANK') ?? 0,
+    percent: 0,
+  });
+
   const computedTotalVotes = baseCandidates.reduce((sum, candidate) => sum + candidate.votes, 0);
   const candidates: MappedCandidate[] = baseCandidates.map((candidate) => ({
     ...candidate,

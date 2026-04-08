@@ -55,11 +55,16 @@ const formatNumber = (num: number): string => {
   return num.toLocaleString("es-BO");
 };
 
+const getNonBlankCandidates = (candidates: Candidate[]): Candidate[] => {
+  return candidates.filter((candidate) => candidate.id !== "blank");
+};
+
 const getTopCandidates = (candidates: Candidate[]): Candidate[] => {
-  if (candidates.length === 0) return [];
-  const maxVotes = Math.max(...candidates.map((candidate) => candidate.votes));
+  const eligibleCandidates = getNonBlankCandidates(candidates);
+  if (eligibleCandidates.length === 0) return [];
+  const maxVotes = Math.max(...eligibleCandidates.map((candidate) => candidate.votes));
   if (maxVotes <= 0) return [];
-  return candidates.filter((candidate) => candidate.votes === maxVotes);
+  return eligibleCandidates.filter((candidate) => candidate.votes === maxVotes);
 };
 
 const StatusBadge: React.FC<{ status: PublicElectionDetail["status"] }> = ({ status }) => {
@@ -212,6 +217,34 @@ const LiveVotingCard: React.FC = () => (
   </div>
 );
 
+const BlankVotesCard: React.FC<{
+  votes: number;
+  percent: number;
+  isPreliminary?: boolean;
+}> = ({ votes, percent, isPreliminary }) => (
+  <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Votos en Blanco</p>
+        <p className="mt-1 text-sm text-slate-500">
+          Total de papeletas sin preferencia por candidatura.
+        </p>
+      </div>
+      {isPreliminary && (
+        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+          PRELIMINAR
+        </span>
+      )}
+    </div>
+
+    <div className="mt-4 flex items-baseline gap-4">
+      <span className="text-3xl font-bold text-slate-800">{formatNumber(votes)}</span>
+      <span className="text-sm text-slate-500">votos</span>
+      <span className="text-lg font-semibold text-slate-700">({percent}%)</span>
+    </div>
+  </div>
+);
+
 const NoResultsCard: React.FC = () => (
   <div className="bg-slate-50 border border-slate-200 rounded-xl p-8 shadow-sm text-center">
     <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -285,7 +318,7 @@ const VoteDistributionSection: React.FC<{
   tiedCandidateIds?: string[];
   isPreliminary?: boolean;
 }> = ({ candidates, winnerId, tiedCandidateIds = [], isPreliminary }) => {
-  const sortedCandidates = [...candidates].sort((a, b) => b.percent - a.percent);
+  const sortedCandidates = candidates.filter(c => c.id !== 'blank').sort((a, b) => b.percent - a.percent);
   const tiedIds = new Set(tiedCandidateIds);
   const hasTie = tiedIds.size > 1;
 
@@ -370,7 +403,7 @@ const PublicElectionDetailPage: React.FC = () => {
 
   const getWinnerCandidate = (): Candidate | null => {
     if (!election || !election.results || !election.winnerCandidateId) return null;
-    return election.results.candidates.find((c) => c.id === election.winnerCandidateId) || null;
+    return getNonBlankCandidates(election.results.candidates).find((c) => c.id === election.winnerCandidateId) || null;
   };
 
   if (isLoading) {
@@ -398,9 +431,12 @@ const PublicElectionDetailPage: React.FC = () => {
   }
 
   const winnerCandidate = getWinnerCandidate();
-  const hasResults = Boolean(election.results && election.results.candidates.length > 0);
+  const hasResults = Boolean(
+    election.results && getNonBlankCandidates(election.results.candidates).length > 0,
+  );
   const tiedCandidates = election.results ? getTopCandidates(election.results.candidates) : [];
   const hasTie = tiedCandidates.length > 1;
+  const blankVotesCandidate = election.results?.candidates.find((candidate) => candidate.id === "blank") ?? null;
   const ballotDescription =
     election.status === "FINISHED"
       ? "Conoce a los candidatos y partidos políticos que participaron en esta elección"
@@ -443,6 +479,14 @@ const PublicElectionDetailPage: React.FC = () => {
               winnerId={hasTie ? null : election.winnerCandidateId}
               tiedCandidateIds={hasTie ? tiedCandidates.map((candidate) => candidate.id) : []}
             />
+            {blankVotesCandidate && (
+              <div className="mt-6">
+                <BlankVotesCard
+                  votes={blankVotesCandidate.votes}
+                  percent={blankVotesCandidate.percent}
+                />
+              </div>
+            )}
           </>
         )}
 
@@ -454,12 +498,23 @@ const PublicElectionDetailPage: React.FC = () => {
               <LiveVotingCard />
             </div>
             {hasResults ? (
-              <VoteDistributionSection
-                candidates={election.results!.candidates}
-                winnerId={null}
-                tiedCandidateIds={tiedCandidates.length > 1 ? tiedCandidates.map((candidate) => candidate.id) : []}
-                isPreliminary
-              />
+              <>
+                <VoteDistributionSection
+                  candidates={election.results!.candidates}
+                  winnerId={null}
+                  tiedCandidateIds={tiedCandidates.length > 1 ? tiedCandidates.map((candidate) => candidate.id) : []}
+                  isPreliminary
+                />
+                {blankVotesCandidate && (
+                  <div className="mt-6">
+                    <BlankVotesCard
+                      votes={blankVotesCandidate.votes}
+                      percent={blankVotesCandidate.percent}
+                      isPreliminary
+                    />
+                  </div>
+                )}
+              </>
             ) : (
               <NoResultsCard />
             )}
