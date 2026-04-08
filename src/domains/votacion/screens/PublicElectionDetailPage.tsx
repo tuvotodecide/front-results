@@ -55,11 +55,16 @@ const formatNumber = (num: number): string => {
   return num.toLocaleString("es-BO");
 };
 
+const getNonBlankCandidates = (candidates: Candidate[]): Candidate[] => {
+  return candidates.filter((candidate) => candidate.id !== "blank");
+};
+
 const getTopCandidates = (candidates: Candidate[]): Candidate[] => {
-  if (candidates.length === 0) return [];
-  const maxVotes = Math.max(...candidates.map((candidate) => candidate.votes));
+  const eligibleCandidates = getNonBlankCandidates(candidates);
+  if (eligibleCandidates.length === 0) return [];
+  const maxVotes = Math.max(...eligibleCandidates.map((candidate) => candidate.votes));
   if (maxVotes <= 0) return [];
-  return candidates.filter((candidate) => candidate.votes === maxVotes);
+  return eligibleCandidates.filter((candidate) => candidate.votes === maxVotes);
 };
 
 const StatusBadge: React.FC<{ status: PublicElectionDetail["status"] }> = ({ status }) => {
@@ -398,7 +403,7 @@ const PublicElectionDetailPage: React.FC = () => {
 
   const getWinnerCandidate = (): Candidate | null => {
     if (!election || !election.results || !election.winnerCandidateId) return null;
-    return election.results.candidates.find((c) => c.id === election.winnerCandidateId) || null;
+    return getNonBlankCandidates(election.results.candidates).find((c) => c.id === election.winnerCandidateId) || null;
   };
 
   if (isLoading) {
@@ -426,7 +431,9 @@ const PublicElectionDetailPage: React.FC = () => {
   }
 
   const winnerCandidate = getWinnerCandidate();
-  const hasResults = Boolean(election.results && election.results.candidates.length > 0);
+  const hasResults = Boolean(
+    election.results && getNonBlankCandidates(election.results.candidates).length > 0,
+  );
   const tiedCandidates = election.results ? getTopCandidates(election.results.candidates) : [];
   const hasTie = tiedCandidates.length > 1;
   const blankVotesCandidate = election.results?.candidates.find((candidate) => candidate.id === "blank") ?? null;
