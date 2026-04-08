@@ -193,7 +193,7 @@ const ElectionConfigPlanchas: React.FC = () => {
   const completeParties = parties.filter((party) =>
     partyHasCompleteCandidates(party, positions),
   );
-  const hasMinimumCompleteParties = completeParties.length >= 2;
+  const hasMinimumCompleteParties = completeParties.length >= 1;
   const isPadronReady = padronVersions.length > 0;
 
   // Handlers
@@ -328,7 +328,7 @@ const ElectionConfigPlanchas: React.FC = () => {
   const handleNextStep = () => {
     if (!hasMinimumCompleteParties) {
       setError(
-        'Debes registrar al menos 2 partidos y completar todos sus candidatos con nombre y foto antes de continuar.',
+        'Debes registrar al menos un partido y completar todos sus candidatos con nombre y foto antes de continuar.',
       );
       return;
     }
@@ -435,7 +435,7 @@ const ElectionConfigPlanchas: React.FC = () => {
 
           {!hasMinimumCompleteParties && (
             <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              Debes registrar al menos 2 partidos y completar todos los cargos con nombre y foto en cada uno para continuar al padrón.
+              Debes registrar al menos un partido y completar todos los cargos con nombre y foto para continuar al padrón.
             </div>
           )}
 
