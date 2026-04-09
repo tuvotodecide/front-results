@@ -58,7 +58,7 @@ const getLogoSrc = () => {
   return typeof logoAsset === "string" ? logoAsset : logoAsset.src;
 };
 
-const getErrorMessage = (error: unknown, fallback: string) => {
+export const getErrorMessage = (error: unknown, fallback: string) => {
   if (typeof error === "object" && error !== null) {
     const maybeData = "data" in error ? error.data : undefined;
     if (
@@ -80,7 +80,7 @@ const getErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
-const mapBackendRole = (role: string): AuthResultsRole => {
+export const mapBackendRole = (role: string): AuthResultsRole => {
   const r = String(role || "").toUpperCase();
 
   if (r === "MAYOR") return "MAYOR";
@@ -90,6 +90,15 @@ const mapBackendRole = (role: string): AuthResultsRole => {
 
   return "publico";
 };
+
+export const loginResultadosValidationSchema = Yup.object({
+  email: Yup.string()
+    .email("Correo electrónico inválido")
+    .required("El correo es obligatorio"),
+  password: Yup.string()
+    .min(8, "Mínimo 8 caracteres")
+    .required("La contraseña es obligatoria"),
+});
 
 const LoginResultadosPage = () => {
   const logoSrc = getLogoSrc();
@@ -164,15 +173,6 @@ const LoginResultadosPage = () => {
 
   const openModal = (payload: Omit<ModalState, "open">) =>
     setModal({ open: true, ...payload });
-
-  const validationSchema = Yup.object({
-    email: Yup.string()
-      .email("Correo electrónico inválido")
-      .required("El correo es obligatorio"),
-    password: Yup.string()
-      .min(8, "Mínimo 8 caracteres")
-      .required("La contraseña es obligatoria"),
-  });
 
   const onSubmit = async (values: LoginValues) => {
     try {
@@ -290,7 +290,7 @@ const LoginResultadosPage = () => {
 
           <Formik
             initialValues={{ email: "", password: "" }}
-            validationSchema={validationSchema}
+            validationSchema={loginResultadosValidationSchema}
             onSubmit={onSubmit}
           >
             <Form className="space-y-6">

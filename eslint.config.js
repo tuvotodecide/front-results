@@ -4,8 +4,47 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
 
+const sharedRules = {
+  '@typescript-eslint/no-explicit-any': 'off',
+  '@typescript-eslint/no-empty-object-type': 'off',
+  '@typescript-eslint/no-unused-vars': [
+    'error',
+    {
+      argsIgnorePattern: '^_',
+      caughtErrorsIgnorePattern: '^_',
+      varsIgnorePattern: '^_',
+    },
+  ],
+  'no-empty': ['error', { allowEmptyCatch: true }],
+}
+
+const vitestGlobals = {
+  afterAll: 'readonly',
+  afterEach: 'readonly',
+  beforeAll: 'readonly',
+  beforeEach: 'readonly',
+  describe: 'readonly',
+  expect: 'readonly',
+  it: 'readonly',
+  test: 'readonly',
+  vi: 'readonly',
+}
+
+const cypressGlobals = {
+  Cypress: 'readonly',
+  cy: 'readonly',
+  after: 'readonly',
+  afterEach: 'readonly',
+  before: 'readonly',
+  beforeEach: 'readonly',
+  context: 'readonly',
+  describe: 'readonly',
+  expect: 'readonly',
+  it: 'readonly',
+}
+
 export default tseslint.config(
-  { ignores: ['dist', '.next'] },
+  { ignores: ['dist', '.next', 'coverage'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: [
@@ -32,19 +71,49 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-empty-object-type': 'off',
-      '@typescript-eslint/no-unused-vars': [
-        'error',
-        {
-          argsIgnorePattern: '^_',
-          caughtErrorsIgnorePattern: '^_',
-          varsIgnorePattern: '^_',
-        },
-      ],
+      ...sharedRules,
       'react-hooks/exhaustive-deps': 'off',
-      'no-empty': ['error', { allowEmptyCatch: true }],
       'react-refresh/only-export-components': 'off',
+    },
+  },
+  {
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    files: ['tests/**/*.{ts,tsx}'],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        ...vitestGlobals,
+      },
+      parserOptions: {
+        project: ['./tsconfig.tests.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      ...sharedRules,
+    },
+  },
+  {
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    files: ['cypress.config.ts', 'cypress/**/*.{ts,tsx}'],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        ...globals.mocha,
+        ...cypressGlobals,
+      },
+      parserOptions: {
+        project: ['./tsconfig.cypress.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      ...sharedRules,
+      '@typescript-eslint/no-require-imports': 'off',
     },
   },
 )

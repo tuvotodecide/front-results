@@ -58,7 +58,7 @@ const getLogoSrc = () => {
   return typeof logoAsset === "string" ? logoAsset : logoAsset.src;
 };
 
-const getErrorMessage = (error: unknown, fallback: string) => {
+export const getErrorMessage = (error: unknown, fallback: string) => {
   if (typeof error === "object" && error !== null) {
     const maybeData = "data" in error ? error.data : undefined;
     if (
@@ -136,6 +136,36 @@ const EyeOffIcon = () => (
   </svg>
 );
 
+export const registerResultadosValidationSchema = Yup.object({
+  dni: Yup.string().trim().required("El carnet es obligatorio"),
+  name: Yup.string().trim().required("El nombre completo es obligatorio"),
+  email: Yup.string()
+    .trim()
+    .email("Correo electrónico inválido")
+    .required("El correo es obligatorio"),
+  password: Yup.string()
+    .trim()
+    .min(8, "Mínimo 8 caracteres")
+    .required("La contraseña es obligatoria"),
+  confirmPassword: Yup.string()
+    .trim()
+    .oneOf([Yup.ref("password")], "Las contraseñas no coinciden")
+    .required("Debes confirmar tu contraseña"),
+  roleType: Yup.mixed<"MAYOR" | "GOVERNOR">()
+    .oneOf(["MAYOR", "GOVERNOR"])
+    .required(),
+  votingDepartmentId: Yup.string().when("roleType", {
+    is: "GOVERNOR",
+    then: (schema) => schema.required("Debes seleccionar un departamento"),
+    otherwise: (schema) => schema.notRequired(),
+  }),
+  votingMunicipalityId: Yup.string().when("roleType", {
+    is: "MAYOR",
+    then: (schema) => schema.required("Debes seleccionar un municipio"),
+    otherwise: (schema) => schema.notRequired(),
+  }),
+});
+
 const RegisterResultadosPage = () => {
   const logoSrc = getLogoSrc();
   const navigate = useNavigate();
@@ -172,36 +202,6 @@ const RegisterResultadosPage = () => {
       navigate(target, { replace: true });
     }
   }, [user, token, navigate]);
-
-  const validationSchema = Yup.object({
-    dni: Yup.string().trim().required("El carnet es obligatorio"),
-    name: Yup.string().trim().required("El nombre completo es obligatorio"),
-    email: Yup.string()
-      .trim()
-      .email("Correo electrónico inválido")
-      .required("El correo es obligatorio"),
-    password: Yup.string()
-      .trim()
-      .min(8, "Mínimo 8 caracteres")
-      .required("La contraseña es obligatoria"),
-    confirmPassword: Yup.string()
-      .trim()
-      .oneOf([Yup.ref("password")], "Las contraseñas no coinciden")
-      .required("Debes confirmar tu contraseña"),
-    roleType: Yup.mixed<"MAYOR" | "GOVERNOR">()
-      .oneOf(["MAYOR", "GOVERNOR"])
-      .required(),
-    votingDepartmentId: Yup.string().when("roleType", {
-      is: "GOVERNOR",
-      then: (schema) => schema.required("Debes seleccionar un departamento"),
-      otherwise: (schema) => schema.notRequired(),
-    }),
-    votingMunicipalityId: Yup.string().when("roleType", {
-      is: "MAYOR",
-      then: (schema) => schema.required("Debes seleccionar un municipio"),
-      otherwise: (schema) => schema.notRequired(),
-    }),
-  });
 
   const registerResultsUser = async (
     values: ResultsFormValues,
@@ -270,7 +270,7 @@ const RegisterResultadosPage = () => {
               scopeProvinceId: "",
               scopeMunicipalityId: "",
             }}
-            validationSchema={validationSchema}
+            validationSchema={registerResultadosValidationSchema}
             onSubmit={registerResultsUser}
           >
             {({ values, setFieldValue }) => (

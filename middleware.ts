@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-const AUTH_COOKIE_KEYS = {
+export const AUTH_COOKIE_KEYS = {
   token: "tvd_auth_token",
   role: "tvd_auth_role",
   status: "tvd_auth_status",
@@ -34,7 +34,7 @@ type SessionRole =
   | "TENANT_ADMIN"
   | "publico";
 
-const decodeJwtPayload = (token: string) => {
+export const decodeJwtPayload = (token: string) => {
   try {
     const [, payload] = token.split(".");
     if (!payload) return null;
@@ -56,7 +56,7 @@ const decodeJwtPayload = (token: string) => {
   }
 };
 
-const isExpired = (token: string | null) => {
+export const isExpired = (token: string | null) => {
   if (!token) return true;
 
   const payload = decodeJwtPayload(token);
@@ -65,7 +65,7 @@ const isExpired = (token: string | null) => {
   return payload.exp * 1000 <= Date.now();
 };
 
-const normalizeRole = (role: string | null | undefined): SessionRole => {
+export const normalizeRole = (role: string | null | undefined): SessionRole => {
   const value = String(role ?? "").toUpperCase();
 
   if (value === "ALCALDE" || value === "MAYOR") return "MAYOR";
@@ -82,7 +82,7 @@ const normalizeRole = (role: string | null | undefined): SessionRole => {
   return "publico";
 };
 
-const normalizeStatus = (
+export const normalizeStatus = (
   status: string | null | undefined,
   active: string | null | undefined,
 ): SessionStatus => {
@@ -100,7 +100,7 @@ const normalizeStatus = (
   return active === "true" ? "ACTIVE" : "PENDING";
 };
 
-const hasPathPrefix = (pathname: string, basePath: string) =>
+export const hasPathPrefix = (pathname: string, basePath: string) =>
   pathname === basePath || pathname.startsWith(`${basePath}/`);
 
 const redirectTo = (request: NextRequest, pathname: string) => {
@@ -121,7 +121,7 @@ const redirectResultadosLogin = (request: NextRequest) => {
   return NextResponse.redirect(url);
 };
 
-const getSession = (request: NextRequest) => {
+export const getSession = (request: NextRequest) => {
   const token = request.cookies.get(AUTH_COOKIE_KEYS.token)?.value ?? null;
 
   if (!token || isExpired(token)) {
@@ -142,7 +142,7 @@ const getSession = (request: NextRequest) => {
   };
 };
 
-const handleResultadosAccess = (request: NextRequest) => {
+export const handleResultadosAccess = (request: NextRequest) => {
   const session = getSession(request);
 
   if (!session) {
@@ -183,7 +183,7 @@ const handleResultadosAccess = (request: NextRequest) => {
   return NextResponse.next();
 };
 
-const handleVotacionAccess = (request: NextRequest) => {
+export const handleVotacionAccess = (request: NextRequest) => {
   const session = getSession(request);
 
   if (!session) {

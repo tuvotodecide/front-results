@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.node.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "lib": ["ES2023", "DOM"],
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "types": ["node", "cypress"]
+  },
+  "include": [
+    "cypress.config.ts",
+    "cypress/**/*.ts",
+    "cypress/**/*.tsx"
+  ]
+}

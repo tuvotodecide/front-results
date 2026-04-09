@@ -28,21 +28,21 @@ import type { Voter, CorrectionInput, PadronUploadResult, PadronFile, ConfigStep
 
 type ModalState = 'none' | 'uploading' | 'summary' | 'fixing' | 'revalidating' | 'deleteConfirm';
 
-const HEADER_DNI = 'dni';
-const HEADER_CARNET = 'carnet';
-const HEADER_ENABLED = 'habilitado';
-const BOLIVIAN_CARNET_REGEX = /^\d{5,10}[A-Z]{0,2}$/;
+export const HEADER_DNI = 'dni';
+export const HEADER_CARNET = 'carnet';
+export const HEADER_ENABLED = 'habilitado';
+export const BOLIVIAN_CARNET_REGEX = /^\d{5,10}[A-Z]{0,2}$/;
 
-const normalizeCell = (value: string) => value.replace(/^"|"$/g, '').trim();
+export const normalizeCell = (value: string) => value.replace(/^"|"$/g, '').trim();
 
-const normalizeCarnet = (value: string) =>
+export const normalizeCarnet = (value: string) =>
   normalizeCell(value)
     .toUpperCase()
     .replace(/[\s.-]/g, '');
 
-const isValidCarnet = (value: string) => BOLIVIAN_CARNET_REGEX.test(normalizeCarnet(value));
+export const isValidCarnet = (value: string) => BOLIVIAN_CARNET_REGEX.test(normalizeCarnet(value));
 
-const parseEnabledCell = (
+export const parseEnabledCell = (
   value: string,
 ): { valid: boolean; enabled: boolean } => {
   const normalized = normalizeCell(value).toLowerCase();
@@ -58,7 +58,7 @@ const parseEnabledCell = (
   return { valid: false, enabled: false };
 };
 
-const revalidateRows = (rows: Voter[]): Voter[] => {
+export const revalidateRows = (rows: Voter[]): Voter[] => {
   const seen = new Set<string>();
   return rows.map((row) => {
     const cleaned = normalizeCarnet(row.carnet);
@@ -79,7 +79,7 @@ const revalidateRows = (rows: Voter[]): Voter[] => {
   });
 };
 
-const parsePadronCsv = async (file: File) => {
+export const parsePadronCsv = async (file: File) => {
   const text = await file.text();
   const lines = text
     .replace(/\uFEFF/g, '')
@@ -129,7 +129,7 @@ const parsePadronCsv = async (file: File) => {
   };
 };
 
-const buildUploadCsv = (rows: Voter[]) => {
+export const buildUploadCsv = (rows: Voter[]) => {
   const lines = [
     `${HEADER_CARNET},${HEADER_ENABLED}`,
     ...rows.map((row) => `${row.carnet.trim()},${row.enabled ? 'si' : 'no'}`),
@@ -137,7 +137,7 @@ const buildUploadCsv = (rows: Voter[]) => {
   return lines.join('\n');
 };
 
-const hasDraftAlreadyStarted = (event?: { status?: string | null; votingStart?: string | null }) =>
+export const hasDraftAlreadyStarted = (event?: { status?: string | null; votingStart?: string | null }) =>
   event?.status === 'DRAFT' &&
   Boolean(event.votingStart && new Date(event.votingStart).getTime() <= Date.now());
 
