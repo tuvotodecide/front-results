@@ -258,7 +258,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          stdbuf -oL -eL echo "🔎 Comprobando http://${PUBLIC_IP}:${EXTERNAL_PORT}/"
+          stdbuf -oL -eL echo "🔎 Comprobando http://${PUBLIC_IP}:${EXTERNAL_PORT}/votacion"
           for i in {1..24}; do # = 2 minutos máx.
             http_code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "http://${PUBLIC_IP}:${EXTERNAL_PORT}/") || true
             if [[ "$http_code" == "200" ]]; then
