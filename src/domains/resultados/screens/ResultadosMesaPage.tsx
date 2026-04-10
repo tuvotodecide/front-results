@@ -666,7 +666,7 @@ const ResultadosMesa2 = () => {
                             {shouldBlockForPublicScope
                               ? "Seleccione un territorio habilitado para esta elección."
                               : isPreliminaryPhase
-                              ? "Aún no se han procesado actas para esta ubicación."
+                              ? "Aún no se han procesado hojas de trabajo para esta ubicación."
                               : "Los resultados finales aún no están disponibles."}
                           </p>
                         </div>
@@ -761,7 +761,7 @@ const ResultadosMesa2 = () => {
               {images.length > 0 ? (
                 <div className="border border-gray-200 rounded-lg p-4 mt-4">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                    Imágenes de Actas
+                    Imágenes de hojas de trabajo
                   </h3>
                   <ImagesSection
                     images={images}
@@ -794,7 +794,7 @@ const ResultadosMesa2 = () => {
                   </h2>
                   <p className="text-gray-500">
                     La mesa electoral no tiene información geográfica registrada
-                    ni actas disponibles.
+                    ni hojas de trabajo disponibles.
                   </p>
                 </div>
               )}

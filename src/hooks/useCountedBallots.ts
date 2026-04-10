@@ -50,24 +50,31 @@ export const useCountedBallots = ({
   skip = false,
   enablePolling = false,
 }: UseCountedBallotsParams): UseCountedBallotsResult => {
-  // Query params
-  const queryParams = {
+  const baseQueryParams = {
     electionType,
     electionId,
     department,
     province,
     municipality,
     electoralLocation,
+  };
+
+  // El backend actual de resultados finales no acepta paginación en /results/final/ballots.
+  // Conservamos page/limit solo para live para mantener la paridad esperada por ese flujo.
+  const liveQueryParams = {
+    ...baseQueryParams,
     page,
     limit,
   };
+
+  const finalQueryParams = baseQueryParams;
 
   // Use live or final endpoint based on mode
   const {
     data: liveData,
     isLoading: liveLoading,
     isError: liveError,
-  } = useGetLiveCountedBallotsQuery(queryParams, {
+  } = useGetLiveCountedBallotsQuery(liveQueryParams, {
     skip: skip || !isLiveMode || !electionType,
     pollingInterval: enablePolling ? FIVE_MINUTES_MS : 0,
     refetchOnFocus: true,
@@ -79,7 +86,7 @@ export const useCountedBallots = ({
     data: finalData,
     isLoading: finalLoading,
     isError: finalError,
-  } = useGetFinalCountedBallotsQuery(queryParams, {
+  } = useGetFinalCountedBallotsQuery(finalQueryParams, {
     skip: skip || isLiveMode || !electionType,
     pollingInterval: enablePolling ? FIVE_MINUTES_MS : 0,
     refetchOnFocus: true,

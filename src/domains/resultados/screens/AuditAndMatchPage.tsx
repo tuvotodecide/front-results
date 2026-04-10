@@ -71,7 +71,7 @@ const AuditAndMatch: React.FC = () => {
 
         <div className="bg-white rounded-xl shadow-md p-8 text-center border border-gray-100 mb-8">
           <h2 className="text-xl md:text-2xl text-gray-700 leading-relaxed">
-            De todas las actas atestiguadas
+            De todas las hojas de trabajo atestiguadas
             <span className="mx-2 inline-block px-4 py-1 bg-slate-100 text-slate-700 font-bold rounded-full">
               {summary.total}
             </span>
@@ -100,7 +100,7 @@ const AuditAndMatch: React.FC = () => {
               </>
             ) : (
               <>
-                Ver reporte detallado por acta <ChevronDown size={20} />
+                Ver reporte detallado por hoja de trabajo <ChevronDown size={20} />
               </>
             )}
           </button>
@@ -199,7 +199,7 @@ const AuditAndMatch: React.FC = () => {
                                     : "bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white border-emerald-100",
                               ].join(" ")}
                             >
-                              <Eye size={16} /> Ver Acta
+                              <Eye size={16} /> Ver hoja de trabajo
                             </Link>
                           ) : (
                             <span className="text-slate-300 italic font-light">

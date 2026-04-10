@@ -84,7 +84,7 @@ const ImagesSection = ({
               <div className="border-b border-gray-100 p-5 pb-4">
                 <div className="flex items-center justify-between mb-3 min-w-0">
                   <h3 className="text-lg font-semibold text-gray-900 flex-shrink-0">
-                    Acta Electoral
+                    Hoja de trabajo electoral
                   </h3>
                   {mostSupportedBallot &&
                     image._id === mostSupportedBallot.ballotId && (
@@ -148,7 +148,7 @@ const ImagesSection = ({
                 <div className="w-full h-48 bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
                   <img
                     src={getImageUrl(image)}
-                    alt="Acta Electoral Preview"
+                    alt="Vista previa de hoja de trabajo electoral"
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;

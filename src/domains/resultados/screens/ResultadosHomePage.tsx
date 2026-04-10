@@ -283,7 +283,7 @@ export default function ResultadosHomePage() {
                         >
                           <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <span>Conversión de Actas en NFTs</span>
+                        <span>Conversión de hojas de trabajo en NFTs</span>
                       </div>
                       <div className="flex items-center justify-center sm:justify-start text-blue-100">
                         <svg

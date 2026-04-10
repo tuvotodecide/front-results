@@ -476,7 +476,7 @@ const ParticipacionPersonal: React.FC = () => {
                         Nro. Mesa
                       </th>
                       <th className="px-4 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 text-center">
-                        Acta
+                        Hoja de trabajo
                       </th>
                     </tr>
                   </thead>
@@ -547,11 +547,11 @@ const ParticipacionPersonal: React.FC = () => {
                                 }}
                                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-600 hover:text-white transition-all group-hover:shadow-md border border-blue-100"
                               >
-                                <FileText size={16} /> Ver Acta
+                                <FileText size={16} /> Ver hoja de trabajo
                               </Link>
                             ) : (
                               <span className="text-slate-300 italic font-light">
-                                Sin acta
+                                Sin hoja de trabajo
                               </span>
                             )}
                           </td>
