@@ -23,7 +23,7 @@ export interface UseElectionPublishReturn {
   electionStatus: ElectionStatus;
   loading: boolean;
   error: string | null;
-  activateElection: (nullifiers: string[]) => Promise<ActivationResult>;
+  activateElection: () => Promise<ActivationResult>;
   activating: boolean;
   activationResult: ActivationResult | null;
   getShareUrl: () => Promise<string>;
@@ -103,8 +103,8 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
     return 'DRAFT';
   }, [event]);
 
-  const activateElection = useCallback(async (nullifiers: string[]): Promise<ActivationResult> => {
-    const response = await publishVotingEvent({electionId, nullifiers}).unwrap();
+  const activateElection = useCallback(async (): Promise<ActivationResult> => {
+    const response = await publishVotingEvent({electionId}).unwrap();
 
     const publicUrl = `${window.location.origin}/votacion/elecciones/${electionId}/publica`;
     const shareText = `Participa en la votación: ${publicUrl}`;
