@@ -160,11 +160,10 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
       invalidatesTags: ["VotingEvents"],
     }),
 
-    publishVotingEvent: builder.mutation<PublishEventResponse, { electionId: string; nullifiers: string[] }>({
-      query: ({ electionId, nullifiers }) => ({
+    publishVotingEvent: builder.mutation<PublishEventResponse, { electionId: string; }>({
+      query: ({ electionId }) => ({
         url: `/voting/events/${electionId}/publish`,
         method: "POST",
-        body: nullifiers,
       }),
       invalidatesTags: (_result, _error, { electionId }) => [{ type: "VotingEvents", id: electionId }],
     }),

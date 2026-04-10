@@ -13,7 +13,6 @@ import ScheduleSummaryCard from './components/ScheduleSummaryCard';
 import ConfirmActivateModal from './components/ConfirmActivateModal';
 import ActivatedSuccessModal from './components/ActivatedSuccessModal';
 import { useElectionPublish } from './data/useElectionPublish';
-import { useWallet } from '../../hooks/useWallet';
 import Modal2 from '../../components/Modal2';
 import ConfigPageFallback from './components/ConfigPageFallback';
 
@@ -25,14 +24,6 @@ const ElectionConfigReview: React.FC = () => {
   const navigate = useNavigate();
   const { electionId } = useParams<{ electionId: string }>();
   const actualElectionId = electionId || '';
-
-  const {
-    connectionState,
-    transactionState,
-    connectWallet,
-    callCreateVoting,
-    resetTransactionState,
-  } = useWallet();
 
   const {
     votingEvent,
@@ -52,6 +43,7 @@ const ElectionConfigReview: React.FC = () => {
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
   const isReadyToPublish = configSummary
     ? configSummary.positionsOk && configSummary.partiesOk && configSummary.padronOk
@@ -70,17 +62,12 @@ const ElectionConfigReview: React.FC = () => {
       if (!votingEvent || !configSummary?.enabledToVoteCount) {
         throw new Error('Could not load voting event data');
       }
-      // on-chain call
-      const nullifiers = await callCreateVoting(votingEvent, configSummary.enabledToVoteCount);
-      // call backend to activate election with nullifiers
-      await activateElection(nullifiers);
+      await activateElection();
       setShowConfirmModal(false);
       setShowSuccessModal(true);
     } catch (error: any) {
       setShowConfirmModal(false);
-      if (error.message === 'tx_canceled') {
-        return;
-      }
+      setShowErrorModal(true);
       console.error('Error activating election:', error);
     }
   };
@@ -91,39 +78,9 @@ const ElectionConfigReview: React.FC = () => {
     navigate('/votacion/elecciones');
   };
 
-  const connectMetamask = () => {
-    if (
-      connectionState === 'connecting' ||
-      activating ||
-      transactionState === 'pending'
-    ) {
-      return;
-    }
-    connectWallet();
-  }
-
-  const renderButtonText = () => {
-    switch (connectionState) {
-      case 'disconnected':
-        return 'Conectarse a MetaMask para publicar';
-      case 'connecting':
-        return 'Conectando...';
-      case 'notInstalled':
-        return 'Instale la extensión MetaMask para publicar';
-      case 'connected':
-        return 'Confirmar y activar';
-      default:
-        return 'Conectarse a MetaMask para publicar';
-    }
-  }
-
   const isPublishButtonDisabled = () => {
     return (
-      !isReadyToPublish ||
-      connectionState === 'connecting' ||
-      connectionState === 'notInstalled' ||
-      activating ||
-      transactionState === 'pending'
+      !isReadyToPublish || activating
     );
   }
 
@@ -218,7 +175,7 @@ const ElectionConfigReview: React.FC = () => {
             <div className="w-full sm:w-auto text-center sm:text-right">
               <button
                 type="button"
-                onClick={connectionState === 'disconnected' ? connectMetamask : handleConfirmClick}
+                onClick={handleConfirmClick}
                 disabled={isPublishButtonDisabled()}
                 className={`
                   w-full sm:w-auto px-8 py-3 font-semibold rounded-lg transition-all
@@ -228,7 +185,7 @@ const ElectionConfigReview: React.FC = () => {
                   }
                 `}
               >
-                { renderButtonText() }
+                Confirmar y activar
               </button>
               <p className="text-xs text-gray-500 mt-2">
                 Al activar, la votación será visible para votantes según horarios.
@@ -243,7 +200,7 @@ const ElectionConfigReview: React.FC = () => {
         isOpen={showConfirmModal}
         onClose={() => setShowConfirmModal(false)}
         onConfirm={handleActivate}
-        isLoading={activating || transactionState === 'pending'}
+        isLoading={activating}
       />
 
       {/* Modal de éxito */}
@@ -256,19 +213,8 @@ const ElectionConfigReview: React.FC = () => {
       />
 
       <Modal2
-        isOpen={transactionState == 'canceled'}
-        onClose={resetTransactionState}
-        title='Operación cancelada'
-        type='info'
-        showClose
-        closeOnEscape
-      >
-        Operación cancelada por el usuario. No se ha publicado la votación.
-      </Modal2>
-
-      <Modal2
-        isOpen={transactionState == 'error'}
-        onClose={resetTransactionState}
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
         title='Operación fallida'
         type='error'
         showClose

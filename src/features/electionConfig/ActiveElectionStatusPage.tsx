@@ -29,7 +29,6 @@ import { selectTenantId } from "../../store/auth/authSlice";
 import { useSelector } from "react-redux";
 import Modal2 from "../../components/Modal2";
 import { getRequestErrorMessage } from "./requestErrorMessage";
-import { useWallet } from "../../hooks/useWallet";
 
 const roleToPosition = (role: EventRole): Position => ({
   id: role.id,
@@ -274,14 +273,6 @@ const ActiveElectionStatusPage: React.FC = () => {
   const [downloadPadronCsv, { isFetching: downloadingCsv }] =
     useLazyDownloadPadronCsvQuery();
 
-  const {
-    connectionState,
-    transactionState,
-    connectWallet,
-    resetTransactionState,
-    callUpdateSchedule,
-  } = useWallet();
-
   const positions = useMemo(() => roles.map(roleToPosition), [roles]);
   const parties = useMemo(() => options.map(optionToParty), [options]);
   const currentPadron =
@@ -380,13 +371,6 @@ const ActiveElectionStatusPage: React.FC = () => {
       const votingEnd = new Date(scheduleForm.votingEnd).toISOString();
       const resultsPublishAt = new Date(scheduleForm.resultsPublishAt).toISOString();
 
-      await callUpdateSchedule(
-        actualElectionId,
-        votingStart,
-        votingEnd,
-        resultsPublishAt,
-      );
-
       await updateEventSchedule({
         eventId: actualElectionId,
         data: {
@@ -400,45 +384,16 @@ const ActiveElectionStatusPage: React.FC = () => {
       setScheduleError(null);
       setIsScheduleModalOpen(false);
     } catch (error: any) {
-      if (error.message === 'tx_canceled') {
-        return;
-      }
       setScheduleError(getRequestErrorMessage(error, "No se pudo actualizar el horario."));
     }
   };
 
-  const connectMetamask = () => {
-    if (
-      connectionState === 'connecting' ||
-      transactionState === 'pending'
-    ) {
-      return;
-    }
-    connectWallet();
-  }
-
   const renderButtonText = () => {
-    switch (connectionState) {
-      case 'disconnected':
-        return 'Conectarse a MetaMask para guardar horarios';
-      case 'connecting':
-        return 'Conectando...';
-      case 'notInstalled':
-        return 'Instale la extensión MetaMask para guardar horarios';
-      case 'connected':
-        return updatingSchedule ? 'Guardando...' : 'Guardar horarios';
-      default:
-        return 'Conectarse a MetaMask para guardar horarios';
-    }
+    return updatingSchedule ? 'Guardando...' : 'Guardar horarios';
   }
 
   const isUpdateButtonDisabled = () => {
-    return (
-      updatingSchedule ||
-      connectionState === 'connecting' ||
-      connectionState === 'notInstalled' ||
-      transactionState === 'pending'
-    );
+    return updatingSchedule
   }
 
   if (!actualElectionId) {
@@ -774,7 +729,7 @@ const ActiveElectionStatusPage: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={connectionState === 'disconnected' ? connectMetamask : handleScheduleSave}
+              onClick={handleScheduleSave}
               disabled={isUpdateButtonDisabled()}
               className="rounded-lg bg-[#459151] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#3a7a44] disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -782,28 +737,6 @@ const ActiveElectionStatusPage: React.FC = () => {
             </button>
           </div>
         </div>
-      </Modal2>
-
-      <Modal2
-        isOpen={transactionState == 'canceled'}
-        onClose={resetTransactionState}
-        title='Operación cancelada'
-        type='info'
-        showClose
-        closeOnEscape
-      >
-        Operación cancelada por el usuario. No se ha actualizado el horario.
-      </Modal2>
-
-      <Modal2
-        isOpen={transactionState == 'error'}
-        onClose={resetTransactionState}
-        title='Operación fallida'
-        type='error'
-        showClose
-        closeOnEscape
-      >
-        Operación fallida. No se ha actualizado el horario. Intenta nuevamente o contacta al soporte si el problema persiste.
       </Modal2>
     </div>
   );
