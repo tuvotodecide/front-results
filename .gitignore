@@ -24,7 +24,8 @@ dist-ssr
 *.sw?
 .vercel
 .env
-
+.env.dev
+.env.prod
 
 docs/ui/*
 .claude
