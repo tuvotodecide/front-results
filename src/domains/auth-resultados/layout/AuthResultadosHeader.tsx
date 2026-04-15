@@ -14,7 +14,10 @@ import {
 import { resetResults } from "../../../store/resultados/resultadosSlice";
 import { clearSelectedElection } from "../../../store/election/electionSlice";
 import { apiSlice } from "../../../store/apiSlice";
-import { resolveLogoutDestination } from "@/shared/system/navigationFeedback";
+import {
+  emitNavigationStart,
+  resolveLogoutDestination,
+} from "@/shared/system/navigationFeedback";
 
 const AuthResultadosHeader = () => {
   const logoAsset = tuvotoDecideImage as string | { src: string };
@@ -24,9 +27,14 @@ const AuthResultadosHeader = () => {
   const { user } = useSelector(selectAuth);
   const dispatch = useDispatch();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [hasMounted, setHasMounted] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
 
   const isLoginPage = pathname === "/resultados/login";
+
+  React.useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -47,8 +55,12 @@ const AuthResultadosHeader = () => {
     dispatch(clearSelectedElection());
     dispatch(apiSlice.util.resetApiState());
     setIsMenuOpen(false);
+    emitNavigationStart();
     window.location.replace(resolveLogoutDestination(pathname));
   };
+
+  const showUserMenu = hasMounted && isLoggedIn;
+  const showLoginButton = !showUserMenu && !isLoginPage;
 
   return (
     <header className={styles.header}>
@@ -57,7 +69,7 @@ const AuthResultadosHeader = () => {
         <span className={styles.logoText}>Tu voto decide</span>
       </a>
       <div className={styles.headerActions}>
-        {isLoggedIn ? (
+        {showUserMenu ? (
           <div className={styles.userMenuContainer} ref={menuRef}>
             <button
               className={`${styles.userButton} ${
@@ -136,7 +148,7 @@ const AuthResultadosHeader = () => {
           </div>
         ) : (
           <>
-            {!isLoginPage && (
+            {showLoginButton && (
               <Link href="/resultados/login" className={styles.loginButton}>
                 Iniciar Sesión
               </Link>

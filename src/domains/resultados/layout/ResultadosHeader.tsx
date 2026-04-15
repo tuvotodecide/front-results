@@ -13,7 +13,11 @@ import { clearSelectedElection } from "../../../store/election/electionSlice";
 import { apiSlice } from "../../../store/apiSlice";
 import tuvotoDecideImage from "../../../assets/tuvotodecide.webp";
 import { Link, useLocation } from "../navigation/compat";
-import { resolveLogoutDestination } from "@/shared/system/navigationFeedback";
+import {
+  emitNavigationStart,
+  resolveLogoutDestination,
+} from "@/shared/system/navigationFeedback";
+import { isContextAllowedForDomain } from "@/store/auth/contextUtils";
 
 interface HeaderProps {
   toggleSidebar: () => void;
@@ -31,10 +35,15 @@ const ResultadosHeader: React.FC<HeaderProps> = ({
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const location = useLocation();
   const isLoginPage = location.pathname === "/resultados/login";
-  const { user } = useSelector(selectAuth);
+  const { user, activeContext } = useSelector(selectAuth);
   const dispatch = useDispatch();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [hasMounted, setHasMounted] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -55,6 +64,7 @@ const ResultadosHeader: React.FC<HeaderProps> = ({
     dispatch(clearSelectedElection());
     dispatch(apiSlice.util.resetApiState());
     setIsMenuOpen(false);
+    emitNavigationStart();
     window.location.replace(resolveLogoutDestination(location.pathname));
   };
   return (
@@ -64,7 +74,7 @@ const ResultadosHeader: React.FC<HeaderProps> = ({
         <span className={styles.logoText}>Tu voto decide</span>
       </a>
       <div className={styles.headerActions}>
-        {isLoggedIn ? (
+        {hasMounted && isLoggedIn ? (
           <>
             {" "}
             <div className={styles.userMenuContainer} ref={menuRef}>
@@ -75,7 +85,7 @@ const ResultadosHeader: React.FC<HeaderProps> = ({
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
               >
                 <div className={styles.avatar}>
-                  
+
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="18"
@@ -92,7 +102,7 @@ const ResultadosHeader: React.FC<HeaderProps> = ({
                   </svg>
                 </div>
                 <span className={styles.userNameText}>{user?.name}</span>
-                
+
                 <svg
                   className={`${styles.chevron} ${
                     isMenuOpen ? styles.rotate : ""
@@ -119,6 +129,12 @@ const ResultadosHeader: React.FC<HeaderProps> = ({
                 <div className={styles.menuHeader}>
                   <p className={styles.menuEmail}>{user?.email}</p>
                 </div>
+                {activeContext &&
+                isContextAllowedForDomain(activeContext, "approvals") ? (
+                  <Link to="/aprobaciones" className={styles.menuItem}>
+                    Aprobaciones
+                  </Link>
+                ) : null}
                 <button data-cy="logout-button" onClick={logout} className={styles.menuItem}>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -143,12 +159,12 @@ const ResultadosHeader: React.FC<HeaderProps> = ({
           </>
         ) : (
           <>
-            {!isLoginPage && (
+            {hasMounted && !isLoginPage && (
               <Link to="/resultados/login" className={styles.loginButton}>
                 Iniciar Sesión
               </Link>
             )}
-            
+
           </>
         )}
         {!hideSidebarToggle && (

@@ -129,30 +129,79 @@ export default function NavigationProgressBar() {
   }, [clearTimers]);
 
   return (
-    <div
-      aria-hidden="true"
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        height: "3px",
-        zIndex: 9999,
-        pointerEvents: "none",
-        opacity: isVisible ? 1 : 0,
-        transition: "opacity 160ms ease",
-      }}
-    >
+    <>
       <div
+        aria-hidden="true"
         style={{
-          height: "100%",
-          width: `${progress}%`,
-          background:
-            "linear-gradient(90deg, #1f6f3a 0%, #459151 45%, #8ed19a 100%)",
-          boxShadow: "0 0 10px rgba(69,145,81,0.45)",
-          transition: "width 180ms ease",
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: "3px",
+          zIndex: 10000,
+          pointerEvents: "none",
+          opacity: isVisible ? 1 : 0,
+          transition: "opacity 160ms ease",
         }}
-      />
-    </div>
+      >
+        <div
+          style={{
+            height: "100%",
+            width: `${progress}%`,
+            background:
+              "linear-gradient(90deg, #1f6f3a 0%, #459151 45%, #8ed19a 100%)",
+            boxShadow: "0 0 10px rgba(69,145,81,0.45)",
+            transition: "width 180ms ease",
+          }}
+        />
+      </div>
+      {isVisible ? (
+        <div
+          role="status"
+          aria-live="polite"
+          aria-label="Cargando"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(255,255,255,0.72)",
+            backdropFilter: "blur(2px)",
+            pointerEvents: "auto",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "12px",
+              border: "1px solid rgba(69,145,81,0.22)",
+              background: "white",
+              borderRadius: "8px",
+              padding: "24px 28px",
+              boxShadow: "0 20px 50px rgba(15, 23, 42, 0.18)",
+            }}
+          >
+            <div
+              className="animate-spin"
+              aria-hidden="true"
+              style={{
+                width: "44px",
+                height: "44px",
+                borderRadius: "999px",
+                border: "4px solid #d6ead9",
+                borderTopColor: "#459151",
+              }}
+            />
+            <span style={{ color: "#1f2937", fontSize: "14px", fontWeight: 700 }}>
+              Cargando...
+            </span>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }

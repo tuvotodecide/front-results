@@ -10,7 +10,11 @@ import { logOut, selectAuth, selectIsLoggedIn } from "@/store/auth/authSlice";
 import { resetResults } from "@/store/resultados/resultadosSlice";
 import tuvotoDecideImage from "@/assets/tuvotodecide.webp";
 import { usePathname } from "next/navigation";
-import { resolveLogoutDestination } from "@/shared/system/navigationFeedback";
+import {
+  emitNavigationStart,
+  resolveLogoutDestination,
+} from "@/shared/system/navigationFeedback";
+import { isContextAllowedForDomain } from "@/store/auth/contextUtils";
 
 export default function VotacionPublicHeader() {
   const logoAsset = tuvotoDecideImage as string | { src: string };
@@ -18,7 +22,7 @@ export default function VotacionPublicHeader() {
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const pathname = usePathname();
   const isLoginPage = pathname === "/votacion/login";
-  const { user } = useSelector(selectAuth);
+  const { user, activeContext } = useSelector(selectAuth);
   const dispatch = useDispatch();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [hasMounted, setHasMounted] = React.useState(false);
@@ -47,6 +51,7 @@ export default function VotacionPublicHeader() {
     dispatch(clearSelectedElection());
     dispatch(apiSlice.util.resetApiState());
     setIsMenuOpen(false);
+    emitNavigationStart();
     window.location.replace(resolveLogoutDestination(pathname));
   };
 
@@ -114,6 +119,12 @@ export default function VotacionPublicHeader() {
               <div className={styles.menuHeader}>
                 <p className={styles.menuEmail}>{user?.email}</p>
               </div>
+              {activeContext &&
+              isContextAllowedForDomain(activeContext, "approvals") ? (
+                <Link href="/aprobaciones" className={styles.menuItem}>
+                  Aprobaciones
+                </Link>
+              ) : null}
               <button
                 data-cy="logout-button"
                 onClick={logout}

@@ -14,15 +14,17 @@ import tuvotoDecideImage from "../../../assets/tuvotodecide.webp";
 import {
   useCreateUserMutation,
 } from "../../../store/auth/authEndpoints";
-import { Link, useNavigate } from "../navigation/compat";
+import { Link, useNavigate, useSearchParams } from "../navigation/compat";
 import LoadingButton from "../../../components/LoadingButton";
 import ScopePicker from "../../../components/ScopePicker";
 import Modal2 from "../../../components/Modal2";
 import { useGetDepartmentsQuery } from "../../../store/departments/departmentsEndpoints";
 import { ModalState } from "../../../types";
-import { useSelector } from "react-redux";
-import { selectAuth } from "@/store/auth/authSlice";
+import { useDispatch, useSelector } from "react-redux";
+import { selectAuth, type AccessStatus, setAuth } from "@/store/auth/authSlice";
 import { resolveAuthResultadosRedirect } from "../utils/resolveAuthRedirect";
+import { resolveRegisterPrefill } from "@/domains/auth-context/registerPrefill";
+import { setDepartments } from "@/store/departments/departmentsSlice";
 
 interface ResultsFormValues {
   dni: string;
@@ -48,9 +50,30 @@ type RegisterPayload = {
   dni: string;
   name: string;
   email: string;
-  password: string;
+  password?: string;
   votingDepartmentId?: string;
   votingMunicipalityId?: string;
+};
+
+const EMPTY_TENANT_ACCESS: AccessStatus["tenant"] = {
+  hasApprovedAccess: false,
+  latestStatus: null,
+  canRequest: true,
+  shouldSelectTenantContext: false,
+  message: "",
+  items: [],
+};
+
+const TERRITORIAL_PENDING_MESSAGES: Record<
+  Exclude<AccessStatus["territorial"]["status"], "APPROVED" | "NONE">,
+  string
+> = {
+  PENDING_EMAIL_VERIFICATION:
+    "Revisa tu correo y completa la verificación para continuar con el proceso territorial.",
+  PENDING_APPROVAL:
+    "Tu solicitud de acceso territorial ya fue recibida y sigue en revisión.",
+  REJECTED: "La solicitud territorial fue rechazada.",
+  REVOKED: "El acceso territorial fue revocado.",
 };
 
 const getLogoSrc = () => {
@@ -82,6 +105,43 @@ export const getErrorMessage = (error: unknown, fallback: string) => {
 
   return fallback;
 };
+
+const buildValidationSchema = (requiresPassword: boolean) =>
+  Yup.object({
+    dni: Yup.string().trim().required("El carnet es obligatorio"),
+    name: Yup.string().trim().required("El nombre completo es obligatorio"),
+    email: Yup.string()
+      .trim()
+      .email("Correo electrónico inválido")
+      .required("El correo es obligatorio"),
+    password: requiresPassword
+      ? Yup.string()
+          .trim()
+          .min(8, "Mínimo 8 caracteres")
+          .required("La contraseña es obligatoria")
+      : Yup.string().trim().notRequired(),
+    confirmPassword: requiresPassword
+      ? Yup.string()
+          .trim()
+          .oneOf([Yup.ref("password")], "Las contraseñas no coinciden")
+          .required("Debes confirmar tu contraseña")
+      : Yup.string().trim().notRequired(),
+    roleType: Yup.mixed<"MAYOR" | "GOVERNOR">()
+      .oneOf(["MAYOR", "GOVERNOR"])
+      .required(),
+    votingDepartmentId: Yup.string().when("roleType", {
+      is: "GOVERNOR",
+      then: (schema) => schema.required("Debes seleccionar un departamento"),
+      otherwise: (schema) => schema.notRequired(),
+    }),
+    votingMunicipalityId: Yup.string().when("roleType", {
+      is: "MAYOR",
+      then: (schema) => schema.required("Debes seleccionar un municipio"),
+      otherwise: (schema) => schema.notRequired(),
+    }),
+  });
+
+export const registerResultadosValidationSchema = buildValidationSchema(true);
 
 function RoleTypeWatcher() {
   const { values, setFieldValue } = useFormikContext<ResultsFormValues>();
@@ -136,48 +196,24 @@ const EyeOffIcon = () => (
   </svg>
 );
 
-export const registerResultadosValidationSchema = Yup.object({
-  dni: Yup.string().trim().required("El carnet es obligatorio"),
-  name: Yup.string().trim().required("El nombre completo es obligatorio"),
-  email: Yup.string()
-    .trim()
-    .email("Correo electrónico inválido")
-    .required("El correo es obligatorio"),
-  password: Yup.string()
-    .trim()
-    .min(8, "Mínimo 8 caracteres")
-    .required("La contraseña es obligatoria"),
-  confirmPassword: Yup.string()
-    .trim()
-    .oneOf([Yup.ref("password")], "Las contraseñas no coinciden")
-    .required("Debes confirmar tu contraseña"),
-  roleType: Yup.mixed<"MAYOR" | "GOVERNOR">()
-    .oneOf(["MAYOR", "GOVERNOR"])
-    .required(),
-  votingDepartmentId: Yup.string().when("roleType", {
-    is: "GOVERNOR",
-    then: (schema) => schema.required("Debes seleccionar un departamento"),
-    otherwise: (schema) => schema.notRequired(),
-  }),
-  votingMunicipalityId: Yup.string().when("roleType", {
-    is: "MAYOR",
-    then: (schema) => schema.required("Debes seleccionar un municipio"),
-    otherwise: (schema) => schema.notRequired(),
-  }),
-});
-
 const RegisterResultadosPage = () => {
   const logoSrc = getLogoSrc();
   const navigate = useNavigate();
-  const { user, token } = useSelector(selectAuth);
+  const [searchParams] = useSearchParams();
+  const dispatch = useDispatch();
+  const auth = useSelector(selectAuth);
+  const { user, token } = auth;
+  const prefill = resolveRegisterPrefill(searchParams, user);
+  const isExistingIdentityFlow = prefill.hasExistingIdentity;
   const [createUser] = useCreateUserMutation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const {
+    data: departmentsResponse,
     isLoading: depLoading,
     isError: depError,
     refetch: refetchDepartments,
-  } = useGetDepartmentsQuery({}, { skip: false });
+  } = useGetDepartmentsQuery({ limit: 100 }, { skip: false });
 
   const [modal, setModal] = useState<ModalState>({
     open: false,
@@ -197,11 +233,25 @@ const RegisterResultadosPage = () => {
     setModal({ open: true, ...payload });
 
   useEffect(() => {
-    const target = resolveAuthResultadosRedirect(user, token);
+    const target = resolveAuthResultadosRedirect(user, token, auth);
     if (target) {
       navigate(target, { replace: true });
     }
-  }, [user, token, navigate]);
+  }, [auth, user, token, navigate]);
+
+  useEffect(() => {
+    if (Array.isArray(departmentsResponse?.data)) {
+      dispatch(setDepartments(departmentsResponse.data));
+    }
+  }, [departmentsResponse, dispatch]);
+
+  const validationSchema = buildValidationSchema(!isExistingIdentityFlow);
+  const formPrefillKey = [
+    prefill.dni,
+    prefill.name,
+    prefill.email,
+    isExistingIdentityFlow ? "cross-access" : "new-access",
+  ].join("::");
 
   const registerResultsUser = async (
     values: ResultsFormValues,
@@ -213,16 +263,107 @@ const RegisterResultadosPage = () => {
       dni: values.dni,
       name: values.name,
       email: values.email,
-      password: values.password,
+      ...(isExistingIdentityFlow || !values.password.trim()
+        ? {}
+        : { password: values.password }),
       ...(values.roleType === "GOVERNOR"
         ? { votingDepartmentId: values.votingDepartmentId }
         : { votingMunicipalityId: values.votingMunicipalityId }),
     };
 
     try {
-      await createUser(payload).unwrap();
+      const response = await createUser(payload).unwrap();
+      const responseUser =
+        typeof response === "object" && response !== null && "user" in response
+          ? response.user
+          : response;
+      const territorialStatus =
+        responseUser?.territorialAccessStatus ??
+        responseUser?.accessStatus?.territorial?.status ??
+        (isExistingIdentityFlow ? "PENDING_APPROVAL" : "PENDING_EMAIL_VERIFICATION");
+      const requestedRole =
+        responseUser?.territorialRequestedRole ??
+        responseUser?.accessStatus?.territorial?.requestedRole ??
+        responseUser?.role ??
+        values.roleType;
+      const mergedAccessStatus: AccessStatus = {
+        tenant: auth.accessStatus?.tenant ?? EMPTY_TENANT_ACCESS,
+        territorial: {
+          hasApprovedAccess: territorialStatus === "APPROVED",
+          status: territorialStatus,
+          requestedRole,
+          votingDepartmentId:
+            responseUser?.votingDepartmentId ??
+            responseUser?.departmentId ??
+            (values.roleType === "GOVERNOR" ? values.votingDepartmentId : null),
+          votingMunicipalityId:
+            responseUser?.votingMunicipalityId ??
+            responseUser?.municipalityId ??
+            (values.roleType === "MAYOR" ? values.votingMunicipalityId : null),
+          reason:
+            responseUser?.territorialAccessReason ??
+            responseUser?.accessStatus?.territorial?.reason ??
+            auth.accessStatus?.territorial.reason ??
+            null,
+          canRequest:
+            territorialStatus === "NONE" ||
+            territorialStatus === "REJECTED" ||
+            territorialStatus === "REVOKED",
+          message:
+            responseUser?.accessStatus?.territorial?.message ??
+            auth.accessStatus?.territorial.message ??
+            (territorialStatus === "APPROVED" || territorialStatus === "NONE"
+              ? ""
+              : TERRITORIAL_PENDING_MESSAGES[
+                  territorialStatus as keyof typeof TERRITORIAL_PENDING_MESSAGES
+                ]),
+        },
+      };
+
+      if (token && user) {
+        dispatch(
+          setAuth({
+            access_token: auth.accessToken ?? token,
+            role: auth.role,
+            active: auth.active,
+            tenantId: auth.tenantId ?? user.tenantId ?? null,
+            availableContexts: auth.availableContexts,
+            requiresContextSelection: auth.requiresContextSelection,
+            defaultContext: auth.defaultContext,
+            activeContext: auth.activeContext,
+            accessStatus: mergedAccessStatus,
+            user: {
+              ...user,
+              dni: responseUser?.dni ?? values.dni ?? user.dni,
+              email: responseUser?.email ?? values.email ?? user.email,
+              name: responseUser?.name ?? values.name ?? user.name,
+              departmentId:
+                responseUser?.departmentId ?? user.departmentId,
+              departmentName:
+                responseUser?.departmentName ?? user.departmentName,
+              municipalityId:
+                responseUser?.municipalityId ?? user.municipalityId,
+              municipalityName:
+                responseUser?.municipalityName ?? user.municipalityName,
+              territorialAccessStatus: territorialStatus,
+              territorialAccessReason:
+                responseUser?.territorialAccessReason ??
+                responseUser?.accessStatus?.territorial?.reason ??
+                mergedAccessStatus.territorial.message ??
+                null,
+              territorialRequestedRole: requestedRole,
+            },
+          }),
+        );
+      }
+
       localStorage.setItem("pendingEmail", payload.email);
-      localStorage.setItem("pendingReason", "VERIFY_EMAIL");
+      localStorage.setItem(
+        "pendingReason",
+        territorialStatus === "PENDING_EMAIL_VERIFICATION"
+          ? "VERIFY_EMAIL"
+          : "SUPERADMIN_APPROVAL",
+      );
       navigate("/resultados/pendiente", { replace: true });
     } catch (error) {
       openModal({
@@ -249,20 +390,23 @@ const RegisterResultadosPage = () => {
               />
             </div>
             <h1 className="text-2xl font-bold text-gray-800 tracking-tight">
-              Registrarse
+              {isExistingIdentityFlow ? "Solicitar acceso" : "Registrarse"}
             </h1>
-            <p className="text-gray-500 text-sm mt-1">
-              Crea tu cuenta en Tu voto decide
+            <p className="text-gray-500 text-sm mt-1 text-center">
+              {isExistingIdentityFlow
+                ? "Usaremos tu identidad existente para solicitar acceso territorial."
+                : "Crea tu cuenta en Tu voto decide"}
             </p>
           </div>
 
           <Formik<ResultsFormValues>
+            key={formPrefillKey}
             initialValues={{
-              dni: "",
-              name: "",
+              dni: prefill.dni,
+              name: prefill.name,
               password: "",
               confirmPassword: "",
-              email: "",
+              email: prefill.email,
               roleType: "MAYOR",
               votingDepartmentId: "",
               votingMunicipalityId: "",
@@ -270,12 +414,21 @@ const RegisterResultadosPage = () => {
               scopeProvinceId: "",
               scopeMunicipalityId: "",
             }}
-            validationSchema={registerResultadosValidationSchema}
+            enableReinitialize
+            validationSchema={validationSchema}
             onSubmit={registerResultsUser}
           >
             {({ values, setFieldValue }) => (
               <Form className="space-y-5" autoComplete="off">
                 <RoleTypeWatcher />
+
+                {isExistingIdentityFlow ? (
+                  <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                    Estás ampliando el acceso de tu usuario existente. Los datos
+                    básicos se cargaron automáticamente y no necesitas crear
+                    otra contraseña.
+                  </div>
+                ) : null}
 
                 <div className="flex flex-col">
                   <label className="text-sm font-semibold text-gray-700 mb-1 ml-1">
@@ -326,59 +479,63 @@ const RegisterResultadosPage = () => {
                   />
                 </div>
 
-                <div className="flex flex-col">
-                  <label className="text-sm font-semibold text-gray-700 mb-1 ml-1">
-                    Contraseña
-                  </label>
-                  <div className="relative">
-                    <Field
-                      data-cy="register-password"
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#459151] focus:border-transparent outline-none transition-all"
-                    />
-                    <button
-                      type="button"
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#459151]"
-                    >
-                      {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-                    </button>
-                  </div>
-                  <ErrorMessage
-                    name="password"
-                    component="div"
-                    className="text-xs text-red-500 mt-1 ml-1 font-medium"
-                  />
-                </div>
+                {!isExistingIdentityFlow ? (
+                  <>
+                    <div className="flex flex-col">
+                      <label className="text-sm font-semibold text-gray-700 mb-1 ml-1">
+                        Contraseña
+                      </label>
+                      <div className="relative">
+                        <Field
+                          data-cy="register-password"
+                          name="password"
+                          type={showPassword ? "text" : "password"}
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#459151] focus:border-transparent outline-none transition-all"
+                        />
+                        <button
+                          type="button"
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#459151]"
+                        >
+                          {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                        </button>
+                      </div>
+                      <ErrorMessage
+                        name="password"
+                        component="div"
+                        className="text-xs text-red-500 mt-1 ml-1 font-medium"
+                      />
+                    </div>
 
-                <div className="flex flex-col">
-                  <label className="text-sm font-semibold text-gray-700 mb-1 ml-1">
-                    Repetir contraseña
-                  </label>
-                  <div className="relative">
-                    <Field
-                      name="confirmPassword"
-                      data-cy="register-confirm-password"
-                      type={showPassword ? "text" : "password"}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#459151] focus:border-transparent outline-none transition-all"
-                    />
-                    <button
-                      type="button"
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#459151]"
-                    >
-                      {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-                    </button>
-                  </div>
-                  <ErrorMessage
-                    name="confirmPassword"
-                    component="div"
-                    className="text-xs text-red-500 mt-1 ml-1 font-medium"
-                  />
-                </div>
+                    <div className="flex flex-col">
+                      <label className="text-sm font-semibold text-gray-700 mb-1 ml-1">
+                        Repetir contraseña
+                      </label>
+                      <div className="relative">
+                        <Field
+                          name="confirmPassword"
+                          data-cy="register-confirm-password"
+                          type={showPassword ? "text" : "password"}
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#459151] focus:border-transparent outline-none transition-all"
+                        />
+                        <button
+                          type="button"
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#459151]"
+                        >
+                          {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                        </button>
+                      </div>
+                      <ErrorMessage
+                        name="confirmPassword"
+                        component="div"
+                        className="text-xs text-red-500 mt-1 ml-1 font-medium"
+                      />
+                    </div>
+                  </>
+                ) : null}
 
                 <div className="flex flex-col">
                   <label className="text-sm font-semibold text-gray-700 mb-2 ml-1">
@@ -494,7 +651,7 @@ const RegisterResultadosPage = () => {
                     disabled={depLoading || depError}
                     className="w-full text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-[#459151]/20 active:scale-[0.98]"
                   >
-                    Registrarse
+                    {isExistingIdentityFlow ? "Solicitar acceso" : "Registrarse"}
                   </LoadingButton>
 
                   <Link

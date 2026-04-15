@@ -115,6 +115,7 @@ export const apiSlice = createApi({
     "VotingEventResults",
     "VotingEventNews",
     "InstitutionalTenants",
+    "AccessApprovals",
   ],
   endpoints: () => ({}),
 });

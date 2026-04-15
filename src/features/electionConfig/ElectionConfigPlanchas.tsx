@@ -13,6 +13,7 @@ import PartyModal from './components/PartyModal';
 import CandidatesModal from './components/CandidatesModal';
 import ConfigPageFallback from './components/ConfigPageFallback';
 import { getRequestErrorMessage } from './requestErrorMessage';
+import { getOptionColors, hasDraftAlreadyStarted, stableCreatedAt, useClientNow } from './renderUtils';
 import {
   useGetVotingEventQuery,
   useGetEventRolesQuery,
@@ -32,8 +33,9 @@ const optionToPartyWithCandidates = (option: VotingOption): PartyWithCandidates 
   electionId: option.eventId,
   name: option.name,
   colorHex: option.color,
+  colors: getOptionColors(option),
   logoUrl: option.logoUrl,
-  createdAt: option.createdAt ?? new Date().toISOString(),
+  createdAt: stableCreatedAt(option.createdAt),
   candidates: (option.candidates ?? []).map((c: OptionCandidate) => ({
     id: c.id,
     partyId: option.id,
@@ -65,12 +67,8 @@ const roleToPosition = (role: EventRole): Position => ({
   id: role.id,
   name: role.name,
   electionId: role.eventId,
-  createdAt: role.createdAt ?? new Date().toISOString(),
+  createdAt: stableCreatedAt(role.createdAt),
 });
-
-const hasDraftAlreadyStarted = (event?: { status?: string | null; votingStart?: string | null }) =>
-  event?.status === 'DRAFT' &&
-  Boolean(event.votingStart && new Date(event.votingStart).getTime() <= Date.now());
 
 const partyHasCompleteCandidates = (
   party: PartyWithCandidates,
@@ -144,6 +142,7 @@ const ElectionConfigPlanchas: React.FC = () => {
   const navigate = useNavigate();
   const { electionId } = useParams<{ electionId: string }>();
   const actualElectionId = electionId || '';
+  const nowMs = useClientNow();
 
   // RTK Query hooks
   const {
@@ -230,6 +229,7 @@ const ElectionConfigPlanchas: React.FC = () => {
           data: {
             name: data.name,
             color: data.colorHex,
+            colors: data.colors,
             logoUrl: data.logoBase64, // Backend debería aceptar base64 o URL
           },
         }).unwrap();
@@ -240,8 +240,9 @@ const ElectionConfigPlanchas: React.FC = () => {
           electionId: updated.eventId,
           name: updated.name,
           colorHex: updated.color,
+          colors: getOptionColors(updated),
           logoUrl: updated.logoUrl,
-          createdAt: updated.createdAt ?? new Date().toISOString(),
+          createdAt: stableCreatedAt(updated.createdAt),
         };
       } else {
         const created = await createOption({
@@ -249,6 +250,7 @@ const ElectionConfigPlanchas: React.FC = () => {
           data: {
             name: data.name,
             color: data.colorHex,
+            colors: data.colors,
             logoUrl: data.logoBase64,
             candidates: [], // Sin candidatos inicialmente
           },
@@ -262,8 +264,9 @@ const ElectionConfigPlanchas: React.FC = () => {
           electionId: created.eventId,
           name: created.name,
           colorHex: created.color,
+          colors: getOptionColors(created),
           logoUrl: created.logoUrl,
-          createdAt: created.createdAt ?? new Date().toISOString(),
+          createdAt: stableCreatedAt(created.createdAt),
           candidates: [],
         };
         setCurrentPartyForCandidates(newPartyWithCandidates);
@@ -274,8 +277,9 @@ const ElectionConfigPlanchas: React.FC = () => {
           electionId: created.eventId,
           name: created.name,
           colorHex: created.color,
+          colors: getOptionColors(created),
           logoUrl: created.logoUrl,
-          createdAt: created.createdAt ?? new Date().toISOString(),
+          createdAt: stableCreatedAt(created.createdAt),
         };
       }
     } catch (err: any) {
@@ -382,7 +386,7 @@ const ElectionConfigPlanchas: React.FC = () => {
     );
   }
 
-  if (hasDraftAlreadyStarted(event)) {
+  if (hasDraftAlreadyStarted(event, nowMs)) {
     return (
       <ConfigPageFallback
         title="La votación ya venció antes de completarse"

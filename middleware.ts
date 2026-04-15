@@ -6,6 +6,7 @@ export const AUTH_COOKIE_KEYS = {
   role: "tvd_auth_role",
   status: "tvd_auth_status",
   active: "tvd_auth_active",
+  context: "tvd_auth_context",
 } as const;
 
 const resultadosAdminPaths = [
@@ -32,7 +33,15 @@ type SessionRole =
   | "MAYOR"
   | "GOVERNOR"
   | "TENANT_ADMIN"
+  | "ACCESS_APPROVER"
   | "publico";
+
+type SessionContext =
+  | "GLOBAL_ADMIN"
+  | "TERRITORIAL"
+  | "TENANT"
+  | "ACCESS_APPROVALS"
+  | null;
 
 export const decodeJwtPayload = (token: string) => {
   try {
@@ -70,9 +79,9 @@ export const normalizeRole = (role: string | null | undefined): SessionRole => {
 
   if (value === "ALCALDE" || value === "MAYOR") return "MAYOR";
   if (value === "GOBERNADOR" || value === "GOVERNOR") return "GOVERNOR";
-  if (value === "SUPERADMIN") return "SUPERADMIN";
+  if (value === "SUPERADMIN" || value === "ADMIN") return "SUPERADMIN";
+  if (value === "ACCESS_APPROVER") return "ACCESS_APPROVER";
   if (
-    value === "ADMIN" ||
     value === "TENANT_ADMIN" ||
     value === "TENANTADMIN"
   ) {
@@ -80,6 +89,19 @@ export const normalizeRole = (role: string | null | undefined): SessionRole => {
   }
 
   return "publico";
+};
+
+const normalizeContext = (context: string | null | undefined): SessionContext => {
+  const value = String(context ?? "").toUpperCase();
+  if (
+    value === "GLOBAL_ADMIN" ||
+    value === "TERRITORIAL" ||
+    value === "TENANT" ||
+    value === "ACCESS_APPROVALS"
+  ) {
+    return value;
+  }
+  return null;
 };
 
 export const normalizeStatus = (
@@ -138,6 +160,9 @@ export const getSession = (request: NextRequest) => {
       request.cookies.get(AUTH_COOKIE_KEYS.status)?.value,
       request.cookies.get(AUTH_COOKIE_KEYS.active)?.value ??
         String(decodeJwtPayload(token)?.active ?? false),
+    ),
+    context: normalizeContext(
+      request.cookies.get(AUTH_COOKIE_KEYS.context)?.value,
     ),
   };
 };
@@ -201,11 +226,14 @@ export const handleVotacionAccess = (request: NextRequest) => {
     return redirectTo(request, "/votacion/rechazado");
   }
 
-  if (
-    session.role !== "TENANT_ADMIN" &&
-    session.role !== "SUPERADMIN"
-  ) {
-    return redirectTo(request, "/");
+  return NextResponse.next();
+};
+
+export const handleApprovalsAccess = (request: NextRequest) => {
+  const session = getSession(request);
+
+  if (!session) {
+    return redirectResultadosLogin(request);
   }
 
   return NextResponse.next();
@@ -216,6 +244,10 @@ export function middleware(request: NextRequest) {
 
   if (pathname.startsWith("/resultados/")) {
     return handleResultadosAccess(request);
+  }
+
+  if (pathname.startsWith("/aprobaciones")) {
+    return handleApprovalsAccess(request);
   }
 
   return handleVotacionAccess(request);
@@ -239,5 +271,6 @@ export const config = {
     "/votacion/elecciones/new",
     "/votacion/elecciones/:electionId/config/:path*",
     "/votacion/elecciones/:electionId/status",
+    "/aprobaciones/:path*",
   ],
 };

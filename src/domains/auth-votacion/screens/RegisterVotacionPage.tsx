@@ -5,13 +5,14 @@ import { ErrorMessage, Field, Form, Formik, type FormikHelpers } from "formik";
 import * as Yup from "yup";
 import tuvotoDecideImage from "../../../assets/tuvotodecide.webp";
 import { useCreateInstitutionalAdminApplicationMutation } from "../../../store/auth/authEndpoints";
-import { Link, useNavigate } from "../navigation/compat";
+import { Link, useNavigate, useSearchParams } from "../navigation/compat";
 import LoadingButton from "../../../components/LoadingButton";
 import Modal2 from "../../../components/Modal2";
 import { ModalState } from "../../../types";
 import { useSelector } from "react-redux";
 import { selectAuth } from "@/store/auth/authSlice";
 import { resolveAuthVotacionRedirect } from "../utils/resolveAuthRedirect";
+import { resolveRegisterPrefill } from "@/domains/auth-context/registerPrefill";
 
 type VotingFormValues = {
   dni: string;
@@ -26,7 +27,7 @@ type RegisterPayload = {
   dni: string;
   name: string;
   email: string;
-  password: string;
+  password?: string;
   institutionName: string;
 };
 
@@ -60,10 +61,48 @@ const getErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
+const buildValidationSchema = (requiresPassword: boolean) =>
+  Yup.object({
+    dni: Yup.string()
+      .trim()
+      .matches(/^[A-Za-z0-9-]{5,20}$/, "Carnet inválido")
+      .required("El carnet es obligatorio"),
+    name: Yup.string()
+      .trim()
+      .min(3, "Mínimo 3 caracteres")
+      .max(120, "Máximo 120 caracteres")
+      .required("El nombre completo es obligatorio"),
+    email: Yup.string()
+      .trim()
+      .email("Correo electrónico inválido")
+      .required("El correo es obligatorio"),
+    tenantName: Yup.string()
+      .trim()
+      .required("El nombre de la institución es obligatorio")
+      .min(3, "Mínimo 3 caracteres")
+      .max(160, "Máximo 160 caracteres"),
+    password: requiresPassword
+      ? Yup.string()
+          .trim()
+          .min(8, "Mínimo 8 caracteres")
+          .required("La contraseña es obligatoria")
+      : Yup.string().trim().notRequired(),
+    confirmPassword: requiresPassword
+      ? Yup.string()
+          .trim()
+          .oneOf([Yup.ref("password")], "Las contraseñas no coinciden")
+          .required("Debes confirmar tu contraseña")
+      : Yup.string().trim().notRequired(),
+  });
+
 const RegisterVotacionPage = () => {
   const logoSrc = getLogoSrc();
   const navigate = useNavigate();
-  const { user, token } = useSelector(selectAuth);
+  const [searchParams] = useSearchParams();
+  const auth = useSelector(selectAuth);
+  const { user, token } = auth;
+  const prefill = resolveRegisterPrefill(searchParams, user);
+  const isExistingIdentityFlow = prefill.hasExistingIdentity;
   const [createInstitutionalAdminApplication] =
     useCreateInstitutionalAdminApplicationMutation();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -87,40 +126,13 @@ const RegisterVotacionPage = () => {
     setModal({ open: true, ...payload });
 
   useEffect(() => {
-    const target = resolveAuthVotacionRedirect(user, token);
+    const target = resolveAuthVotacionRedirect(user, token, auth);
     if (target) {
       navigate(target, { replace: true });
     }
-  }, [user, token, navigate]);
+  }, [auth, user, token, navigate]);
 
-  const validationSchema = Yup.object({
-    dni: Yup.string()
-      .trim()
-      .matches(/^[A-Za-z0-9-]{5,20}$/, "Carnet inválido")
-      .required("El carnet es obligatorio"),
-    name: Yup.string()
-      .trim()
-      .min(3, "Mínimo 3 caracteres")
-      .max(120, "Máximo 120 caracteres")
-      .required("El nombre completo es obligatorio"),
-    email: Yup.string()
-      .trim()
-      .email("Correo electrónico inválido")
-      .required("El correo es obligatorio"),
-    tenantName: Yup.string()
-      .trim()
-      .required("El nombre de la institución es obligatorio")
-      .min(3, "Mínimo 3 caracteres")
-      .max(160, "Máximo 160 caracteres"),
-    password: Yup.string()
-      .trim()
-      .min(8, "Mínimo 8 caracteres")
-      .required("La contraseña es obligatoria"),
-    confirmPassword: Yup.string()
-      .trim()
-      .oneOf([Yup.ref("password")], "Las contraseñas no coinciden")
-      .required("Debes confirmar tu contraseña"),
-  });
+  const validationSchema = buildValidationSchema(!isExistingIdentityFlow);
 
   const registerVotingUser = async (
     values: VotingFormValues,
@@ -132,7 +144,9 @@ const RegisterVotacionPage = () => {
       dni: values.dni,
       name: values.name,
       email: values.email,
-      password: values.password,
+      ...(isExistingIdentityFlow || !values.password.trim()
+        ? {}
+        : { password: values.password }),
       institutionName: values.tenantName,
     };
 
@@ -166,26 +180,37 @@ const RegisterVotacionPage = () => {
               />
             </div>
             <h1 className="text-2xl font-bold text-gray-800 tracking-tight">
-              Registrarse
+              {isExistingIdentityFlow ? "Solicitar acceso" : "Registrarse"}
             </h1>
-            {/* <p className="text-gray-500 text-sm mt-1">
-              Crea tu cuenta y administra votaciones
-            </p> */}
+            <p className="text-gray-500 text-sm mt-1 text-center">
+              {isExistingIdentityFlow
+                ? "Usaremos tu identidad existente para solicitar acceso institucional."
+                : "Crea tu cuenta y administra votaciones"}
+            </p>
           </div>
 
           <Formik<VotingFormValues>
             initialValues={{
-              dni: "",
-              name: "",
-              email: "",
+              dni: prefill.dni,
+              name: prefill.name,
+              email: prefill.email,
               tenantName: "",
               password: "",
               confirmPassword: "",
             }}
+            enableReinitialize
             validationSchema={validationSchema}
             onSubmit={registerVotingUser}
           >
             <Form className="space-y-5" autoComplete="off">
+              {isExistingIdentityFlow ? (
+                <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                  Estás ampliando el acceso de tu usuario existente. Los datos
+                  básicos se cargaron automáticamente y no necesitas crear otra
+                  contraseña.
+                </div>
+              ) : null}
+
               <div className="flex flex-col">
                 <label className="text-sm font-semibold text-gray-700 mb-1 ml-1">
                   Carnet de identidad
@@ -256,59 +281,63 @@ const RegisterVotacionPage = () => {
                 </p> */}
               </div>
 
-              <div className="flex flex-col">
-                <label className="text-sm font-semibold text-gray-700 mb-1 ml-1">
-                  Contraseña
-                </label>
-                <div className="relative">
-                  <Field
-                    name="password"
-                    data-cy="register-password"
-                    type={showPassword ? "text" : "password"}
-                    className="w-full px-4 py-2.5 pr-11 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#459151] focus:border-transparent outline-none transition-all"
-                  />
-                  <button
-                    type="button"
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#459151]"
-                  >
-                    {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-                  </button>
-                </div>
-                <ErrorMessage
-                  name="password"
-                  component="div"
-                  className="text-xs text-red-500 mt-1 ml-1 font-medium"
-                />
-              </div>
+              {!isExistingIdentityFlow ? (
+                <>
+                  <div className="flex flex-col">
+                    <label className="text-sm font-semibold text-gray-700 mb-1 ml-1">
+                      Contraseña
+                    </label>
+                    <div className="relative">
+                      <Field
+                        name="password"
+                        data-cy="register-password"
+                        type={showPassword ? "text" : "password"}
+                        className="w-full px-4 py-2.5 pr-11 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#459151] focus:border-transparent outline-none transition-all"
+                      />
+                      <button
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#459151]"
+                      >
+                        {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                      </button>
+                    </div>
+                    <ErrorMessage
+                      name="password"
+                      component="div"
+                      className="text-xs text-red-500 mt-1 ml-1 font-medium"
+                    />
+                  </div>
 
-              <div className="flex flex-col">
-                <label className="text-sm font-semibold text-gray-700 mb-1 ml-1">
-                  Confirmar contraseña
-                </label>
-                <div className="relative">
-                  <Field
-                    name="confirmPassword"
-                    data-cy="register-confirm-password"
-                    type={showPassword ? "text" : "password"}
-                    className="w-full px-4 py-2.5 pr-11 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#459151] focus:border-transparent outline-none transition-all"
-                  />
-                  <button
-                    type="button"
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#459151]"
-                  >
-                    {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-                  </button>
-                </div>
-                <ErrorMessage
-                  name="confirmPassword"
-                  component="div"
-                  className="text-xs text-red-500 mt-1 ml-1 font-medium"
-                />
-              </div>
+                  <div className="flex flex-col">
+                    <label className="text-sm font-semibold text-gray-700 mb-1 ml-1">
+                      Confirmar contraseña
+                    </label>
+                    <div className="relative">
+                      <Field
+                        name="confirmPassword"
+                        data-cy="register-confirm-password"
+                        type={showPassword ? "text" : "password"}
+                        className="w-full px-4 py-2.5 pr-11 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#459151] focus:border-transparent outline-none transition-all"
+                      />
+                      <button
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#459151]"
+                      >
+                        {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                      </button>
+                    </div>
+                    <ErrorMessage
+                      name="confirmPassword"
+                      component="div"
+                      className="text-xs text-red-500 mt-1 ml-1 font-medium"
+                    />
+                  </div>
+                </>
+              ) : null}
 
               <div className="pt-4 space-y-3">
                 <LoadingButton
@@ -318,7 +347,7 @@ const RegisterVotacionPage = () => {
                   style={{ backgroundColor: "#459151" }}
                   className="w-full text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-[#459151]/20 active:scale-[0.98]"
                 >
-                  Registrarse
+                  {isExistingIdentityFlow ? "Solicitar acceso" : "Registrarse"}
                 </LoadingButton>
 
                 <Link

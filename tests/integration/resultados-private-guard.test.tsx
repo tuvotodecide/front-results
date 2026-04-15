@@ -72,12 +72,87 @@ describe("ResultadosPrivateGuard", () => {
           active: true,
           status: "ACTIVE",
         },
+        activeContext: {
+          type: "TERRITORIAL",
+          role: "MAYOR",
+        },
       },
     );
 
     await waitFor(() => {
       expect(replace).toHaveBeenCalledWith("/resultados");
     });
+  });
+
+  it("shows a domain access notice for tenant contexts in resultados routes", async () => {
+    usePathname.mockReturnValue("/resultados/control-personal");
+
+    renderWithAuthStore(
+      <ResultadosPrivateGuard>
+        <div>private content</div>
+      </ResultadosPrivateGuard>,
+      {
+        token: "token",
+        user: {
+          id: "1",
+          email: "tenant@test.com",
+          name: "Tenant",
+          role: "TENANT_ADMIN",
+          active: true,
+          status: "ACTIVE",
+        },
+        activeContext: {
+          type: "TENANT",
+          role: "TENANT_ADMIN",
+          tenantId: "tenant-1",
+        },
+      },
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Tu usuario no tiene acceso territorial aprobado."),
+      ).toBeInTheDocument();
+    });
+    expect(replace).not.toHaveBeenCalled();
+    expect(screen.getByText("Registrarme en resultados")).toBeInTheDocument();
+  });
+
+  it("shows pending approval notice without register CTA for registered territorial users", async () => {
+    usePathname.mockReturnValue("/resultados");
+
+    renderWithAuthStore(
+      <ResultadosPrivateGuard>
+        <div>private content</div>
+      </ResultadosPrivateGuard>,
+      {
+        token: "token",
+        user: {
+          id: "1",
+          email: "mayor@test.com",
+          name: "Mayor",
+          role: "MAYOR",
+          active: true,
+          status: "ACTIVE",
+          territorialAccessStatus: "PENDING_APPROVAL",
+        },
+        activeContext: {
+          type: "TENANT",
+          role: "TENANT_ADMIN",
+          tenantId: "tenant-1",
+        },
+      },
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Tu solicitud territorial está pendiente de aprobación."),
+      ).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Registrarme en resultados")).not.toBeInTheDocument();
+    expect(screen.getByText("Volver al inicio")).toBeInTheDocument();
+    expect(screen.getByText("Ir a votación")).toBeInTheDocument();
+    expect(replace).not.toHaveBeenCalled();
   });
 
   it("renders children when the role is allowed", () => {
@@ -94,6 +169,10 @@ describe("ResultadosPrivateGuard", () => {
           role: "SUPERADMIN",
           active: true,
           status: "ACTIVE",
+        },
+        activeContext: {
+          type: "GLOBAL_ADMIN",
+          role: "ADMIN",
         },
       },
     );

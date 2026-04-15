@@ -13,6 +13,7 @@ import PositionsTable from './components/PositionsTable';
 import AddPositionModal from './components/AddPositionModal';
 import ConfigPageFallback from './components/ConfigPageFallback';
 import { getRequestErrorMessage } from './requestErrorMessage';
+import { hasDraftAlreadyStarted, stableCreatedAt, useClientNow } from './renderUtils';
 import {
   useGetVotingEventQuery,
   useGetEventRolesQuery,
@@ -30,17 +31,14 @@ const roleToPosition = (role: EventRole): Position => ({
   id: role.id,
   name: role.name,
   electionId: role.eventId,
-  createdAt: role.createdAt ?? new Date().toISOString(),
+  createdAt: stableCreatedAt(role.createdAt),
 });
-
-const hasDraftAlreadyStarted = (event?: { status?: string | null; votingStart?: string | null }) =>
-  event?.status === 'DRAFT' &&
-  Boolean(event.votingStart && new Date(event.votingStart).getTime() <= Date.now());
 
 const ElectionConfigCargos: React.FC = () => {
   const navigate = useNavigate();
   const { electionId } = useParams<{ electionId: string }>();
   const actualElectionId = electionId || '';
+  const nowMs = useClientNow();
 
   // RTK Query hooks
   const {
@@ -184,7 +182,7 @@ const ElectionConfigCargos: React.FC = () => {
     );
   }
 
-  if (hasDraftAlreadyStarted(event)) {
+  if (hasDraftAlreadyStarted(event, nowMs)) {
     return (
       <ConfigPageFallback
         title="La votación ya venció antes de completarse"

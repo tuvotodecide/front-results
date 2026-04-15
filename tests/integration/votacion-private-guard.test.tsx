@@ -48,7 +48,7 @@ describe("VotacionPrivateGuard", () => {
     });
   });
 
-  it("redirects authenticated non-tenant roles to root", async () => {
+  it("shows a domain access notice for authenticated non-tenant contexts", async () => {
     renderWithAuthStore(
       <VotacionPrivateGuard>
         <div>private voting</div>
@@ -63,15 +63,23 @@ describe("VotacionPrivateGuard", () => {
           active: true,
           status: "ACTIVE",
         },
+        activeContext: {
+          type: "TERRITORIAL",
+          role: "MAYOR",
+        },
       },
     );
 
     await waitFor(() => {
-      expect(replace).toHaveBeenCalledWith("/");
+      expect(
+        screen.getByText("Tu usuario no tiene acceso institucional aprobado."),
+      ).toBeInTheDocument();
     });
+    expect(replace).not.toHaveBeenCalled();
+    expect(screen.getByText("Registrarme en votación")).toBeInTheDocument();
   });
 
-  it("renders children for tenant admins", () => {
+  it("renders children for tenant contexts", () => {
     renderWithAuthStore(
       <VotacionPrivateGuard>
         <div>private voting</div>
@@ -85,6 +93,11 @@ describe("VotacionPrivateGuard", () => {
           role: "TENANT_ADMIN",
           active: true,
           status: "ACTIVE",
+        },
+        activeContext: {
+          type: "TENANT",
+          role: "TENANT_ADMIN",
+          tenantId: "tenant-1",
         },
       },
     );

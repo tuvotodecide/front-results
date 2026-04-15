@@ -27,14 +27,14 @@ describe("resolveAuthResultadosRedirect", () => {
     ).toBe("/resultados/rechazado");
   });
 
-  it("redirects public and tenant users to their canonical destinations", () => {
+  it("redirects public users and lets tenant users request resultados access", () => {
     expect(
       resolveAuthResultadosRedirect(createUser({ role: "publico" }), "token"),
     ).toBe("/resultados");
 
     expect(
       resolveAuthResultadosRedirect(createUser({ role: "TENANT_ADMIN" }), "token"),
-    ).toBe("/votacion/elecciones");
+    ).toBeNull();
   });
 
   it("builds scoped redirects for mayor and governor", () => {

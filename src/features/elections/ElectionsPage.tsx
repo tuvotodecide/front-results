@@ -10,11 +10,15 @@ import { selectTenantId, selectIsLoggedIn } from '../../store/auth/authSlice';
 import Modal2 from '../../components/Modal2';
 import EmptyState from './components/EmptyState';
 import type { VotingEvent } from '../../store/votingEvents/types';
+import { formatDateTimeForUi, hasDraftAlreadyStarted, useClientNow } from '../electionConfig/renderUtils';
 
 // Mapear estados del backend a labels en español
 const statusLabels: Record<string, string> = {
   DRAFT: 'Borrador',
   PUBLISHED: 'Publicada',
+  READY_FOR_REVIEW: 'En revisión previa',
+  OFFICIALLY_PUBLISHED: 'Publicada oficialmente',
+  PUBLICATION_EXPIRED: 'Publicación vencida',
   ACTIVE: 'Activa',
   CLOSED: 'Finalizada',
   RESULTS_PUBLISHED: 'Resultados publicados',
@@ -23,19 +27,22 @@ const statusLabels: Record<string, string> = {
 const statusColors: Record<string, string> = {
   DRAFT: 'bg-gray-100 text-gray-700',
   PUBLISHED: 'bg-blue-100 text-blue-700',
+  READY_FOR_REVIEW: 'bg-cyan-100 text-cyan-700',
+  OFFICIALLY_PUBLISHED: 'bg-blue-100 text-blue-700',
+  PUBLICATION_EXPIRED: 'bg-red-100 text-red-700',
   ACTIVE: 'bg-green-100 text-green-700',
   CLOSED: 'bg-amber-100 text-amber-700',
   RESULTS_PUBLISHED: 'bg-violet-100 text-violet-700',
 };
 
-const hasDraftAlreadyStarted = (event: VotingEvent) =>
-  event.status === 'DRAFT' &&
-  Boolean(event.votingStart && new Date(event.votingStart).getTime() <= Date.now());
+const canDeleteEvent = (event: VotingEvent) =>
+  ['DRAFT', 'READY_FOR_REVIEW', 'PUBLICATION_EXPIRED'].includes(event.status);
 
 const ElectionsPage: React.FC = () => {
   const navigate = useNavigate();
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const tenantId = useSelector(selectTenantId);
+  const nowMs = useClientNow();
   const [deleteVotingEvent, { isLoading: deleting }] = useDeleteVotingEventMutation();
   const [deleteConfirm, setDeleteConfirm] = useState<VotingEvent | null>(null);
 
@@ -52,15 +59,18 @@ const ElectionsPage: React.FC = () => {
   };
 
   const handleElectionClick = (event: VotingEvent) => {
-    if (hasDraftAlreadyStarted(event)) {
+    if (hasDraftAlreadyStarted(event, nowMs) || event.status === 'PUBLICATION_EXPIRED') {
       return;
     }
 
     if (event.status === 'DRAFT') {
       // Ir a configuración (Paso 1)
       navigate(`/votacion/elecciones/${event.id}/config/cargos`);
+    } else if (event.status === 'READY_FOR_REVIEW') {
+      navigate(`/votacion/elecciones/${event.id}/config/review`);
     } else if (
       event.status === 'PUBLISHED' ||
+      event.status === 'OFFICIALLY_PUBLISHED' ||
       event.status === 'CLOSED' ||
       event.status === 'RESULTS_PUBLISHED'
     ) {
@@ -80,18 +90,6 @@ const ElectionsPage: React.FC = () => {
     } catch (error) {
       console.error('Error eliminando votación:', error);
     }
-  };
-
-  // Formatear fecha
-  const formatDate = (dateString?: string | null) => {
-    if (!dateString) return 'No definida';
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   };
 
   // Si no está logueado, redirigir a login
@@ -181,7 +179,7 @@ const ElectionsPage: React.FC = () => {
               key={event.id}
               onClick={() => handleElectionClick(event)}
               className={`bg-white rounded-xl shadow-sm border border-gray-200 p-6 transition-all ${
-                hasDraftAlreadyStarted(event)
+                hasDraftAlreadyStarted(event, nowMs) || event.status === 'PUBLICATION_EXPIRED'
                   ? 'border-amber-200 bg-amber-50/40 cursor-default'
                   : 'hover:shadow-md hover:border-[#459151] cursor-pointer'
               }`}
@@ -207,9 +205,14 @@ const ElectionsPage: React.FC = () => {
                         Pendiente de configurar
                       </span>
                     )}
-                    {hasDraftAlreadyStarted(event) && (
+                    {hasDraftAlreadyStarted(event, nowMs) && (
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
                         Inicio vencido
+                      </span>
+                    )}
+                    {event.status === 'PUBLICATION_EXPIRED' && (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                        Publicación vencida
                       </span>
                     )}
                   </div>
@@ -217,12 +220,12 @@ const ElectionsPage: React.FC = () => {
 
                 <div className="text-sm text-gray-500 space-y-2">
                   <p>
-                    <span className="font-medium">Inicio:</span> {formatDate(event.votingStart)}
+                    <span className="font-medium">Inicio:</span> {formatDateTimeForUi(event.votingStart)}
                   </p>
                   <p>
-                    <span className="font-medium">Cierre:</span> {formatDate(event.votingEnd)}
+                    <span className="font-medium">Cierre:</span> {formatDateTimeForUi(event.votingEnd)}
                   </p>
-                  {event.status === 'DRAFT' && (
+                  {canDeleteEvent(event) && (
                     <button
                       type="button"
                       onClick={(e) => {
@@ -237,9 +240,14 @@ const ElectionsPage: React.FC = () => {
                   )}
                 </div>
               </div>
-              {hasDraftAlreadyStarted(event) && (
+              {hasDraftAlreadyStarted(event, nowMs) && (
                 <p className="mt-4 text-sm text-amber-800">
                   Esta votación ya alcanzó su hora de inicio sin estar lista. No debería seguir configurándose; elimínala y crea una nueva.
+                </p>
+              )}
+              {event.status === 'PUBLICATION_EXPIRED' && (
+                <p className="mt-4 text-sm text-red-800">
+                  La ventana de publicación oficial venció. Puedes eliminarla para crear una nueva.
                 </p>
               )}
             </div>
@@ -267,7 +275,7 @@ const ElectionsPage: React.FC = () => {
                   ¿Estás seguro de eliminar la votación "{deleteConfirm?.name}"?
                 </p>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Esta acción eliminará la votación borrador y no se puede deshacer.
+                  Esta acción eliminará la votación y no se puede deshacer.
                 </p>
               </div>
             </div>

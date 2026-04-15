@@ -7,10 +7,12 @@ import Modal2 from '../../../components/Modal2';
 interface UploadSummaryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  validCount: number;
-  invalidCount: number;
+  totalCount: number;
+  enabledCount: number;
+  disabledCount: number;
+  observedCount: number;
   onContinue: () => void;
-  onFix: () => void;
+  onFix?: () => void;
   continueLabel?: string;
   disableContinue?: boolean;
 }
@@ -50,8 +52,10 @@ const ErrorIcon = () => (
 const UploadSummaryModal: React.FC<UploadSummaryModalProps> = ({
   isOpen,
   onClose,
-  validCount,
-  invalidCount,
+  totalCount,
+  enabledCount,
+  disabledCount,
+  observedCount,
   onContinue,
   onFix,
   continueLabel = 'Continuar',
@@ -74,33 +78,52 @@ const UploadSummaryModal: React.FC<UploadSummaryModalProps> = ({
           <DocumentIcon />
         </div>
 
-        {/* Título */}
-        <h2 className="text-2xl font-bold text-gray-800 mb-8">Cargando padrón...</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-3">Resultado del procesamiento</h2>
+        <p className="mb-8 text-sm text-gray-500">
+          Revisa el resumen del documento antes de pasar al staging editable.
+        </p>
 
-        {/* Cards de resultados */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          {/* Card Válidos */}
-          <div className="border-2 border-green-200 bg-green-50 rounded-xl p-4">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <CheckIcon />
-              <span className="font-semibold text-gray-700">Válidos</span>
-              <span className="text-2xl font-bold text-[#459151]">{formatNumber(validCount)}</span>
-            </div>
-            <p className="text-sm text-[#459151]">Registros habilitados para votar</p>
+        <div className="grid gap-4 mb-8 md:grid-cols-2 xl:grid-cols-4">
+          <div className="border-2 border-blue-200 bg-blue-50 rounded-xl p-4 text-left">
+            <p className="text-sm font-semibold text-blue-700">Total</p>
+            <p className="mt-3 text-3xl font-bold text-blue-700">{formatNumber(totalCount)}</p>
+            <p className="mt-2 text-sm text-blue-600">Registros llevados al staging</p>
           </div>
 
-          {/* Card Inválidos */}
-          <div className="border-2 border-red-200 bg-red-50 rounded-xl p-4">
+          <div className="border-2 border-green-200 bg-green-50 rounded-xl p-4 text-left">
+            <div className="flex items-center gap-2 mb-2">
+              <CheckIcon />
+              <span className="font-semibold text-gray-700">Habilitados</span>
+            </div>
+            <p className="text-3xl font-bold text-[#459151]">{formatNumber(enabledCount)}</p>
+            <p className="mt-2 text-sm text-[#459151]">Pueden votar</p>
+          </div>
+
+          <div className="border-2 border-slate-200 bg-white rounded-xl p-4 text-left">
+            <p className="text-sm font-semibold text-slate-700">Inhabilitados</p>
+            <p className="mt-3 text-3xl font-bold text-slate-700">{formatNumber(disabledCount)}</p>
+            <p className="mt-2 text-sm text-slate-500">No pueden votar</p>
+          </div>
+
+          <div className="border-2 border-red-200 bg-red-50 rounded-xl p-4 text-left">
             <div className="flex items-center justify-center gap-2 mb-2">
               <ErrorIcon />
-              <span className="font-semibold text-gray-700">Inválidos</span>
-              <span className="text-2xl font-bold text-red-600">{formatNumber(invalidCount)}</span>
+              <span className="font-semibold text-gray-700">Observados</span>
             </div>
-            <p className="text-sm text-red-600">Errores de formato o datos</p>
+            <p className="text-3xl font-bold text-red-600">{formatNumber(observedCount)}</p>
+            <p className="mt-2 text-sm text-red-600">Errores de parseo o duplicados</p>
+            {observedCount > 0 && onFix ? (
+              <button
+                type="button"
+                onClick={onFix}
+                className="mt-4 w-full rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+              >
+                Corregir
+              </button>
+            ) : null}
           </div>
         </div>
 
-        {/* Botones */}
         <div className="flex gap-4 justify-center">
           <button
             type="button"
@@ -114,15 +137,6 @@ const UploadSummaryModal: React.FC<UploadSummaryModalProps> = ({
           >
             {continueLabel}
           </button>
-          {invalidCount > 0 && (
-            <button
-              type="button"
-              onClick={onFix}
-              className="px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors"
-            >
-              Corregir
-            </button>
-          )}
         </div>
       </div>
     </Modal2>

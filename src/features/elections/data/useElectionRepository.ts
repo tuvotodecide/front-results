@@ -6,6 +6,7 @@ import {
 } from '../../../store/votingEvents';
 import { selectTenantId } from '../../../store/auth/authSlice';
 import type { Election, CreateElectionPayload } from '../types';
+import { stableCreatedAt } from '../../electionConfig/renderUtils';
 
 interface UseElectionsResult {
   elections: Election[];
@@ -22,7 +23,7 @@ const mapEventToElection = (event: any): Election => ({
   votingStartDate: event?.votingStart ?? '',
   votingEndDate: event?.votingEnd ?? '',
   resultsDate: event?.resultsPublishAt ?? '',
-  createdAt: event?.createdAt ?? new Date().toISOString(),
+  createdAt: stableCreatedAt(event?.createdAt),
   status:
     event?.status === 'RESULTS_PUBLISHED'
       ? 'RESULTS'
@@ -58,9 +59,9 @@ export const useCreateElection = (): UseCreateElectionResult => {
   const [createVotingEvent, createState] = useCreateVotingEventMutation();
 
   const createElection = async (payload: CreateElectionPayload): Promise<Election> => {
-    const effectiveTenantId = tenantId || localStorage.getItem('tenantId') || '';
+    const effectiveTenantId = tenantId || '';
     if (!effectiveTenantId) {
-      throw new Error('No se encontró tenantId en sesión. Solicita al superadmin tu tenantId.');
+      throw new Error('No se encontró un contexto institucional activo. Selecciona tu institución para crear votaciones.');
     }
 
     const created = await createVotingEvent({
@@ -83,7 +84,7 @@ export const useCreateElection = (): UseCreateElectionResult => {
       votingStartDate: created.votingStart ?? payload.votingStartDate,
       votingEndDate: created.votingEnd ?? payload.votingEndDate,
       resultsDate: created.resultsPublishAt ?? payload.resultsDate,
-      createdAt: created.createdAt ?? new Date().toISOString(),
+      createdAt: stableCreatedAt(created.createdAt),
       status: 'DRAFT',
     };
   };

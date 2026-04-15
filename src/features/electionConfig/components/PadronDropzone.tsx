@@ -1,5 +1,4 @@
-// Dropzone para subir archivo CSV del padrón electoral
-// Basado en captura 01_dropzone.png
+// Dropzone principal para subir PDF o imagen del padrón electoral
 
 import React, { useRef, useState } from 'react';
 
@@ -8,7 +7,7 @@ interface PadronDropzoneProps {
   disabled?: boolean;
 }
 
-const CSVIcon = () => (
+const DocumentIcon = () => (
   <svg
     className="w-20 h-20 text-[#459151]"
     viewBox="0 0 80 80"
@@ -25,11 +24,25 @@ const CSVIcon = () => (
     <line x1="26" y1="36" x2="54" y2="36" strokeWidth="3" strokeLinecap="round" />
     <line x1="26" y1="46" x2="54" y2="46" strokeWidth="3" strokeLinecap="round" />
     <line x1="26" y1="56" x2="42" y2="56" strokeWidth="3" strokeLinecap="round" />
-    {/* Badge de check */}
-    <circle cx="58" cy="18" r="8" fill="#459151" stroke="none" />
-    <path d="M54 18l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
+
+const ACCEPTED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.webp'];
+const ACCEPTED_MIME_TYPES = [
+  'application/pdf',
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+];
+
+const isSupportedFile = (file: File) => {
+  const fileName = file.name.toLowerCase();
+  return (
+    ACCEPTED_MIME_TYPES.includes(file.type.toLowerCase()) ||
+    ACCEPTED_EXTENSIONS.some((extension) => fileName.endsWith(extension))
+  );
+};
 
 const PadronDropzone: React.FC<PadronDropzoneProps> = ({ onFileSelect, disabled = false }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -51,14 +64,14 @@ const PadronDropzone: React.FC<PadronDropzoneProps> = ({ onFileSelect, disabled 
     if (disabled) return;
 
     const file = e.dataTransfer.files?.[0];
-    if (file && file.name.toLowerCase().endsWith('.csv')) {
+    if (file && isSupportedFile(file)) {
       onFileSelect(file);
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (file && isSupportedFile(file)) {
       onFileSelect(file);
     }
     // Reset input para permitir seleccionar el mismo archivo
@@ -92,7 +105,7 @@ const PadronDropzone: React.FC<PadronDropzoneProps> = ({ onFileSelect, disabled 
         <input
           ref={fileInputRef}
           type="file"
-          accept=".csv"
+          accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
           onChange={handleFileChange}
           className="hidden"
           disabled={disabled}
@@ -100,17 +113,20 @@ const PadronDropzone: React.FC<PadronDropzoneProps> = ({ onFileSelect, disabled 
 
         {/* Icono */}
         <div className="flex justify-center mb-6">
-          <CSVIcon />
+          <DocumentIcon />
         </div>
 
         {/* Texto principal */}
-        <p className="text-gray-700 text-lg mb-2">
-          Arrastra aquí el archivo del Padrón Electoral (.CSV)
+        <p className="text-gray-700 text-xl font-semibold mb-2">
+          Arrastra aquí el archivo del padrón electoral
         </p>
 
         {/* Texto secundario */}
+        <p className="text-gray-500 text-sm mb-1">
+          PDF o imagen: JPG, JPEG, PNG o WEBP
+        </p>
         <p className="text-gray-500 text-sm mb-6">
-          o haz clic en el botón de abajo
+          También puedes hacer clic para seleccionar el archivo desde tu equipo
         </p>
 
         {/* Botón */}
@@ -131,25 +147,26 @@ const PadronDropzone: React.FC<PadronDropzoneProps> = ({ onFileSelect, disabled 
         </button>
       </div>
 
-      {/* Banner de tutorial */}
-      <div className="bg-[#c0392b] rounded-lg p-4 flex items-center gap-4">
-        {/* Icono de video */}
-        <div className="flex-shrink-0">
-          <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+      <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-blue-600">
             <svg
-              className="w-6 h-6 text-white"
+              className="w-5 h-5"
               viewBox="0 0 24 24"
-              fill="currentColor"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
             >
-              <path d="M8 5v14l11-7z" />
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 8v4m0 4h.01" strokeLinecap="round" />
             </svg>
           </div>
-        </div>
-
-        {/* Texto */}
-        <div className="text-white">
-          <p className="font-semibold text-lg">¿Primera vez subiendo un padrón?</p>
-          <p className="text-white/80 text-sm">Ver tutorial en video</p>
+          <div className="text-blue-800">
+            <p className="font-semibold">El archivo será procesado por el backend.</p>
+            <p className="mt-1 text-sm text-blue-700">
+              El sistema leerá el PDF o la imagen, generará un staging editable y te permitirá corregir manualmente antes de confirmar la versión final del padrón.
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -29,13 +29,19 @@ import { selectTenantId } from "../../store/auth/authSlice";
 import { useSelector } from "react-redux";
 import Modal2 from "../../components/Modal2";
 import { getRequestErrorMessage } from "./requestErrorMessage";
-import { useWallet } from "../../hooks/useWallet";
+import {
+  formatDateTimeForUi,
+  getOptionColors,
+  stableCreatedAt,
+  THIRTY_SIX_HOURS_MS,
+  useClientNow,
+} from "./renderUtils";
 
 const roleToPosition = (role: EventRole): Position => ({
   id: role.id,
   name: role.name,
   electionId: role.eventId,
-  createdAt: role.createdAt ?? new Date().toISOString(),
+  createdAt: stableCreatedAt(role.createdAt),
 });
 
 const optionToParty = (option: VotingOption): PartyWithCandidates => ({
@@ -43,8 +49,9 @@ const optionToParty = (option: VotingOption): PartyWithCandidates => ({
   electionId: option.eventId,
   name: option.name,
   colorHex: option.color,
+  colors: getOptionColors(option),
   logoUrl: option.logoUrl,
-  createdAt: option.createdAt ?? new Date().toISOString(),
+  createdAt: stableCreatedAt(option.createdAt),
   candidates: (option.candidates ?? []).map((candidate: OptionCandidate) => ({
     id: candidate.id,
     partyId: option.id,
@@ -54,17 +61,6 @@ const optionToParty = (option: VotingOption): PartyWithCandidates => ({
     photoUrl: candidate.photoUrl,
   })),
 });
-
-const formatDateTime = (value?: string | null) => {
-  if (!value) return "No definida";
-  return new Date(value).toLocaleDateString("es-ES", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
 
 const toDateTimeLocalValue = (value?: string | null) => {
   if (!value) return "";
@@ -78,13 +74,16 @@ const toDateTimeLocalValue = (value?: string | null) => {
   )}:${pad(date.getMinutes())}`;
 };
 
-const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
-
 const validateScheduleForm = (
   form: { votingStart: string; votingEnd: string; resultsPublishAt: string },
   enforceWindowRule: boolean,
+  nowMs: number,
 ) => {
-  if (!form.votingStart.trim() || !form.votingEnd.trim() || !form.resultsPublishAt.trim()) {
+  if (
+    !form.votingStart.trim() ||
+    !form.votingEnd.trim() ||
+    !form.resultsPublishAt.trim()
+  ) {
     return "Debes completar las tres fechas para guardar el cronograma.";
   }
 
@@ -108,8 +107,11 @@ const validateScheduleForm = (
     return "La publicación de resultados debe ser posterior al fin de la votación.";
   }
 
-  if (enforceWindowRule && votingStart.getTime() - Date.now() < TWENTY_FOUR_HOURS_MS) {
-    return "La fecha de inicio debe poder modificarse hasta 24 horas antes de iniciar.";
+  if (
+    enforceWindowRule &&
+    votingStart.getTime() - nowMs < THIRTY_SIX_HOURS_MS
+  ) {
+    return "La fecha de inicio debe poder modificarse hasta 36 horas antes de iniciar.";
   }
 
   return null;
@@ -119,47 +121,67 @@ const canEditSchedule = (event?: {
   state?: string | null;
   status?: string | null;
   votingStart?: string | null;
-}) => {
-  if (!event) return false;
+}, nowMs?: number | null) => {
+  if (!event || nowMs === null || nowMs === undefined) return false;
 
   const state = event.state ?? event.status ?? "DRAFT";
-  if (state === "DRAFT") return true;
-  if (state !== "PUBLISHED" || !event.votingStart) return false;
+  if (state === "DRAFT" || state === "READY_FOR_REVIEW") return true;
+  if (state !== "PUBLISHED" && state !== "OFFICIALLY_PUBLISHED") return false;
+  if (!event.votingStart) return false;
 
-  return new Date(event.votingStart).getTime() - Date.now() >= TWENTY_FOUR_HOURS_MS;
+  return (
+    new Date(event.votingStart).getTime() - nowMs >= THIRTY_SIX_HOURS_MS
+  );
 };
 
 const getInitial = (value?: string | null) =>
-  String(value ?? "").trim().charAt(0).toUpperCase() || "?";
+  String(value ?? "")
+    .trim()
+    .charAt(0)
+    .toUpperCase() || "?";
 
 const getBallotDescription = (lifecycle: string) =>
-  lifecycle === "RESULTS" || lifecycle === "RESULTS_PUBLISHED" || lifecycle === "CLOSED"
+  lifecycle === "RESULTS" ||
+  lifecycle === "RESULTS_PUBLISHED" ||
+  lifecycle === "CLOSED"
     ? "Conoce a los candidatos y partidos políticos que participaron en esta votación."
     : "Conoce a los candidatos y partidos políticos que participan en esta votación.";
 
 const deriveLifecycle = (event?: {
   status?: string | null;
+  state?: string | null;
   votingStart?: string | null;
   votingEnd?: string | null;
   resultsPublishAt?: string | null;
-}) => {
+}, nowMs?: number | null) => {
   if (!event) return "DRAFT";
-  const now = Date.now();
-  const start = event.votingStart ? new Date(event.votingStart).getTime() : null;
+  const state = event.state ?? event.status ?? "DRAFT";
+  if (state === "PUBLICATION_EXPIRED") return "PUBLICATION_EXPIRED";
+  if (state === "READY_FOR_REVIEW") return "READY_FOR_REVIEW";
+  if (nowMs === null || nowMs === undefined) return state;
+  const now = nowMs;
+  const start = event.votingStart
+    ? new Date(event.votingStart).getTime()
+    : null;
   const end = event.votingEnd ? new Date(event.votingEnd).getTime() : null;
-  const resultsAt = event.resultsPublishAt ? new Date(event.resultsPublishAt).getTime() : null;
+  const resultsAt = event.resultsPublishAt
+    ? new Date(event.resultsPublishAt).getTime()
+    : null;
 
   if (resultsAt && now >= resultsAt) return "RESULTS";
   if (start && end && now >= start && now <= end) return "ACTIVE";
   if (end && now > end) return "CLOSED";
   if (start && now < start) return "PUBLISHED";
-  return event.status ?? "DRAFT";
+  return state;
 };
 
 const StatusBadge: React.FC<{ state?: string }> = ({ state }) => {
   const styles: Record<string, string> = {
     DRAFT: "bg-gray-100 text-gray-700 border-gray-200",
     PUBLISHED: "bg-blue-100 text-blue-700 border-blue-200",
+    READY_FOR_REVIEW: "bg-cyan-100 text-cyan-700 border-cyan-200",
+    OFFICIALLY_PUBLISHED: "bg-blue-100 text-blue-700 border-blue-200",
+    PUBLICATION_EXPIRED: "bg-red-100 text-red-700 border-red-200",
     ACTIVE: "bg-amber-100 text-amber-700 border-amber-200",
     CLOSED: "bg-emerald-100 text-emerald-700 border-emerald-200",
     RESULTS: "bg-violet-100 text-violet-700 border-violet-200",
@@ -169,6 +191,9 @@ const StatusBadge: React.FC<{ state?: string }> = ({ state }) => {
   const labels: Record<string, string> = {
     DRAFT: "Borrador",
     PUBLISHED: "Publicada",
+    READY_FOR_REVIEW: "En revisión previa",
+    OFFICIALLY_PUBLISHED: "Publicada oficialmente",
+    PUBLICATION_EXPIRED: "Publicación vencida",
     ACTIVE: "En votación",
     CLOSED: "Finalizada",
     RESULTS: "Resultados disponibles",
@@ -191,12 +216,7 @@ const TopInfoCard: React.FC<{
   lines: Array<{ label: string; value: string }>;
   action?: React.ReactNode;
   note?: string;
-}> = ({
-  title,
-  lines,
-  action,
-  note,
-}) => (
+}> = ({ title, lines, action, note }) => (
   <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
     <div className="mb-3 flex items-start justify-between gap-4">
       <div>
@@ -221,6 +241,7 @@ const ActiveElectionStatusPage: React.FC = () => {
   const { electionId } = useParams<{ electionId: string }>();
   const tenantId = useSelector(selectTenantId);
   const actualElectionId = electionId || "";
+  const nowMs = useClientNow();
   const [activeTab, setActiveTab] = useState<ConfigStep>(1);
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
@@ -264,7 +285,7 @@ const ActiveElectionStatusPage: React.FC = () => {
       { eventId: actualElectionId, page, limit: 20 },
       { skip: !actualElectionId },
     );
-  const lifecycle = deriveLifecycle(event);
+  const lifecycle = deriveLifecycle(event, nowMs);
   const shouldShowResults = lifecycle === "RESULTS";
   const { data: resultsData } = useGetEventResultsQuery(actualElectionId, {
     skip: !actualElectionId || !shouldShowResults,
@@ -273,14 +294,6 @@ const ActiveElectionStatusPage: React.FC = () => {
     useUpdateEventScheduleMutation();
   const [downloadPadronCsv, { isFetching: downloadingCsv }] =
     useLazyDownloadPadronCsvQuery();
-
-  const {
-    connectionState,
-    transactionState,
-    connectWallet,
-    resetTransactionState,
-    callUpdateSchedule,
-  } = useWallet();
 
   const positions = useMemo(() => roles.map(roleToPosition), [roles]);
   const parties = useMemo(() => options.map(optionToParty), [options]);
@@ -315,7 +328,7 @@ const ActiveElectionStatusPage: React.FC = () => {
     () => events.filter((item) => item.id !== actualElectionId),
     [events, actualElectionId],
   );
-  const scheduleEditable = canEditSchedule(event);
+  const scheduleEditable = canEditSchedule(event, nowMs);
 
   useEffect(() => {
     setScheduleForm({
@@ -368,6 +381,7 @@ const ActiveElectionStatusPage: React.FC = () => {
     const scheduleValidationError = validateScheduleForm(
       scheduleForm,
       (event?.state ?? event?.status ?? "DRAFT") !== "DRAFT",
+      nowMs ?? new Date().getTime(),
     );
 
     if (scheduleValidationError) {
@@ -378,14 +392,9 @@ const ActiveElectionStatusPage: React.FC = () => {
     try {
       const votingStart = new Date(scheduleForm.votingStart).toISOString();
       const votingEnd = new Date(scheduleForm.votingEnd).toISOString();
-      const resultsPublishAt = new Date(scheduleForm.resultsPublishAt).toISOString();
-
-      await callUpdateSchedule(
-        actualElectionId,
-        votingStart,
-        votingEnd,
-        resultsPublishAt,
-      );
+      const resultsPublishAt = new Date(
+        scheduleForm.resultsPublishAt,
+      ).toISOString();
 
       await updateEventSchedule({
         eventId: actualElectionId,
@@ -400,46 +409,19 @@ const ActiveElectionStatusPage: React.FC = () => {
       setScheduleError(null);
       setIsScheduleModalOpen(false);
     } catch (error: any) {
-      if (error.message === 'tx_canceled') {
-        return;
-      }
-      setScheduleError(getRequestErrorMessage(error, "No se pudo actualizar el horario."));
+      setScheduleError(
+        getRequestErrorMessage(error, "No se pudo actualizar el horario."),
+      );
     }
   };
 
-  const connectMetamask = () => {
-    if (
-      connectionState === 'connecting' ||
-      transactionState === 'pending'
-    ) {
-      return;
-    }
-    connectWallet();
-  }
-
   const renderButtonText = () => {
-    switch (connectionState) {
-      case 'disconnected':
-        return 'Conectarse a MetaMask para guardar horarios';
-      case 'connecting':
-        return 'Conectando...';
-      case 'notInstalled':
-        return 'Instale la extensión MetaMask para guardar horarios';
-      case 'connected':
-        return updatingSchedule ? 'Guardando...' : 'Guardar horarios';
-      default:
-        return 'Conectarse a MetaMask para guardar horarios';
-    }
-  }
+    return updatingSchedule ? "Guardando..." : "Guardar horarios";
+  };
 
   const isUpdateButtonDisabled = () => {
-    return (
-      updatingSchedule ||
-      connectionState === 'connecting' ||
-      connectionState === 'notInstalled' ||
-      transactionState === 'pending'
-    );
-  }
+    return updatingSchedule;
+  };
 
   if (!actualElectionId) {
     return (
@@ -487,7 +469,7 @@ const ActiveElectionStatusPage: React.FC = () => {
             title="Horario de Votación"
             note={
               scheduleEditable
-                ? "Puedes modificarlo mientras siga en borrador o si faltan al menos 24 horas para el inicio."
+                ? "Puedes modificarlo mientras siga en borrador o si faltan al menos 36 horas para el inicio."
                 : "El cronograma ya no puede modificarse porque la votación está muy próxima o ya comenzó."
             }
             action={
@@ -507,9 +489,12 @@ const ActiveElectionStatusPage: React.FC = () => {
               ) : null
             }
             lines={[
-              { label: "Desde", value: formatDateTime(event?.votingStart) },
-              { label: "Hasta", value: formatDateTime(event?.votingEnd) },
-              { label: "Resultados", value: formatDateTime(event?.resultsPublishAt) },
+              { label: "Desde", value: formatDateTimeForUi(event?.votingStart) },
+              { label: "Hasta", value: formatDateTimeForUi(event?.votingEnd) },
+              {
+                label: "Resultados",
+                value: formatDateTimeForUi(event?.resultsPublishAt),
+              },
             ]}
           />
           <TopInfoCard
@@ -520,6 +505,12 @@ const ActiveElectionStatusPage: React.FC = () => {
                 value:
                   lifecycle === "RESULTS"
                     ? "Resultados disponibles"
+                    : lifecycle === "PUBLICATION_EXPIRED"
+                      ? "Publicación vencida"
+                    : lifecycle === "READY_FOR_REVIEW"
+                      ? "En revisión previa"
+                    : lifecycle === "OFFICIALLY_PUBLISHED"
+                      ? "Publicada oficialmente"
                     : lifecycle === "CLOSED"
                       ? "Finalizada"
                       : lifecycle === "ACTIVE"
@@ -531,6 +522,12 @@ const ActiveElectionStatusPage: React.FC = () => {
             ]}
           />
         </div>
+
+        {lifecycle === "PUBLICATION_EXPIRED" ? (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            La ventana para publicación oficial venció. Esta votación no debe editarse como detalle normal; elimínala desde el listado y crea una nueva si corresponde.
+          </div>
+        ) : null}
 
         {scheduleSuccess ? (
           <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
@@ -603,7 +600,9 @@ const ActiveElectionStatusPage: React.FC = () => {
               <h2 className="text-2xl font-bold text-gray-900">
                 Papeleta Electoral
               </h2>
-              <p className="mt-1 text-gray-600">{getBallotDescription(lifecycle)}</p>
+              <p className="mt-1 text-gray-600">
+                {getBallotDescription(lifecycle)}
+              </p>
             </div>
 
             {parties.length === 0 ? (
@@ -618,9 +617,13 @@ const ActiveElectionStatusPage: React.FC = () => {
                     className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
                   >
                     <div
-                      className="h-2"
-                      style={{ backgroundColor: party.colorHex }}
-                    />
+                      className="grid h-2"
+                      style={{ gridTemplateColumns: `repeat(${getOptionColors(party).length}, minmax(0, 1fr))` }}
+                    >
+                      {getOptionColors(party).map((color, index) => (
+                        <span key={`${party.id}-${color}-${index}`} style={{ backgroundColor: color }} />
+                      ))}
+                    </div>
                     <div className="p-6">
                       <div className="flex items-center gap-4 pb-5 border-b border-gray-200">
                         {party.logoUrl ? (
@@ -713,8 +716,8 @@ const ActiveElectionStatusPage: React.FC = () => {
       >
         <div className="space-y-5">
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            El backend solo permite editar el cronograma en borrador o cuando faltan al menos 24
-            horas para el inicio de la votación.
+            El backend solo permite editar el cronograma en borrador o cuando
+            faltan al menos 36 horas para el inicio de la votación.
           </div>
 
           {scheduleError ? (
@@ -725,21 +728,29 @@ const ActiveElectionStatusPage: React.FC = () => {
 
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block">
-              <span className="mb-2 block text-sm font-medium text-gray-700">Inicio de votación</span>
+              <span className="mb-2 block text-sm font-medium text-gray-700">
+                Inicio de votación
+              </span>
               <input
                 type="datetime-local"
                 value={scheduleForm.votingStart}
-                onChange={(event) => handleScheduleInputChange("votingStart", event.target.value)}
+                onChange={(event) =>
+                  handleScheduleInputChange("votingStart", event.target.value)
+                }
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-800 outline-none transition focus:border-[#459151] focus:ring-2 focus:ring-[#459151]/15"
               />
             </label>
 
             <label className="block">
-              <span className="mb-2 block text-sm font-medium text-gray-700">Fin de votación</span>
+              <span className="mb-2 block text-sm font-medium text-gray-700">
+                Fin de votación
+              </span>
               <input
                 type="datetime-local"
                 value={scheduleForm.votingEnd}
-                onChange={(event) => handleScheduleInputChange("votingEnd", event.target.value)}
+                onChange={(event) =>
+                  handleScheduleInputChange("votingEnd", event.target.value)
+                }
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-800 outline-none transition focus:border-[#459151] focus:ring-2 focus:ring-[#459151]/15"
               />
             </label>
@@ -752,7 +763,10 @@ const ActiveElectionStatusPage: React.FC = () => {
                 type="datetime-local"
                 value={scheduleForm.resultsPublishAt}
                 onChange={(event) =>
-                  handleScheduleInputChange("resultsPublishAt", event.target.value)
+                  handleScheduleInputChange(
+                    "resultsPublishAt",
+                    event.target.value,
+                  )
                 }
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-800 outline-none transition focus:border-[#459151] focus:ring-2 focus:ring-[#459151]/15"
               />
@@ -760,8 +774,9 @@ const ActiveElectionStatusPage: React.FC = () => {
           </div>
 
           <p className="text-sm text-gray-500">
-            El sistema no está enviando una notificación automática al padrón cuando este horario
-            cambia. Si eso debe ser obligatorio, hay que agregarlo en backend.
+            El sistema no está enviando una notificación automática al padrón
+            cuando este horario cambia. Si eso debe ser obligatorio, hay que
+            agregarlo en backend.
           </p>
 
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -774,37 +789,16 @@ const ActiveElectionStatusPage: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={connectionState === 'disconnected' ? connectMetamask : handleScheduleSave}
+              onClick={handleScheduleSave}
               disabled={isUpdateButtonDisabled()}
               className="rounded-lg bg-[#459151] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#3a7a44] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              { renderButtonText() }
+              {renderButtonText()}
             </button>
           </div>
         </div>
       </Modal2>
 
-      <Modal2
-        isOpen={transactionState == 'canceled'}
-        onClose={resetTransactionState}
-        title='Operación cancelada'
-        type='info'
-        showClose
-        closeOnEscape
-      >
-        Operación cancelada por el usuario. No se ha actualizado el horario.
-      </Modal2>
-
-      <Modal2
-        isOpen={transactionState == 'error'}
-        onClose={resetTransactionState}
-        title='Operación fallida'
-        type='error'
-        showClose
-        closeOnEscape
-      >
-        Operación fallida. No se ha actualizado el horario. Intenta nuevamente o contacta al soporte si el problema persiste.
-      </Modal2>
     </div>
   );
 };

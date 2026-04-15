@@ -7,7 +7,10 @@ import { clearSelectedElection } from "../store/election/electionSlice";
 import { apiSlice } from "../store/apiSlice";
 import tuvotoDecideImage from "../assets/tuvotodecide.webp";
 import { Link, useLocation } from "react-router-dom";
-import { resolveLogoutDestination } from "../shared/system/navigationFeedback";
+import {
+  emitNavigationStart,
+  resolveLogoutDestination,
+} from "../shared/system/navigationFeedback";
 
 interface HeaderProps {
   toggleSidebar: () => void;
@@ -49,6 +52,7 @@ export const Header: React.FC<HeaderProps> = ({
     dispatch(clearSelectedElection());
     dispatch(apiSlice.util.resetApiState());
     setIsMenuOpen(false);
+    emitNavigationStart();
     window.location.replace(resolveLogoutDestination(location.pathname));
   };
   return (
@@ -73,7 +77,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
               >
                 <div className={styles.avatar}>
-                  
+
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="18"
@@ -90,7 +94,7 @@ export const Header: React.FC<HeaderProps> = ({
                   </svg>
                 </div>
                 <span className={styles.userNameText}>{user?.name}</span>
-                
+
                 <svg
                   className={`${styles.chevron} ${
                     isMenuOpen ? styles.rotate : ""
@@ -146,7 +150,7 @@ export const Header: React.FC<HeaderProps> = ({
                 Iniciar Sesión
               </Link>
             )}
-            
+
           </>
         )}
         {!hideSidebarToggle && (

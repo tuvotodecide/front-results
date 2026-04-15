@@ -62,12 +62,21 @@ export const useSearchParams = () => {
     (value: SearchParamsInput) => {
       const params = buildSearchParams(value);
       const query = params.toString();
-      emitNavigationStart();
-      router.push(query ? `${pathname}?${query}` : pathname, {
-        scroll: false,
-      });
+      const currentUrl = search ? `${pathname}?${search}` : pathname;
+      const nextUrl = query ? `${pathname}?${query}` : pathname;
+
+      if (nextUrl === currentUrl) {
+        return;
+      }
+
+      if (typeof window !== "undefined") {
+        window.history.replaceState(window.history.state, "", nextUrl);
+        return;
+      }
+
+      router.replace(nextUrl, { scroll: false });
     },
-    [pathname, router],
+    [pathname, router, search],
   );
 
   return [searchParams, setSearchParams] as const;

@@ -21,8 +21,8 @@ export const onNavigationStart = (listener: () => void) => {
 
 export const resolveLogoutDestination = (pathname: string) => {
   if (pathname.startsWith("/resultados")) {
-    return "/resultados";
+    return "/resultados/login";
   }
 
-  return "/votacion";
+  return "/votacion/login";
 };

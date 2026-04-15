@@ -1,7 +1,7 @@
 // Wizard para crear nueva votación (2 pasos)
 // Basado en capturas 02_step1.png y 03_step2.png
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from '@/domains/votacion/navigation/compat-private';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
@@ -16,10 +16,10 @@ const getCurrentLocalDateTime = () => {
   return new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 16);
 };
 
-const addMinutesToLocalDateTime = (value?: string, minutes = 1) => {
-  if (!value) return getCurrentLocalDateTime();
+const addMinutesToLocalDateTime = (value?: string, minutes = 1, fallback = '') => {
+  if (!value) return fallback;
   const base = new Date(value);
-  if (Number.isNaN(base.getTime())) return getCurrentLocalDateTime();
+  if (Number.isNaN(base.getTime())) return fallback;
 
   const next = new Date(base.getTime() + minutes * 60 * 1000);
   const timezoneOffset = next.getTimezoneOffset() * 60000;
@@ -94,6 +94,11 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingData, setPendingData] = useState<ElectionFormData | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [currentLocalDateTime, setCurrentLocalDateTime] = useState('');
+
+  useEffect(() => {
+    setCurrentLocalDateTime(getCurrentLocalDateTime());
+  }, []);
 
   // Step 1: Info básica
   const handleStep1Submit = (values: ElectionFormStep1) => {
@@ -260,6 +265,9 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
             >
               {({ isValid, dirty, values }) => (
                 <Form className="space-y-6">
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    La publicación oficial debe confirmarse antes de que falten 36 horas para iniciar la votación. Si eliges una fecha muy próxima, podrías quedarte sin tiempo de publicación.
+                  </div>
                   {/* Fecha apertura */}
                   <div>
                     <label
@@ -272,7 +280,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                       id="votingStartDate"
                       name="votingStartDate"
                       type="datetime-local"
-                      min={getCurrentLocalDateTime()}
+                      min={currentLocalDateTime}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#459151] focus:border-[#459151] transition-colors"
                     />
                     <ErrorMessage
@@ -294,7 +302,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                       id="votingEndDate"
                       name="votingEndDate"
                       type="datetime-local"
-                      min={values.votingStartDate || getCurrentLocalDateTime()}
+                      min={values.votingStartDate || currentLocalDateTime}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#459151] focus:border-[#459151] transition-colors"
                     />
                     <ErrorMessage
@@ -318,8 +326,8 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                       type="datetime-local"
                       min={
                         values.votingEndDate
-                          ? addMinutesToLocalDateTime(values.votingEndDate)
-                          : values.votingStartDate || getCurrentLocalDateTime()
+                          ? addMinutesToLocalDateTime(values.votingEndDate, 1, currentLocalDateTime)
+                          : values.votingStartDate || currentLocalDateTime
                       }
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#459151] focus:border-[#459151] transition-colors"
                     />

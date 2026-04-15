@@ -14,6 +14,7 @@ import type {
   CandidateInput,
   PartyWithCandidates,
 } from '../types';
+import { getOptionColors, stableCreatedAt } from '../renderUtils';
 
 interface UsePartiesResult {
   parties: PartyWithCandidates[];
@@ -47,8 +48,9 @@ export const useParties = (electionId: string): UsePartiesResult => {
         electionId: option.eventId,
         name: option.name,
         colorHex: option.color,
+        colors: getOptionColors(option),
         logoUrl: option.logoUrl,
-        createdAt: option.createdAt ?? new Date().toISOString(),
+        createdAt: stableCreatedAt(option.createdAt),
         candidates: (option.candidates ?? []).map((c) => ({
           id: c.id,
           partyId: option.id,
@@ -72,6 +74,7 @@ export const useParties = (electionId: string): UsePartiesResult => {
         data: {
           name: payload.name,
           color: payload.colorHex,
+          colors: payload.colors,
           logoUrl: payload.logoBase64,
           candidates: [],
         },
@@ -81,8 +84,9 @@ export const useParties = (electionId: string): UsePartiesResult => {
         electionId: created.eventId,
         name: created.name,
         colorHex: created.color,
+        colors: getOptionColors(created),
         logoUrl: created.logoUrl,
-        createdAt: created.createdAt ?? new Date().toISOString(),
+        createdAt: stableCreatedAt(created.createdAt),
       };
     },
     updateParty: async (payload) => {
@@ -92,6 +96,7 @@ export const useParties = (electionId: string): UsePartiesResult => {
         data: {
           name: payload.name,
           color: payload.colorHex,
+          colors: payload.colors,
           logoUrl: payload.logoBase64,
         },
       }).unwrap();
@@ -100,8 +105,9 @@ export const useParties = (electionId: string): UsePartiesResult => {
         electionId: updated.eventId,
         name: updated.name,
         colorHex: updated.color,
+        colors: getOptionColors(updated),
         logoUrl: updated.logoUrl,
-        createdAt: updated.createdAt ?? new Date().toISOString(),
+        createdAt: stableCreatedAt(updated.createdAt),
       };
     },
     deleteParty: async (partyId) => {

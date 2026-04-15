@@ -1,155 +1,75 @@
-// Página de configuración de elección - Paso 3: Padrón Electoral
-// Conectado a backend real con RTK Query
-
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "@/domains/votacion/navigation/compat-private";
+import Modal2 from "../../components/Modal2";
+import ConfigStepsTabs from "./components/ConfigStepsTabs";
+import ConfigPageFallback from "./components/ConfigPageFallback";
+import LoadedPadronView from "./components/LoadedPadronView";
+import PadronDropzone from "./components/PadronDropzone";
+import PadronObservationsModal from "./components/PadronObservationsModal";
+import PadronRecordModal from "./components/PadronRecordModal";
+import PadronStagingView from "./components/PadronStagingView";
+import UploadProgressModal from "./components/UploadProgressModal";
+import UploadSummaryModal from "./components/UploadSummaryModal";
+import { getRequestErrorMessage } from "./requestErrorMessage";
+import { hasDraftAlreadyStarted, useClientNow } from "./renderUtils";
+import type { ConfigStep, PadronFile, Voter } from "./types";
 import {
-  useNavigate,
-  useParams,
-} from '@/domains/votacion/navigation/compat-private';
-import Modal2 from '../../components/Modal2';
-import ConfigStepsTabs from './components/ConfigStepsTabs';
-import PadronDropzone from './components/PadronDropzone';
-import UploadProgressModal from './components/UploadProgressModal';
-import UploadSummaryModal from './components/UploadSummaryModal';
-import FixInvalidModal from './components/FixInvalidModal';
-import LoadedPadronView from './components/LoadedPadronView';
-import ConfigPageFallback from './components/ConfigPageFallback';
-import { getRequestErrorMessage } from './requestErrorMessage';
-import {
-  useGetVotingEventQuery,
-  useGetEventRolesQuery,
+  useAddPadronStagingEntryMutation,
+  useConfirmPadronStagingMutation,
+  useDeletePadronStagingEntryMutation,
   useGetEventOptionsQuery,
-  useGetPadronVersionsQuery,
+  useGetEventRolesQuery,
+  useGetPadronStagingQuery,
   useGetPadronVotersQuery,
+  useGetPadronWorkflowSummaryQuery,
+  useGetVotingEventQuery,
   useLazyDownloadPadronCsvQuery,
-  useImportPadronMutation,
-} from '../../store/votingEvents';
-import type { Voter, CorrectionInput, PadronUploadResult, PadronFile, ConfigStep } from './types';
+  useLazyGetPadronImportStatusQuery,
+  useUpdatePadronStagingEntryMutation,
+  useUploadPadronSourceMutation,
+} from "../../store/votingEvents";
 
-type ModalState = 'none' | 'uploading' | 'summary' | 'fixing' | 'revalidating' | 'deleteConfirm';
+type SummaryModalState = "none" | "uploading" | "summary";
 
-export const HEADER_DNI = 'dni';
-export const HEADER_CARNET = 'carnet';
-export const HEADER_ENABLED = 'habilitado';
-export const BOLIVIAN_CARNET_REGEX = /^\d{5,10}[A-Z]{0,2}$/;
+type RecordModalState =
+  | { open: false }
+  | { open: true; mode: "create"; voter?: undefined }
+  | { open: true; mode: "edit"; voter: Voter };
 
-export const normalizeCell = (value: string) => value.replace(/^"|"$/g, '').trim();
+const PAGE_SIZE = 50;
+const SUPPORTED_PADRON_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".png", ".webp"];
 
-export const normalizeCarnet = (value: string) =>
-  normalizeCell(value)
-    .toUpperCase()
-    .replace(/[\s.-]/g, '');
-
-export const isValidCarnet = (value: string) => BOLIVIAN_CARNET_REGEX.test(normalizeCarnet(value));
-
-export const parseEnabledCell = (
-  value: string,
-): { valid: boolean; enabled: boolean } => {
-  const normalized = normalizeCell(value).toLowerCase();
-  if (!normalized) {
-    return { valid: true, enabled: true };
-  }
-  if (['1', 'true', 'si', 'sí', 'habilitado', 'activo'].includes(normalized)) {
-    return { valid: true, enabled: true };
-  }
-  if (['0', 'false', 'no', 'deshabilitado', 'inactivo'].includes(normalized)) {
-    return { valid: true, enabled: false };
-  }
-  return { valid: false, enabled: false };
-};
-
-export const revalidateRows = (rows: Voter[]): Voter[] => {
-  const seen = new Set<string>();
-  return rows.map((row) => {
-    const cleaned = normalizeCarnet(row.carnet);
-    if (!cleaned) {
-      return { ...row, carnet: cleaned, status: 'invalid', invalidReason: 'empty' };
-    }
-    if (!isValidCarnet(cleaned)) {
-      return { ...row, carnet: cleaned, status: 'invalid', invalidReason: 'invalid_format' };
-    }
-    if (row.invalidReason === 'invalid_enabled') {
-      return { ...row, carnet: cleaned, status: 'invalid', invalidReason: 'invalid_enabled' };
-    }
-    if (seen.has(cleaned)) {
-      return { ...row, carnet: cleaned, status: 'invalid', invalidReason: 'duplicate' };
-    }
-    seen.add(cleaned);
-    return { ...row, carnet: cleaned, status: 'valid', invalidReason: undefined };
-  });
-};
-
-export const parsePadronCsv = async (file: File) => {
-  const text = await file.text();
-  const lines = text
-    .replace(/\uFEFF/g, '')
-    .replace(/\r/g, '')
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
-
-  if (lines.length === 0) {
-    throw new Error('El CSV está vacío');
-  }
-
-  const headerColumns = lines[0].split(',').map((cell) => normalizeCell(cell).toLowerCase());
-  const mainHeader = headerColumns[0];
-  const enabledHeader = headerColumns[1];
-  if (mainHeader !== HEADER_DNI && mainHeader !== HEADER_CARNET) {
-    throw new Error('El CSV debe tener la primera columna "dni" o "carnet"');
-  }
-  if (enabledHeader && enabledHeader !== HEADER_ENABLED) {
-    throw new Error('La segunda columna debe llamarse "habilitado"');
-  }
-
-  const rows: Voter[] = lines.slice(1).map((line, idx) => {
-    const [rawCarnet = '', rawEnabled = ''] = line.split(',');
-    const cell = normalizeCarnet(rawCarnet);
-    const enabled = parseEnabledCell(rawEnabled);
-    return {
-      id: `row-${idx + 1}`,
-      rowNumber: idx + 1,
-      carnet: cell,
-      fullName: '',
-      enabled: enabled.enabled,
-      status: 'valid',
-      invalidReason: enabled.valid ? undefined : 'invalid_enabled',
-    };
+const wait = (ms: number) =>
+  new Promise<void>((resolve) => {
+    window.setTimeout(resolve, ms);
   });
 
-  const validated = revalidateRows(rows);
-  const invalidCount = validated.filter((v) => v.status === 'invalid').length;
-  const validCount = validated.length - invalidCount;
-
-  return {
-    rows: validated,
-    totalRecords: validated.length,
-    validCount,
-    invalidCount,
-  };
+const isSupportedPadronFile = (file: File) => {
+  const fileName = file.name.toLowerCase();
+  return SUPPORTED_PADRON_EXTENSIONS.some((extension) => fileName.endsWith(extension));
 };
 
-export const buildUploadCsv = (rows: Voter[]) => {
-  const lines = [
-    `${HEADER_CARNET},${HEADER_ENABLED}`,
-    ...rows.map((row) => `${row.carnet.trim()},${row.enabled ? 'si' : 'no'}`),
-  ];
-  return lines.join('\n');
-};
-
-export const hasDraftAlreadyStarted = (event?: { status?: string | null; votingStart?: string | null }) =>
-  event?.status === 'DRAFT' &&
-  Boolean(event.votingStart && new Date(event.votingStart).getTime() <= Date.now());
+const normalizeSearch = (value: string) => value.trim().toLowerCase();
 
 const ElectionConfigPadron: React.FC = () => {
   const navigate = useNavigate();
   const { electionId } = useParams<{ electionId: string }>();
-  const actualElectionId = electionId || '';
-
-  // Ref para input de reemplazo de archivo
+  const actualElectionId = electionId || "";
+  const nowMs = useClientNow();
   const replaceFileInputRef = useRef<HTMLInputElement>(null);
+  const startedPollingImportRef = useRef<string | null>(null);
 
-  // RTK Query hooks
+  const [page, setPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [summaryModalState, setSummaryModalState] = useState<SummaryModalState>("none");
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadSummaryJobId, setUploadSummaryJobId] = useState<string | null>(null);
+  const [observationsOpen, setObservationsOpen] = useState(false);
+  const [recordModal, setRecordModal] = useState<RecordModalState>({ open: false });
+  const [deleteCandidate, setDeleteCandidate] = useState<Voter | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
   const {
     data: event,
     isLoading: loadingEvent,
@@ -158,384 +78,482 @@ const ElectionConfigPadron: React.FC = () => {
   } = useGetVotingEventQuery(actualElectionId, {
     skip: !actualElectionId,
   });
-  const { data: roles = [], isError: rolesLoadFailed } = useGetEventRolesQuery(actualElectionId, {
-    skip: !actualElectionId,
-  });
-  const { data: options = [], isError: optionsLoadFailed } = useGetEventOptionsQuery(actualElectionId, {
+  const {
+    data: roles = [],
+    isLoading: loadingRoles,
+    isError: rolesLoadFailed,
+  } = useGetEventRolesQuery(actualElectionId, {
     skip: !actualElectionId,
   });
   const {
-    data: padronVersions = [],
-    isLoading: loadingVersions,
-    isError: padronVersionsLoadFailed,
-  } = useGetPadronVersionsQuery(
-    actualElectionId,
-    { skip: !actualElectionId }
+    data: options = [],
+    isLoading: loadingOptions,
+    isError: optionsLoadFailed,
+  } = useGetEventOptionsQuery(actualElectionId, {
+    skip: !actualElectionId,
+  });
+  const {
+    data: workflowSummary,
+    isLoading: loadingWorkflowSummary,
+    isError: workflowSummaryLoadFailed,
+    refetch: refetchWorkflowSummary,
+  } = useGetPadronWorkflowSummaryQuery(actualElectionId, {
+    skip: !actualElectionId,
+  });
+  const {
+    data: stagingData,
+    isFetching: fetchingStaging,
+    isError: stagingLoadFailed,
+    refetch: refetchStaging,
+  } = useGetPadronStagingQuery(
+    { eventId: actualElectionId, page, limit: PAGE_SIZE },
+    {
+      skip: !actualElectionId || !workflowSummary?.activeDraft,
+    },
+  );
+  const {
+    data: currentVotersData,
+    isFetching: fetchingCurrentVoters,
+    isError: currentVotersLoadFailed,
+    refetch: refetchCurrentVoters,
+  } = useGetPadronVotersQuery(
+    { eventId: actualElectionId, page, limit: PAGE_SIZE },
+    {
+      skip: !actualElectionId || Boolean(workflowSummary?.activeDraft) || !workflowSummary?.currentVersion,
+    },
   );
 
-  // Estado de paginación local
-  const [page, setPage] = useState(1);
-  const [searchTerm, setSearch] = useState('');
-  const pageSize = 50;
-
-  // Query de votantes
-  const { data: votersData, isLoading: loadingVoters, isError: votersLoadFailed } = useGetPadronVotersQuery(
-    { eventId: actualElectionId, page, limit: pageSize },
-    { skip: !actualElectionId || padronVersions.length === 0 }
-  );
-
-  const [importPadron, { isLoading: importing }] = useImportPadronMutation();
+  const [uploadPadronSource, { isLoading: uploadingSource }] = useUploadPadronSourceMutation();
+  const [fetchImportStatus] = useLazyGetPadronImportStatusQuery();
+  const [addPadronStagingEntry, { isLoading: addingEntry }] = useAddPadronStagingEntryMutation();
+  const [updatePadronStagingEntry, { isLoading: updatingEntry }] = useUpdatePadronStagingEntryMutation();
+  const [deletePadronStagingEntry, { isLoading: deletingEntry }] = useDeletePadronStagingEntryMutation();
+  const [confirmPadronStaging, { isLoading: confirmingStaging }] = useConfirmPadronStagingMutation();
   const [downloadPadronCsv, { isFetching: downloadingCsv }] = useLazyDownloadPadronCsvQuery();
 
-  // Derivar datos
+  const baseLoading = loadingEvent || loadingWorkflowSummary || loadingRoles || loadingOptions;
   const hasPositions = roles.length > 0;
-  const hasPartiesWithCandidates = options.some((opt) => opt.candidates.length > 0);
-  const latestVersion = padronVersions.length > 0 ? padronVersions[0] : null;
-  const isLoaded = !!latestVersion;
-  const loading = loadingVersions || loadingVoters;
+  const hasPartiesWithCandidates = options.some((option) => option.candidates.length > 0);
+  const activeDraft = workflowSummary?.activeDraft ?? stagingData?.importJob ?? null;
+  const currentVersion = workflowSummary?.currentVersion ?? null;
+  const hasCurrentPadron = Boolean(currentVersion) && !activeDraft;
+  const searchNeedle = normalizeSearch(searchTerm);
 
-  // Calcular conteos
-  const validCount = latestVersion?.validCount || 0;
-  const invalidCount = latestVersion?.invalidCount || 0;
-  const totalVoters = latestVersion?.totalRecords || 0;
-  const isPadronReady = isLoaded && validCount > 0 && invalidCount === 0;
-
-  // Convertir votantes del backend al formato del frontend
-  const voters: Voter[] = (votersData?.voters || []).map((v, idx) => ({
-    id: v.id,
-    rowNumber: (page - 1) * pageSize + idx + 1,
-    carnet: v.carnet,
-    fullName: v.fullName || '',
-    enabled: v.enabled !== false,
-    status: v.status,
-    invalidReason: v.invalidReason as any,
-  }));
-
-  // Filtrar por búsqueda local (si el backend no lo soporta)
-  const filteredVoters = searchTerm
-    ? voters.filter(
-        (v) =>
-          v.carnet.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          v.fullName.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : voters;
-
-  const totalPages = Math.ceil((votersData?.total || 0) / pageSize);
-
-  // Crear objeto file para compatibilidad
-  const file: PadronFile | null = latestVersion
+  const stagingFile: PadronFile | null = activeDraft
     ? {
-        fileName: latestVersion.fileName,
-        uploadedAt: latestVersion.uploadedAt,
-        totalRecords: latestVersion.totalRecords,
-        validCount: latestVersion.validCount,
-        invalidCount: latestVersion.invalidCount,
+        fileName: activeDraft.originalFile.fileName,
+        uploadedAt:
+          activeDraft.processedAt ??
+          activeDraft.updatedAt ??
+          activeDraft.createdAt ??
+          new Date().toISOString(),
+        totalRecords: activeDraft.summary.stagingCount,
+        validCount: activeDraft.summary.enabledCount,
+        invalidCount: activeDraft.summary.invalidCount + activeDraft.summary.duplicateCount,
+        sourceType: activeDraft.sourceType,
       }
     : null;
 
-  // Estados de UI
-  const [modalState, setModalState] = useState<ModalState>('none');
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadResult, setUploadResult] = useState<PadronUploadResult | null>(null);
-  const [invalidVoters, setInvalidVoters] = useState<Voter[]>([]);
-  const [pendingRows, setPendingRows] = useState<Voter[] | null>(null);
-  const [pendingFileName, setPendingFileName] = useState<string | null>(null);
-  const [fixError, setFixError] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const currentFile: PadronFile | null = currentVersion
+    ? {
+        fileName: `Padrón vigente ${currentVersion.padronVersionId.slice(-6)}`,
+        uploadedAt: currentVersion.createdAt ?? new Date().toISOString(),
+        totalRecords: Number(currentVersion.totals.validCount ?? 0),
+        validCount: Number(currentVersion.totals.validCount ?? 0),
+        invalidCount: Number(currentVersion.totals.invalidCount ?? 0),
+        sourceType: currentVersion.sourceType,
+      }
+    : null;
 
-  // Handlers
-  const handleFileSelect = async (selectedFile: File) => {
-    setError(null);
-    setFixError(null);
-    try {
-      const parsed = await parsePadronCsv(selectedFile);
-      setPendingRows(parsed.rows);
-      setPendingFileName(selectedFile.name);
-      setUploadResult({
-        totalRecords: parsed.totalRecords,
-        validCount: parsed.validCount,
-        invalidCount: parsed.invalidCount,
-        voters: parsed.rows,
+  const stagingVoters: Voter[] = useMemo(
+    () =>
+      (stagingData?.data ?? [])
+        .map((entry, index) => ({
+          id: entry.id,
+          rowNumber: (page - 1) * PAGE_SIZE + index + 1,
+          carnet: entry.ci,
+          fullName: "",
+          enabled: entry.enabled,
+          status: "valid" as const,
+          sourceKind: entry.sourceKind,
+          sourceRow: entry.sourceRow ?? null,
+          updatedAt: entry.updatedAt ?? null,
+        }))
+        .filter((voter) => {
+          if (!searchNeedle) return true;
+          return voter.carnet.toLowerCase().includes(searchNeedle);
+        }),
+    [page, searchNeedle, stagingData?.data],
+  );
+
+  const currentVoters: Voter[] = useMemo(
+    () =>
+      (currentVotersData?.voters ?? [])
+        .map((voter, index) => ({
+          id: voter.id,
+          rowNumber: (page - 1) * PAGE_SIZE + index + 1,
+          carnet: voter.carnetNorm,
+          fullName: voter.fullName ?? "",
+          enabled: voter.enabled !== false,
+          status: "valid" as const,
+        }))
+        .filter((voter) => {
+          if (!searchNeedle) return true;
+          return (
+            voter.carnet.toLowerCase().includes(searchNeedle) ||
+            voter.fullName.toLowerCase().includes(searchNeedle)
+          );
+        }),
+    [currentVotersData?.voters, page, searchNeedle],
+  );
+
+  const uploadSummaryJob =
+    uploadSummaryJobId && activeDraft?.importJobId === uploadSummaryJobId
+      ? activeDraft
+      : activeDraft;
+
+  const isPadronReady = Boolean(currentVersion?.padronVersionId);
+  const structuralErrors =
+    eventLoadFailed ||
+    rolesLoadFailed ||
+    optionsLoadFailed ||
+    workflowSummaryLoadFailed ||
+    stagingLoadFailed ||
+    currentVotersLoadFailed;
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm]);
+
+  const pollImportJobUntilReady = useCallback(
+    async (importJobId: string) => {
+      startedPollingImportRef.current = importJobId;
+      setSummaryModalState("uploading");
+
+      for (let attempt = 0; attempt < 45; attempt += 1) {
+        const job = await fetchImportStatus({
+          eventId: actualElectionId,
+          importJobId,
+        }).unwrap();
+
+        if (job.status !== "PROCESSING") {
+          setUploadProgress(100);
+          startedPollingImportRef.current = null;
+          setUploadSummaryJobId(job.importJobId);
+          await refetchWorkflowSummary();
+          setSummaryModalState("summary");
+          return job;
+        }
+
+        setUploadProgress((current) => Math.min(Math.max(current, 65) + 4, 94));
+        await wait(1200);
+      }
+
+      startedPollingImportRef.current = null;
+      throw new Error("El procesamiento sigue en curso. Reintenta en unos segundos.");
+    },
+    [actualElectionId, fetchImportStatus, refetchStaging, refetchWorkflowSummary],
+  );
+
+  useEffect(() => {
+    if (
+      activeDraft?.status === "PROCESSING" &&
+      activeDraft.importJobId &&
+      startedPollingImportRef.current !== activeDraft.importJobId
+    ) {
+      setUploadProgress((current) => Math.max(current, 48));
+      void pollImportJobUntilReady(activeDraft.importJobId).catch((pollError: any) => {
+        setSummaryModalState("none");
+        setError(getRequestErrorMessage(pollError, "No se pudo completar el procesamiento del padrón."));
       });
-      setModalState('summary');
-    } catch (err: any) {
-      setError(err?.message || 'No se pudo leer el CSV');
-      setModalState('none');
     }
-  };
+  }, [activeDraft?.importJobId, activeDraft?.status, pollImportJobUntilReady]);
 
-  const handleContinueFromSummary = async () => {
-    if (!pendingRows || !pendingFileName || !uploadResult) {
-      setModalState('none');
-      return;
+  const refetchVisiblePadronData = useCallback(async () => {
+    await refetchWorkflowSummary();
+
+    if (workflowSummary?.activeDraft) {
+      await refetchStaging();
     }
 
-    if (uploadResult.invalidCount > 0) {
-      setModalState('none');
-      return;
+    if (workflowSummary?.currentVersion && !workflowSummary?.activeDraft) {
+      await refetchCurrentVoters();
     }
+  }, [
+    refetchCurrentVoters,
+    refetchStaging,
+    refetchWorkflowSummary,
+    workflowSummary?.activeDraft,
+    workflowSummary?.currentVersion,
+  ]);
 
-    setModalState('uploading');
-    setUploadProgress(0);
-
-    const progressInterval = setInterval(() => {
-      setUploadProgress((prev) => Math.min(prev + 10, 90));
-    }, 200);
-
-    try {
-      const csvContent = buildUploadCsv(pendingRows);
-      const uploadFile = new File([csvContent], pendingFileName, {
-        type: 'text/csv',
-      });
-
-      const result = await importPadron({
-        eventId: actualElectionId,
-        file: uploadFile,
-      }).unwrap();
-
-      clearInterval(progressInterval);
-      setUploadProgress(100);
-
-      setUploadResult({
-        totalRecords: result.totalRecords,
-        validCount: result.validCount,
-        invalidCount: result.invalidCount,
-        voters: [],
-      });
-      setPendingRows(null);
-      setPendingFileName(null);
-      setModalState('none');
-    } catch (err: any) {
-      clearInterval(progressInterval);
-      setError(getRequestErrorMessage(err, 'Error al cargar el archivo'));
-      setModalState('none');
-    }
-  };
-
-  const handleOpenFixModal = useCallback(async () => {
-    // Prioridad: errores locales antes de subir
-    if (pendingRows) {
-      const invalids = pendingRows.filter((v) => v.status === 'invalid');
-      setInvalidVoters(invalids);
-      setFixError(null);
-      setModalState('fixing');
-      return;
-    }
-
-    // Filtrar votantes inválidos del backend
-    const invalids = voters.filter((v) => v.status === 'invalid');
-    if (invalids.length === 0) {
-      setError(
-        invalidCount > 0
-          ? 'Los registros inválidos no se guardan en la base. Debes reemplazar el CSV con una versión corregida antes de continuar.'
-          : 'No hay registros inválidos para corregir.',
-      );
-      setModalState('none');
-      return;
-    }
-    setInvalidVoters(invalids);
-    setFixError(null);
-    setModalState('fixing');
-  }, [invalidCount, pendingRows, voters]);
-
-  const handleSaveCorrections = async (corrections: CorrectionInput[]) => {
-    if (pendingRows) {
-      const correctionMap = new Map(corrections.map((c) => [c.id, c]));
-      const updated = pendingRows.map((row) =>
-        correctionMap.has(row.id)
-          ? {
-              ...row,
-              carnet: correctionMap.get(row.id)?.carnet ?? row.carnet,
-              enabled: correctionMap.get(row.id)?.enabled ?? row.enabled,
-            }
-          : row
-      );
-
-      const revalidated = revalidateRows(updated);
-      const invalidCount = revalidated.filter((v) => v.status === 'invalid').length;
-      const validCount = revalidated.length - invalidCount;
-
-      setPendingRows(revalidated);
-      setUploadResult({
-        totalRecords: revalidated.length,
-        validCount,
-        invalidCount,
-        voters: revalidated,
-      });
-
-      if (invalidCount > 0) {
-        setFixError('Aún existen registros inválidos. Corrige los marcados.');
+  const handleFileSelect = useCallback(
+    async (selectedFile: File) => {
+      if (!selectedFile || !isSupportedPadronFile(selectedFile)) {
+        setError("Solo se admiten archivos PDF, JPG, JPEG, PNG o WEBP para el padrón.");
         return;
       }
 
-      setFixError(null);
-      setModalState('summary');
-      return;
-    }
+      setError(null);
+      setSuccess(null);
+      setUploadSummaryJobId(null);
+      setSummaryModalState("uploading");
+      setUploadProgress(18);
 
-    // TODO: Implementar endpoint en backend para correcciones
-    setError('La corrección de votantes aún no está implementada en el backend');
-    setModalState('none');
-  };
+      const progressInterval = window.setInterval(() => {
+        setUploadProgress((current) => Math.min(current + 7, 72));
+      }, 280);
 
-  const handleDeleteVoter = async (voterId: string) => {
-    if (pendingRows) {
-      const updated = pendingRows.filter((row) => row.id !== voterId);
-      const revalidated = revalidateRows(updated);
-      const nextInvalidCount = revalidated.filter((v) => v.status === 'invalid').length;
-      const nextValidCount = revalidated.length - nextInvalidCount;
+      try {
+        const job = await uploadPadronSource({
+          eventId: actualElectionId,
+          file: selectedFile,
+        }).unwrap();
 
-      setPendingRows(revalidated);
-      setInvalidVoters((prev) => prev.filter((row) => row.id !== voterId));
-      setUploadResult({
-        totalRecords: revalidated.length,
-        validCount: nextValidCount,
-        invalidCount: nextInvalidCount,
-        voters: revalidated,
-      });
-      setFixError(null);
-      return;
-    }
+        window.clearInterval(progressInterval);
+        setUploadProgress(86);
 
-    setError('La eliminación de votantes persistidos aún no está implementada en el backend');
-  };
+        if (job.status === "PROCESSING") {
+          await pollImportJobUntilReady(job.importJobId);
+          return;
+        }
+
+        await refetchWorkflowSummary();
+        setUploadProgress(100);
+        setUploadSummaryJobId(job.importJobId);
+        setSummaryModalState("summary");
+      } catch (uploadError: any) {
+        window.clearInterval(progressInterval);
+        setSummaryModalState("none");
+        setError(getRequestErrorMessage(uploadError, "No se pudo subir el padrón."));
+      }
+    },
+    [
+      actualElectionId,
+      pollImportJobUntilReady,
+      refetchStaging,
+      refetchWorkflowSummary,
+      uploadPadronSource,
+    ],
+  );
 
   const handleReplaceFile = () => {
     replaceFileInputRef.current?.click();
   };
 
-  const handleReplaceFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (!selectedFile) return;
-
-    // Usar el mismo flujo que upload
-    await handleFileSelect(selectedFile);
-    e.target.value = '';
+  const handleReplaceFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (selectedFile) {
+      await handleFileSelect(selectedFile);
+    }
+    event.target.value = "";
   };
 
-  const handleDeleteFile = () => {
-    setModalState('deleteConfirm');
-  };
-
-  const handleDownloadCsv = async () => {
-    if (!latestVersion) return;
+  const handleDownloadCurrentCsv = async () => {
+    if (!currentVersion) return;
 
     try {
       const result = await downloadPadronCsv({
         eventId: actualElectionId,
-        padronVersionId: latestVersion.padronVersionId,
+        padronVersionId: currentVersion.padronVersionId,
       }).unwrap();
 
-      const blob = new Blob([result.content], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob([result.content], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
       link.download = result.fileName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-    } catch (err: any) {
-      setError(getRequestErrorMessage(err, 'No se pudo descargar el padrón'));
+    } catch (downloadError: any) {
+      setError(getRequestErrorMessage(downloadError, "No se pudo descargar el padrón."));
     }
   };
 
-  const handleConfirmDelete = async () => {
-    // TODO: Implementar endpoint en backend para eliminar padrón
-    setError('La eliminación del padrón aún no está implementada en el backend');
-    setModalState('none');
+  const handleExportStagingCsv = () => {
+    if (!stagingVoters.length) return;
+
+    const csvContent = [
+      "carnet,habilitado",
+      ...stagingVoters.map((voter) => `${voter.carnet},${voter.enabled ? "si" : "no"}`),
+    ].join("\n");
+
+    const blob = new Blob(["\uFEFF", csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `staging-padron-${activeDraft?.importJobId ?? actualElectionId}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleSaveRecord = async (payload: { ci: string; enabled: boolean }) => {
+    try {
+      if (recordModal.open && recordModal.mode === "edit" && recordModal.voter) {
+        await updatePadronStagingEntry({
+          eventId: actualElectionId,
+          entryId: recordModal.voter.id,
+          ci: payload.ci,
+          enabled: payload.enabled,
+        }).unwrap();
+      } else {
+        await addPadronStagingEntry({
+          eventId: actualElectionId,
+          ci: payload.ci,
+          enabled: payload.enabled,
+        }).unwrap();
+      }
+
+      setRecordModal({ open: false });
+      setSuccess(
+        recordModal.open && recordModal.mode === "edit"
+          ? "Registro actualizado en el staging."
+          : "Registro agregado al staging.",
+      );
+      await refetchVisiblePadronData();
+    } catch (recordError: any) {
+      throw new Error(getRequestErrorMessage(recordError, "No se pudo guardar el registro del padrón."));
+    }
+  };
+
+  const handleToggleEnabled = async (voter: Voter, nextEnabled: boolean) => {
+    try {
+      setError(null);
+      await updatePadronStagingEntry({
+        eventId: actualElectionId,
+        entryId: voter.id,
+        enabled: nextEnabled,
+      }).unwrap();
+      await refetchVisiblePadronData();
+    } catch (toggleError: any) {
+      setError(getRequestErrorMessage(toggleError, "No se pudo actualizar la habilitación del registro."));
+    }
+  };
+
+  const handleDeleteRecord = async () => {
+    if (!deleteCandidate) return;
+
+    try {
+      await deletePadronStagingEntry({
+        eventId: actualElectionId,
+        entryId: deleteCandidate.id,
+      }).unwrap();
+      setDeleteCandidate(null);
+      setSuccess("Registro eliminado del staging.");
+      await refetchVisiblePadronData();
+    } catch (deleteError: any) {
+      setError(getRequestErrorMessage(deleteError, "No se pudo eliminar el registro del padrón."));
+    }
+  };
+
+  const handleConfirmPadron = async () => {
+    try {
+      await confirmPadronStaging({ eventId: actualElectionId }).unwrap();
+      setSuccess("Padrón confirmado correctamente. Ya puedes continuar a revisión.");
+      setSummaryModalState("none");
+      setObservationsOpen(false);
+      await refetchWorkflowSummary();
+    } catch (confirmError: any) {
+      setError(getRequestErrorMessage(confirmError, "No se pudo confirmar la versión final del padrón."));
+    }
+  };
+
+  const handleContinueAfterSummary = () => {
+    setSummaryModalState("none");
   };
 
   const handleFinish = () => {
-    // Navegar a pantalla de revisión final antes de publicar
     navigate(`/votacion/elecciones/${actualElectionId}/config/review`);
   };
 
   const handleGoToStep = (step: ConfigStep) => {
     if (step === 1) {
       navigate(`/votacion/elecciones/${actualElectionId}/config/cargos`);
-    } else if (step === 2) {
+      return;
+    }
+
+    if (step === 2) {
       navigate(`/votacion/elecciones/${actualElectionId}/config/planchas`);
     }
   };
 
-  // Si no hay electionId, mostrar error
   if (!actualElectionId) {
     return (
       <ConfigPageFallback
         title="ID de votación no válido"
         message="No se pudo resolver la votación seleccionada. Vuelve al listado y entra nuevamente."
         actionLabel="Volver a elecciones"
-        onAction={() => navigate('/votacion/elecciones')}
+        onAction={() => navigate("/votacion/elecciones")}
       />
     );
   }
 
-  if (
-    eventLoadFailed ||
-    rolesLoadFailed ||
-    optionsLoadFailed ||
-    padronVersionsLoadFailed ||
-    votersLoadFailed
-  ) {
+  if (structuralErrors) {
     return (
       <ConfigPageFallback
-        title="No se pudo cargar Padrón"
+        title="No se pudo cargar el padrón"
         message="Alguno de los datos necesarios para este paso falló al cargar. Reintenta antes de continuar."
         actionLabel="Reintentar"
         onAction={() => {
           void refetchEvent();
+          void refetchWorkflowSummary();
         }}
       />
     );
   }
 
-  if (!loadingEvent && !event) {
+  if (!baseLoading && !event) {
     return (
       <ConfigPageFallback
         title="Votación no encontrada"
         message="La votación no existe o la respuesta llegó incompleta. Vuelve al listado y selecciónala de nuevo."
         actionLabel="Volver a elecciones"
-        onAction={() => navigate('/votacion/elecciones')}
+        onAction={() => navigate("/votacion/elecciones")}
       />
     );
   }
 
-  if (hasDraftAlreadyStarted(event)) {
+  if (event && hasDraftAlreadyStarted(event, nowMs)) {
     return (
       <ConfigPageFallback
         title="La votación ya venció antes de completarse"
         message="Como la hora de inicio ya pasó y el evento sigue en borrador, ya no debe seguir configurándose. Elimínalo desde la lista de votaciones."
         actionLabel="Volver a elecciones"
-        onAction={() => navigate('/votacion/elecciones')}
+        onAction={() => navigate("/votacion/elecciones")}
       />
     );
   }
 
   return (
-    <div className="bg-gray-50 min-h-[calc(100vh-64px)]">
-      {/* Contenido principal */}
+    <div className="min-h-[calc(100vh-64px)] bg-gray-50">
       <div className="py-8">
-        <div className="max-w-5xl mx-auto px-4">
-          {/* Título */}
-          <h1 className="text-4xl font-extrabold text-gray-900 text-center mb-8">
-            {event?.name || 'Cargando...'}
+        <div className="mx-auto max-w-6xl px-4">
+          <h1 className="mb-8 text-center text-4xl font-extrabold text-gray-900">
+            {event?.name || "Cargando..."}
           </h1>
 
-          {/* Error global */}
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-              {error}
-              <button
-                onClick={() => setError(null)}
-                className="ml-2 text-red-500 hover:text-red-700"
-              >
+          {error ? (
+            <div className="mb-6 flex items-start justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <p>{error}</p>
+              <button type="button" onClick={() => setError(null)} className="font-semibold text-red-500">
                 ×
               </button>
             </div>
-          )}
+          ) : null}
 
-          {/* Tabs */}
+          {success ? (
+            <div className="mb-6 flex items-start justify-between gap-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+              <p>{success}</p>
+              <button type="button" onClick={() => setSuccess(null)} className="font-semibold text-green-600">
+                ×
+              </button>
+            </div>
+          ) : null}
+
           <div className="mb-4">
             <ConfigStepsTabs
               currentStep={3}
@@ -545,123 +563,164 @@ const ElectionConfigPadron: React.FC = () => {
                 ...(isPadronReady ? [3] : []),
               ] as ConfigStep[]}
               onStepChange={handleGoToStep}
-              canNavigate={(step) => {
-                if (step === 1 || step === 2 || step === 3) return true;
-                return false;
-              }}
+              canNavigate={(step) => step === 1 || step === 2 || step === 3}
             />
           </div>
 
-          {/* Texto del paso */}
-          <p className="text-gray-600 mb-6">Paso 3 de 3: Sube el padrón electoral.</p>
+          <p className="mb-6 text-gray-600">
+            Paso 3 de 3: Sube un PDF o imagen del padrón, revisa el staging editable y confirma la versión final.
+          </p>
 
-          {/* Contenido según estado */}
-          {loading && !isLoaded ? (
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-12 text-center">
-              <div className="w-8 h-8 border-4 border-[#459151] border-t-transparent rounded-full animate-spin mx-auto" />
-              <p className="mt-4 text-gray-500">Cargando...</p>
+          {baseLoading ? (
+            <div className="rounded-2xl border border-gray-200 bg-white p-12 text-center shadow-sm">
+              <div className="mx-auto h-10 w-10 rounded-full border-4 border-[#459151] border-t-transparent animate-spin" />
+              <p className="mt-4 text-gray-500">Cargando configuración del padrón...</p>
             </div>
-          ) : isLoaded && file ? (
-            <LoadedPadronView
-              file={file}
-              voters={filteredVoters}
-              totalVoters={totalVoters}
-              validCount={validCount}
-              invalidCount={invalidCount}
+          ) : activeDraft && stagingFile ? (
+            <PadronStagingView
+              file={stagingFile}
+              voters={stagingVoters}
+              totalVoters={stagingData?.total ?? activeDraft.summary.stagingCount}
+              enabledCount={activeDraft.summary.enabledCount}
+              disabledCount={activeDraft.summary.disabledCount}
+              observedCount={activeDraft.summary.invalidCount + activeDraft.summary.duplicateCount}
               page={page}
-              totalPages={totalPages}
-              pageSize={pageSize}
+              totalPages={stagingData?.totalPages ?? 1}
+              pageSize={PAGE_SIZE}
+              loading={fetchingStaging}
+              confirming={confirmingStaging}
               onPageChange={setPage}
-              onSearchChange={setSearch}
-              onFixInvalid={handleOpenFixModal}
+              onSearchChange={setSearchTerm}
+              onInspectObservations={() => setObservationsOpen(true)}
+              onAddRecord={() => setRecordModal({ open: true, mode: "create" })}
+              onEditRecord={(voter) => setRecordModal({ open: true, mode: "edit", voter })}
+              onDeleteRecord={(voter) => setDeleteCandidate(voter)}
+              onToggleEnabled={(voter, nextEnabled) => void handleToggleEnabled(voter, nextEnabled)}
               onReplaceFile={handleReplaceFile}
-              onDeleteFile={handleDeleteFile}
-              onDownloadCsv={handleDownloadCsv}
+              onExport={handleExportStagingCsv}
+              onConfirm={() => void handleConfirmPadron()}
+            />
+          ) : hasCurrentPadron && currentFile ? (
+            <LoadedPadronView
+              file={currentFile}
+              voters={currentVoters}
+              totalVoters={currentVotersData?.total ?? 0}
+              validCount={Number(currentVersion?.totals.validCount ?? 0)}
+              invalidCount={Number(currentVersion?.totals.invalidCount ?? 0)}
+              page={page}
+              totalPages={currentVotersData?.totalPages ?? 1}
+              pageSize={PAGE_SIZE}
+              onPageChange={setPage}
+              onSearchChange={setSearchTerm}
+              onReplaceFile={handleReplaceFile}
+              onDownloadCsv={() => void handleDownloadCurrentCsv()}
               onFinish={handleFinish}
-              loading={loadingVoters || importing}
+              loading={fetchingCurrentVoters}
               downloading={downloadingCsv}
             />
           ) : (
-            <PadronDropzone onFileSelect={handleFileSelect} disabled={importing} />
+            <PadronDropzone onFileSelect={(file) => void handleFileSelect(file)} disabled={uploadingSource} />
           )}
         </div>
       </div>
 
-      {/* Input oculto para reemplazo de archivo */}
       <input
         ref={replaceFileInputRef}
         type="file"
-        accept=".csv"
+        accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
         onChange={handleReplaceFileSelect}
         className="hidden"
       />
 
-      {/* Modal de progreso de carga */}
       <UploadProgressModal
-        isOpen={modalState === 'uploading'}
+        isOpen={summaryModalState === "uploading"}
         progress={uploadProgress}
-        title="Cargando padrón..."
+        title="Procesando padrón..."
+        subtitle="El backend está leyendo el PDF o la imagen y preparando el staging editable."
       />
 
-      {/* Modal de progreso de revalidación */}
-      <UploadProgressModal
-        isOpen={modalState === 'revalidating'}
-        progress={uploadProgress}
-        title="Actualizando padrón..."
-      />
-
-      {/* Modal de resumen */}
       <UploadSummaryModal
-        isOpen={modalState === 'summary'}
-        onClose={() => setModalState('none')}
-        validCount={uploadResult?.validCount || validCount}
-        invalidCount={uploadResult?.invalidCount || invalidCount}
-        onContinue={handleContinueFromSummary}
-        onFix={handleOpenFixModal}
-        continueLabel={uploadResult?.invalidCount ? 'Continuar' : 'Subir padrón'}
-        disableContinue={Boolean(uploadResult && uploadResult.invalidCount > 0)}
+        isOpen={summaryModalState === "summary" && Boolean(uploadSummaryJob)}
+        onClose={() => setSummaryModalState("none")}
+        totalCount={uploadSummaryJob?.summary.stagingCount ?? 0}
+        enabledCount={uploadSummaryJob?.summary.enabledCount ?? 0}
+        disabledCount={uploadSummaryJob?.summary.disabledCount ?? 0}
+        observedCount={
+          (uploadSummaryJob?.summary.invalidCount ?? 0) +
+          (uploadSummaryJob?.summary.duplicateCount ?? 0)
+        }
+        onContinue={handleContinueAfterSummary}
+        onFix={
+          uploadSummaryJob &&
+          uploadSummaryJob.summary.invalidCount + uploadSummaryJob.summary.duplicateCount > 0
+            ? () => {
+                setSummaryModalState("none");
+                setObservationsOpen(true);
+              }
+            : undefined
+        }
+        continueLabel="Ir al staging"
       />
 
-      {/* Modal de corrección de inválidos */}
-      <FixInvalidModal
-        isOpen={modalState === 'fixing'}
-        onClose={() => setModalState('none')}
-        invalidVoters={invalidVoters}
-        onSave={handleSaveCorrections}
-        onDelete={handleDeleteVoter}
-        isLoading={false}
-        error={fixError}
+      <PadronObservationsModal
+        isOpen={observationsOpen}
+        errors={activeDraft?.errors ?? []}
+        onClose={() => setObservationsOpen(false)}
+        onAddRecord={
+          activeDraft
+            ? () => {
+                setObservationsOpen(false);
+                setRecordModal({ open: true, mode: "create" });
+              }
+            : undefined
+        }
       />
 
-      {/* Modal de confirmación de eliminación */}
+      <PadronRecordModal
+        isOpen={recordModal.open}
+        mode={recordModal.open ? recordModal.mode : "create"}
+        initialCi={recordModal.open && recordModal.mode === "edit" ? recordModal.voter.carnet : ""}
+        initialEnabled={recordModal.open && recordModal.mode === "edit" ? recordModal.voter.enabled : true}
+        isLoading={addingEntry || updatingEntry}
+        onClose={() => setRecordModal({ open: false })}
+        onSubmit={handleSaveRecord}
+      />
+
       <Modal2
-        isOpen={modalState === 'deleteConfirm'}
-        onClose={() => setModalState('none')}
-        title="Eliminar padrón"
+        isOpen={Boolean(deleteCandidate)}
+        onClose={() => setDeleteCandidate(null)}
+        title="Eliminar registro"
         size="sm"
         type="plain"
       >
-        <div className="space-y-4">
-          <p className="text-gray-700">
-            ¿Estás seguro de eliminar el padrón "{file?.fileName}"?
-          </p>
-          <p className="text-sm text-gray-500">
-            Se eliminarán todos los registros cargados. Tendrás que subir un nuevo archivo.
-          </p>
-          <div className="flex justify-end gap-3 pt-2">
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-red-100 bg-red-50/80 p-4 text-sm text-red-800">
+            ¿Seguro que quieres eliminar el registro{" "}
+            <span className="font-semibold">{deleteCandidate?.carnet}</span> del staging?
+          </div>
+
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <button
               type="button"
-              onClick={() => setModalState('none')}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors"
+              onClick={() => setDeleteCandidate(null)}
+              disabled={deletingEntry}
+              className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="button"
-              onClick={handleConfirmDelete}
-              className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors"
+              onClick={() => void handleDeleteRecord()}
+              disabled={deletingEntry}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
             >
-              Eliminar
+              {deletingEntry ? (
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : null}
+              <span>{deletingEntry ? "Eliminando..." : "Eliminar"}</span>
             </button>
           </div>
         </div>

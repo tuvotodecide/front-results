@@ -1,13 +1,16 @@
 import { useMemo, useState, useCallback } from 'react';
 import {
   useGetEventOptionsQuery,
+  useGetEventReviewReadinessQuery,
   useGetEventRolesQuery,
   useGetPadronSummaryQuery,
   useGetPadronVersionsQuery,
   useGetVotingEventQuery,
-  usePublishVotingEventMutation,
+  useConfirmOfficialPublicationMutation,
+  useMarkEventReadyForReviewMutation,
   VotingEvent,
 } from '../../../store/votingEvents';
+import { getOptionColors, stableCreatedAt } from '../renderUtils';
 import type { PartyWithCandidates } from '../types';
 import type {
   ActivationResult,
@@ -15,15 +18,19 @@ import type {
   ConfigSummary,
   ElectionStatus,
 } from './ElectionPublishRepository.mock';
+import type { ReviewReadinessResponse } from '../../../store/votingEvents/types';
 
 export interface UseElectionPublishReturn {
   votingEvent?: VotingEvent;
   ballotPreview: BallotPreviewData | null;
   configSummary: ConfigSummary | null;
+  reviewReadiness: ReviewReadinessResponse | null;
   electionStatus: ElectionStatus;
   loading: boolean;
   error: string | null;
-  activateElection: (nullifiers: string[]) => Promise<ActivationResult>;
+  openReview: () => Promise<ReviewReadinessResponse>;
+  openingReview: boolean;
+  activateElection: () => Promise<ActivationResult>;
   activating: boolean;
   activationResult: ActivationResult | null;
   getShareUrl: () => Promise<string>;
@@ -42,9 +49,11 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
     useGetPadronVersionsQuery(electionId, { skip: !electionId });
   const { data: padronSummary, isLoading: loadingPadronSummary, refetch: refetchPadronSummary } =
     useGetPadronSummaryQuery(electionId, { skip: !electionId });
+  const { data: reviewReadiness, isLoading: loadingReadiness, refetch: refetchReadiness } =
+    useGetEventReviewReadinessQuery(electionId, { skip: !electionId });
 
-
-  const [publishVotingEvent, { isLoading: activating }] = usePublishVotingEventMutation();
+  const [markReadyForReview, { isLoading: openingReview }] = useMarkEventReadyForReviewMutation();
+  const [confirmOfficialPublication, { isLoading: activating }] = useConfirmOfficialPublicationMutation();
   const [activationResult, setActivationResult] = useState<ActivationResult | null>(null);
 
   const ballotPreview: BallotPreviewData | null = useMemo(() => {
@@ -55,8 +64,9 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
       electionId: event.id,
       name: opt.name,
       colorHex: opt.color,
+      colors: getOptionColors(opt),
       logoUrl: opt.logoUrl,
-      createdAt: opt.createdAt ?? new Date().toISOString(),
+      createdAt: stableCreatedAt(opt.createdAt),
       candidates: (opt.candidates ?? []).map((c) => ({
         id: c.id,
         partyId: opt.id,
@@ -98,27 +108,36 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
 
   const electionStatus: ElectionStatus = useMemo(() => {
     if (!event) return 'DRAFT';
-    if (event.status === 'PUBLISHED') return 'ACTIVE';
+    if (event.status === 'PUBLISHED' || event.status === 'OFFICIALLY_PUBLISHED') return 'ACTIVE';
     if (event.status === 'CLOSED' || event.status === 'RESULTS_PUBLISHED') return 'CLOSED';
     return 'DRAFT';
   }, [event]);
 
-  const activateElection = useCallback(async (nullifiers: string[]): Promise<ActivationResult> => {
-    const response = await publishVotingEvent({electionId, nullifiers}).unwrap();
+  const activateElection = useCallback(async (): Promise<ActivationResult> => {
+    const response = await confirmOfficialPublication({ eventId: electionId }).unwrap();
 
-    const publicUrl = `${window.location.origin}/votacion/elecciones/${electionId}/publica`;
+    const publicUrl = response.publicUrl ?? `${window.location.origin}/votacion/elecciones/${electionId}/publica`;
     const shareText = `Participa en la votación: ${publicUrl}`;
     const out: ActivationResult = {
       publicUrl,
       shareText,
       electionStatus: 'ACTIVE',
-      startsAt: event?.votingStart ?? new Date().toISOString(),
-      nullifiers: response.nullifiers,
+      startsAt: event?.votingStart ?? response.officialPublishedAt ?? '',
+      nullifiers: response.nullifiers ?? [],
     };
 
     setActivationResult(out);
+    await refetchReadiness();
+    await refetchEvent();
     return out;
-  }, [publishVotingEvent, electionId, event?.votingStart]);
+  }, [confirmOfficialPublication, electionId, event?.votingStart, refetchEvent, refetchReadiness]);
+
+  const openReview = useCallback(async (): Promise<ReviewReadinessResponse> => {
+    const response = await markReadyForReview(electionId).unwrap();
+    await refetchReadiness();
+    await refetchEvent();
+    return response;
+  }, [electionId, markReadyForReview, refetchEvent, refetchReadiness]);
 
   const getShareUrl = useCallback(async (): Promise<string> => {
     return `${window.location.origin}/votacion/elecciones/${electionId}/publica`;
@@ -137,16 +156,32 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
   }, []);
 
   const refetch = useCallback(async () => {
-    await Promise.all([refetchEvent(), refetchRoles(), refetchOptions(), refetchPadron(), refetchPadronSummary()]);
-  }, [refetchEvent, refetchRoles, refetchOptions, refetchPadron, refetchPadronSummary]);
+    await Promise.all([
+      refetchEvent(),
+      refetchRoles(),
+      refetchOptions(),
+      refetchPadron(),
+      refetchPadronSummary(),
+      refetchReadiness(),
+    ]);
+  }, [refetchEvent, refetchRoles, refetchOptions, refetchPadron, refetchPadronSummary, refetchReadiness]);
 
   return {
     votingEvent: event,
     ballotPreview,
     configSummary,
+    reviewReadiness: reviewReadiness ?? null,
     electionStatus,
-    loading: loadingEvent || loadingRoles || loadingOptions || loadingPadron || loadingPadronSummary,
+    loading:
+      loadingEvent ||
+      loadingRoles ||
+      loadingOptions ||
+      loadingPadron ||
+      loadingPadronSummary ||
+      loadingReadiness,
     error: null,
+    openReview,
+    openingReview,
     activateElection,
     activating,
     activationResult,

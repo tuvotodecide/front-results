@@ -16,7 +16,7 @@ import BackButton from "../components/BackButton";
 import { useDispatch } from "react-redux";
 import { setCurrentBallot } from "../../../store/resultados/resultadosSlice";
 import { useGetAttestationsByBallotIdQuery } from "../../../store/attestations/attestationsEndpoints";
-import { getPartyColor } from "../../../legacy/resultados/partyColors";
+import { getDeterministicPartyColor } from "../../../legacy/resultados/partyColors";
 import useElectionConfig from "../hooks/useElectionConfig";
 import useElectionId from "../hooks/useElectionId";
 import {
@@ -139,26 +139,20 @@ const ResultadosImagen = () => {
 
     const partyVotes = currentItem?.votes?.parties?.partyVotes ?? [];
     const formattedPresidentialData = partyVotes.map((item: ImageVoteItem) => {
-      const partyColor = getPartyColor(item.partyId);
-      const randomColor =
-        "#" + Math.floor(Math.random() * 16777215).toString(16);
       return {
         name: item.partyId,
         value: Number(item.votes ?? 0),
-        color: partyColor || randomColor,
+        color: getDeterministicPartyColor(item.partyId),
       };
     });
     setPresidentialData(formattedPresidentialData);
 
     const deputiesVotes = currentItem?.votes?.deputies?.partyVotes ?? [];
     const formattedDeputiesData = deputiesVotes.map((item: ImageVoteItem) => {
-      const partyColor = getPartyColor(item.partyId);
-      const randomColor =
-        "#" + Math.floor(Math.random() * 16777215).toString(16);
       return {
         name: item.partyId,
         value: Number(item.votes ?? 0),
-        color: partyColor || randomColor,
+        color: getDeterministicPartyColor(item.partyId),
       };
     });
     setDeputiesData(formattedDeputiesData);

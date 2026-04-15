@@ -6,8 +6,9 @@ import { registerResultadosValidationSchema } from "@/domains/auth-resultados/sc
 
 describe("auth resultados validation", () => {
   it("maps backend roles to frontend roles", () => {
-    expect(mapBackendRole("ADMIN")).toBe("TENANT_ADMIN");
+    expect(mapBackendRole("ADMIN")).toBe("SUPERADMIN");
     expect(mapBackendRole("governor")).toBe("GOVERNOR");
+    expect(mapBackendRole("ACCESS_APPROVER")).toBe("ACCESS_APPROVER");
     expect(mapBackendRole("otro")).toBe("publico");
   });
 

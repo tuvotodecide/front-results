@@ -9,6 +9,8 @@ const navigate = vi.fn();
 const loginUser = vi.fn();
 const triggerProfile = vi.fn();
 const createUser = vi.fn();
+const getDepartmentsQuery = vi.fn();
+let currentSearchParams = new URLSearchParams();
 
 vi.mock("@/store/auth/authEndpoints", () => ({
   useLoginUserMutation: () => [loginUser, { isLoading: false }],
@@ -17,11 +19,7 @@ vi.mock("@/store/auth/authEndpoints", () => ({
 }));
 
 vi.mock("@/store/departments/departmentsEndpoints", () => ({
-  useGetDepartmentsQuery: () => ({
-    isLoading: false,
-    isError: false,
-    refetch: vi.fn(),
-  }),
+  useGetDepartmentsQuery: (...args: unknown[]) => getDepartmentsQuery(...args),
 }));
 
 vi.mock("@/components/ScopePicker", () => ({
@@ -48,7 +46,7 @@ vi.mock("@/domains/auth-resultados/navigation/compat", () => ({
   ),
   useNavigate: () => navigate,
   useLocation: () => ({ state: null }),
-  useSearchParams: () => [new URLSearchParams()],
+  useSearchParams: () => [currentSearchParams],
 }));
 
 describe("canonical auth resultados pages", () => {
@@ -57,6 +55,17 @@ describe("canonical auth resultados pages", () => {
     loginUser.mockReset();
     triggerProfile.mockReset();
     createUser.mockReset();
+    getDepartmentsQuery.mockReset();
+    getDepartmentsQuery.mockReturnValue({
+      data: {
+        data: [{ _id: "dep-1", name: "La Paz" }],
+        pagination: { page: 1, limit: 100, total: 1, pages: 1 },
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    });
+    currentSearchParams = new URLSearchParams();
   });
 
   it("validates the canonical resultados login form", async () => {
@@ -136,5 +145,129 @@ describe("canonical auth resultados pages", () => {
         replace: true,
       });
     });
+  });
+
+  it("syncs territorial pending approval in auth state immediately after registration", async () => {
+    const user = userEvent.setup();
+    currentSearchParams = new URLSearchParams(
+      "email=josetigre2000@gmail.com&name=Usuario&crossAccess=1",
+    );
+    createUser.mockReturnValue({
+      unwrap: vi.fn().mockResolvedValue({
+        id: "user-99",
+        email: "josetigre2000@gmail.com",
+        name: "Usuario",
+        dni: "1234567",
+        role: "MAYOR",
+        active: true,
+        territorialAccessStatus: "PENDING_APPROVAL",
+        municipalityId: "mun-1",
+        departmentId: "dep-1",
+      }),
+    });
+
+    const { container, store } = renderWithAuthStore(<RegisterResultadosPage />, {
+      token: "token",
+      accessToken: "token",
+      role: "TENANT_ADMIN",
+      active: true,
+      availableContexts: [{ type: "TENANT", tenantId: "tenant-1" }],
+      activeContext: { type: "TENANT", tenantId: "tenant-1" },
+      user: {
+        id: "tenant-admin-1",
+        dni: "1234567",
+        email: "sesion@test.com",
+        name: "Nombre Sesion",
+        role: "TENANT_ADMIN",
+        active: true,
+        status: "ACTIVE",
+        tenantId: "tenant-1",
+      },
+    });
+
+    await user.click(screen.getByTestId("scope-picker"));
+    await user.click(container.querySelector('[data-cy="register-submit"]') as HTMLButtonElement);
+
+    await waitFor(() => {
+      expect(store.getState().auth.user?.territorialAccessStatus).toBe(
+        "PENDING_APPROVAL",
+      );
+      expect(store.getState().auth.accessStatus?.territorial.status).toBe(
+        "PENDING_APPROVAL",
+      );
+      expect(navigate).toHaveBeenCalledWith("/resultados/pendiente", {
+        replace: true,
+      });
+    });
+    expect(localStorage.getItem("pendingReason")).toBe("SUPERADMIN_APPROVAL");
+  });
+
+  it("prefills query values and keeps department loading enabled in cross access", () => {
+    currentSearchParams = new URLSearchParams(
+      "email=josetigre2000@gmail.com&name=Usuario&crossAccess=1",
+    );
+
+    const { container } = renderWithAuthStore(<RegisterResultadosPage />, {
+      token: "token",
+      accessToken: "token",
+      user: {
+        id: "tenant-admin-1",
+        dni: "1234567",
+        email: "sesion@test.com",
+        name: "Nombre Sesion",
+        role: "TENANT_ADMIN",
+        active: true,
+        status: "ACTIVE",
+      },
+    });
+
+    expect(
+      container.querySelector('[data-cy="register-email"]'),
+    ).toHaveValue("josetigre2000@gmail.com");
+    expect(
+      container.querySelector('[data-cy="register-name"]'),
+    ).toHaveValue("Usuario");
+    expect(
+      container.querySelector('[data-cy="register-dni"]'),
+    ).toHaveValue("1234567");
+    expect(screen.getByText("Solicitar acceso")).toBeInTheDocument();
+    expect(getDepartmentsQuery).toHaveBeenCalledWith(
+      { limit: 100 },
+      { skip: false },
+    );
+  });
+
+  it("shows pending approval from resultados login without voting CTA and with public home", async () => {
+    const { store } = renderWithAuthStore(<LoginResultadosPage />, {
+      token: "token",
+      accessToken: "token",
+      role: "TENANT_ADMIN",
+      availableContexts: [{ type: "TENANT", tenantId: "tenant-1" }],
+      activeContext: { type: "TENANT", tenantId: "tenant-1" },
+      user: {
+        id: "tenant-admin-1",
+        email: "tenant@test.com",
+        name: "Tenant",
+        role: "TENANT_ADMIN",
+        active: true,
+        status: "ACTIVE",
+        territorialAccessStatus: "PENDING_APPROVAL",
+      },
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Tu solicitud territorial está pendiente de aprobación."),
+      ).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText("Ir a votación")).not.toBeInTheDocument();
+    expect(screen.queryByText("Registrarme en resultados")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Volver al inicio" })).toHaveAttribute(
+      "href",
+      "/resultados",
+    );
+    expect(store.getState().auth.token).toBeNull();
+    expect(store.getState().auth.user).toBeNull();
   });
 });

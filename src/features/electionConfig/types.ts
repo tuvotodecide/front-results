@@ -31,6 +31,7 @@ export interface Party {
   electionId: string;
   name: string;
   colorHex: string;
+  colors?: string[];
   logoUrl?: string; // base64 o URL
   createdAt: string;
 }
@@ -38,6 +39,7 @@ export interface Party {
 export interface CreatePartyPayload {
   name: string;
   colorHex: string;
+  colors?: string[];
   logoBase64?: string;
 }
 
@@ -45,6 +47,7 @@ export interface UpdatePartyPayload {
   id: string;
   name: string;
   colorHex: string;
+  colors?: string[];
   logoBase64?: string;
 }
 
@@ -83,12 +86,19 @@ export interface Voter {
   enabled: boolean;
   status: VoterStatus;
   invalidReason?: InvalidReason;
+  sourceKind?: 'PARSED' | 'MANUAL';
+  sourceRow?: number | null;
+  updatedAt?: string | null;
 }
 
 export interface PadronUploadResult {
   totalRecords: number;
   validCount: number;
   invalidCount: number;
+  duplicateCount?: number;
+  enabledCount?: number;
+  disabledCount?: number;
+  importJobId?: string;
   voters: Voter[];
 }
 
@@ -98,6 +108,7 @@ export interface PadronFile {
   totalRecords: number;
   validCount: number;
   invalidCount: number;
+  sourceType?: string;
 }
 
 export interface PadronState {

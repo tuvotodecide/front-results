@@ -3,6 +3,7 @@
 
 import React, { useState } from 'react';
 import type { PartyWithCandidates } from '../types';
+import { getOptionColors } from '../renderUtils';
 
 interface PartiesTableProps {
   parties: PartyWithCandidates[];
@@ -60,9 +61,9 @@ const PartiesTable: React.FC<PartiesTableProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+    <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
       {/* Header */}
-      <table className="w-full">
+      <table className="w-full min-w-[720px]">
         <thead>
           <tr className="bg-gray-50 border-b border-gray-200">
             <th className="text-left px-6 py-4 font-semibold text-gray-700 w-12"></th>
@@ -78,6 +79,7 @@ const PartiesTable: React.FC<PartiesTableProps> = ({
           {parties.map((party) => {
             const isExpanded = expandedIds.has(party.id);
             const hasCandidates = party.candidates.length > 0;
+            const colors = getOptionColors(party);
 
             return (
               <React.Fragment key={party.id}>
@@ -98,10 +100,15 @@ const PartiesTable: React.FC<PartiesTableProps> = ({
 
                   {/* Color */}
                   <td className="px-4 py-4 text-center">
-                    <div
-                      className="w-6 h-6 rounded mx-auto border border-gray-200"
-                      style={{ backgroundColor: party.colorHex }}
-                    />
+                    <div className="mx-auto flex w-max items-center justify-center gap-1">
+                      {colors.map((color, index) => (
+                        <span
+                          key={`${party.id}-${color}-${index}`}
+                          className="h-6 w-6 rounded border border-gray-200"
+                          style={{ backgroundColor: color }}
+                        />
+                      ))}
+                    </div>
                   </td>
 
                   {/* Logo */}

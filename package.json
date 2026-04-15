@@ -37,7 +37,6 @@
     "@types/react-redux": "^7.1.34",
     "crypto": "^1.0.1",
     "d3": "^7.9.0",
-    "ethers": "^6.16.0",
     "formik": "^2.4.6",
     "fuse.js": "^7.1.0",
     "jwt-decode": "^4.0.0",

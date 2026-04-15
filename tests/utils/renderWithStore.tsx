@@ -15,6 +15,15 @@ export const renderWithAuthStore = (
     preloadedState: {
       auth: {
         token: null,
+        accessToken: null,
+        role: null,
+        active: false,
+        tenantId: null,
+        availableContexts: [],
+        requiresContextSelection: false,
+        defaultContext: null,
+        activeContext: null,
+        accessStatus: null,
         user: null,
         ...authState,
       },

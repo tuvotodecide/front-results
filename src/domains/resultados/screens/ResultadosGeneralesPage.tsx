@@ -15,8 +15,7 @@ import Graphs from "../../../legacy-pages/Resultados/Graphs";
 import StatisticsBars from "../../../legacy-pages/Resultados/StatisticsBars";
 import TablesSection from "../components/TablesSection";
 import { useSearchParams } from "../navigation/compat";
-import { getPartyColor } from "../../../legacy/resultados/partyColors";
-import LoadingSkeleton from "../../../components/LoadingSkeleton";
+import { getDeterministicPartyColor } from "../../../legacy/resultados/partyColors";
 import useElectionId from "../hooks/useElectionId";
 import useElectionConfig from "../hooks/useElectionConfig";
 import { selectAuth } from "../../../store/auth/authSlice";
@@ -33,6 +32,56 @@ interface ResultVoteItem {
   partyId: string;
   totalVotes?: number;
 }
+
+const InlineLoadingBadge = ({ visible }: { visible: boolean }) =>
+  visible ? (
+    <span className="ml-2 inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">
+      <span className="h-2 w-2 animate-pulse rounded-full bg-[#459151]" />
+      Actualizando
+    </span>
+  ) : null;
+
+const ResultsPanelSkeleton = () => (
+  <div className="space-y-4">
+    <div className="h-10 w-52 animate-pulse rounded bg-gray-200" />
+    <div className="space-y-3">
+      {Array.from({ length: 5 }).map((_, index) => (
+        <div
+          key={index}
+          className="h-4 animate-pulse rounded bg-gray-100"
+          style={{ width: `${92 - index * 8}%` }}
+        />
+      ))}
+    </div>
+    <div className="h-56 animate-pulse rounded-lg bg-gray-100" />
+  </div>
+);
+
+const ParticipationSkeleton = () => (
+  <div className="space-y-4">
+    <div className="flex items-center justify-between gap-4">
+      <div className="h-4 w-40 animate-pulse rounded bg-gray-200" />
+      <div className="h-4 w-24 animate-pulse rounded bg-gray-200" />
+    </div>
+    <div className="h-4 animate-pulse rounded-full bg-gray-100" />
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div key={index} className="h-10 animate-pulse rounded-lg bg-gray-100" />
+      ))}
+    </div>
+  </div>
+);
+
+const TablesSectionSkeleton = () => (
+  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+    {Array.from({ length: 8 }).map((_, index) => (
+      <div
+        key={index}
+        className="h-40 animate-pulse rounded-xl border border-gray-200 bg-white"
+      />
+    ))}
+  </div>
+);
 
 // const combinedData = [
 //   { name: 'Party A', value: 100, color: '#FF6384' },
@@ -188,7 +237,10 @@ const ResultadosGenerales3 = () => {
     resolvedElectionType === "departamental" ||
     resolvedElectionType === "governor" ||
     deputiesData.length > 0;
-  const { tables: tablesData } = useCountedBallots({
+  const {
+    tables: tablesData,
+    isLoading: tablesLoading,
+  } = useCountedBallots({
     electionType: primaryElectionType,
     electionId: electionId ?? undefined,
     department: locationParams.department,
@@ -286,16 +338,10 @@ const ResultadosGenerales3 = () => {
         .then((data) => {
           if (!isActive) return;
           const formattedData = (data.results ?? []).map((item: ResultVoteItem) => {
-            const partyColor = getPartyColor(item.partyId);
-            const randomColor =
-              "#" +
-              Math.floor(Math.random() * 16777215)
-                .toString(16)
-                .padStart(6, "0");
             return {
               name: item.partyId,
               value: Number(item.totalVotes) || 0,
-              color: partyColor || randomColor,
+              color: getDeterministicPartyColor(item.partyId),
             };
           });
           setPresidentialData(formattedData);
@@ -340,16 +386,10 @@ const ResultadosGenerales3 = () => {
         .then((data) => {
           if (!isActive) return;
           const formattedData = (data.results ?? []).map((item: ResultVoteItem) => {
-            const partyColor = getPartyColor(item.partyId);
-            const randomColor =
-              "#" +
-              Math.floor(Math.random() * 16777215)
-                .toString(16)
-                .padStart(6, "0");
             return {
               name: item.partyId,
               value: Number(item.totalVotes) || 0,
-              color: partyColor || randomColor,
+              color: getDeterministicPartyColor(item.partyId),
             };
           });
           setDeputiesData(formattedData);
@@ -390,6 +430,17 @@ const ResultadosGenerales3 = () => {
     getResultsByLocation,
     getLiveResultsByLocation,
   ]);
+
+  const isResultsRefreshing = isLoading.president || isLoading.deputies;
+  const showParticipationSkeleton =
+    isResultsRefreshing && participation.length === 0;
+  const showPrimarySkeleton =
+    isResultsRefreshing && presidentialData.length === 0;
+  const showSecondarySkeleton =
+    shouldRenderSecondaryResults &&
+    isResultsRefreshing &&
+    deputiesData.length === 0;
+  const showTablesSection = tablesLoading || tablesData.length > 0;
 
   return (
     <div className="outer-container min-h-screen bg-gray-50 py-8">
@@ -434,10 +485,6 @@ const ResultadosGenerales3 = () => {
                 <p className="text-sm text-gray-500 mt-1">(Hora de Bolivia)</p>
               </div>
             </div>
-          ) : !presidentialData.length &&
-            !deputiesData.length &&
-            (isLoading.president || isLoading.deputies) ? (
-            <LoadingSkeleton />
           ) : (
             <>
               <div className="border border-gray-200 rounded-lg p-4 mb-4">
@@ -448,75 +495,91 @@ const ResultadosGenerales3 = () => {
                       Resultados preliminares
                     </span>
                   )}
+                  <InlineLoadingBadge visible={isResultsRefreshing} />
                 </h3>
-                <StatisticsBars
-                  title="Distribución de votos"
-                  voteData={participation}
-                  processedTables={{ current: 1556, total: 2678 }}
-                />
+                {showParticipationSkeleton ? (
+                  <ParticipationSkeleton />
+                ) : (
+                  <StatisticsBars
+                    title="Distribución de votos"
+                    voteData={participation}
+                    processedTables={{ current: 1556, total: 2678 }}
+                  />
+                )}
               </div>
-              {presidentialData.length === 0 ? (
-                <div className="border border-gray-200 rounded-lg p-8 text-center">
-                  <p className="text-xl text-gray-600">
-                    {shouldBlockForPublicScope
-                      ? publicScope.reason || "Sin resultados disponibles"
-                      : "Sin datos"}
-                  </p>
+              <div className="w-full flex flex-wrap gap-4">
+                <div
+                  data-cy="presidential-results"
+                  className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0"
+                >
+                  <div className="p-4">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                      <span>{resultsLabels.primary}</span>
+                      {isPreliminaryPhase && (
+                        <span className="text-xs font-semibold uppercase tracking-wide text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
+                          Preliminares
+                        </span>
+                      )}
+                      <InlineLoadingBadge visible={isResultsRefreshing} />
+                    </h3>
+
+                    {showPrimarySkeleton ? (
+                      <ResultsPanelSkeleton />
+                    ) : presidentialData.length > 0 ? (
+                      <Graphs data={presidentialData} />
+                    ) : (
+                      <div className="border border-gray-200 rounded-lg p-8 text-center">
+                        <p className="text-xl text-gray-600">
+                          {shouldBlockForPublicScope
+                            ? publicScope.reason || "Sin resultados disponibles"
+                            : "Sin datos"}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              ) : (
-                <div className="w-full flex flex-wrap gap-4">
+                {shouldRenderSecondaryResults && (
                   <div
-                    data-cy="presidential-results"
+                    data-cy="deputies-results"
                     className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0"
                   >
                     <div className="p-4">
                       <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        <span>{resultsLabels.primary}</span>
+                        <span>{resultsLabels.secondary}</span>
                         {isPreliminaryPhase && (
-                          <span className="text-xs font-semibold uppercase tracking-wide text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
+                          <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
                             Preliminares
                           </span>
                         )}
+                        <InlineLoadingBadge visible={isResultsRefreshing} />
                       </h3>
-
-                      <Graphs data={presidentialData} />
+                      {showSecondarySkeleton ? (
+                        <ResultsPanelSkeleton />
+                      ) : deputiesData.length > 0 ? (
+                        <Graphs data={deputiesData} />
+                      ) : (
+                        <div className="border border-dashed border-gray-300 rounded-lg p-8 text-center text-gray-500">
+                          Sin datos
+                        </div>
+                      )}
                     </div>
                   </div>
-                  {shouldRenderSecondaryResults && (
-                    <div
-                      data-cy="deputies-results"
-                      className="border border-gray-200 rounded-lg overflow-hidden basis-[min(420px,100%)] grow-3 shrink-0"
-                    >
-                      <div className="p-4">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                          <span>{resultsLabels.secondary}</span>
-                          {isPreliminaryPhase && (
-                            <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
-                            Preliminares
-                          </span>
-                        )}
-                      </h3>
-                        {deputiesData.length > 0 ? (
-                          <Graphs data={deputiesData} />
-                        ) : (
-                          <div className="border border-dashed border-gray-300 rounded-lg p-8 text-center text-gray-500">
-                            Sin datos
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
             </>
           )}
 
-          {tablesData.length > 0 && (
+          {showTablesSection && (
             <div className="bg-gray-50 rounded-lg shadow-sm p-4 mt-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200">
-                Mesas
+              <h3 className="text-xl font-bold text-gray-800 mb-4 pb-3 border-b border-gray-200 flex items-center">
+                <span>Mesas</span>
+                <InlineLoadingBadge visible={tablesLoading} />
               </h3>
-              <TablesSection tables={tablesData} />
+              {tablesLoading && tablesData.length === 0 ? (
+                <TablesSectionSkeleton />
+              ) : (
+                <TablesSection tables={tablesData} />
+              )}
             </div>
           )}
         </div>

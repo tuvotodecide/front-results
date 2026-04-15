@@ -33,6 +33,7 @@ export interface CreateCandidateDto {
 export interface CreateVotingOptionDto {
   name: string;
   color: string;
+  colors?: string[];
   logoUrl?: string;
   candidates?: CreateCandidateDto[];
 }
@@ -40,6 +41,7 @@ export interface CreateVotingOptionDto {
 export interface UpdateVotingOptionDto {
   name?: string;
   color?: string;
+  colors?: string[];
   logoUrl?: string;
 }
 
@@ -90,7 +92,11 @@ export interface CreateEventNewsDto {
 
 export type VotingEventStatus =
   | "DRAFT"
+  | "READY_FOR_REVIEW"
   | "PUBLISHED"
+  | "OFFICIALLY_PUBLISHED"
+  | "PUBLICATION_EXPIRED"
+  | "ACTIVE"
   | "CLOSED"
   | "RESULTS_PUBLISHED";
 
@@ -134,6 +140,7 @@ export interface VotingOption {
   eventId: string;
   name: string;
   color: string;
+  colors?: string[];
   logoUrl?: string;
   active: boolean;
   candidates: OptionCandidate[];
@@ -154,12 +161,131 @@ export interface PadronVersion {
   createdAt: string;
   createdBy?: string;
   isCurrent: boolean;
+  sourceType?: "CSV_LEGACY" | "PDF_IMPORT" | "IMAGE_IMPORT";
+  importJobId?: string | null;
 }
 
 export interface PadronSummary {
   total: number,
   enabledToVote: number,
   disabledToVote: number,
+}
+
+export type PadronImportJobStatus =
+  | "PROCESSING"
+  | "PARSED"
+  | "PARSED_WITH_ERRORS"
+  | "FAILED"
+  | "CONFIRMED";
+
+export type PadronImportSourceType = "PDF" | "IMAGE";
+
+export interface PadronImportError {
+  code: string;
+  message: string;
+  rowIndex?: number | null;
+  rawValue?: string | null;
+}
+
+export interface PadronImportJobSummary {
+  parsedCount: number;
+  validCount: number;
+  duplicateCount: number;
+  invalidCount: number;
+  stagingCount: number;
+  enabledCount: number;
+  disabledCount: number;
+}
+
+export interface PadronImportJob {
+  importJobId: string;
+  eventId: string;
+  tenantId: string;
+  sourceType: PadronImportSourceType;
+  status: PadronImportJobStatus;
+  isActiveDraft: boolean;
+  originalFile: {
+    fileName: string;
+    mimeType: string;
+    size: number;
+    sha256: string;
+  };
+  parser: {
+    provider: string;
+    model: string | null;
+    usedFallback: boolean;
+  };
+  summary: PadronImportJobSummary;
+  errors: PadronImportError[];
+  processedAt?: string | null;
+  confirmedAt?: string | null;
+  confirmedPadronVersionId?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface PadronWorkflowVersion {
+  padronVersionId: string;
+  createdAt?: string | null;
+  createdBy: string;
+  totals: {
+    validCount: number;
+    duplicateCount: number;
+    invalidCount: number;
+  };
+  sourceType: "CSV_LEGACY" | "PDF_IMPORT" | "IMAGE_IMPORT";
+  importJobId?: string | null;
+  comparisonStatus?: "PENDING" | "OK" | "FAILED";
+  certificate?: {
+    exists: boolean;
+    materializable?: boolean;
+    [key: string]: unknown;
+  };
+}
+
+export interface PadronWorkflowSummary {
+  eventId: string;
+  eventState?: string;
+  currentVersion: PadronWorkflowVersion | null;
+  activeDraft: PadronImportJob | null;
+}
+
+export interface PadronStagingEntry {
+  id: string;
+  importJobId: string;
+  ci: string;
+  enabled: boolean;
+  sourceKind: "PARSED" | "MANUAL";
+  sourceRow?: number | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface PadronStagingList {
+  importJob: PadronImportJob | null;
+  data: PadronStagingEntry[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface ConfirmPadronStagingResult {
+  importJobId: string;
+  padronVersionId: string;
+  state: "CONFIRMED";
+  totals: {
+    validCount: number;
+    duplicateCount: number;
+    invalidCount: number;
+  };
+  comparisonStatus: "PENDING" | "OK" | "FAILED";
+  sourceType: "PDF_IMPORT" | "IMAGE_IMPORT";
+  certificate?: {
+    exists: boolean;
+    materializable?: boolean;
+    [key: string]: unknown;
+  };
 }
 
 export interface PadronVoter {
@@ -245,7 +371,29 @@ export interface EventNews {
 export interface PublishEventResponse {
   id: string;
   state: VotingEventStatus;
-  nullifiers: string[];
+  nullifiers?: string[];
+  officialPublishedAt?: string | null;
+  publishDeadline?: string | null;
+  publicationConfirmed?: boolean;
+  publicationWindow?: PublicationWindow;
+  publicUrl?: string;
+  publicPath?: string;
+}
+
+export interface PublicationWindow {
+  deadline?: string | null;
+  canConfirmOfficialPublication: boolean;
+  expired: boolean;
+  hoursUntilDeadline: number | null;
+}
+
+export interface ReviewReadinessResponse {
+  id: string;
+  state: VotingEventStatus;
+  isReady: boolean;
+  pending: string[];
+  publishDeadline?: string | null;
+  publicationWindow?: PublicationWindow;
 }
 
 export type ComparisonReportStatus = "PENDING" | "OK" | "FAILED";

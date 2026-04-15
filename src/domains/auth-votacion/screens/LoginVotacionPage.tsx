@@ -10,14 +10,22 @@ import { ModalState } from "../../../types";
 import Modal2 from "../../../components/Modal2";
 import LoadingButton from "../../../components/LoadingButton";
 import {
-  useLazyGetProfileQuery,
   useLoginUserMutation,
 } from "../../../store/auth/authEndpoints";
 import {
+  logOut,
   selectAuth,
+  setActiveContext,
   setAuth,
   type AuthState,
 } from "../../../store/auth/authSlice";
+import {
+  isSameContext,
+  resolveDomainLogin,
+  type DomainLoginResult,
+} from "../../../store/auth/contextUtils";
+import DomainAccessNotice from "../../auth-context/DomainAccessNotice";
+import { buildRegisterPathWithPrefill } from "../../auth-context/registerPrefill";
 
 type LoginValues = {
   email: string;
@@ -26,15 +34,16 @@ type LoginValues = {
 
 type LoginResponse = {
   accessToken?: string;
+  access_token?: string;
+  token?: string;
   role?: string;
   active?: boolean;
-};
-
-type ProfileResponse = {
-  sub?: string;
-  votingDepartmentId?: string;
-  votingMunicipalityId?: string;
   tenantId?: string;
+  user?: Partial<NonNullable<AuthState["user"]>>;
+  availableContexts?: AuthState["availableContexts"];
+  requiresContextSelection?: boolean;
+  defaultContext?: AuthState["defaultContext"];
+  accessStatus?: AuthState["accessStatus"];
 };
 
 type AuthVotingRole =
@@ -42,7 +51,8 @@ type AuthVotingRole =
   | "GOVERNOR"
   | "publico"
   | "SUPERADMIN"
-  | "TENANT_ADMIN";
+  | "TENANT_ADMIN"
+  | "ACCESS_APPROVER";
 
 const getLogoSrc = () => {
   const logoAsset = tuvotoDecideImage as string | { src: string };
@@ -71,13 +81,65 @@ const getErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
+const getDeniedAccessResult = (error: unknown) => {
+  if (typeof error !== "object" || error === null || !("data" in error)) {
+    return null;
+  }
+
+  const data = error.data as {
+    code?: string;
+    accessStatus?: AuthState["accessStatus"];
+  };
+
+  if (data.accessStatus) {
+    const result = resolveDomainLogin(
+      {
+        role: null,
+        availableContexts: [],
+        activeContext: null,
+        defaultContext: null,
+        accessStatus: data.accessStatus,
+      },
+      "votacion",
+    );
+
+    return result.kind === "denied" ? result : null;
+  }
+
+  if (data.code === "TENANT_ACCESS_PENDING") {
+    return {
+      kind: "denied" as const,
+      message: "La solicitud institucional está pendiente de aprobación.",
+      description:
+        "Tu solicitud de acceso institucional ya fue recibida y sigue en revisión.",
+    };
+  }
+
+  if (data.code === "TENANT_ACCESS_REJECTED") {
+    return {
+      kind: "denied" as const,
+      message: "La solicitud institucional fue rechazada.",
+    };
+  }
+
+  if (data.code === "TENANT_ACCESS_REVOKED") {
+    return {
+      kind: "denied" as const,
+      message: "El acceso institucional fue revocado.",
+    };
+  }
+
+  return null;
+};
+
 const mapBackendRole = (role: string): AuthVotingRole => {
   const r = String(role || "").toUpperCase();
 
   if (r === "MAYOR") return "MAYOR";
   if (r === "GOVERNOR") return "GOVERNOR";
-  if (r === "SUPERADMIN") return "SUPERADMIN";
-  if (r === "ADMIN" || r === "TENANT_ADMIN") return "TENANT_ADMIN";
+  if (r === "SUPERADMIN" || r === "ADMIN") return "SUPERADMIN";
+  if (r === "TENANT_ADMIN") return "TENANT_ADMIN";
+  if (r === "ACCESS_APPROVER") return "ACCESS_APPROVER";
 
   return "publico";
 };
@@ -86,10 +148,21 @@ const LoginVotacionPage = () => {
   const logoSrc = getLogoSrc();
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { user, token } = useSelector(selectAuth);
+  const auth = useSelector(selectAuth);
+  const {
+    user,
+    token,
+    role: authRole,
+    availableContexts,
+    activeContext,
+    defaultContext,
+    accessStatus,
+  } = auth;
   const [showPassword, setShowPassword] = useState(false);
+  const [deniedAccess, setDeniedAccess] = useState<
+    Extract<DomainLoginResult, { kind: "denied" }> | null
+  >(null);
   const [loginUser, { isLoading: loggingIn }] = useLoginUserMutation();
-  const [triggerProfile] = useLazyGetProfileQuery();
 
   const [modal, setModal] = useState<ModalState>({
     open: false,
@@ -119,26 +192,38 @@ const LoginVotacionPage = () => {
         return;
       }
 
-      if (user.role === "publico") {
-        navigate("/votacion", { replace: true });
-      } else if (user.role === "TENANT_ADMIN") {
-        navigate("/votacion/elecciones", { replace: true });
-      } else if (user.role === "MAYOR" && user.municipalityId) {
-        navigate(
-          `/resultados?department=${user.departmentId}&municipality=${user.municipalityId}`,
-          { replace: true },
-        );
-      } else if (user.role === "GOVERNOR" && user.departmentId) {
-        navigate(`/resultados?department=${user.departmentId}`, {
-          replace: true,
-        });
-      } else if (user.role === "SUPERADMIN") {
-        navigate("/votacion/elecciones", { replace: true });
-      } else {
-        navigate("/resultados", { replace: true });
+      const result = resolveDomainLogin(
+        {
+          role: authRole,
+          availableContexts,
+          activeContext,
+          defaultContext,
+          accessStatus,
+        },
+        "votacion",
+      );
+      if (result.kind === "allowed") {
+        if (!isSameContext(activeContext, result.context)) {
+          dispatch(setActiveContext(result.context));
+        }
+        navigate(result.redirectTo, { replace: true });
+        return;
       }
+
+      dispatch(logOut());
+      setDeniedAccess(result);
     }
-  }, [user, token, navigate]);
+  }, [
+    accessStatus,
+    activeContext,
+    authRole,
+    availableContexts,
+    defaultContext,
+    user,
+    token,
+    navigate,
+    dispatch,
+  ]);
 
   const closeModal = () => setModal((current) => ({ ...current, open: false }));
 
@@ -155,54 +240,69 @@ const LoginVotacionPage = () => {
   });
 
   const onSubmit = async (values: LoginValues) => {
+    setDeniedAccess(null);
+
     try {
       const res = (await loginUser(values).unwrap()) as LoginResponse;
 
-      const access_token = res.accessToken as string;
-      const isApproved = Boolean(res.active);
+      const access_token = (res.accessToken ?? res.access_token ?? res.token) as string;
+      const isApproved = res.active !== false;
       const role = mapBackendRole(res.role ?? "");
+      const userStatus: NonNullable<AuthState["user"]>["status"] = isApproved
+        ? "ACTIVE"
+        : "PENDING";
+      const userPayload = {
+        id: res.user?.id ?? "authenticated",
+        dni: res.user?.dni,
+        email: res.user?.email ?? values.email,
+        name: res.user?.name ?? "Usuario",
+        role,
+        active: isApproved,
+        tenantId: res.tenantId ?? res.user?.tenantId,
+        status: userStatus,
+      };
 
       if (!isApproved) {
-        dispatch(
-          setAuth({
-            access_token,
-            user: {
-              id: "pending",
-              email: values.email,
-              name: "PENDIENTE",
-              role,
-              active: false,
-              status: "PENDING",
-            } satisfies NonNullable<AuthState["user"]>,
-          }),
-        );
+        dispatch(logOut());
+        localStorage.setItem("pendingEmail", values.email);
+        localStorage.setItem("pendingReason", "SUPERADMIN_APPROVAL");
         navigate("/votacion/pendiente", { replace: true });
         return;
       }
 
-      dispatch(setAuth({ access_token }));
+      const loginAuth = {
+        role: res.role ?? null,
+        availableContexts: res.availableContexts ?? [],
+        activeContext: null,
+        defaultContext: res.defaultContext ?? null,
+        accessStatus: res.accessStatus ?? null,
+      };
+      const result = resolveDomainLogin(loginAuth, "votacion");
 
-      let profile: ProfileResponse | null = null;
-      try {
-        profile = (await triggerProfile().unwrap()) as ProfileResponse;
-      } catch {
-        profile = null;
+      if (result.kind === "denied") {
+        dispatch(logOut());
+        setDeniedAccess(result);
+        return;
       }
 
-      const profileUser = {
-        id: profile?.sub ?? "unknown",
-        email: values.email,
-        name: "Usuario",
-        role,
-        active: true,
-        departmentId: profile?.votingDepartmentId,
-        municipalityId: profile?.votingMunicipalityId,
-        tenantId: profile?.tenantId,
-        status: "ACTIVE" as const,
-      };
+      dispatch(
+        setAuth({
+          ...res,
+          access_token,
+          activeContext: result.context,
+          user: userPayload,
+        }),
+      );
 
-      dispatch(setAuth({ access_token, user: profileUser }));
+      navigate(result.redirectTo, { replace: true });
     } catch (error) {
+      const deniedResult = getDeniedAccessResult(error);
+      if (deniedResult) {
+        dispatch(logOut());
+        setDeniedAccess(deniedResult);
+        return;
+      }
+
       const message = getErrorMessage(
         error,
         "No se pudo iniciar sesión",
@@ -247,6 +347,18 @@ const LoginVotacionPage = () => {
       openModal({ kind: "error", title, message: modalMessage });
     }
   };
+
+  if (deniedAccess) {
+    return (
+      <DomainAccessNotice
+        message={deniedAccess.message}
+        description={deniedAccess.description}
+        registerPath={buildRegisterPathWithPrefill(deniedAccess.registerPath ?? "", user)}
+        registerLabel="Registrarme en votación"
+        homePath="/votacion"
+      />
+    );
+  }
 
   return (
     <>

@@ -1,4 +1,4 @@
-// Modal de confirmación para activar votación
+// Modal de confirmación para publicación oficial
 // Basado en captura 03_confirm_activate_modal.png
 
 import React from 'react';
@@ -48,12 +48,12 @@ const ConfirmActivateModal: React.FC<ConfirmActivateModalProps> = ({
 
         {/* Título */}
         <h2 className="text-xl font-bold text-gray-800 mb-3">
-          ¿Activar votación?
+          ¿Confirmar publicación oficial?
         </h2>
 
         {/* Descripción */}
         <p className="text-gray-600 mb-8 px-4">
-          Se habilitará para los votantes y ya no podrás editar cargos, planchas ni padrón.
+          Se cerrará la revisión previa y la votación quedará oficialmente publicada. Ya no podrás editar cargos, planchas ni padrón.
         </p>
 
         {/* Botones */}
@@ -78,10 +78,10 @@ const ConfirmActivateModal: React.FC<ConfirmActivateModalProps> = ({
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                Activando...
+                Confirmando...
               </>
             ) : (
-              'Sí, activar'
+              'Sí, confirmar'
             )}
           </button>
         </div>

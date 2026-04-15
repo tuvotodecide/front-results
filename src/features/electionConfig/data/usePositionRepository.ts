@@ -6,6 +6,7 @@ import {
   useUpdateEventRoleMutation,
 } from '../../../store/votingEvents';
 import type { Position, CreatePositionPayload, UpdatePositionPayload } from '../types';
+import { stableCreatedAt } from '../renderUtils';
 
 interface UsePositionsResult {
   positions: Position[];
@@ -35,7 +36,7 @@ export const usePositions = (electionId: string): UsePositionsResult => {
         id: r.id,
         name: r.name,
         electionId: r.eventId,
-        createdAt: r.createdAt ?? new Date().toISOString(),
+        createdAt: stableCreatedAt(r.createdAt),
       })),
     [data],
   );
@@ -54,7 +55,7 @@ export const usePositions = (electionId: string): UsePositionsResult => {
         id: created.id,
         name: created.name,
         electionId: created.eventId,
-        createdAt: created.createdAt ?? new Date().toISOString(),
+        createdAt: stableCreatedAt(created.createdAt),
       };
     },
     updatePosition: async (payload) => {
@@ -67,7 +68,7 @@ export const usePositions = (electionId: string): UsePositionsResult => {
         id: updated.id,
         name: updated.name,
         electionId: updated.eventId,
-        createdAt: updated.createdAt ?? new Date().toISOString(),
+        createdAt: stableCreatedAt(updated.createdAt),
       };
     },
     deletePosition: async (positionId) => {

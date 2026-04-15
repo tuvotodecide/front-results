@@ -75,6 +75,13 @@ const ResultadosSidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => 
                   </Link>
                 </li>
               )}
+              {isLoggedIn && role === "SUPERADMIN" && (
+                <li className={styles.menuItem}>
+                  <Link to="/aprobaciones" className={styles.menuLink}>
+                    <span className={styles.icon}>✓</span>Aprobaciones
+                  </Link>
+                </li>
+              )}
             </ul>
           </div>
           <h3 className={styles.title}>Resultados</h3>

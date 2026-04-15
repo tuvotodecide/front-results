@@ -25,7 +25,7 @@ import { BallotType, ElectoralTableType } from "../../../types";
 import useElectionConfig from "../hooks/useElectionConfig";
 import { setCurrentTable } from "../../../store/resultados/resultadosSlice";
 import { useDispatch, useSelector } from "react-redux";
-import { getPartyColor } from "../../../legacy/resultados/partyColors";
+import { getDeterministicPartyColor } from "../../../legacy/resultados/partyColors";
 import {
   useGetAttestationCasesByTableCodeQuery,
   useGetMostSupportedBallotByTableCodeQuery,
@@ -307,16 +307,10 @@ const ResultadosMesa2 = () => {
       .then((data) => {
         if (!isActive) return;
         const formattedData = (data.results ?? []).map((item: ResultVoteItem) => {
-          const partyColor = getPartyColor(item.partyId);
-          const randomColor =
-            "#" +
-            Math.floor(Math.random() * 16777215)
-              .toString(16)
-              .padStart(6, "0");
           return {
             name: item.partyId,
             value: item.totalVotes,
-            color: partyColor || randomColor,
+            color: getDeterministicPartyColor(item.partyId),
           };
         });
         setPresidentialData(formattedData);
@@ -360,16 +354,10 @@ const ResultadosMesa2 = () => {
       .then((data) => {
         if (!isActive) return;
         const formattedData = (data.results ?? []).map((item: ResultVoteItem) => {
-          const partyColor = getPartyColor(item.partyId);
-          const randomColor =
-            "#" +
-            Math.floor(Math.random() * 16777215)
-              .toString(16)
-              .padStart(6, "0");
           return {
             name: item.partyId,
             value: item.totalVotes,
-            color: partyColor || randomColor,
+            color: getDeterministicPartyColor(item.partyId),
           };
         });
         setDeputiesData(formattedData);

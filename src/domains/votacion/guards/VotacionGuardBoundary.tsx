@@ -2,6 +2,19 @@
 
 import { Component } from "react";
 import type { ReactNode } from "react";
+import { useEffect } from "react";
+import { usePathname } from "next/navigation";
+import { useDispatch, useSelector } from "react-redux";
+import { selectAuth, setActiveContext } from "@/store/auth/authSlice";
+import {
+  findContextForDomain,
+  getBlockedAccessMessage,
+  getRegisterPathForDomain,
+  isSameContext,
+  resolveBlockedHomeByContext,
+} from "@/store/auth/contextUtils";
+import DomainAccessNotice from "@/domains/auth-context/DomainAccessNotice";
+import { buildRegisterPathWithPrefill } from "@/domains/auth-context/registerPrefill";
 
 interface VotacionGuardBoundaryProps {
   children: ReactNode;
@@ -59,5 +72,56 @@ class VotacionRuntimeBoundary extends Component<
 export default function VotacionGuardBoundary(
   props: VotacionGuardBoundaryProps,
 ) {
-  return <VotacionRuntimeBoundary {...props} />;
+  return (
+    <VotacionDomainGuard access={props.access}>
+      <VotacionRuntimeBoundary {...props} />
+    </VotacionDomainGuard>
+  );
+}
+
+function VotacionDomainGuard({
+  children,
+  access,
+}: {
+  children: ReactNode;
+  access: VotacionGuardBoundaryProps["access"];
+}) {
+  const auth = useSelector(selectAuth);
+  const dispatch = useDispatch();
+  const pathname = usePathname() ?? "";
+  const domainContext = findContextForDomain(auth.availableContexts, "votacion");
+  const hasLegacyAccess =
+    !domainContext &&
+    auth.availableContexts.length === 0 &&
+    (auth.user?.role === "SUPERADMIN" || auth.user?.role === "TENANT_ADMIN");
+  const shouldActivateDomainContext =
+    Boolean(domainContext) && !isSameContext(auth.activeContext, domainContext);
+  const shouldCheckDomain =
+    access === "public" && pathname.startsWith("/votacion") && Boolean(auth.token);
+  const shouldBlockDomain =
+    shouldCheckDomain && !domainContext && !hasLegacyAccess;
+
+  useEffect(() => {
+    if (shouldCheckDomain && domainContext && shouldActivateDomainContext) {
+      dispatch(setActiveContext(domainContext));
+    }
+  }, [dispatch, domainContext, shouldActivateDomainContext, shouldCheckDomain]);
+
+  if (shouldCheckDomain && shouldActivateDomainContext) return null;
+
+  if (shouldBlockDomain) {
+    return (
+      <DomainAccessNotice
+        message={getBlockedAccessMessage("votacion", auth.accessStatus)}
+        registerPath={buildRegisterPathWithPrefill(
+          getRegisterPathForDomain("votacion") ?? "/votacion/registrarse",
+          auth.user,
+        )}
+        registerLabel="Registrarme en votación"
+        homePath={resolveBlockedHomeByContext("votacion", auth.activeContext)}
+      />
+    );
+  }
+
+  return <>{children}</>;
 }

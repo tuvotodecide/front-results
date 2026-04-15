@@ -1,6 +1,3 @@
-// Modal para crear/editar partido
-// Basado en captura 02_party_modal.png
-
 import React, { useState, useEffect, useRef } from 'react';
 import Modal2 from '../../../components/Modal2';
 import type { Party, CreatePartyPayload } from '../types';
@@ -15,6 +12,7 @@ interface PartyModalProps {
 }
 
 const DEFAULT_COLOR = '#2E7D32';
+const MAX_COLORS = 4;
 
 const PartyModal: React.FC<PartyModalProps> = ({
   isOpen,
@@ -25,10 +23,11 @@ const PartyModal: React.FC<PartyModalProps> = ({
   submitError,
 }) => {
   const [name, setName] = useState('');
-  const [colorHex, setColorHex] = useState(DEFAULT_COLOR);
+  // Cambiado a array para soportar múltiples colores
+  const [colors, setColors] = useState<string[]>([DEFAULT_COLOR]);
   const [logoBase64, setLogoBase64] = useState<string | undefined>();
   const [logoPreview, setLogoPreview] = useState<string | undefined>();
-  const [errors, setErrors] = useState<{ name?: string; color?: string; logo?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; colors?: string; logo?: string }>({});
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -36,12 +35,16 @@ const PartyModal: React.FC<PartyModalProps> = ({
     if (isOpen) {
       if (editingParty) {
         setName(editingParty.name);
-        setColorHex(editingParty.colorHex);
+        // Regla: Si no hay array de colores, usar colorHex como fallback
+        const initialColors = editingParty.colors && editingParty.colors.length > 0
+          ? editingParty.colors
+          : [editingParty.colorHex || DEFAULT_COLOR];
+        setColors(initialColors);
         setLogoPreview(editingParty.logoUrl);
         setLogoBase64(undefined);
       } else {
         setName('');
-        setColorHex(DEFAULT_COLOR);
+        setColors([DEFAULT_COLOR]);
         setLogoBase64(undefined);
         setLogoPreview(undefined);
       }
@@ -53,30 +56,38 @@ const PartyModal: React.FC<PartyModalProps> = ({
     return /^#[0-9A-Fa-f]{6}$/.test(hex);
   };
 
-  const handleColorChange = (value: string) => {
-    // Agregar # si no existe
+  const handleColorChange = (index: number, value: string) => {
     let hex = value.startsWith('#') ? value : `#${value}`;
-    // Limitar a 7 caracteres
     hex = hex.slice(0, 7).toUpperCase();
-    setColorHex(hex);
+
+    const newColors = [...colors];
+    newColors[index] = hex;
+    setColors(newColors);
 
     if (hex.length === 7 && !validateHex(hex)) {
-      setErrors((prev) => ({ ...prev, color: 'Formato inválido (ej: #2E7D32)' }));
+      setErrors((prev) => ({ ...prev, colors: 'Formato inválido en uno de los colores' }));
     } else {
-      setErrors((prev) => ({ ...prev, color: undefined }));
+      setErrors((prev) => ({ ...prev, colors: undefined }));
+    }
+  };
+
+  const addColorField = () => {
+    if (colors.length < MAX_COLORS) {
+      setColors([...colors, '#EDD577']);
+    }
+  };
+
+  const removeColorField = (index: number) => {
+    if (colors.length > 1) {
+      setColors(colors.filter((_, i) => i !== index));
     }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith('image/')) return;
 
-    // Validar que sea imagen
-    if (!file.type.startsWith('image/')) {
-      return;
-    }
-
-    // Convertir a base64
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64 = reader.result as string;
@@ -105,20 +116,11 @@ const PartyModal: React.FC<PartyModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const newErrors: any = {};
 
-    const newErrors: { name?: string; color?: string; logo?: string } = {};
-
-    if (!name.trim()) {
-      newErrors.name = 'El nombre es obligatorio';
-    }
-
-    if (!validateHex(colorHex)) {
-      newErrors.color = 'Formato de color inválido';
-    }
-
-    if (!logoBase64 && !logoPreview) {
-      newErrors.logo = 'El logo es obligatorio';
-    }
+    if (!name.trim()) newErrors.name = 'El nombre es obligatorio';
+    if (colors.some(c => !validateHex(c))) newErrors.colors = 'Formato de color inválido';
+    if (!logoBase64 && !logoPreview) newErrors.logo = 'El logo es obligatorio';
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -128,12 +130,11 @@ const PartyModal: React.FC<PartyModalProps> = ({
     try {
       await onSave({
         name: name.trim(),
-        colorHex,
+        colors: colors, // Enviamos el array
+        colorHex: colors[0], // Fallback para legacy
         logoBase64: logoBase64 || logoPreview,
       });
-    } catch {
-      // Error manejado por el padre
-    }
+    } catch { }
   };
 
   return (
@@ -178,44 +179,80 @@ const PartyModal: React.FC<PartyModalProps> = ({
           )}
         </div>
 
-        {/* Color */}
+        {/* Colores del Partido */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Color
+          <label className="block text-sm font-medium text-gray-700 mb-4">
+            Colores del Partido
           </label>
-          <div className="flex items-center gap-4">
-            {/* Preview del color */}
-            <div
-              className="w-12 h-12 rounded-full border-2 border-gray-200 shadow-inner"
-              style={{ backgroundColor: validateHex(colorHex) ? colorHex : '#ccc' }}
-            />
-            {/* Input hex */}
-            <input
-              type="text"
-              value={colorHex}
-              onChange={(e) => handleColorChange(e.target.value)}
-              placeholder="#2E7D32"
-              disabled={isLoading}
-              className={`
-                flex-1 px-4 py-3 border rounded-lg font-mono
-                focus:ring-2 focus:ring-[#459151] focus:border-[#459151]
-                ${errors.color ? 'border-red-500' : 'border-gray-300'}
-              `}
-            />
-            {/* Color picker nativo */}
-            <input
-              type="color"
-              value={validateHex(colorHex) ? colorHex : DEFAULT_COLOR}
-              onChange={(e) => handleColorChange(e.target.value)}
-              className="w-12 h-12 p-1 border border-gray-300 rounded-lg cursor-pointer"
-            />
+          <div className="space-y-3">
+            {colors.map((color, index) => (
+              <div key={index} className="grid gap-3 sm:grid-cols-[4rem_3rem_minmax(0,1fr)_2rem_2rem] sm:items-center">
+                <span className="text-sm text-gray-500">Color {index + 1}:</span>
+
+                <div
+                  className="w-12 h-10 rounded border border-gray-200 shadow-sm"
+                  style={{ backgroundColor: validateHex(color) ? color : '#ccc' }}
+                />
+
+                <input
+                  type="text"
+                  value={color}
+                  onChange={(e) => handleColorChange(index, e.target.value)}
+                  placeholder="#000000"
+                  disabled={isLoading}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm uppercase"
+                />
+
+                <input
+                  type="color"
+                  value={validateHex(color) ? color : '#000000'}
+                  onChange={(e) => handleColorChange(index, e.target.value)}
+                  className="w-8 h-8 p-0 border-0 bg-transparent cursor-pointer"
+                />
+
+                {colors.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeColorField(index)}
+                    className="inline-flex h-8 w-8 items-center justify-center text-red-500 transition-colors hover:text-red-700"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
-          {errors.color && (
-            <p className="mt-1 text-sm text-red-600">{errors.color}</p>
+
+          {/* Botón Agregar Color Adicional */}
+          {colors.length < MAX_COLORS && (
+            <div className="mt-4 border-2 border-dashed border-gray-200 rounded-xl p-4 flex items-center justify-between bg-gray-50/30">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 border border-gray-200 bg-white rounded flex items-center justify-center">
+                  <div className="w-6 h-6 border border-gray-100" />
+                </div>
+                <div className="text-sm">
+                  <p className="text-gray-600">Agregar color adicional</p>
+                  <p className="text-gray-400 text-xs">#EDD577</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={addColorField}
+                className="bg-[#2E7D32] hover:bg-[#256329] text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
+              >
+                <span className="text-lg">+</span> Agregar
+              </button>
+            </div>
           )}
+          {errors.colors && (
+            <p className="mt-2 text-sm text-red-600">{errors.colors}</p>
+          )}
+          <p className="mt-2 text-xs text-gray-400">Puedes agregar hasta 4 colores en total.</p>
         </div>
 
-        {/* Logo */}
+        {/* Logo (Lógica original intacta) */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Logo *
@@ -272,8 +309,8 @@ const PartyModal: React.FC<PartyModalProps> = ({
           )}
         </div>
 
-        {/* Botones */}
-        <div className="flex justify-end gap-3 pt-4">
+        {/* Botones (Originales) */}
+        <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row sm:justify-end">
           <button
             type="button"
             onClick={onClose}

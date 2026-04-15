@@ -1,7 +1,7 @@
 // Página de revisión final antes de publicar la elección
 // Basado en capturas 01-04
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   useNavigate,
   useParams,
@@ -13,45 +13,59 @@ import ScheduleSummaryCard from './components/ScheduleSummaryCard';
 import ConfirmActivateModal from './components/ConfirmActivateModal';
 import ActivatedSuccessModal from './components/ActivatedSuccessModal';
 import { useElectionPublish } from './data/useElectionPublish';
-import { useWallet } from '../../hooks/useWallet';
 import Modal2 from '../../components/Modal2';
 import ConfigPageFallback from './components/ConfigPageFallback';
+import { hasDraftAlreadyStarted, useClientNow } from './renderUtils';
+import { useDeleteVotingEventMutation } from '../../store/votingEvents';
 
-const hasDraftAlreadyStarted = (event?: { status?: string | null; votingStart?: string | null }) =>
-  event?.status === 'DRAFT' &&
-  Boolean(event.votingStart && new Date(event.votingStart).getTime() <= Date.now());
+const pendingLabels: Record<string, string> = {
+  datos_base: 'Datos base de la votación',
+  horarios: 'Cronograma completo y válido',
+  publish_deadline: 'Ventana de publicación de 36 horas',
+  cargos: 'Cargos configurados',
+  opciones: 'Planchas registradas',
+  candidatos: 'Candidatos asignados',
+  candidatos_invalidos: 'Candidatos con cargos válidos',
+  cobertura_cargos: 'Cobertura de todos los cargos',
+  padron: 'Padrón cargado',
+  padron_invalid: 'Padrón sin registros inválidos',
+  padron_validation: 'Validación del padrón',
+  publication_window_expired: 'La ventana de publicación oficial venció',
+};
 
 const ElectionConfigReview: React.FC = () => {
   const navigate = useNavigate();
   const { electionId } = useParams<{ electionId: string }>();
   const actualElectionId = electionId || '';
-
-  const {
-    connectionState,
-    transactionState,
-    connectWallet,
-    callCreateVoting,
-    resetTransactionState,
-  } = useWallet();
+  const nowMs = useClientNow();
 
   const {
     votingEvent,
     ballotPreview,
     configSummary,
+    reviewReadiness,
     loading,
+    openReview,
+    openingReview,
     activateElection,
     activating,
     activationResult,
     copyToClipboard,
     refetch,
   } = useElectionPublish(actualElectionId);
+  const [deleteVotingEvent, { isLoading: deletingEvent }] = useDeleteVotingEventMutation();
+  const didRefetchOnMount = useRef(false);
 
   useEffect(() => {
+    if (!actualElectionId) return;
+    if (didRefetchOnMount.current) return;
+    didRefetchOnMount.current = true;
     refetch();
-  }, []);
+  }, [actualElectionId, refetch]);
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
   const isReadyToPublish = configSummary
     ? configSummary.positionsOk && configSummary.partiesOk && configSummary.padronOk
@@ -65,22 +79,26 @@ const ElectionConfigReview: React.FC = () => {
     setShowConfirmModal(true);
   };
 
+  const handleOpenReview = async () => {
+    try {
+      await openReview();
+    } catch (error: any) {
+      setShowErrorModal(true);
+      console.error('Error opening review:', error);
+    }
+  };
+
   const handleActivate = async () => {
     try {
-      if (!votingEvent || !configSummary?.enabledToVoteCount) {
+      if (!votingEvent) {
         throw new Error('Could not load voting event data');
       }
-      // on-chain call
-      const nullifiers = await callCreateVoting(votingEvent, configSummary.enabledToVoteCount);
-      // call backend to activate election with nullifiers
-      await activateElection(nullifiers);
+      await activateElection();
       setShowConfirmModal(false);
       setShowSuccessModal(true);
     } catch (error: any) {
       setShowConfirmModal(false);
-      if (error.message === 'tx_canceled') {
-        return;
-      }
+      setShowErrorModal(true);
       console.error('Error activating election:', error);
     }
   };
@@ -91,41 +109,26 @@ const ElectionConfigReview: React.FC = () => {
     navigate('/votacion/elecciones');
   };
 
-  const connectMetamask = () => {
-    if (
-      connectionState === 'connecting' ||
-      activating ||
-      transactionState === 'pending'
-    ) {
-      return;
-    }
-    connectWallet();
-  }
-
-  const renderButtonText = () => {
-    switch (connectionState) {
-      case 'disconnected':
-        return 'Conectarse a MetaMask para publicar';
-      case 'connecting':
-        return 'Conectando...';
-      case 'notInstalled':
-        return 'Instale la extensión MetaMask para publicar';
-      case 'connected':
-        return 'Confirmar y activar';
-      default:
-        return 'Conectarse a MetaMask para publicar';
-    }
-  }
+  const handleDeleteExpired = async () => {
+    if (!actualElectionId) return;
+    await deleteVotingEvent(actualElectionId).unwrap();
+    navigate('/votacion/elecciones');
+  };
 
   const isPublishButtonDisabled = () => {
     return (
-      !isReadyToPublish ||
-      connectionState === 'connecting' ||
-      connectionState === 'notInstalled' ||
-      activating ||
-      transactionState === 'pending'
+      !isReadyToPublish || activating || reviewReadiness?.publicationWindow?.expired
     );
   }
+
+  const eventState = votingEvent?.state ?? votingEvent?.status ?? 'DRAFT';
+  const canOpenReview = eventState === 'DRAFT' && isReadyToPublish && reviewReadiness?.isReady;
+  const canConfirmOfficialPublication =
+    eventState === 'READY_FOR_REVIEW' &&
+    isReadyToPublish &&
+    reviewReadiness?.publicationWindow?.canConfirmOfficialPublication;
+  const isPublicationExpired =
+    eventState === 'PUBLICATION_EXPIRED' || Boolean(reviewReadiness?.publicationWindow?.expired);
 
   if (!actualElectionId) {
     return (
@@ -149,7 +152,7 @@ const ElectionConfigReview: React.FC = () => {
     );
   }
 
-  if (hasDraftAlreadyStarted(votingEvent)) {
+  if (hasDraftAlreadyStarted(votingEvent, nowMs)) {
     return (
       <ConfigPageFallback
         title="La votación ya venció antes de completarse"
@@ -189,6 +192,37 @@ const ElectionConfigReview: React.FC = () => {
 
             {/* Columna derecha: Resumen (mobile: arriba, desktop: lado) */}
             <div className="w-full lg:w-80 order-first lg:order-last space-y-4">
+              {reviewReadiness && (
+                <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm shadow-sm">
+                  <h2 className="font-semibold text-gray-800">Revisión previa</h2>
+                  {reviewReadiness.isReady ? (
+                    <p className="mt-2 text-green-700">
+                      {eventState === 'READY_FOR_REVIEW'
+                        ? 'La revisión previa está abierta. Ya puedes confirmar la publicación oficial dentro de la ventana permitida.'
+                        : 'La configuración está completa para abrir revisión.'}
+                    </p>
+                  ) : (
+                    <div className="mt-2 text-amber-800">
+                      <p>Faltan estos puntos antes de abrir revisión:</p>
+                      <ul className="mt-2 list-disc space-y-1 pl-5">
+                        {reviewReadiness.pending.map((item) => (
+                          <li key={item}>{pendingLabels[item] ?? item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {reviewReadiness.publicationWindow?.deadline && (
+                    <p className="mt-3 text-xs text-gray-500">
+                      La publicación oficial debe confirmarse antes de que falten 36 horas para iniciar la votación.
+                    </p>
+                  )}
+                </div>
+              )}
+              {isPublicationExpired && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                  La ventana de publicación oficial venció. Esta votación ya no debe editarse como borrador; elimínala y crea una nueva.
+                </div>
+              )}
               {configSummary && <ConfigSummaryCard summary={configSummary} />}
               <ScheduleSummaryCard
                 votingStart={votingEvent?.votingStart}
@@ -206,32 +240,72 @@ const ElectionConfigReview: React.FC = () => {
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             {/* Botón volver */}
-            <button
-              type="button"
-              onClick={handleBackToEdit}
-              className="w-full sm:w-auto px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Volver a editar
-            </button>
+            {!isPublicationExpired ? (
+              <button
+                type="button"
+                onClick={handleBackToEdit}
+                className="w-full sm:w-auto px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Volver a editar
+              </button>
+            ) : (
+              <span className="w-full text-sm text-red-700 sm:w-auto">
+                La votación vencida no se edita.
+              </span>
+            )}
 
             {/* Botón confirmar */}
             <div className="w-full sm:w-auto text-center sm:text-right">
-              <button
-                type="button"
-                onClick={connectionState === 'disconnected' ? connectMetamask : handleConfirmClick}
-                disabled={isPublishButtonDisabled()}
-                className={`
-                  w-full sm:w-auto px-8 py-3 font-semibold rounded-lg transition-all
-                  ${!isPublishButtonDisabled()
-                    ? 'bg-[#459151] hover:bg-[#3a7a44] text-white shadow-md hover:shadow-lg'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }
-                `}
-              >
-                { renderButtonText() }
-              </button>
+              {isPublicationExpired ? (
+                <button
+                  type="button"
+                  onClick={handleDeleteExpired}
+                  disabled={deletingEvent}
+                  className="w-full rounded-lg bg-red-600 px-8 py-3 font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                >
+                  {deletingEvent ? 'Eliminando...' : 'Eliminar votación vencida'}
+                </button>
+              ) : eventState === 'OFFICIALLY_PUBLISHED' || eventState === 'PUBLISHED' ? (
+                <button
+                  type="button"
+                  disabled
+                  className="w-full cursor-not-allowed rounded-lg bg-gray-300 px-8 py-3 font-semibold text-gray-500 sm:w-auto"
+                >
+                  Publicación oficial confirmada
+                </button>
+              ) : eventState === 'READY_FOR_REVIEW' ? (
+                <button
+                  type="button"
+                  onClick={handleConfirmClick}
+                  disabled={isPublishButtonDisabled() || !canConfirmOfficialPublication}
+                  className={`
+                    w-full sm:w-auto px-8 py-3 font-semibold rounded-lg transition-all
+                    ${!isPublishButtonDisabled() && canConfirmOfficialPublication
+                      ? 'bg-[#459151] hover:bg-[#3a7a44] text-white shadow-md hover:shadow-lg'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }
+                  `}
+                >
+                  Confirmar publicación oficial
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleOpenReview}
+                  disabled={!canOpenReview || openingReview}
+                  className={`
+                    w-full sm:w-auto px-8 py-3 font-semibold rounded-lg transition-all
+                    ${canOpenReview && !openingReview
+                      ? 'bg-[#459151] hover:bg-[#3a7a44] text-white shadow-md hover:shadow-lg'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }
+                  `}
+                >
+                  {openingReview ? 'Abriendo revisión...' : 'Abrir revisión'}
+                </button>
+              )}
               <p className="text-xs text-gray-500 mt-2">
-                Al activar, la votación será visible para votantes según horarios.
+                Abrir revisión notifica a empadronados. La publicación oficial se confirma después, desde backend.
               </p>
             </div>
           </div>
@@ -243,7 +317,7 @@ const ElectionConfigReview: React.FC = () => {
         isOpen={showConfirmModal}
         onClose={() => setShowConfirmModal(false)}
         onConfirm={handleActivate}
-        isLoading={activating || transactionState === 'pending'}
+        isLoading={activating}
       />
 
       {/* Modal de éxito */}
@@ -256,19 +330,8 @@ const ElectionConfigReview: React.FC = () => {
       />
 
       <Modal2
-        isOpen={transactionState == 'canceled'}
-        onClose={resetTransactionState}
-        title='Operación cancelada'
-        type='info'
-        showClose
-        closeOnEscape
-      >
-        Operación cancelada por el usuario. No se ha publicado la votación.
-      </Modal2>
-
-      <Modal2
-        isOpen={transactionState == 'error'}
-        onClose={resetTransactionState}
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
         title='Operación fallida'
         type='error'
         showClose

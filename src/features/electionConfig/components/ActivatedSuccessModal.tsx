@@ -84,12 +84,12 @@ const ActivatedSuccessModal: React.FC<ActivatedSuccessModalProps> = ({
 
         {/* Título */}
         <h2 className="text-2xl font-bold text-[#459151] mb-3">
-          ¡Votación activada!
+          Publicación oficial confirmada
         </h2>
 
         {/* Descripción */}
         <p className="text-gray-600 mb-8 px-2">
-          Los votantes habilitados podrán verla a partir de la fecha y hora configuradas.
+          Los votantes habilitados podrán verla según las fechas configuradas.
         </p>
 
         {/* Botones */}

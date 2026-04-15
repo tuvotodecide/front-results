@@ -34,6 +34,8 @@ describe("middleware access rules", () => {
   it("normalizes roles and statuses", () => {
     expect(normalizeRole("ALCALDE")).toBe("MAYOR");
     expect(normalizeRole("tenantadmin")).toBe("TENANT_ADMIN");
+    expect(normalizeRole("ADMIN")).toBe("SUPERADMIN");
+    expect(normalizeRole("ACCESS_APPROVER")).toBe("ACCESS_APPROVER");
     expect(normalizeRole("unknown")).toBe("publico");
 
     expect(normalizeStatus("ACTIVE", "false")).toBe("ACTIVE");
@@ -117,7 +119,7 @@ describe("middleware access rules", () => {
     expect(response.headers.get("x-middleware-next")).toBe("1");
   });
 
-  it("redirects non-tenant voting users to root", () => {
+  it("lets non-tenant voting users reach the client guard for the domain notice", () => {
     const token = createToken({
       exp: Math.floor(Date.now() / 1000) + 3600,
       role: "publico",
@@ -133,7 +135,7 @@ describe("middleware access rules", () => {
       }),
     );
 
-    expect(response.headers.get("location")).toBe("http://localhost/");
+    expect(response.headers.get("x-middleware-next")).toBe("1");
   });
 
   it("allows tenant admin users into canonical voting routes", () => {
@@ -149,6 +151,26 @@ describe("middleware access rules", () => {
         [AUTH_COOKIE_KEYS.role]: "TENANT_ADMIN",
         [AUTH_COOKIE_KEYS.status]: "ACTIVE",
         [AUTH_COOKIE_KEYS.active]: "true",
+      }),
+    );
+
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+  });
+
+  it("lets access approvers reach voting routes so the client guard can show the domain notice", () => {
+    const token = createToken({
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      role: "ACCESS_APPROVER",
+      active: true,
+    });
+
+    const response = handleVotacionAccess(
+      createRequest("/votacion/elecciones/new", {
+        [AUTH_COOKIE_KEYS.token]: token,
+        [AUTH_COOKIE_KEYS.role]: "ACCESS_APPROVER",
+        [AUTH_COOKIE_KEYS.status]: "ACTIVE",
+        [AUTH_COOKIE_KEYS.active]: "true",
+        [AUTH_COOKIE_KEYS.context]: "ACCESS_APPROVALS",
       }),
     );
 

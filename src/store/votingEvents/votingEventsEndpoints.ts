@@ -1,6 +1,7 @@
 import { apiSlice } from "../apiSlice";
 import type {
   ComparisonReportStatus,
+  ConfirmPadronStagingResult,
   CreateEventNewsDto,
   CreateEventRoleDto,
   CreateParticipationDto,
@@ -11,11 +12,16 @@ import type {
   EventResults,
   EventRole,
   PadronCsvDownload,
+  PadronImportJob,
   PadronImportResult,
+  PadronStagingEntry,
+  PadronStagingList,
   PadronSummary,
   PadronVersion,
   PadronVoter,
+  PadronWorkflowSummary,
   ParticipationStatus,
+  ReviewReadinessResponse,
   PublishEventResponse,
   ReplaceCandidatesDto,
   UpdateEventRoleDto,
@@ -29,6 +35,50 @@ import type {
 } from "./types";
 
 const unwrapApiData = (raw: any) => raw?.data ?? raw;
+
+const toPublicationWindow = (source: any) => ({
+  deadline: source?.deadline ?? null,
+  canConfirmOfficialPublication: Boolean(source?.canConfirmOfficialPublication),
+  expired: Boolean(source?.expired),
+  hoursUntilDeadline:
+    source?.hoursUntilDeadline === null || source?.hoursUntilDeadline === undefined
+      ? null
+      : Number(source.hoursUntilDeadline),
+});
+
+const toReviewReadiness = (raw: any): ReviewReadinessResponse => {
+  const source = unwrapApiData(raw);
+  return {
+    id: String(source?.id ?? source?._id ?? ""),
+    state: (source?.state ?? "DRAFT") as ReviewReadinessResponse["state"],
+    isReady: Boolean(source?.isReady),
+    pending: Array.isArray(source?.pending) ? source.pending.map(String) : [],
+    publishDeadline: source?.publishDeadline ?? null,
+    publicationWindow: source?.publicationWindow
+      ? toPublicationWindow(source.publicationWindow)
+      : undefined,
+  };
+};
+
+const toPublishResponse = (raw: any): PublishEventResponse => {
+  const source = unwrapApiData(raw);
+  return {
+    id: String(source?.id ?? source?._id ?? ""),
+    state: (source?.state ?? "DRAFT") as PublishEventResponse["state"],
+    nullifiers: Array.isArray(source?.nullifiers) ? source.nullifiers.map(String) : undefined,
+    officialPublishedAt: source?.officialPublishedAt ?? null,
+    publishDeadline: source?.publishDeadline ?? null,
+    publicationConfirmed:
+      source?.publicationConfirmed === undefined
+        ? undefined
+        : Boolean(source.publicationConfirmed),
+    publicationWindow: source?.publicationWindow
+      ? toPublicationWindow(source.publicationWindow)
+      : undefined,
+    publicUrl: source?.publicUrl ?? undefined,
+    publicPath: source?.publicPath ?? undefined,
+  };
+};
 
 const toVotingEvent = (raw: any): VotingEvent => {
   const source = unwrapApiData(raw);
@@ -46,6 +96,8 @@ const toVotingEvent = (raw: any): VotingEvent => {
     status: state,
     publicEligibilityEnabled: Boolean(source?.publicEligibilityEnabled),
     publicEligibility: Boolean(source?.publicEligibilityEnabled),
+    createdAt: source?.createdAt,
+    updatedAt: source?.updatedAt,
     roles: Array.isArray(source?.roles)
       ? source.roles.map((r: any) => ({
           id: String(r?.id ?? r?._id ?? ""),
@@ -60,7 +112,8 @@ const toVotingEvent = (raw: any): VotingEvent => {
           id: String(o?.id ?? o?._id ?? ""),
           eventId: String(o?.eventId ?? source?.id ?? source?._id ?? ""),
           name: o?.name ?? "",
-          color: o?.color ?? "#000000",
+          color: o?.color ?? o?.colors?.[0] ?? "#000000",
+          colors: Array.isArray(o?.colors) ? o.colors.map(String) : undefined,
           logoUrl: o?.logoUrl ?? undefined,
           active: Boolean(o?.active ?? true),
           createdAt: o?.createdAt,
@@ -95,7 +148,8 @@ const toOption = (raw: any): VotingOption => {
     id: String(source?.id ?? source?._id ?? ""),
     eventId: String(source?.eventId ?? ""),
     name: source?.name ?? "",
-    color: source?.color ?? "#000000",
+    color: source?.color ?? source?.colors?.[0] ?? "#000000",
+    colors: Array.isArray(source?.colors) ? source.colors.map(String) : undefined,
     logoUrl: source?.logoUrl ?? undefined,
     active: Boolean(source?.active ?? true),
     createdAt: source?.createdAt,
@@ -108,6 +162,114 @@ const toOption = (raw: any): VotingOption => {
           roleName: c?.roleName ?? "",
         }))
       : [],
+  };
+};
+
+const toPadronImportJob = (raw: any): PadronImportJob => {
+  const source = unwrapApiData(raw);
+  return {
+    importJobId: String(source?.importJobId ?? source?.id ?? source?._id ?? ""),
+    eventId: String(source?.eventId ?? ""),
+    tenantId: String(source?.tenantId ?? ""),
+    sourceType: source?.sourceType === "IMAGE" ? "IMAGE" : "PDF",
+    status: (source?.status ?? "PROCESSING") as PadronImportJob["status"],
+    isActiveDraft: Boolean(source?.isActiveDraft),
+    originalFile: {
+      fileName: String(source?.originalFile?.fileName ?? ""),
+      mimeType: String(source?.originalFile?.mimeType ?? ""),
+      size: Number(source?.originalFile?.size ?? 0),
+      sha256: String(source?.originalFile?.sha256 ?? ""),
+    },
+    parser: {
+      provider: String(source?.parser?.provider ?? "local-fallback"),
+      model: source?.parser?.model ?? null,
+      usedFallback: source?.parser?.usedFallback !== false,
+    },
+    summary: {
+      parsedCount: Number(source?.summary?.parsedCount ?? 0),
+      validCount: Number(source?.summary?.validCount ?? 0),
+      duplicateCount: Number(source?.summary?.duplicateCount ?? 0),
+      invalidCount: Number(source?.summary?.invalidCount ?? 0),
+      stagingCount: Number(source?.summary?.stagingCount ?? 0),
+      enabledCount: Number(source?.summary?.enabledCount ?? 0),
+      disabledCount: Number(source?.summary?.disabledCount ?? 0),
+    },
+    errors: Array.isArray(source?.errors)
+      ? source.errors.map((error: any) => ({
+          code: String(error?.code ?? "UNKNOWN"),
+          message: String(error?.message ?? "Observación de procesamiento"),
+          rowIndex:
+            error?.rowIndex === null || error?.rowIndex === undefined
+              ? null
+              : Number(error.rowIndex),
+          rawValue:
+            error?.rawValue === null || error?.rawValue === undefined
+              ? null
+              : String(error.rawValue),
+        }))
+      : [],
+    processedAt: source?.processedAt ?? null,
+    confirmedAt: source?.confirmedAt ?? null,
+    confirmedPadronVersionId: source?.confirmedPadronVersionId
+      ? String(source.confirmedPadronVersionId)
+      : null,
+    createdAt: source?.createdAt ?? null,
+    updatedAt: source?.updatedAt ?? null,
+  };
+};
+
+const toPadronStagingEntry = (raw: any): PadronStagingEntry => {
+  const source = unwrapApiData(raw);
+  return {
+    id: String(source?.id ?? source?._id ?? ""),
+    importJobId: String(source?.importJobId ?? ""),
+    ci: String(source?.ci ?? source?.carnetNorm ?? ""),
+    enabled: source?.enabled !== false,
+    sourceKind: source?.sourceKind === "MANUAL" ? "MANUAL" : "PARSED",
+    sourceRow:
+      source?.sourceRow === null || source?.sourceRow === undefined
+        ? null
+        : Number(source.sourceRow),
+    createdAt: source?.createdAt ?? null,
+    updatedAt: source?.updatedAt ?? null,
+  };
+};
+
+const toPadronWorkflowSummary = (raw: any): PadronWorkflowSummary => {
+  const source = unwrapApiData(raw);
+  const currentVersion = source?.currentVersion;
+  return {
+    eventId: String(source?.eventId ?? ""),
+    eventState: source?.eventState ?? undefined,
+    currentVersion: currentVersion
+      ? {
+          padronVersionId: String(currentVersion?.padronVersionId ?? ""),
+          createdAt: currentVersion?.createdAt ?? null,
+          createdBy: String(currentVersion?.createdBy ?? ""),
+          totals: {
+            validCount: Number(currentVersion?.totals?.validCount ?? 0),
+            duplicateCount: Number(currentVersion?.totals?.duplicateCount ?? 0),
+            invalidCount: Number(currentVersion?.totals?.invalidCount ?? 0),
+          },
+          sourceType:
+            currentVersion?.sourceType === "IMAGE_IMPORT"
+              ? "IMAGE_IMPORT"
+              : currentVersion?.sourceType === "PDF_IMPORT"
+                ? "PDF_IMPORT"
+                : "CSV_LEGACY",
+          importJobId: currentVersion?.importJobId
+            ? String(currentVersion.importJobId)
+            : null,
+          comparisonStatus:
+            currentVersion?.comparisonStatus === "OK"
+              ? "OK"
+              : currentVersion?.comparisonStatus === "FAILED"
+                ? "FAILED"
+                : "PENDING",
+          certificate: currentVersion?.certificate ?? undefined,
+        }
+      : null,
+    activeDraft: source?.activeDraft ? toPadronImportJob(source.activeDraft) : null,
   };
 };
 
@@ -160,13 +322,38 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
       invalidatesTags: ["VotingEvents"],
     }),
 
-    publishVotingEvent: builder.mutation<PublishEventResponse, { electionId: string; nullifiers: string[] }>({
-      query: ({ electionId, nullifiers }) => ({
+    publishVotingEvent: builder.mutation<PublishEventResponse, { electionId: string; }>({
+      query: ({ electionId }) => ({
         url: `/voting/events/${electionId}/publish`,
         method: "POST",
-        body: nullifiers,
       }),
+      transformResponse: (response: any) => toPublishResponse(response),
       invalidatesTags: (_result, _error, { electionId }) => [{ type: "VotingEvents", id: electionId }],
+    }),
+
+    getEventReviewReadiness: builder.query<ReviewReadinessResponse, string>({
+      query: (eventId) => `/voting/events/${eventId}/review-readiness`,
+      transformResponse: (response: any) => toReviewReadiness(response),
+      providesTags: (_result, _error, eventId) => [{ type: "VotingEvents", id: eventId }],
+    }),
+
+    markEventReadyForReview: builder.mutation<ReviewReadinessResponse, string>({
+      query: (eventId) => ({
+        url: `/voting/events/${eventId}/ready-for-review`,
+        method: "POST",
+      }),
+      transformResponse: (response: any) => toReviewReadiness(response),
+      invalidatesTags: (_result, _error, eventId) => [{ type: "VotingEvents", id: eventId }],
+    }),
+
+    confirmOfficialPublication: builder.mutation<PublishEventResponse, { eventId: string }>({
+      query: ({ eventId }) => ({
+        url: `/voting/events/${eventId}/official-publication/confirm`,
+        method: "POST",
+        body: {},
+      }),
+      transformResponse: (response: any) => toPublishResponse(response),
+      invalidatesTags: (_result, _error, { eventId }) => [{ type: "VotingEvents", id: eventId }],
     }),
 
     getEventRoles: builder.query<EventRole[], string>({
@@ -293,6 +480,153 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
       invalidatesTags: (_result, _error, { eventId }) => [{ type: "VotingEventPadron", id: eventId }],
     }),
 
+    uploadPadronSource: builder.mutation<PadronImportJob, { eventId: string; file: File }>({
+      query: ({ eventId, file }) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        return {
+          url: `/voting/events/${eventId}/padron/imports`,
+          method: "POST",
+          body: formData,
+        };
+      },
+      transformResponse: (response: any) => toPadronImportJob(response),
+      invalidatesTags: (_result, _error, { eventId }) => [
+        { type: "VotingEventPadron", id: eventId },
+        { type: "VotingEventPadronSummary", id: eventId },
+      ],
+    }),
+
+    getPadronImportStatus: builder.query<
+      PadronImportJob,
+      { eventId: string; importJobId: string }
+    >({
+      query: ({ eventId, importJobId }) =>
+        `/voting/events/${eventId}/padron/imports/${importJobId}`,
+      transformResponse: (response: any) => toPadronImportJob(response),
+      providesTags: (_result, _error, { eventId }) => [
+        { type: "VotingEventPadron", id: eventId },
+        { type: "VotingEventPadronSummary", id: eventId },
+      ],
+    }),
+
+    getPadronWorkflowSummary: builder.query<PadronWorkflowSummary, string>({
+      query: (eventId) => `/voting/events/${eventId}/padron/summary`,
+      transformResponse: (response: any) => toPadronWorkflowSummary(response),
+      providesTags: (_result, _error, eventId) => [
+        { type: "VotingEventPadron", id: eventId },
+        { type: "VotingEventPadronSummary", id: eventId },
+      ],
+    }),
+
+    getPadronStaging: builder.query<
+      PadronStagingList,
+      { eventId: string; page?: number; limit?: number }
+    >({
+      query: ({ eventId, page = 1, limit = 50 }) => ({
+        url: `/voting/events/${eventId}/padron/staging`,
+        params: { page, limit },
+      }),
+      transformResponse: (response: any) => ({
+        importJob: response?.importJob ? toPadronImportJob(response.importJob) : null,
+        data: Array.isArray(response?.data)
+          ? response.data.map((entry: any) => toPadronStagingEntry(entry))
+          : [],
+        page: Number(response?.page ?? 1),
+        limit: Number(response?.limit ?? 50),
+        total: Number(response?.total ?? 0),
+        totalPages: Number(response?.totalPages ?? 0),
+      }),
+      providesTags: (_result, _error, { eventId }) => [
+        { type: "VotingEventPadron", id: eventId },
+        { type: "VotingEventPadronSummary", id: eventId },
+      ],
+    }),
+
+    addPadronStagingEntry: builder.mutation<
+      PadronStagingEntry,
+      { eventId: string; ci: string; enabled?: boolean }
+    >({
+      query: ({ eventId, ...body }) => ({
+        url: `/voting/events/${eventId}/padron/staging`,
+        method: "POST",
+        body,
+      }),
+      transformResponse: (response: any) => toPadronStagingEntry(response),
+      invalidatesTags: (_result, _error, { eventId }) => [
+        { type: "VotingEventPadron", id: eventId },
+        { type: "VotingEventPadronSummary", id: eventId },
+      ],
+    }),
+
+    updatePadronStagingEntry: builder.mutation<
+      PadronStagingEntry,
+      { eventId: string; entryId: string; ci?: string; enabled?: boolean }
+    >({
+      query: ({ eventId, entryId, ...body }) => ({
+        url: `/voting/events/${eventId}/padron/staging/${entryId}`,
+        method: "PATCH",
+        body,
+      }),
+      transformResponse: (response: any) => toPadronStagingEntry(response),
+      invalidatesTags: (_result, _error, { eventId }) => [
+        { type: "VotingEventPadron", id: eventId },
+        { type: "VotingEventPadronSummary", id: eventId },
+      ],
+    }),
+
+    deletePadronStagingEntry: builder.mutation<
+      { id: string; deleted: boolean },
+      { eventId: string; entryId: string }
+    >({
+      query: ({ eventId, entryId }) => ({
+        url: `/voting/events/${eventId}/padron/staging/${entryId}`,
+        method: "DELETE",
+      }),
+      transformResponse: (response: any) => ({
+        id: String(response?.id ?? ""),
+        deleted: Boolean(response?.deleted),
+      }),
+      invalidatesTags: (_result, _error, { eventId }) => [
+        { type: "VotingEventPadron", id: eventId },
+        { type: "VotingEventPadronSummary", id: eventId },
+      ],
+    }),
+
+    confirmPadronStaging: builder.mutation<
+      ConfirmPadronStagingResult,
+      { eventId: string }
+    >({
+      query: ({ eventId }) => ({
+        url: `/voting/events/${eventId}/padron/staging/confirm`,
+        method: "POST",
+        body: {},
+      }),
+      transformResponse: (response: any) => ({
+        importJobId: String(response?.importJobId ?? ""),
+        padronVersionId: String(response?.padronVersionId ?? ""),
+        state: "CONFIRMED",
+        totals: {
+          validCount: Number(response?.totals?.validCount ?? 0),
+          duplicateCount: Number(response?.totals?.duplicateCount ?? 0),
+          invalidCount: Number(response?.totals?.invalidCount ?? 0),
+        },
+        comparisonStatus:
+          response?.comparisonStatus === "OK"
+            ? "OK"
+            : response?.comparisonStatus === "FAILED"
+              ? "FAILED"
+              : "PENDING",
+        sourceType: response?.sourceType === "IMAGE_IMPORT" ? "IMAGE_IMPORT" : "PDF_IMPORT",
+        certificate: response?.certificate ?? undefined,
+      }),
+      invalidatesTags: (_result, _error, { eventId }) => [
+        { type: "VotingEventPadron", id: eventId },
+        { type: "VotingEventPadronSummary", id: eventId },
+        { type: "VotingEvents", id: eventId },
+      ],
+    }),
+
     getPadronVersions: builder.query<PadronVersion[], string>({
       query: (eventId) => `/voting/events/${eventId}/padron/versions`,
       transformResponse: (response: any) =>
@@ -310,6 +644,13 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
               createdAt: v?.createdAt,
               createdBy: v?.createdBy,
               isCurrent: Boolean(v?.isCurrent),
+              sourceType:
+                v?.sourceType === "IMAGE_IMPORT"
+                  ? "IMAGE_IMPORT"
+                  : v?.sourceType === "PDF_IMPORT"
+                    ? "PDF_IMPORT"
+                    : "CSV_LEGACY",
+              importJobId: v?.importJobId ? String(v.importJobId) : null,
             }))
           : [],
       providesTags: (_result, _error, eventId) => [{ type: "VotingEventPadron", id: eventId }],
@@ -504,6 +845,9 @@ export const {
   useUpdateVotingEventMutation,
   useDeleteVotingEventMutation,
   usePublishVotingEventMutation,
+  useGetEventReviewReadinessQuery,
+  useMarkEventReadyForReviewMutation,
+  useConfirmOfficialPublicationMutation,
   useGetEventRolesQuery,
   useLazyGetEventRolesQuery,
   useCreateEventRoleMutation,
@@ -517,6 +861,17 @@ export const {
   useDeactivateVotingOptionMutation,
   useDeleteVotingOptionMutation,
   useImportPadronMutation,
+  useUploadPadronSourceMutation,
+  useGetPadronImportStatusQuery,
+  useLazyGetPadronImportStatusQuery,
+  useGetPadronWorkflowSummaryQuery,
+  useLazyGetPadronWorkflowSummaryQuery,
+  useGetPadronStagingQuery,
+  useLazyGetPadronStagingQuery,
+  useAddPadronStagingEntryMutation,
+  useUpdatePadronStagingEntryMutation,
+  useDeletePadronStagingEntryMutation,
+  useConfirmPadronStagingMutation,
   useGetPadronVersionsQuery,
   useLazyGetPadronVersionsQuery,
   useGetPadronSummaryQuery,

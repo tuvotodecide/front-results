@@ -34,8 +34,8 @@ const DocumentIcon = () => (
 const UploadProgressModal: React.FC<UploadProgressModalProps> = ({
   isOpen,
   progress,
-  title = 'Cargando padrón...',
-  subtitle = 'Validando registros (válidos, inválidos).',
+  title = 'Procesando padrón...',
+  subtitle = 'El backend está leyendo el documento y preparando el staging editable.',
 }) => {
   return (
     <Modal2
