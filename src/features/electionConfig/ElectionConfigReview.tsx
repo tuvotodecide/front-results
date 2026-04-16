@@ -28,8 +28,10 @@ import {
 } from './renderUtils';
 import {
   useCreateEventNewsMutation,
+  useCreatePresentialSessionMutation,
   useDeleteVotingEventMutation,
   useUpdateEventScheduleMutation,
+  useUpdateVotingEventMutation,
 } from '../../store/votingEvents';
 
 const pendingLabels: Record<string, string> = {
@@ -116,6 +118,9 @@ const ElectionConfigReview: React.FC = () => {
   } = useElectionPublish(actualElectionId);
   const [deleteVotingEvent, { isLoading: deletingEvent }] = useDeleteVotingEventMutation();
   const [updateEventSchedule, { isLoading: updatingSchedule }] = useUpdateEventScheduleMutation();
+  const [updateVotingEvent, { isLoading: updatingPresentialOption }] = useUpdateVotingEventMutation();
+  const [createPresentialSession, { isLoading: enablingPresentialOption }] =
+    useCreatePresentialSessionMutation();
   const [createEventNews, { isLoading: creatingNews }] = useCreateEventNewsMutation();
   const didRefetchOnMount = useRef(false);
 
@@ -143,6 +148,8 @@ const ElectionConfigReview: React.FC = () => {
   const [scheduleSuccess, setScheduleSuccess] = useState<string | null>(null);
   const [newsSuccess, setNewsSuccess] = useState<string | null>(null);
   const [newsError, setNewsError] = useState<string | null>(null);
+  const [presentialMessage, setPresentialMessage] = useState<string | null>(null);
+  const [presentialError, setPresentialError] = useState<string | null>(null);
   const [scheduleForm, setScheduleForm] = useState({
     votingStart: '',
     votingEnd: '',
@@ -221,6 +228,47 @@ const ElectionConfigReview: React.FC = () => {
     votingClosed;
   const isPublicationExpired =
     eventState === 'PUBLICATION_EXPIRED' || Boolean(reviewReadiness?.publicationWindow?.expired);
+  const presentialKioskEnabled = Boolean(votingEvent?.presentialKioskEnabled);
+  const canChangePresentialOption =
+    fullElectionEditingEnabled &&
+    !isPublicationExpired &&
+    !votingInProgress &&
+    !votingClosed;
+  const savingPresentialOption = updatingPresentialOption || enablingPresentialOption;
+
+  const handlePresentialToggle = async (enabled: boolean) => {
+    if (!actualElectionId || !canChangePresentialOption || savingPresentialOption) {
+      return;
+    }
+
+    setPresentialMessage(null);
+    setPresentialError(null);
+
+    try {
+      if (enabled) {
+        await createPresentialSession({
+          eventId: actualElectionId,
+          data: { regenerateKioskAccessToken: false },
+        }).unwrap();
+      } else {
+        await updateVotingEvent({
+          eventId: actualElectionId,
+          data: { presentialKioskEnabled: false },
+        }).unwrap();
+      }
+
+      await refetch();
+      setPresentialMessage(
+        enabled ? 'Voto presencial activado.' : 'Voto presencial desactivado.',
+      );
+    } catch (error: any) {
+      const message = getRequestErrorMessage(
+        error,
+        'No se pudo cambiar esta opción. Intenta nuevamente.',
+      );
+      setPresentialError(message);
+    }
+  };
 
   const handleScheduleInputChange = (
     key: 'votingStart' | 'votingEnd' | 'resultsPublishAt',
@@ -374,6 +422,49 @@ const ElectionConfigReview: React.FC = () => {
                   La revisión previa ya notificó a los votantes del padrón actual.
                 </div>
               ) : null}
+              <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700 shadow-sm">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="font-semibold text-gray-900">
+                      Usar voto presencial con QR
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Opcional para punto presencial.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={presentialKioskEnabled}
+                    disabled={!canChangePresentialOption || savingPresentialOption}
+                    onClick={() => void handlePresentialToggle(!presentialKioskEnabled)}
+                    className={`relative inline-flex h-7 w-12 shrink-0 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                      presentialKioskEnabled ? 'bg-[#459151]' : 'bg-gray-300'
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                        presentialKioskEnabled ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+                <p className="mt-3 text-xs text-gray-500">
+                  {presentialKioskEnabled
+                    ? 'Se habilitará el kiosco cuando corresponda.'
+                    : 'No se mostrará kiosco como requisito.'}
+                </p>
+                {presentialMessage ? (
+                  <p className="mt-3 rounded-lg bg-green-50 px-3 py-2 text-xs font-medium text-green-700">
+                    {presentialMessage}
+                  </p>
+                ) : null}
+                {presentialError ? (
+                  <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+                    {presentialError}
+                  </p>
+                ) : null}
+              </div>
               {newsSuccess ? (
                 <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-700 shadow-sm">
                   {newsSuccess}

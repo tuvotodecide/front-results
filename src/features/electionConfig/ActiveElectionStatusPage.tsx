@@ -372,6 +372,7 @@ const ActiveElectionStatusPage: React.FC = () => {
   const votingPadronLimitedMode = canEditPadronInLimitedMode(event, nowMs);
   const postCutoffReadOnly = isAfterPublishCutoffBeforeVoting(event, nowMs);
   const publishDeadlineMs = getPublishDeadlineMs(event);
+  const presentialKioskEnabled = Boolean(event?.presentialKioskEnabled);
 
   useEffect(() => {
     setScheduleForm({
@@ -434,6 +435,10 @@ const ActiveElectionStatusPage: React.FC = () => {
 
   const handleOpenKiosk = () => {
     if (!actualElectionId) return;
+    if (!presentialKioskEnabled) {
+      setKioskError("El voto presencial con QR no está activado para esta elección.");
+      return;
+    }
 
     const path = buildPresentialKioskPath(actualElectionId, {
       stationId: DEFAULT_KIOSK_STATION_ID,
@@ -445,6 +450,10 @@ const ActiveElectionStatusPage: React.FC = () => {
 
   const handleCopyKioskLink = async () => {
     if (!actualElectionId) return;
+    if (!presentialKioskEnabled) {
+      setKioskError("El voto presencial con QR no está activado para esta elección.");
+      return;
+    }
 
     setKioskError(null);
     setKioskMessage(null);
@@ -669,28 +678,30 @@ const ActiveElectionStatusPage: React.FC = () => {
             </div>
             <StatusBadge state={lifecycle} />
           </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-            <div className="mb-4">
-              <h3 className="font-semibold text-gray-800">Punto presencial</h3>
+          {presentialKioskEnabled ? (
+            <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+              <div className="mb-4">
+                <h3 className="font-semibold text-gray-800">Punto presencial</h3>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={handleOpenKiosk}
+                  className="inline-flex items-center justify-center rounded-lg bg-[#459151] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3a7a44]"
+                >
+                  Abrir kiosco
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleCopyKioskLink()}
+                  disabled={creatingKioskLink}
+                  className="inline-flex items-center justify-center rounded-lg border border-[#459151]/25 bg-white px-4 py-2.5 text-sm font-semibold text-[#2E6A38] transition hover:bg-[#EFF7F0] disabled:opacity-60"
+                >
+                  {creatingKioskLink ? "Preparando enlace..." : "Copiar enlace"}
+                </button>
+              </div>
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                onClick={handleOpenKiosk}
-                className="inline-flex items-center justify-center rounded-lg bg-[#459151] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3a7a44]"
-              >
-                Abrir kiosco
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleCopyKioskLink()}
-                disabled={creatingKioskLink}
-                className="inline-flex items-center justify-center rounded-lg border border-[#459151]/25 bg-white px-4 py-2.5 text-sm font-semibold text-[#2E6A38] transition hover:bg-[#EFF7F0] disabled:opacity-60"
-              >
-                {creatingKioskLink ? "Preparando enlace..." : "Copiar enlace"}
-              </button>
-            </div>
-          </div>
+          ) : null}
         </div>
 
         {canCreateNews ? (

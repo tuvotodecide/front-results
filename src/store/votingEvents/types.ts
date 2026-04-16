@@ -12,6 +12,7 @@ export interface CreateVotingEventDto {
 export interface UpdateVotingEventDto {
   name?: string;
   objective?: string;
+  presentialKioskEnabled?: boolean;
 }
 
 export interface CreateEventRoleDto {
@@ -123,6 +124,7 @@ export interface VotingEvent {
   publicEligibilityEnabled: boolean;
   publicEligibility: boolean;
   canEditPadronInLimitedMode?: boolean;
+  presentialKioskEnabled?: boolean;
   createdAt?: string;
   updatedAt?: string;
   roles?: EventRole[];

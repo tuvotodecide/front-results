@@ -230,7 +230,7 @@ export default function PresentialKioskPage() {
   const [fetchCurrent] = useLazyGetCurrentPresentialSessionQuery();
   const [createPresentialSession, { isLoading: creatingSession }] =
     useCreatePresentialSessionMutation();
-  const { data: event } = useGetVotingEventQuery(actualElectionId, {
+  const { data: event, isLoading: loadingEvent } = useGetVotingEventQuery(actualElectionId, {
     skip: !actualElectionId || !authToken,
   });
 
@@ -333,6 +333,16 @@ export default function PresentialKioskPage() {
           return;
         }
 
+        if (!queryKioskToken && !kioskToken && loadingEvent) {
+          return;
+        }
+
+        if (!queryKioskToken && !kioskToken && event?.presentialKioskEnabled === false) {
+          setConnectionPhase("error");
+          setFeedback("El voto presencial con QR no está activado para esta elección.");
+          return;
+        }
+
         const current = await loadCurrentState(null);
         if (cancelled) return;
 
@@ -393,7 +403,9 @@ export default function PresentialKioskPage() {
     authToken,
     createPresentialSession,
     displayName,
+    event?.presentialKioskEnabled,
     event?.state,
+    loadingEvent,
     kioskToken,
     loadCurrentState,
     queryKioskToken,

@@ -105,6 +105,7 @@ const toVotingEvent = (raw: any): VotingEvent => {
     status: state,
     publicEligibilityEnabled: Boolean(source?.publicEligibilityEnabled),
     publicEligibility: Boolean(source?.publicEligibilityEnabled),
+    presentialKioskEnabled: Boolean(source?.presentialKioskEnabled),
     canEditPadronInLimitedMode:
       source?.canEditPadronInLimitedMode === undefined
         ? undefined
@@ -908,6 +909,7 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
         body: data ?? {},
       }),
       transformResponse: toCreatePresentialSessionResult,
+      invalidatesTags: (_result, _error, { eventId }) => [{ type: "VotingEvents", id: eventId }],
     }),
 
     getCurrentPresentialSession: builder.query<
