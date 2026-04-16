@@ -169,7 +169,7 @@ const PadronDropzone: React.FC<PadronDropzoneProps> = ({
           <div className="text-blue-800">
             <p className="font-semibold">Puedes cargar un PDF o imagen para intentar el análisis automático.</p>
             <p className="mt-1 text-sm text-blue-700">
-              Si Gemini está configurado en este navegador, se intentará convertir el archivo en un padrón editable. Si no hay configuración o no se detectan datos útiles, podrás continuar con carga manual sin bloquear el flujo.
+              Si el análisis automático está disponible, intentaremos convertir el archivo en un padrón editable. Si no está disponible o no se detectan datos útiles, podrás continuar con carga manual sin bloquear el flujo.
             </p>
           </div>
         </div>

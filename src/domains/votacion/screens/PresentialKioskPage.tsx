@@ -97,7 +97,7 @@ const describeState = (state: PresentialCurrentState | null) => {
       title: "Preparando punto presencial",
       tone: "slate",
       description:
-        "La pantalla está esperando la sesión inicial para mostrar un QR disponible.",
+        "La pantalla está preparando el primer código para comenzar.",
     };
   }
 
@@ -112,7 +112,7 @@ const describeState = (state: PresentialCurrentState | null) => {
 
   if (!state.kioskEnabled || !state.session) {
     return {
-      title: "Generando sesión QR",
+      title: "Preparando código QR",
       tone: "blue",
       description:
         "Estamos preparando el siguiente código para atención presencial.",
@@ -148,10 +148,10 @@ const describeState = (state: PresentialCurrentState | null) => {
 
   if (status === "CANCELLED") {
     return {
-      title: "Sesión cancelada",
+      title: "Código cancelado",
       tone: "red",
       description:
-        "La sesión anterior se canceló. Reintentaremos mostrar un nuevo QR disponible.",
+        "El código anterior se canceló. Reintentaremos mostrar uno nuevo.",
     };
   }
 
@@ -177,6 +177,29 @@ const sessionStatusLabels: Record<string, string> = {
   COMPLETED: "Completada",
   EXPIRED: "Expirada",
   CANCELLED: "Cancelada",
+};
+
+const getRemainingCopy = (
+  secondsLeft: number | null,
+  sessionStatus?: string | null,
+) => {
+  if (secondsLeft !== null && sessionStatus === "READY") {
+    return `Código disponible por ${secondsLeft} segundos más.`;
+  }
+
+  if (sessionStatus === "CLAIMED") {
+    return "El votante ya está usando este código. En breve aparecerá el siguiente.";
+  }
+
+  if (sessionStatus === "COMPLETED") {
+    return "El voto se completó. Estamos preparando el siguiente código.";
+  }
+
+  if (sessionStatus === "EXPIRED") {
+    return "El código anterior venció. Mostraremos uno nuevo enseguida.";
+  }
+
+  return "Mostraremos el siguiente código apenas quede disponible.";
 };
 
 export default function PresentialKioskPage() {
@@ -305,7 +328,7 @@ export default function PresentialKioskPage() {
         if (!authToken) {
           setConnectionPhase("error");
           setFeedback(
-            "Este punto presencial debe abrirse desde una cuenta autorizada o con el enlace generado para kiosco.",
+            "Este punto presencial debe abrirse desde una cuenta autorizada o con el enlace generado para esta pantalla.",
           );
           return;
         }
@@ -354,7 +377,7 @@ export default function PresentialKioskPage() {
         setFeedback(
           getFriendlyKioskMessage(
             error,
-            "No se pudo inicializar el punto presencial de esta elección.",
+            "No se pudo abrir este punto presencial en este momento.",
           ),
         );
       }
@@ -497,6 +520,10 @@ export default function PresentialKioskPage() {
   const showQr =
     currentState?.session?.status === "READY" &&
     Boolean(currentState.session.qrValue);
+  const remainingCopy = getRemainingCopy(
+    secondsLeft,
+    currentState?.session?.status ?? null,
+  );
 
   const handleRetry = async () => {
     setFeedback(null);
@@ -517,7 +544,7 @@ export default function PresentialKioskPage() {
 
     if (!authToken || !actualElectionId) {
       setConnectionPhase("error");
-      setFeedback("No hay una sesión autorizada para recrear este punto presencial.");
+      setFeedback("Necesitas una cuenta autorizada o un enlace válido para volver a abrir este punto presencial.");
       return;
     }
 
@@ -554,7 +581,7 @@ export default function PresentialKioskPage() {
       setFeedback(
         getFriendlyKioskMessage(
           error,
-          "No se pudo generar un nuevo QR para el punto presencial.",
+          "No se pudo preparar un nuevo código para el punto presencial.",
         ),
       );
     }
@@ -562,45 +589,20 @@ export default function PresentialKioskPage() {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#e8f8ee_0%,_#f8fafc_38%,_#e2e8f0_100%)] px-4 py-6 text-slate-900 sm:px-6 lg:px-10">
-      <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-7xl flex-col rounded-[2rem] border border-white/70 bg-white/90 shadow-[0_30px_80px_rgba(15,23,42,0.14)] backdrop-blur">
-        <header className="flex flex-col gap-4 border-b border-slate-200 px-6 py-6 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#2F8A46]">
-              Punto presencial
-            </p>
-            <h1 className="mt-2 text-3xl font-bold text-slate-900">
-              {displayName}
-            </h1>
-            <p className="mt-2 max-w-3xl text-sm text-slate-600">
-              Pantalla de atención presencial para que el votante escanee el código y continúe el proceso desde su celular.
-            </p>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                Estado de la pantalla
-              </p>
-              <p className="mt-1 text-lg font-semibold text-slate-900">
-                {connectionPhase === "connected"
-                  ? "Lista"
-                  : connectionPhase === "reconnecting"
-                    ? "Reconectando"
-                    : connectionPhase === "bootstrapping"
-                      ? "Preparando"
-                      : connectionPhase === "error"
-                        ? "Requiere atención"
-                        : "En espera"}
-              </p>
-            </div>
-
-          </div>
+      <div className="mx-auto w-full max-w-5xl rounded-[2rem] border border-white/70 bg-white/90 shadow-[0_30px_80px_rgba(15,23,42,0.14)] backdrop-blur">
+        <header className="border-b border-slate-200 px-6 py-6 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#2F8A46]">
+            Punto presencial
+          </p>
+          <h1 className="mt-2 text-3xl font-bold text-slate-900">
+            {displayName}
+          </h1>
         </header>
 
-        {feedback ? (
-          <div className="border-b border-slate-200 px-6 py-4">
+        <div className="px-6 py-6">
+          {feedback ? (
             <div
-              className={`rounded-2xl border px-4 py-3 text-sm ${
+              className={`mb-5 rounded-2xl border px-4 py-3 text-sm ${
                 connectionPhase === "error"
                   ? toneClasses.red
                   : connectionPhase === "reconnecting"
@@ -610,20 +612,25 @@ export default function PresentialKioskPage() {
             >
               {feedback}
             </div>
-          </div>
-        ) : null}
+          ) : null}
 
-        <div className="grid flex-1 gap-6 px-6 py-6 lg:grid-cols-[1.2fr_0.8fr]">
-          <section className="flex min-h-[460px] flex-col rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,_#f8fafc_0%,_#ecfdf5_100%)] p-6 shadow-sm">
-            <div
-              className={`inline-flex w-fit items-center rounded-full border px-4 py-2 text-sm font-semibold ${
-                toneClasses[stateCopy.tone] || toneClasses.slate
-              }`}
-            >
-              {stateCopy.title}
+          <section className="flex min-h-[560px] flex-col rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,_#f8fafc_0%,_#ecfdf5_100%)] p-6 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div
+                className={`inline-flex w-fit items-center rounded-full border px-4 py-2 text-sm font-semibold ${
+                  toneClasses[stateCopy.tone] || toneClasses.slate
+                }`}
+              >
+                {stateCopy.title}
+              </div>
+              <span className="text-sm font-medium text-slate-600">
+                {currentState?.session?.status
+                  ? sessionStatusLabels[currentState.session.status] ?? currentState.session.status
+                  : "Preparando código"}
+              </span>
             </div>
 
-            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
+            <p className="mt-4 text-center text-sm leading-6 text-slate-600 sm:text-base">
               {stateCopy.description}
             </p>
 
@@ -633,7 +640,7 @@ export default function PresentialKioskPage() {
                   <KioskQrSvg
                     value={currentState.session.qrValue}
                     size={360}
-                    className="h-[320px] w-[320px] sm:h-[360px] sm:w-[360px]"
+                    className="h-[280px] w-[280px] sm:h-[360px] sm:w-[360px]"
                   />
                 </div>
               ) : connectionPhase === "bootstrapping" || creatingSession ? (
@@ -641,10 +648,10 @@ export default function PresentialKioskPage() {
                   <div className="h-16 w-16 animate-spin rounded-full border-[6px] border-[#2F8A46] border-t-transparent" />
                   <div>
                     <p className="text-2xl font-semibold text-slate-900">
-                      Generando sesión QR
+                      Preparando QR
                     </p>
                     <p className="mt-2 text-sm text-slate-600">
-                      Estamos preparando el código para el siguiente votante.
+                      Estamos generando el siguiente código.
                     </p>
                   </div>
                 </div>
@@ -671,65 +678,24 @@ export default function PresentialKioskPage() {
               )}
             </div>
 
-            <div className="mt-8 rounded-[1.5rem] border border-[#2F8A46]/15 bg-white/90 px-5 py-4 text-center text-sm text-slate-600">
-              <p className="font-semibold text-slate-900">
-                Indicación para el votante
-              </p>
-              <p className="mt-2">
-                Escanea este QR con tu celular y sigue los pasos del voto asistido. Mantén esta pantalla abierta mientras se completa la atención.
-              </p>
-            </div>
-          </section>
-
-          <aside className="flex flex-col gap-5">
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                Estado actual
-              </p>
-              <div className="mt-4 space-y-4 text-sm text-slate-600">
-                <div className="flex items-start justify-between gap-4">
-                  <span>Sesión</span>
-                  <span className="font-semibold text-slate-900">
-                    {currentState?.session?.status
-                      ? sessionStatusLabels[currentState.session.status] ??
-                        currentState.session.status
-                      : "Sin sesión"}
-                  </span>
-                </div>
-                <div className="flex items-start justify-between gap-4">
-                  <span>Tiempo restante</span>
-                  <span className="font-semibold text-slate-900">
-                    {secondsLeft !== null ? `${secondsLeft}s` : "Esperando nuevo QR"}
-                  </span>
-                </div>
-                <div className="flex items-start justify-between gap-4">
-                  <span>Código visible</span>
-                  <span className="font-semibold text-slate-900">
-                    {showQr ? "Visible" : "Oculto"}
-                  </span>
-                </div>
+            <div className="mt-8 flex flex-col gap-4 rounded-[1.5rem] border border-slate-200 bg-white/90 px-5 py-4 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">
+                  Tiempo restante
+                </p>
+                <p className="mt-1 text-sm text-slate-600">
+                  {remainingCopy}
+                </p>
               </div>
-            </div>
-
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                Acciones
-              </p>
-              <p className="mt-4 text-sm leading-6 text-slate-600">
-                Si el código no aparece o la pantalla perdió conexión, puedes generar nuevamente el QR desde aquí.
-              </p>
               <button
                 type="button"
                 onClick={() => void handleRetry()}
-                className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-[#2F8A46] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#256f39]"
+                className="inline-flex items-center justify-center rounded-xl bg-[#2F8A46] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#256f39]"
               >
                 Reintentar generar QR
               </button>
-              <p className="mt-4 text-xs leading-5 text-slate-500">
-                La pantalla actualizará automáticamente el código cuando quede disponible uno nuevo.
-              </p>
             </div>
-          </aside>
+          </section>
         </div>
       </div>
     </div>

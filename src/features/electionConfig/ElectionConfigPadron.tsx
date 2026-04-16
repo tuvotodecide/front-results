@@ -151,10 +151,34 @@ const formatPadronSourceLabel = (sourceType?: string | null) => {
   if (sourceType === "IMAGE_GEMINI" || sourceType === "IMAGE_IMPORT" || sourceType === "IMAGE") {
     return "Imagen";
   }
+  if (sourceType === "CSV_LEGACY") {
+    return "Padrón";
+  }
   if (sourceType === "MANUAL_CLIENT") {
     return "Carga manual";
   }
   return "Documento";
+};
+
+const getPadronFileDisplayName = (
+  fileName?: string | null,
+  sourceType?: string | null,
+  options?: { confirmed?: boolean },
+) => {
+  const normalizedFileName = String(fileName ?? "").trim();
+  const normalizedKey = normalizedFileName.toLowerCase();
+  const baseLabel = formatPadronSourceLabel(sourceType);
+  const suffix = options?.confirmed ? "confirmado" : "cargado";
+
+  if (
+    !normalizedFileName ||
+    normalizedKey.includes("legacy-upload") ||
+    normalizedKey.endsWith(".csv")
+  ) {
+    return `${baseLabel} ${suffix}`;
+  }
+
+  return normalizedFileName;
 };
 
 const createClientDraftRecordId = () => {
@@ -301,6 +325,8 @@ const ElectionConfigPadron: React.FC = () => {
   });
   const {
     data: reviewReadiness,
+    isLoading: loadingReviewReadiness,
+    isFetching: fetchingReviewReadiness,
     refetch: refetchReviewReadiness,
   } = useGetEventReviewReadinessQuery(actualElectionId, {
     skip: !actualElectionId,
@@ -356,12 +382,12 @@ const ElectionConfigPadron: React.FC = () => {
   const [importPadron, { isLoading: importingStructuredPadron }] = useImportPadronMutation();
   const [addCurrentPadronVoter, { isLoading: addingCurrentPadronVoter }] = useAddCurrentPadronVoterMutation();
   const [enableCurrentPadronVoter] = useEnableCurrentPadronVoterMutation();
-  const [downloadPadronCsv, { isFetching: downloadingCsv }] = useLazyDownloadPadronCsvQuery();
+  const [downloadPadronCsv] = useLazyDownloadPadronCsvQuery();
 
   const baseLoading = loadingEvent || loadingWorkflowSummary || loadingRoles || loadingOptions;
   const hasPositions = roles.length > 0;
   const hasPartiesWithCandidates = options.some((option) => option.candidates.length > 0);
-  const activeDraft = effectiveWorkflowActiveDraft ?? stagingData?.importJob ?? null;
+  const activeDraft = effectiveWorkflowActiveDraft;
   const currentVersion = workflowCurrentVersion;
   const hasCurrentPadron = Boolean(currentVersion) && !activeDraft;
   const searchNeedle = normalizeSearch(searchTerm);
@@ -372,7 +398,7 @@ const ElectionConfigPadron: React.FC = () => {
 
   const stagingFile: PadronFile | null = activeDraft
     ? {
-        fileName: activeDraft.originalFile.fileName,
+        fileName: getPadronFileDisplayName(activeDraft.originalFile.fileName, activeDraft.sourceType),
         uploadedAt:
           activeDraft.processedAt ??
           activeDraft.updatedAt ??
@@ -387,7 +413,7 @@ const ElectionConfigPadron: React.FC = () => {
 
   const currentFile: PadronFile | null = currentVersion
     ? {
-        fileName: `${formatPadronSourceLabel(currentVersion.sourceType)} confirmado`,
+        fileName: getPadronFileDisplayName(null, currentVersion.sourceType, { confirmed: true }),
         uploadedAt: currentVersion.createdAt ?? new Date().toISOString(),
         totalRecords: 0,
         validCount: 0,
@@ -455,7 +481,7 @@ const ElectionConfigPadron: React.FC = () => {
 
   const clientDraftFile: PadronFile | null = clientDraftSummary
     ? {
-        fileName: clientDraft?.fileName ?? "Padron",
+        fileName: getPadronFileDisplayName(clientDraft?.fileName, clientDraft?.sourceType),
         uploadedAt: clientDraft?.uploadedAt ?? new Date().toISOString(),
         totalRecords: clientDraftSummary.totalCount,
         validCount: clientDraftSummary.enabledCount,
@@ -539,21 +565,49 @@ const ElectionConfigPadron: React.FC = () => {
     : null;
 
   const uploadSummaryJob =
-    uploadSummaryJobId && activeDraft?.importJobId === uploadSummaryJobId
-      ? activeDraft
-      : activeDraft;
+    uploadSummaryJobId && effectiveWorkflowActiveDraft?.importJobId === uploadSummaryJobId
+      ? effectiveWorkflowActiveDraft
+      : null;
 
-  const isPadronReady = Boolean(currentVersion?.padronVersionId);
+  const isPadronConfirmed = Boolean(currentVersion?.padronVersionId) && !activeDraft;
+  const clientDraftReadyForNextStep = clientDraftSummary
+    ? clientDraftSummary.totalCount > 0 && clientDraftSummary.observedCount === 0
+    : false;
+  const stagingDraftReadyForNextStep = activeDraft
+    ? activeDraft.summary.stagingCount > 0 &&
+      activeDraft.summary.invalidCount + activeDraft.summary.duplicateCount === 0
+    : false;
   const reviewPending = new Set(reviewReadiness?.pending ?? []);
+  const hasPadronReviewPending =
+    reviewPending.has("padron") ||
+    reviewPending.has("padron_invalid") ||
+    reviewPending.has("padron_validation");
   const padronReadyForNextStep =
-    isPadronReady &&
-    !reviewPending.has("padron") &&
-    !reviewPending.has("padron_invalid") &&
-    !reviewPending.has("padron_validation");
+    isPadronConfirmed &&
+    currentPadronStats.totalCount > 0 &&
+    currentPadronStats.invalidCount === 0 &&
+    !hasPadronReviewPending;
   const showFinalizeConfigurationCta =
-    isPadronReady &&
     !limitedPadronModeAllowed &&
-    !closedPadronReadOnly &&
+    !closedPadronReadOnly;
+  const isPadronStateHydrating =
+    isRefreshingConfirmedPadron ||
+    loadingReviewReadiness ||
+    fetchingReviewReadiness ||
+    (isPadronConfirmed &&
+      Number(workflowCurrentVersion?.totals.validCount ?? 0) +
+        Number(workflowCurrentVersion?.totals.invalidCount ?? 0) ===
+        0 &&
+      (currentVotersUninitialized || fetchingCurrentVoters));
+  const canFinalizePadron =
+    !postCutoffReadOnly &&
+    !isPadronStateHydrating &&
+    (padronReadyForNextStep || clientDraftReadyForNextStep || stagingDraftReadyForNextStep);
+  const showPadronPendingNotice =
+    showFinalizeConfigurationCta &&
+    isPadronConfirmed &&
+    !padronReadyForNextStep &&
+    !isPadronStateHydrating &&
     !postCutoffReadOnly;
   const structuralErrors =
     eventLoadFailed ||
@@ -578,10 +632,27 @@ const ElectionConfigPadron: React.FC = () => {
       return;
     }
 
-    if (workflowCurrentVersion || effectiveWorkflowActiveDraft) {
+    const confirmedVersionHydrated =
+      Boolean(workflowCurrentVersion) &&
+      (Number(workflowCurrentVersion?.totals.validCount ?? 0) +
+        Number(workflowCurrentVersion?.totals.invalidCount ?? 0) >
+        0 ||
+        (!currentVotersUninitialized && !fetchingCurrentVoters)) &&
+      !loadingReviewReadiness &&
+      !fetchingReviewReadiness;
+
+    if (effectiveWorkflowActiveDraft || confirmedVersionHydrated) {
       setIsRefreshingConfirmedPadron(false);
     }
-  }, [effectiveWorkflowActiveDraft, isRefreshingConfirmedPadron, workflowCurrentVersion]);
+  }, [
+    currentVotersUninitialized,
+    effectiveWorkflowActiveDraft,
+    fetchingCurrentVoters,
+    fetchingReviewReadiness,
+    isRefreshingConfirmedPadron,
+    loadingReviewReadiness,
+    workflowCurrentVersion,
+  ]);
 
   const pollImportJobUntilReady = useCallback(
     async (importJobId: string) => {
@@ -670,7 +741,7 @@ const ElectionConfigPadron: React.FC = () => {
 
       if (!hasGeminiPadronConfig()) {
         startManualFallback(
-          "Gemini no está configurado en este navegador. Puedes cargar el padrón manualmente sin análisis automático.",
+          "El análisis automático no está disponible en este navegador. Puedes continuar con la carga manual del padrón.",
         );
         return;
       }
@@ -715,7 +786,7 @@ const ElectionConfigPadron: React.FC = () => {
         window.clearInterval(progressInterval);
         startManualFallback(
           uploadError?.message === "GEMINI_API_KEY_MISSING"
-            ? "Gemini no está configurado en este navegador. Puedes cargar el padrón manualmente sin análisis automático."
+            ? "El análisis automático no está disponible en este navegador. Puedes continuar con la carga manual del padrón."
             : "No se pudo obtener un resultado confiable del archivo. Puedes continuar con carga manual.",
         );
       }
@@ -735,50 +806,6 @@ const ElectionConfigPadron: React.FC = () => {
     event.target.value = "";
   };
 
-  const handleDownloadCurrentCsv = async () => {
-    if (!currentVersion) return;
-
-    try {
-      const result = await downloadPadronCsv({
-        eventId: actualElectionId,
-        padronVersionId: currentVersion.padronVersionId,
-      }).unwrap();
-
-      const blob = new Blob([result.content], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = result.fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch (downloadError: any) {
-      setError(getRequestErrorMessage(downloadError, "No se pudo descargar el padrón."));
-    }
-  };
-
-  const handleExportStagingCsv = () => {
-    const csvContent = clientDraft
-      ? buildPadronCsvFromDraft(clientDraft)
-      : [
-          "carnet,habilitado",
-          ...stagingVoters.map((voter) => `${voter.carnet},${voter.enabled ? "si" : "no"}`),
-        ].join("\n");
-
-    if (!csvContent.trim()) return;
-
-    const blob = new Blob(["\uFEFF", csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `staging-padron-${clientDraft ? actualElectionId : activeDraft?.importJobId ?? actualElectionId}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
   const handleEditConfirmedPadron = async () => {
     if (!currentVersion) return;
 
@@ -792,7 +819,9 @@ const ElectionConfigPadron: React.FC = () => {
 
       const nextDraft = createDraftFromPadronCsv(
         result.content,
-        currentFile?.fileName || result.fileName || `${formatPadronSourceLabel(currentVersion.sourceType)} editable`,
+        currentFile?.fileName ||
+          getPadronFileDisplayName(result.fileName, currentVersion.sourceType) ||
+          `${formatPadronSourceLabel(currentVersion.sourceType)} editable`,
       );
 
       if (!nextDraft.records.length) {
@@ -801,7 +830,7 @@ const ElectionConfigPadron: React.FC = () => {
 
       setClientDraft(nextDraft);
       setInfo(
-        "Estás editando una copia del padrón confirmado. Cuando termines, confirma nuevamente para actualizar la versión final.",
+        "Estás editando el padrón confirmado. Cuando termines, usa Finalizar configuración para guardar los cambios.",
       );
     } catch (editError: any) {
       setError(getRequestErrorMessage(editError, "No se pudo reabrir el padrón para edición."));
@@ -810,6 +839,10 @@ const ElectionConfigPadron: React.FC = () => {
 
   const handleDeleteClientDraft = () => {
     setClientDraft(null);
+    setPage(1);
+    setSearchTerm("");
+    setUploadSummaryJobId(null);
+    setSummaryModalState("none");
     setSummarySnapshot(null);
     setObservationsOpen(false);
     setInfo(null);
@@ -976,32 +1009,36 @@ const ElectionConfigPadron: React.FC = () => {
           file: csvFile,
         }).unwrap();
 
+        setPage(1);
         clearGeminiPadronDraft(actualElectionId);
         setClientDraft(null);
         setSummarySnapshot(null);
         setInfo(null);
-        setSuccess("Padrón confirmado correctamente. Ya puedes finalizar la configuración.");
+        setSuccess("Padrón confirmado correctamente.");
         setSummaryModalState("none");
         setObservationsOpen(false);
         setIsRefreshingConfirmedPadron(true);
         await refetchWorkflowSummary();
         await refetchVisiblePadronData();
-        return;
+        return true;
       }
 
       await confirmPadronStaging({ eventId: actualElectionId }).unwrap();
-      setSuccess("Padrón confirmado correctamente. Ya puedes finalizar la configuración.");
+      setPage(1);
+      setSuccess("Padrón confirmado correctamente.");
       setSummaryModalState("none");
       setObservationsOpen(false);
       setIsRefreshingConfirmedPadron(true);
       await refetchWorkflowSummary();
       await refetchVisiblePadronData();
+      return true;
     } catch (confirmError: any) {
       setIsRefreshingConfirmedPadron(false);
       setError(
         confirmError?.message ||
           getRequestErrorMessage(confirmError, "No se pudo confirmar la versión final del padrón."),
       );
+      return false;
     }
   };
 
@@ -1019,7 +1056,20 @@ const ElectionConfigPadron: React.FC = () => {
     setRecordModal({ open: true, mode: "create" });
   };
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
+    setError(null);
+
+    if (clientDraft || activeDraft) {
+      const confirmed = await handleConfirmPadron();
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    if (!padronReadyForNextStep && !clientDraftReadyForNextStep && !stagingDraftReadyForNextStep) {
+      return;
+    }
+
     navigate(`/votacion/elecciones/${actualElectionId}/config/review`);
   };
 
@@ -1107,7 +1157,7 @@ const ElectionConfigPadron: React.FC = () => {
               completedSteps={[
                 ...(hasPositions ? [1] : []),
                 ...(hasPartiesWithCandidates ? [2] : []),
-                ...(isPadronReady ? [3] : []),
+                ...(isPadronConfirmed ? [3] : []),
               ] as ConfigStep[]}
               onStepChange={handleGoToStep}
               canNavigate={(step) => step === 1 || step === 2 || step === 3}
@@ -1155,9 +1205,9 @@ const ElectionConfigPadron: React.FC = () => {
             </div>
           ) : null}
 
-          {showFinalizeConfigurationCta && !padronReadyForNextStep ? (
+          {showPadronPendingNotice ? (
             <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              El padrón ya está cargado, pero todavía no quedó listo para pasar a revisión. Revisa los registros pendientes y confirma nuevamente si hiciste cambios.
+              El padrón ya está cargado, pero todavía no quedó listo para pasar a revisión. Revisa los registros pendientes y luego usa Finalizar configuración.
             </div>
           ) : null}
 
@@ -1166,12 +1216,12 @@ const ElectionConfigPadron: React.FC = () => {
               <div className="mx-auto h-10 w-10 rounded-full border-4 border-[#459151] border-t-transparent animate-spin" />
               <p className="mt-4 text-gray-500">Cargando configuración del padrón...</p>
             </div>
-          ) : isRefreshingConfirmedPadron ? (
+          ) : isPadronStateHydrating ? (
             <div className="rounded-2xl border border-gray-200 bg-white p-12 text-center shadow-sm">
               <div className="mx-auto h-10 w-10 rounded-full border-4 border-[#459151] border-t-transparent animate-spin" />
               <p className="mt-4 text-gray-700">Actualizando la versión confirmada del padrón...</p>
               <p className="mt-2 text-sm text-gray-500">
-                En cuanto termine la sincronización verás el padrón vigente o el draft activo sin volver a la pantalla inicial.
+                En cuanto termine la actualización verás el padrón vigente o la versión en edición sin volver a la pantalla inicial.
               </p>
             </div>
           ) : limitedPadronModeAllowed && resolvedCurrentFile ? (
@@ -1187,20 +1237,18 @@ const ElectionConfigPadron: React.FC = () => {
               searchValue={searchTerm}
               onPageChange={setPage}
               onSearchChange={setSearchTerm}
-              onDownloadCsv={() => void handleDownloadCurrentCsv()}
               onAddRecord={() => setRecordModal({ open: true, mode: "create" })}
               onEnableVoter={(voter) => void handleToggleEnabled(voter, true)}
               enablingVoterId={currentPadronActionVoterId}
               addRecordLabel="Agregar habilitado"
               loading={fetchingCurrentVoters}
-              downloading={downloadingCsv}
               readOnly
             />
           ) : limitedPadronModeAllowed ? (
             <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
               <h2 className="text-lg font-semibold text-slate-900">Padrón vigente no disponible</h2>
               <p className="mt-2 text-sm text-slate-500">
-                El backend no devolvió un padrón vigente para el modo limitado. Revisa el estado de la elección antes de continuar.
+                Todavía no hay un padrón vigente disponible para esta etapa. Revisa el estado de la elección antes de continuar.
               </p>
             </div>
           ) : fullPadronEditingEnabled && clientDraft && clientDraftFile && clientDraftSummary ? (
@@ -1227,8 +1275,6 @@ const ElectionConfigPadron: React.FC = () => {
               onToggleEnabled={(voter, nextEnabled) => void handleToggleEnabled(voter, nextEnabled)}
               onReplaceFile={handleReplaceFile}
               onDeleteFile={handleDeleteClientDraft}
-              onExport={handleExportStagingCsv}
-              onConfirm={() => void handleConfirmPadron()}
             />
           ) : fullPadronEditingEnabled && activeDraft && stagingFile ? (
             <PadronStagingView
@@ -1252,8 +1298,6 @@ const ElectionConfigPadron: React.FC = () => {
               onDeleteRecord={(voter) => setDeleteCandidate(voter)}
               onToggleEnabled={(voter, nextEnabled) => void handleToggleEnabled(voter, nextEnabled)}
               onReplaceFile={handleReplaceFile}
-              onExport={handleExportStagingCsv}
-              onConfirm={() => void handleConfirmPadron()}
             />
           ) : hasCurrentPadron && resolvedCurrentFile ? (
             <LoadedPadronView
@@ -1270,12 +1314,7 @@ const ElectionConfigPadron: React.FC = () => {
               onSearchChange={setSearchTerm}
               onEditFile={fullPadronEditingEnabled ? () => void handleEditConfirmedPadron() : undefined}
               onReplaceFile={handleReplaceFile}
-              onDownloadCsv={() => void handleDownloadCurrentCsv()}
-              onFinish={handleFinish}
-              finishLabel={FINAL_STEP_LABEL}
-              finishDisabled={!padronReadyForNextStep}
               loading={fetchingCurrentVoters}
-              downloading={downloadingCsv}
               readOnly={!fullPadronEditingEnabled}
             />
           ) : fullPadronEditingEnabled ? (
@@ -1288,10 +1327,30 @@ const ElectionConfigPadron: React.FC = () => {
             <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
               <h2 className="text-lg font-semibold text-slate-900">No hay un padrón editable disponible</h2>
               <p className="mt-2 text-sm text-slate-500">
-                En esta etapa el padrón queda en solo lectura y no se puede reemplazar desde frontend.
+                En esta etapa el padrón queda en solo lectura y no se puede reemplazar desde esta vista.
               </p>
             </div>
           )}
+
+          {showFinalizeConfigurationCta ? (
+            <div className="mt-8 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => void handleFinish()}
+                  disabled={!canFinalizePadron}
+                  className={`inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 font-semibold transition ${
+                    canFinalizePadron
+                      ? "bg-[#459151] text-white hover:bg-[#3a7a44]"
+                      : "cursor-not-allowed bg-slate-200 text-slate-500"
+                  }`}
+                >
+                  <span>{FINAL_STEP_LABEL}</span>
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </button>
+            </div>
+          ) : null}
         </div>
       </div>
 

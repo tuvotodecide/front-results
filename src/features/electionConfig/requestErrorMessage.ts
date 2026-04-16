@@ -2,9 +2,10 @@ type RequestError =
   | {
       status?: number | string;
       data?: {
-        message?: string;
+        message?: unknown;
       };
       error?: string;
+      message?: unknown;
     }
   | null
   | undefined;
@@ -39,9 +40,25 @@ export const getRequestErrorMessage = (
     return OFFLINE_MESSAGE;
   }
 
-  const backendMessage = error?.data?.message;
-  if (backendMessage && backendMessage.trim().length > 0) {
-    return backendMessage;
+  const backendMessage = error?.data?.message ?? error?.message;
+  const normalizedMessage =
+    typeof backendMessage === 'string'
+      ? backendMessage.trim()
+      : Array.isArray(backendMessage)
+        ? backendMessage
+            .map((item) => String(item ?? '').trim())
+            .filter(Boolean)
+            .join('. ')
+        : backendMessage && typeof backendMessage === 'object' && 'message' in backendMessage
+          ? String((backendMessage as { message?: unknown }).message ?? '').trim()
+          : '';
+
+  if (normalizedMessage.length > 0) {
+    const plainMessage = normalizedMessage.toLowerCase();
+    if (plainMessage.includes('carnet debe ser alfanumerico')) {
+      return 'El carnet debe ser alfanumérico.';
+    }
+    return normalizedMessage;
   }
 
   return fallbackMessage;

@@ -81,14 +81,14 @@ const UploadSummaryModal: React.FC<UploadSummaryModalProps> = ({
           Revisa el resumen generado antes de pasar al padrón editable.
         </p>
 
-        <div className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="flex h-full min-h-[176px] flex-col rounded-2xl border-2 border-blue-200 bg-blue-50 p-5 text-left">
+        <div className="mx-auto mb-8 grid max-w-5xl grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="flex min-h-[188px] flex-col rounded-2xl border-2 border-blue-200 bg-blue-50 p-5 text-left">
             <p className="text-sm font-semibold text-blue-700">Total</p>
             <p className="mt-4 text-4xl font-bold text-blue-700">{formatNumber(totalCount)}</p>
             <p className="mt-auto pt-4 text-sm leading-6 text-blue-600">Registros llevados al padrón</p>
           </div>
 
-          <div className="flex h-full min-h-[176px] flex-col rounded-2xl border-2 border-green-200 bg-green-50 p-5 text-left">
+          <div className="flex min-h-[188px] flex-col rounded-2xl border-2 border-green-200 bg-green-50 p-5 text-left">
             <div className="mb-2 flex items-center gap-2">
               <CheckIcon />
               <span className="font-semibold text-slate-700">Habilitados</span>
@@ -97,19 +97,19 @@ const UploadSummaryModal: React.FC<UploadSummaryModalProps> = ({
             <p className="mt-auto pt-4 text-sm leading-6 text-[#459151]">Pueden votar</p>
           </div>
 
-          <div className="flex h-full min-h-[176px] flex-col rounded-2xl border-2 border-slate-200 bg-white p-5 text-left">
+          <div className="flex min-h-[188px] flex-col rounded-2xl border-2 border-slate-200 bg-white p-5 text-left">
             <p className="text-sm font-semibold text-slate-700">Inhabilitados</p>
             <p className="mt-4 text-4xl font-bold text-slate-700">{formatNumber(disabledCount)}</p>
             <p className="mt-auto pt-4 text-sm leading-6 text-slate-500">No pueden votar</p>
           </div>
 
-          <div className="flex h-full min-h-[176px] flex-col rounded-2xl border-2 border-red-200 bg-red-50 p-5 text-left">
+          <div className="flex min-h-[188px] flex-col rounded-2xl border-2 border-red-200 bg-red-50 p-5 text-left">
             <div className="mb-2 flex items-center gap-2">
               <ErrorIcon />
               <span className="font-semibold text-slate-700">Observados</span>
             </div>
             <p className="mt-4 text-4xl font-bold text-red-600">{formatNumber(observedCount)}</p>
-            <p className="mt-auto pt-4 text-sm leading-6 text-red-600">
+            <p className="mt-auto max-w-[18ch] pt-4 text-sm leading-6 text-red-600">
               Si hace falta, podrás revisarlos luego dentro del padrón editable.
             </p>
           </div>

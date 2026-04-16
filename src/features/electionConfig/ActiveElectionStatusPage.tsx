@@ -9,8 +9,10 @@ import PositionsTable from "./components/PositionsTable";
 import PartiesTable from "./components/PartiesTable";
 import LoadedPadronView from "./components/LoadedPadronView";
 import PadronRecordModal from "./components/PadronRecordModal";
+import CreateNewsModal from "./components/CreateNewsModal";
 import {
   useAddCurrentPadronVoterMutation,
+  useCreateEventNewsMutation,
   useEnableCurrentPadronVoterMutation,
   useGetVotingEventQuery,
   useGetVotingEventsQuery,
@@ -19,7 +21,6 @@ import {
   useGetPadronVersionsQuery,
   useGetPadronVotersQuery,
   useGetEventResultsQuery,
-  useLazyDownloadPadronCsvQuery,
   useCreatePresentialSessionMutation,
   useUpdateEventScheduleMutation,
 } from "../../store/votingEvents";
@@ -52,7 +53,6 @@ import {
 import {
   buildPresentialKioskPath,
   DEFAULT_KIOSK_STATION_ID,
-  getKioskDisplayName,
 } from "@/domains/votacion/kiosk/constants";
 
 const roleToPosition = (role: EventRole): Position => ({
@@ -268,6 +268,9 @@ const ActiveElectionStatusPage: React.FC = () => {
   const [scheduleSuccess, setScheduleSuccess] = useState<string | null>(null);
   const [kioskMessage, setKioskMessage] = useState<string | null>(null);
   const [kioskError, setKioskError] = useState<string | null>(null);
+  const [newsMessage, setNewsMessage] = useState<string | null>(null);
+  const [newsError, setNewsError] = useState<string | null>(null);
+  const [isNewsModalOpen, setIsNewsModalOpen] = useState(false);
   const [padronMessage, setPadronMessage] = useState<string | null>(null);
   const [padronError, setPadronError] = useState<string | null>(null);
   const [recordModal, setRecordModal] = useState<RecordModalState>({ open: false });
@@ -318,11 +321,11 @@ const ActiveElectionStatusPage: React.FC = () => {
     useUpdateEventScheduleMutation();
   const [createPresentialSession, { isLoading: creatingKioskLink }] =
     useCreatePresentialSessionMutation();
+  const [createEventNews, { isLoading: creatingNews }] =
+    useCreateEventNewsMutation();
   const [addCurrentPadronVoter, { isLoading: addingCurrentPadronVoter }] =
     useAddCurrentPadronVoterMutation();
   const [enableCurrentPadronVoter] = useEnableCurrentPadronVoterMutation();
-  const [downloadPadronCsv, { isFetching: downloadingCsv }] =
-    useLazyDownloadPadronCsvQuery();
 
   const positions = useMemo(() => roles.map(roleToPosition), [roles]);
   const parties = useMemo(() => options.map(optionToParty), [options]);
@@ -360,6 +363,12 @@ const ActiveElectionStatusPage: React.FC = () => {
   const scheduleEditable = canEditSchedule(event, nowMs);
   const fullElectionEditingEnabled = canEditElectionBeforeCutoff(event, nowMs);
   const officialPublicationLocked = isOfficiallyPublished(event);
+  const canCreateNews =
+    lifecycle === "OFFICIALLY_PUBLISHED" ||
+    lifecycle === "ACTIVE" ||
+    lifecycle === "CLOSED" ||
+    lifecycle === "RESULTS" ||
+    lifecycle === "RESULTS_PUBLISHED";
   const votingPadronLimitedMode = canEditPadronInLimitedMode(event, nowMs);
   const postCutoffReadOnly = isAfterPublishCutoffBeforeVoting(event, nowMs);
   const publishDeadlineMs = getPublishDeadlineMs(event);
@@ -378,27 +387,6 @@ const ActiveElectionStatusPage: React.FC = () => {
     loadingOptions ||
     loadingPadronVersions ||
     loadingPadronVoters;
-
-  const handleDownloadCsv = async () => {
-    if (!currentPadron) return;
-
-    const result = await downloadPadronCsv({
-      eventId: actualElectionId,
-      padronVersionId: currentPadron.padronVersionId,
-    }).unwrap();
-
-    const blob = new Blob([result.content], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = result.fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
 
   const handleSaveLimitedPadronRecord = async (payload: { ci: string; enabled: boolean }) => {
     if (!actualElectionId) return;
@@ -545,6 +533,30 @@ const ActiveElectionStatusPage: React.FC = () => {
     }
   };
 
+  const handleCreateNews = async (payload: {
+    title: string;
+    body: string;
+    link?: string;
+    imageUrl?: string;
+  }) => {
+    if (!actualElectionId) return;
+
+    try {
+      await createEventNews({
+        eventId: actualElectionId,
+        data: payload,
+      }).unwrap();
+      setNewsError(null);
+      setNewsMessage("Noticia publicada correctamente para los votantes del padrón actual.");
+      setIsNewsModalOpen(false);
+    } catch (error: any) {
+      const message = getRequestErrorMessage(error, "No se pudo publicar la noticia.");
+      setNewsMessage(null);
+      setNewsError(message);
+      throw new Error(message);
+    }
+  };
+
   const renderButtonText = () => {
     return updatingSchedule ? "Guardando..." : "Guardar horarios";
   };
@@ -619,7 +631,7 @@ const ActiveElectionStatusPage: React.FC = () => {
               officialPublicationLocked
                 ? "La publicación oficial ya fue confirmada. El cronograma queda bloqueado y solo se mantiene la gestión limitada de padrón."
                 : scheduleEditable
-                ? "Puedes abrir la edición hasta el límite de publicación oficial de 24 horas. Al guardar, la validación visual sigue exigiendo 36 horas para las fechas."
+                ? "Puedes modificar el cronograma hasta el límite de publicación oficial. La fecha de inicio debe seguir quedando al menos 36 horas adelante."
                 : "El cronograma ya no puede modificarse porque el límite de publicación oficial ya pasó o la votación ya comenzó."
             }
             action={
@@ -651,59 +663,54 @@ const ActiveElectionStatusPage: React.FC = () => {
               },
             ]}
           />
-          <TopInfoCard
-            title="Estado Actual"
-            lines={[
-              {
-                label: "Estado",
-                value:
-                  lifecycle === "RESULTS"
-                    ? "Resultados disponibles"
-                    : lifecycle === "PUBLICATION_EXPIRED"
-                      ? "Publicación vencida"
-                    : lifecycle === "READY_FOR_REVIEW"
-                      ? "En revisión previa"
-                    : lifecycle === "OFFICIALLY_PUBLISHED"
-                      ? "Publicada oficialmente"
-                    : lifecycle === "CLOSED"
-                      ? "Finalizada"
-                      : lifecycle === "ACTIVE"
-                        ? "En votación"
-                        : lifecycle === "PUBLISHED"
-                          ? "Próxima"
-                          : "Borrador",
-              },
-            ]}
-          />
-          <TopInfoCard
-            title="Punto Presencial"
-            note="Abre una vista kiosco separada para atención presencial con QR."
-            action={
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <button
-                  type="button"
-                  onClick={handleOpenKiosk}
-                  className="inline-flex items-center justify-center rounded-lg bg-[#459151] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#3a7a44]"
-                >
-                  Abrir kiosco
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleCopyKioskLink()}
-                  disabled={creatingKioskLink}
-                  className="inline-flex items-center justify-center rounded-lg border border-[#459151]/25 bg-white px-3 py-2 text-sm font-semibold text-[#2E6A38] transition hover:bg-[#EFF7F0] disabled:opacity-60"
-                >
-                  {creatingKioskLink ? "Generando link..." : "Copiar link"}
-                </button>
-              </div>
-            }
-            lines={[
-              { label: "Punto", value: getKioskDisplayName(DEFAULT_KIOSK_STATION_ID) },
-              { label: "Uso", value: "Voto asistido con QR" },
-              { label: "Vista", value: "Pantalla separada para atención presencial" },
-            ]}
-          />
+          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+            <div className="mb-3">
+              <h3 className="font-semibold text-gray-800">Estado actual</h3>
+            </div>
+            <StatusBadge state={lifecycle} />
+          </div>
+          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+            <div className="mb-4">
+              <h3 className="font-semibold text-gray-800">Punto presencial</h3>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button
+                type="button"
+                onClick={handleOpenKiosk}
+                className="inline-flex items-center justify-center rounded-lg bg-[#459151] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3a7a44]"
+              >
+                Abrir kiosco
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleCopyKioskLink()}
+                disabled={creatingKioskLink}
+                className="inline-flex items-center justify-center rounded-lg border border-[#459151]/25 bg-white px-4 py-2.5 text-sm font-semibold text-[#2E6A38] transition hover:bg-[#EFF7F0] disabled:opacity-60"
+              >
+                {creatingKioskLink ? "Preparando enlace..." : "Copiar enlace"}
+              </button>
+            </div>
+          </div>
         </div>
+
+        {canCreateNews ? (
+          <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-4 text-sm text-blue-800">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <span>La publicación oficial ya notificó a los votantes del padrón actual.</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setNewsError(null);
+                  setNewsMessage(null);
+                  setIsNewsModalOpen(true);
+                }}
+                className="inline-flex items-center justify-center rounded-lg bg-[#459151] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3a7a44]"
+              >
+                Crear noticia
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         {kioskMessage ? (
           <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
@@ -717,9 +724,21 @@ const ActiveElectionStatusPage: React.FC = () => {
           </div>
         ) : null}
 
+        {newsMessage ? (
+          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            {newsMessage}
+          </div>
+        ) : null}
+
+        {newsError ? (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {newsError}
+          </div>
+        ) : null}
+
         {fullElectionEditingEnabled ? (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
-            Antes del límite de publicación oficial puedes seguir editando configuración, cronograma, planchas, candidatos y padrón, incluso si ya abriste revisión o ya confirmaste la publicación oficial.
+            Mientras siga abierta esta etapa, puedes ajustar la configuración, el cronograma, las planchas, los candidatos y el padrón.
           </div>
         ) : null}
 
@@ -729,26 +748,9 @@ const ActiveElectionStatusPage: React.FC = () => {
           </div>
         ) : null}
 
-        {votingPadronLimitedMode ? (
-          <div className="flex flex-col gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-4 text-sm text-blue-800 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              {officialPublicationLocked && !isDuringVotingWindow(event, nowMs)
-                ? "La publicación oficial ya fue confirmada. La configuración general queda cerrada y solo se permite padrón limitado."
-                : "La votación está activa. La estructura y el cronograma ya no se editan; en padrón solo se permite agregar habilitados o habilitar deshabilitados existentes."}
-            </div>
-            <button
-              type="button"
-              onClick={() => setActiveTab(3)}
-              className="inline-flex items-center justify-center rounded-lg bg-[#459151] px-4 py-2 font-semibold text-white transition hover:bg-[#3a7a44]"
-            >
-              Ir al padrón
-            </button>
-          </div>
-        ) : null}
-
         {lifecycle === "PUBLICATION_EXPIRED" ? (
           <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-            La ventana para publicación oficial venció. La elección queda bloqueada y ya no debe editarse como flujo normal.
+            El plazo para confirmar la publicación oficial ya venció. La elección queda bloqueada y ya no debe seguir editándose.
           </div>
         ) : null}
 
@@ -822,7 +824,6 @@ const ActiveElectionStatusPage: React.FC = () => {
               searchValue={searchTerm}
               onPageChange={setPage}
               onSearchChange={setSearchTerm}
-              onDownloadCsv={handleDownloadCsv}
               onAddRecord={
                 votingPadronLimitedMode
                   ? () => {
@@ -840,7 +841,6 @@ const ActiveElectionStatusPage: React.FC = () => {
               enablingVoterId={currentPadronActionVoterId}
               addRecordLabel="Agregar habilitado"
               loading={loadingPadronVoters}
-              downloading={downloadingCsv}
               readOnly
             />
           )}
@@ -1019,7 +1019,7 @@ const ActiveElectionStatusPage: React.FC = () => {
           </div>
 
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Cambiar horarios actualiza el cronograma visible de la elección. La revisión previa y la publicación oficial siguen siendo pasos separados, y al guardar se mantiene la validación visual de 36 horas.
+            Cambiar horarios actualiza el cronograma visible de la elección. La revisión previa y la publicación oficial siguen siendo pasos separados, y la fecha de inicio debe seguir quedando al menos 36 horas adelante.
           </div>
 
 
@@ -1052,6 +1052,13 @@ const ActiveElectionStatusPage: React.FC = () => {
         isLoading={addingCurrentPadronVoter}
         onClose={() => setRecordModal({ open: false })}
         onSubmit={handleSaveLimitedPadronRecord}
+      />
+
+      <CreateNewsModal
+        isOpen={isNewsModalOpen}
+        onClose={() => setIsNewsModalOpen(false)}
+        onSubmit={handleCreateNews}
+        isLoading={creatingNews}
       />
 
     </div>

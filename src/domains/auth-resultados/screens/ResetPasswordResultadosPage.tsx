@@ -22,6 +22,19 @@ const getLogoSrc = () => {
 };
 
 const getErrorMessage = (error: unknown, fallback: string) => {
+  const cleanMessage = (message: string) => {
+    const normalized = message.toLowerCase();
+    if (normalized.includes("expir")) {
+      return "El enlace de recuperación ya expiró. Solicita uno nuevo.";
+    }
+
+    if (normalized.includes("token")) {
+      return "El enlace de recuperación no es válido. Solicita uno nuevo.";
+    }
+
+    return message;
+  };
+
   if (typeof error === "object" && error !== null) {
     const maybeData = "data" in error ? error.data : undefined;
     if (
@@ -31,12 +44,12 @@ const getErrorMessage = (error: unknown, fallback: string) => {
     ) {
       const message = maybeData.message;
       if (typeof message === "string") {
-        return message;
+        return cleanMessage(message);
       }
     }
 
     if ("message" in error && typeof error.message === "string") {
-      return error.message;
+      return cleanMessage(error.message);
     }
   }
 
@@ -75,7 +88,9 @@ const ResetPasswordResultadosPage = () => {
     setServerError(null);
 
     if (!token) {
-      setServerError("Token inválido o faltante.");
+      setServerError(
+        "El enlace es inválido o está incompleto. Abre nuevamente el enlace enviado a tu correo.",
+      );
       return;
     }
 
@@ -113,7 +128,8 @@ const ResetPasswordResultadosPage = () => {
 
         {!token && (
           <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-lg text-sm">
-            Token inválido o faltante. Abre el enlace enviado a tu correo.
+            El enlace es inválido o está incompleto. Abre nuevamente el enlace
+            enviado a tu correo.
           </div>
         )}
 

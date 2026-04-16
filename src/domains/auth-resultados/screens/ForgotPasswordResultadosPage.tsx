@@ -79,7 +79,7 @@ const ForgotPasswordResultadosPage = () => {
       setServerError(
         getErrorMessage(
           error,
-          "No se pudo procesar la solicitud. Intente nuevamente.",
+          "No se pudo procesar la solicitud. Intenta nuevamente.",
         ),
       );
     } finally {

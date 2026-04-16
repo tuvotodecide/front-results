@@ -110,8 +110,8 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
   pageSize,
   searchValue = "",
   loading = false,
-  downloading = false,
-  confirming = false,
+  downloading: _downloading = false,
+  confirming: _confirming = false,
   parsedLabel: _parsedLabel = "Parseado",
   onPageChange,
   onSearchChange,
@@ -122,8 +122,8 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
   onToggleEnabled,
   onReplaceFile,
   onDeleteFile,
-  onExport,
-  onConfirm,
+  onExport: _onExport,
+  onConfirm: _onConfirm,
 }) => {
   const [search, setSearch] = useState(searchValue);
   const totalRecords = enabledCount + disabledCount;
@@ -174,7 +174,7 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
                 Padrón Electoral
               </h3>
               <p className="mt-1 text-sm text-slate-500">
-                Revisa y corrige el padrón antes de confirmar la versión final.
+                Revisa y corrige el padrón antes de continuar.
               </p>
               {observedCount > 0 && onInspectObservations ? (
                 <button
@@ -264,29 +264,6 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
                 </button>
               ) : null}
 
-              {onExport ? (
-                <button
-                  type="button"
-                  onClick={onExport}
-                  disabled={downloading}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#2f8f3a] px-5 py-3 text-sm font-semibold text-[#2f8f3a] transition-colors hover:bg-[#2f8f3a]/5 disabled:opacity-50"
-                >
-                  <svg
-                    className="h-4 w-4"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 5v10m0 0l4-4m-4 4l-4-4M5 19h14"
-                    />
-                  </svg>
-                  {downloading ? "Descargando..." : "Descargar padrón"}
-                </button>
-              ) : null}
             </div>
           </div>
         </div>
@@ -491,7 +468,7 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
           {onReplaceFile ? (
             <button
               type="button"
@@ -508,51 +485,6 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
               className="rounded-xl border border-red-300 px-5 py-3 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50"
             >
               Eliminar archivo
-            </button>
-          ) : null}
-          {onConfirm ? (
-            <button
-              type="button"
-              onClick={onConfirm}
-              disabled={confirming}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2f8f3a] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#277531] disabled:opacity-50"
-            >
-              {confirming ? (
-                <svg
-                  className="h-4 w-4 animate-spin"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                  />
-                </svg>
-              ) : (
-                <svg
-                  className="h-4 w-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              )}
-              <span>{confirming ? "Confirmando..." : "Confirmar padrón"}</span>
             </button>
           ) : null}
         </div>

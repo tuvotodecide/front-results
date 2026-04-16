@@ -49,7 +49,7 @@ const ElectionsPage: React.FC = () => {
   // Query de eventos - skip si no hay tenantId
   const { data: events = [], isLoading, error, refetch } = useGetVotingEventsQuery(
     tenantId ? { tenantId } : undefined,
-    { skip: !isLoggedIn }
+    { skip: !isLoggedIn, refetchOnMountOrArgChange: true }
   );
 
   const isEmpty = events.length === 0;

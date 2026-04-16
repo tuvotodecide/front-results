@@ -14,6 +14,15 @@ const getLogoSrc = () => {
 };
 
 const getErrorMessage = (error: unknown, fallback: string) => {
+  const cleanMessage = (message: string) => {
+    const normalized = message.toLowerCase();
+    if (normalized.includes("token")) {
+      return "El enlace es inválido o ya expiró. Solicita uno nuevo si necesitas continuar.";
+    }
+
+    return message;
+  };
+
   if (typeof error === "object" && error !== null) {
     const maybeData = "data" in error ? error.data : undefined;
     if (
@@ -23,12 +32,12 @@ const getErrorMessage = (error: unknown, fallback: string) => {
     ) {
       const message = maybeData.message;
       if (typeof message === "string") {
-        return message;
+        return cleanMessage(message);
       }
     }
 
     if ("message" in error && typeof error.message === "string") {
-      return error.message;
+      return cleanMessage(error.message);
     }
   }
 
@@ -59,7 +68,9 @@ const VerifyResultadosPage = () => {
   useEffect(() => {
     if (!token) {
       setStatus("error");
-      setErrorMsg("Token inválido o faltante.");
+      setErrorMsg(
+        "El enlace es inválido o está incompleto. Abre nuevamente el enlace enviado a tu correo.",
+      );
       return;
     }
 
@@ -170,7 +181,7 @@ const VerifyResultadosPage = () => {
           </p>
 
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-left">
-            <div className="font-semibold text-gray-800 mb-1">Detalle</div>
+            <div className="font-semibold text-gray-800 mb-1">Qué pasó</div>
             <p className="text-gray-600 text-sm">{errorMsg}</p>
           </div>
         </>
