@@ -13,7 +13,15 @@ import PositionsTable from './components/PositionsTable';
 import AddPositionModal from './components/AddPositionModal';
 import ConfigPageFallback from './components/ConfigPageFallback';
 import { getRequestErrorMessage } from './requestErrorMessage';
-import { hasDraftAlreadyStarted, stableCreatedAt, useClientNow } from './renderUtils';
+import {
+  areResultsAvailable,
+  canEditElectionBeforeCutoff,
+  hasDraftAlreadyStarted,
+  hasVotingEnded,
+  isDuringVotingWindow,
+  stableCreatedAt,
+  useClientNow,
+} from './renderUtils';
 import {
   useGetVotingEventQuery,
   useGetEventRolesQuery,
@@ -189,6 +197,28 @@ const ElectionConfigCargos: React.FC = () => {
         message="Como la hora de inicio ya pasó y el evento sigue en borrador, ya no debe seguir configurándose. Elimínalo desde la lista de votaciones."
         actionLabel="Volver a elecciones"
         onAction={() => navigate('/votacion/elecciones')}
+      />
+    );
+  }
+
+  if (event && !canEditElectionBeforeCutoff(event, nowMs)) {
+    const message =
+      event?.status === 'PUBLICATION_EXPIRED' || event?.state === 'PUBLICATION_EXPIRED'
+        ? 'La publicación oficial venció. Los cargos ya no deben modificarse.'
+        : event?.status === 'OFFICIALLY_PUBLISHED' || event?.state === 'OFFICIALLY_PUBLISHED'
+          ? 'La publicación oficial ya fue confirmada. Los cargos quedan bloqueados y no pueden volver a editarse.'
+        : isDuringVotingWindow(event, nowMs)
+          ? 'Durante la votación ya no se puede modificar la estructura de cargos.'
+          : hasVotingEnded(event, nowMs) || areResultsAvailable(event, nowMs)
+            ? 'La votación ya finalizó y la estructura de cargos queda en solo lectura.'
+            : 'Ya faltan menos de 24 horas para el inicio. Los cargos quedan en solo lectura.';
+
+    return (
+      <ConfigPageFallback
+        title="Cargos bloqueados"
+        message={message}
+        actionLabel="Volver al estado"
+        onAction={() => navigate(`/votacion/elecciones/${actualElectionId}/status`)}
       />
     );
   }

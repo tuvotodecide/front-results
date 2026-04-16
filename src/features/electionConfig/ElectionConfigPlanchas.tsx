@@ -13,7 +13,16 @@ import PartyModal from './components/PartyModal';
 import CandidatesModal from './components/CandidatesModal';
 import ConfigPageFallback from './components/ConfigPageFallback';
 import { getRequestErrorMessage } from './requestErrorMessage';
-import { getOptionColors, hasDraftAlreadyStarted, stableCreatedAt, useClientNow } from './renderUtils';
+import {
+  areResultsAvailable,
+  canEditElectionBeforeCutoff,
+  getOptionColors,
+  hasDraftAlreadyStarted,
+  hasVotingEnded,
+  isDuringVotingWindow,
+  stableCreatedAt,
+  useClientNow,
+} from './renderUtils';
 import {
   useGetVotingEventQuery,
   useGetEventRolesQuery,
@@ -358,6 +367,28 @@ const ElectionConfigPlanchas: React.FC = () => {
         message="No se pudo resolver la votación seleccionada. Vuelve al listado y entra nuevamente."
         actionLabel="Volver a elecciones"
         onAction={() => navigate('/votacion/elecciones')}
+      />
+    );
+  }
+
+  if (event && !canEditElectionBeforeCutoff(event, nowMs)) {
+    const message =
+      event.status === 'PUBLICATION_EXPIRED' || event.state === 'PUBLICATION_EXPIRED'
+        ? 'La publicación oficial venció. Las planchas ya no deben modificarse.'
+        : event.status === 'OFFICIALLY_PUBLISHED' || event.state === 'OFFICIALLY_PUBLISHED'
+          ? 'La publicación oficial ya fue confirmada. Las planchas y candidatos quedan bloqueados y no pueden volver a editarse.'
+        : isDuringVotingWindow(event, nowMs)
+          ? 'Durante la votación ya no se pueden modificar planchas ni candidatos.'
+          : hasVotingEnded(event, nowMs) || areResultsAvailable(event, nowMs)
+            ? 'La votación ya finalizó y las planchas quedan en solo lectura.'
+            : 'Ya faltan menos de 24 horas para el inicio. Las planchas quedan en solo lectura.';
+
+    return (
+      <ConfigPageFallback
+        title="Planchas bloqueadas"
+        message={message}
+        actionLabel="Volver al estado"
+        onAction={() => navigate(`/votacion/elecciones/${actualElectionId}/status`)}
       />
     );
   }

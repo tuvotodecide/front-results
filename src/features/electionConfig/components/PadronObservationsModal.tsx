@@ -19,13 +19,13 @@ const PadronObservationsModal: React.FC<PadronObservationsModalProps> = ({
     <Modal2
       isOpen={isOpen}
       onClose={onClose}
-      title="Observaciones del procesamiento"
+      title="Registros por revisar"
       size="2xl"
       type="plain"
     >
       <div className="space-y-5">
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Estas observaciones vienen del parser del backend. Los registros observados no quedan listos en el staging hasta que los corrijas manualmente.
+          Estos registros no pudieron quedar listos automáticamente. Si los necesitas, puedes completarlos o corregirlos manualmente.
         </div>
 
         {errors.length === 0 ? (

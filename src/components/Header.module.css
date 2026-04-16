@@ -172,6 +172,28 @@
   transform: translateY(-1px);
 }
 
+.secondaryNavButton {
+  background-color: #eff7f0;
+  color: #2e6a38;
+  padding: 8px 18px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(69, 145, 81, 0.28);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.secondaryNavButton:hover {
+  background-color: #e4f3e7;
+  box-shadow: 0 4px 6px rgba(46, 125, 50, 0.12);
+  transform: translateY(-1px);
+}
+
 
 .userName {
   color: #459151;

@@ -6,6 +6,8 @@ interface PadronRecordModalProps {
   mode: "create" | "edit";
   initialCi?: string;
   initialEnabled?: boolean;
+  enabledLocked?: boolean;
+  enabledHelperText?: string;
   isLoading?: boolean;
   onClose: () => void;
   onSubmit: (payload: { ci: string; enabled: boolean }) => Promise<void> | void;
@@ -47,6 +49,8 @@ const PadronRecordModal: React.FC<PadronRecordModalProps> = ({
   mode,
   initialCi = "",
   initialEnabled = true,
+  enabledLocked = false,
+  enabledHelperText,
   isLoading = false,
   onClose,
   onSubmit,
@@ -92,7 +96,7 @@ const PadronRecordModal: React.FC<PadronRecordModalProps> = ({
         <div>
           <p className="text-sm text-slate-500">
             {mode === "create"
-              ? "Ingresa el carnet de identidad para agregarlo manualmente al staging."
+              ? "Ingresa el carnet de identidad."
               : "Modifica el carnet o la habilitación del registro seleccionado."}
           </p>
         </div>
@@ -114,21 +118,19 @@ const PadronRecordModal: React.FC<PadronRecordModalProps> = ({
             placeholder="Ej: 4567823 LP"
             className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base text-slate-800 outline-none transition focus:border-[#459151] focus:ring-2 focus:ring-[#459151]/15"
           />
-          <p className="mt-2 text-sm text-slate-500">
-            Incluye el código del departamento si aplica: LP, CB, SC, OR, PT, TJ, BE, PD o CH.
-          </p>
+        
         </label>
 
         <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-semibold text-slate-800">Habilitado para votar</p>
-              <p className="mt-1 text-sm text-slate-500">
-                El registro quedará {enabled ? "habilitado" : "inhabilitado"} en esta versión.
-              </p>
+              {enabledHelperText ? (
+                <p className="mt-1 text-sm text-slate-500">{enabledHelperText}</p>
+              ) : null}
             </div>
             <div className="flex items-center gap-3">
-              <Toggle checked={enabled} onChange={setEnabled} disabled={isLoading} />
+              <Toggle checked={enabled} onChange={setEnabled} disabled={isLoading || enabledLocked} />
               <span className={`text-sm font-semibold ${enabled ? "text-[#2f8f3a]" : "text-slate-500"}`}>
                 {enabled ? "Sí" : "No"}
               </span>
@@ -136,11 +138,7 @@ const PadronRecordModal: React.FC<PadronRecordModalProps> = ({
           </div>
         </div>
 
-        <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-          {mode === "create"
-            ? "El registro se agregará al staging actual y podrás seguir corrigiendo antes de confirmar la versión final."
-            : "Los cambios actualizan el staging activo inmediatamente y recalculan los totales del padrón."}
-        </div>
+
 
         <div className="flex flex-col-reverse gap-3 pt-1 sm:flex-row sm:justify-end">
           <button

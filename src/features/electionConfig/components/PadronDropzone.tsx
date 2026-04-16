@@ -5,6 +5,7 @@ import React, { useRef, useState } from 'react';
 interface PadronDropzoneProps {
   onFileSelect: (file: File) => void;
   disabled?: boolean;
+  onManualStart?: () => void;
 }
 
 const DocumentIcon = () => (
@@ -44,7 +45,11 @@ const isSupportedFile = (file: File) => {
   );
 };
 
-const PadronDropzone: React.FC<PadronDropzoneProps> = ({ onFileSelect, disabled = false }) => {
+const PadronDropzone: React.FC<PadronDropzoneProps> = ({
+  onFileSelect,
+  disabled = false,
+  onManualStart,
+}) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -162,13 +167,26 @@ const PadronDropzone: React.FC<PadronDropzoneProps> = ({ onFileSelect, disabled 
             </svg>
           </div>
           <div className="text-blue-800">
-            <p className="font-semibold">El archivo será procesado por el backend.</p>
+            <p className="font-semibold">Puedes cargar un PDF o imagen para intentar el análisis automático.</p>
             <p className="mt-1 text-sm text-blue-700">
-              El sistema leerá el PDF o la imagen, generará un staging editable y te permitirá corregir manualmente antes de confirmar la versión final del padrón.
+              Si Gemini está configurado en este navegador, se intentará convertir el archivo en un padrón editable. Si no hay configuración o no se detectan datos útiles, podrás continuar con carga manual sin bloquear el flujo.
             </p>
           </div>
         </div>
       </div>
+
+      {onManualStart ? (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={onManualStart}
+            disabled={disabled}
+            className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
+          >
+            Crear padrón manualmente
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 };

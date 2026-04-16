@@ -8,13 +8,18 @@ import * as Yup from 'yup';
 import Stepper from './Stepper';
 import ConfirmCreateModal from './ConfirmCreateModal';
 import { useCreateElection } from '../data/useElectionRepository';
+import { THIRTY_SIX_HOURS_MS } from '../../electionConfig/renderUtils';
 import type { ElectionFormData, ElectionFormStep1, ElectionFormStep2 } from '../types';
 
-const getCurrentLocalDateTime = () => {
-  const now = new Date();
-  const timezoneOffset = now.getTimezoneOffset() * 60000;
-  return new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 16);
+const toLocalDateTimeValue = (value: Date) => {
+  const timezoneOffset = value.getTimezoneOffset() * 60000;
+  return new Date(value.getTime() - timezoneOffset).toISOString().slice(0, 16);
 };
+
+const getCurrentLocalDateTime = () => toLocalDateTimeValue(new Date());
+
+const getMinimumVotingStartDateTime = () =>
+  toLocalDateTimeValue(new Date(Date.now() + THIRTY_SIX_HOURS_MS));
 
 const addMinutesToLocalDateTime = (value?: string, minutes = 1, fallback = '') => {
   if (!value) return fallback;
@@ -22,8 +27,7 @@ const addMinutesToLocalDateTime = (value?: string, minutes = 1, fallback = '') =
   if (Number.isNaN(base.getTime())) return fallback;
 
   const next = new Date(base.getTime() + minutes * 60 * 1000);
-  const timezoneOffset = next.getTimezoneOffset() * 60000;
-  return new Date(next.getTime() - timezoneOffset).toISOString().slice(0, 16);
+  return toLocalDateTimeValue(next);
 };
 
 // Validación Step 1
@@ -43,11 +47,11 @@ const step2Schema = Yup.object({
   votingStartDate: Yup.string()
     .required('Este campo es obligatorio')
     .test(
-      'not-before-now',
-      'Debe ser una fecha y hora a partir de este momento',
+      'minimum-36-hours',
+      'Debe programarse con al menos 36 horas de anticipación.',
       (value) => {
         if (!value) return true;
-        return new Date(value) >= new Date();
+        return new Date(value).getTime() >= Date.now() + THIRTY_SIX_HOURS_MS;
       }
     ),
   votingEndDate: Yup.string()
@@ -95,9 +99,11 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
   const [pendingData, setPendingData] = useState<ElectionFormData | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [currentLocalDateTime, setCurrentLocalDateTime] = useState('');
+  const [minimumVotingStartDateTime, setMinimumVotingStartDateTime] = useState('');
 
   useEffect(() => {
     setCurrentLocalDateTime(getCurrentLocalDateTime());
+    setMinimumVotingStartDateTime(getMinimumVotingStartDateTime());
   }, []);
 
   // Step 1: Info básica
@@ -266,7 +272,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
               {({ isValid, dirty, values }) => (
                 <Form className="space-y-6">
                   <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                    La publicación oficial debe confirmarse antes de que falten 36 horas para iniciar la votación. Si eliges una fecha muy próxima, podrías quedarte sin tiempo de publicación.
+                    La publicación oficial debe confirmarse antes del límite de 24 horas previo al inicio de la votación.
                   </div>
                   {/* Fecha apertura */}
                   <div>
@@ -280,7 +286,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                       id="votingStartDate"
                       name="votingStartDate"
                       type="datetime-local"
-                      min={currentLocalDateTime}
+                      min={minimumVotingStartDateTime}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#459151] focus:border-[#459151] transition-colors"
                     />
                     <ErrorMessage
@@ -288,6 +294,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                       component="p"
                       className="mt-1 text-sm text-red-600"
                     />
+
                   </div>
 
                   {/* Fecha cierre */}
@@ -302,7 +309,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                       id="votingEndDate"
                       name="votingEndDate"
                       type="datetime-local"
-                      min={values.votingStartDate || currentLocalDateTime}
+                      min={values.votingStartDate || minimumVotingStartDateTime || currentLocalDateTime}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#459151] focus:border-[#459151] transition-colors"
                     />
                     <ErrorMessage

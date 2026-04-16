@@ -81,6 +81,14 @@ export interface UpsertEventResultsSnapshotDto {
 
 export interface CreateParticipationDto {
   carnet: string;
+  presentialSessionId?: string;
+}
+
+export interface CreatePresentialSessionDto {
+  stationId?: string;
+  regenerateKioskAccessToken?: boolean;
+  readyTtlSeconds?: number;
+  claimTtlSeconds?: number;
 }
 
 export interface CreateEventNewsDto {
@@ -109,10 +117,12 @@ export interface VotingEvent {
   votingStart?: string | null;
   votingEnd?: string | null;
   resultsPublishAt?: string | null;
+  publishDeadline?: string | null;
   state: VotingEventStatus;
   status: VotingEventStatus;
   publicEligibilityEnabled: boolean;
   publicEligibility: boolean;
+  canEditPadronInLimitedMode?: boolean;
   createdAt?: string;
   updatedAt?: string;
   roles?: EventRole[];
@@ -246,6 +256,7 @@ export interface PadronWorkflowVersion {
 export interface PadronWorkflowSummary {
   eventId: string;
   eventState?: string;
+  canEditPadronInLimitedMode?: boolean;
   currentVersion: PadronWorkflowVersion | null;
   activeDraft: PadronImportJob | null;
 }
@@ -300,6 +311,14 @@ export interface PadronVoter {
   createdAt?: string;
 }
 
+export interface CurrentPadronVoterMutationResult {
+  id: string;
+  padronVersionId: string;
+  carnetNorm: string;
+  enabled: boolean;
+  mode?: 'VOTING_LIMITED';
+}
+
 export interface PadronImportResult {
   versionId: string;
   padronVersionId: string;
@@ -336,6 +355,59 @@ export interface ParticipationStatus {
   alreadyVoted: boolean;
   canVote: boolean;
   participatedAt?: string;
+}
+
+export type PresentialSessionStatus =
+  | "READY"
+  | "CLAIMED"
+  | "COMPLETED"
+  | "EXPIRED"
+  | "CANCELLED";
+
+export interface PresentialSession {
+  id: string;
+  eventId: string;
+  stationId: string;
+  status: PresentialSessionStatus;
+  rotationNumber: number;
+  expiresAt?: string | null;
+  claimedAt?: string | null;
+  completedAt?: string | null;
+  qrToken?: string | null;
+  qrValue?: string | null;
+}
+
+export interface PresentialCurrentState {
+  eventId: string;
+  stationId: string;
+  kioskEnabled: boolean;
+  eventState: string;
+  isEventActive: boolean;
+  session: PresentialSession | null;
+}
+
+export interface PresentialKioskBootstrap {
+  authHeader: string;
+  currentPath: string;
+  streamPath: string;
+}
+
+export interface CreatePresentialSessionResult {
+  eventId: string;
+  stationId: string;
+  kioskEnabled: boolean;
+  kioskAccessToken: string | null;
+  kioskBootstrap: PresentialKioskBootstrap;
+  currentSession: PresentialSession | null;
+  claimTtlSeconds: number;
+  readyTtlSeconds: number;
+}
+
+export interface PresentialSessionRotatedEvent {
+  eventId: string;
+  stationId: string;
+  previousSessionId: string;
+  session: PresentialSession | null;
 }
 
 export interface EventResults {

@@ -85,6 +85,11 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
   }, [event, options]);
 
   const configSummary: ConfigSummary | null = useMemo(() => {
+    const reviewPending = new Set(reviewReadiness?.pending ?? []);
+    const padronPending =
+      reviewPending.has('padron') ||
+      reviewPending.has('padron_invalid') ||
+      reviewPending.has('padron_validation');
     const positionsCount = roles.length;
     const partiesCount = options.length;
     const partiesWithCandidates = options.filter((o) => (o.candidates ?? []).length > 0).length;
@@ -97,18 +102,18 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
     return {
       positionsOk: positionsCount > 0,
       partiesOk: partiesWithCandidates > 0,
-      padronOk: votersCount > 0 && invalidCount === 0,
+      padronOk: votersCount > 0 && invalidCount === 0 && !padronPending,
       positionsCount,
       partiesCount,
       votersCount,
       enabledToVoteCount,
       disabledToVoteCount,
     };
-  }, [roles, options, padronVersions, padronSummary]);
+  }, [roles, options, padronVersions, padronSummary, reviewReadiness?.pending]);
 
   const electionStatus: ElectionStatus = useMemo(() => {
     if (!event) return 'DRAFT';
-    if (event.status === 'PUBLISHED' || event.status === 'OFFICIALLY_PUBLISHED') return 'ACTIVE';
+    if (event.status === 'OFFICIALLY_PUBLISHED' || event.status === 'ACTIVE') return 'ACTIVE';
     if (event.status === 'CLOSED' || event.status === 'RESULTS_PUBLISHED') return 'CLOSED';
     return 'DRAFT';
   }, [event]);

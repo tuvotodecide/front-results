@@ -57,6 +57,8 @@ export default function VotacionPublicHeader() {
 
   const showUserMenu = hasMounted && isLoggedIn;
   const showLoginButton = !showUserMenu && !isLoginPage;
+  const showMyElectionsButton =
+    showUserMenu && pathname !== "/votacion/elecciones";
 
   return (
     <header className={styles.header}>
@@ -69,6 +71,11 @@ export default function VotacionPublicHeader() {
         <span className={styles.logoText}>Tu voto decide</span>
       </a>
       <div className={styles.headerActions}>
+        {showMyElectionsButton ? (
+          <Link href="/votacion/elecciones" className={styles.secondaryNavButton}>
+            Ir a mis votaciones
+          </Link>
+        ) : null}
         {showUserMenu ? (
           <div className={styles.userMenuContainer} ref={menuRef}>
             <button

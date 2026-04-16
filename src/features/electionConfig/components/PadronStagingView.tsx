@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import type { Voter, PadronFile } from "../types";
 
 interface PadronStagingViewProps {
@@ -11,9 +11,11 @@ interface PadronStagingViewProps {
   page: number;
   totalPages: number;
   pageSize: number;
+  searchValue?: string;
   loading?: boolean;
   downloading?: boolean;
   confirming?: boolean;
+  parsedLabel?: string;
   onPageChange: (page: number) => void;
   onSearchChange: (search: string) => void;
   onInspectObservations?: () => void;
@@ -22,6 +24,7 @@ interface PadronStagingViewProps {
   onDeleteRecord?: (voter: Voter) => void;
   onToggleEnabled?: (voter: Voter, nextEnabled: boolean) => void;
   onReplaceFile?: () => void;
+  onDeleteFile?: () => void;
   onExport?: () => void;
   onConfirm?: () => void;
 }
@@ -31,9 +34,7 @@ const SummaryCard: React.FC<{
   value: number;
   note: string;
   tone: "blue" | "green" | "slate" | "red";
-  actionLabel?: string;
-  onAction?: () => void;
-}> = ({ title, value, note, tone, actionLabel, onAction }) => {
+}> = ({ title, value, note, tone }) => {
   const tones = {
     blue: "border-blue-200 bg-blue-50 text-blue-700",
     green: "border-emerald-200 bg-emerald-50 text-emerald-700",
@@ -46,19 +47,6 @@ const SummaryCard: React.FC<{
       <p className="text-sm font-semibold uppercase tracking-wide">{title}</p>
       <p className="mt-3 text-4xl font-bold">{value.toLocaleString("es-ES")}</p>
       <p className="mt-2 text-sm opacity-90">{note}</p>
-      {actionLabel && onAction ? (
-        <button
-          type="button"
-          onClick={onAction}
-          className={`mt-5 inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold ${
-            tone === "red"
-              ? "bg-red-600 text-white hover:bg-red-700"
-              : "border border-current hover:bg-white/60"
-          }`}
-        >
-          {actionLabel}
-        </button>
-      ) : null}
     </div>
   );
 };
@@ -110,13 +98,6 @@ const getPageNumbers = (page: number, totalPages: number) => {
   return pages;
 };
 
-const formatSourceType = (sourceType?: string) => {
-  if (sourceType === "IMAGE") return "Imagen";
-  if (sourceType === "IMAGE_IMPORT") return "Imagen";
-  if (sourceType === "PDF" || sourceType === "PDF_IMPORT") return "PDF";
-  return "Documento";
-};
-
 const PadronStagingView: React.FC<PadronStagingViewProps> = ({
   file,
   voters,
@@ -127,9 +108,11 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
   page,
   totalPages,
   pageSize,
+  searchValue = "",
   loading = false,
   downloading = false,
   confirming = false,
+  parsedLabel: _parsedLabel = "Parseado",
   onPageChange,
   onSearchChange,
   onInspectObservations,
@@ -138,27 +121,20 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
   onDeleteRecord,
   onToggleEnabled,
   onReplaceFile,
+  onDeleteFile,
   onExport,
   onConfirm,
 }) => {
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(searchValue);
   const totalRecords = enabledCount + disabledCount;
+
+  useEffect(() => {
+    setSearch(searchValue);
+  }, [searchValue]);
 
   const handleSearchSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     onSearchChange(search);
-  };
-
-  const formatDate = (value: string) => {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      return value;
-    }
-
-    return date.toLocaleString("es-ES", {
-      dateStyle: "medium",
-      timeStyle: "short",
-    });
   };
 
   return (
@@ -167,7 +143,7 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
         <SummaryCard
           title="Total"
           value={totalRecords}
-          note="Registros cargados al staging"
+          note="Registros cargados al padrón"
           tone="blue"
         />
         <SummaryCard
@@ -185,10 +161,8 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
         <SummaryCard
           title="Observados"
           value={observedCount}
-          note="Errores de parseo o duplicados detectados"
+          note="Registros que requieren revisión manual"
           tone="red"
-          actionLabel={observedCount > 0 ? "Corregir" : undefined}
-          onAction={observedCount > 0 ? onInspectObservations : undefined}
         />
       </div>
 
@@ -196,10 +170,21 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
         <div className="border-b border-slate-200 px-4 py-4 sm:px-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h3 className="text-xl font-semibold text-slate-900">Padrón Electoral</h3>
+              <h3 className="text-xl font-semibold text-slate-900">
+                Padrón Electoral
+              </h3>
               <p className="mt-1 text-sm text-slate-500">
-                Revisa y corrige el staging antes de confirmar la versión final.
+                Revisa y corrige el padrón antes de confirmar la versión final.
               </p>
+              {observedCount > 0 && onInspectObservations ? (
+                <button
+                  type="button"
+                  onClick={onInspectObservations}
+                  className="mt-3 inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800 transition-colors hover:bg-amber-100"
+                >
+                  Revisar observaciones
+                </button>
+              ) : null}
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -209,14 +194,49 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Buscar por carnet"
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 pr-11 text-sm text-slate-800 outline-none transition focus:border-[#459151] focus:ring-2 focus:ring-[#459151]/15 sm:w-72"
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 pr-20 text-sm text-slate-800 outline-none transition focus:border-[#459151] focus:ring-2 focus:ring-[#459151]/15 sm:w-72"
                 />
+                {search ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearch("");
+                      onSearchChange("");
+                    }}
+                    className="absolute right-11 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                    aria-label="Limpiar búsqueda"
+                  >
+                    <svg
+                      className="h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 6l12 12M18 6L6 18"
+                      />
+                    </svg>
+                  </button>
+                ) : null}
                 <button
                   type="submit"
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                 >
-                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  <svg
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
                   </svg>
                 </button>
               </form>
@@ -227,8 +247,18 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
                   onClick={onAddRecord}
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2f8f3a] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#277531]"
                 >
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m7-7H5" />
+                  <svg
+                    className="h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 5v14m7-7H5"
+                    />
                   </svg>
                   Agregar registro
                 </button>
@@ -241,10 +271,20 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
                   disabled={downloading}
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#2f8f3a] px-5 py-3 text-sm font-semibold text-[#2f8f3a] transition-colors hover:bg-[#2f8f3a]/5 disabled:opacity-50"
                 >
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v10m0 0l4-4m-4 4l-4-4M5 19h14" />
+                  <svg
+                    className="h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 5v10m0 0l4-4m-4 4l-4-4M5 19h14"
+                    />
                   </svg>
-                  {downloading ? "Exportando..." : "Exportar"}
+                  {downloading ? "Descargando..." : "Descargar padrón"}
                 </button>
               ) : null}
             </div>
@@ -261,9 +301,6 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
                 <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">
                   Habilitado
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">
-                  Origen
-                </th>
                 <th className="px-6 py-4 text-right text-sm font-semibold text-slate-700">
                   Acciones
                 </th>
@@ -275,13 +312,16 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
                   <td colSpan={4} className="px-6 py-14 text-center">
                     <div className="mx-auto h-8 w-8 rounded-full border-4 border-[#459151] border-t-transparent animate-spin" />
                     <p className="mt-4 text-sm text-slate-500">
-                      Cargando registros del staging...
+                      Cargando registros del padrón...
                     </p>
                   </td>
                 </tr>
               ) : voters.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-500">
+                  <td
+                    colSpan={4}
+                    className="px-6 py-12 text-center text-sm text-slate-500"
+                  >
                     No se encontraron registros en esta página.
                   </td>
                 </tr>
@@ -290,28 +330,27 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
                   <tr key={voter.id} className="hover:bg-slate-50/70">
                     <td className="px-6 py-4">
                       <div>
-                        <p className="font-medium text-slate-900">{voter.carnet}</p>
-                        {voter.sourceRow ? (
-                          <p className="mt-1 text-xs text-slate-500">
-                            Fila original {voter.sourceRow}
-                          </p>
-                        ) : null}
+                        <p className="font-medium text-slate-900">
+                          {voter.carnet}
+                        </p>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <Toggle
                           checked={voter.enabled}
-                          onChange={(nextEnabled) => onToggleEnabled?.(voter, nextEnabled)}
+                          onChange={(nextEnabled) =>
+                            onToggleEnabled?.(voter, nextEnabled)
+                          }
                         />
-                        <span className={`text-sm font-semibold ${voter.enabled ? "text-[#2f8f3a]" : "text-slate-500"}`}>
+                        <span
+                          className={`text-sm font-semibold ${voter.enabled ? "text-[#2f8f3a]" : "text-slate-500"}`}
+                        >
                           {voter.enabled ? "Sí" : "No"}
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">
-                      {voter.sourceKind === "MANUAL" ? "Manual" : "Parseado"}
-                    </td>
+
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
                         {onEditRecord ? (
@@ -321,8 +360,18 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
                             className="rounded-lg p-2 text-[#2f8f3a] transition-colors hover:bg-[#2f8f3a]/10"
                             aria-label={`Editar ${voter.carnet}`}
                           >
-                            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.586-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.414-8.586z" />
+                            <svg
+                              className="h-5 w-5"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.586-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.414-8.586z"
+                              />
                             </svg>
                           </button>
                         ) : null}
@@ -333,8 +382,18 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
                             className="rounded-lg p-2 text-red-600 transition-colors hover:bg-red-50"
                             aria-label={`Eliminar ${voter.carnet}`}
                           >
-                            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            <svg
+                              className="h-5 w-5"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
                             </svg>
                           </button>
                         ) : null}
@@ -350,7 +409,8 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
         {totalPages > 1 ? (
           <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-4 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <p>
-              Mostrando {Math.min((page - 1) * pageSize + 1, totalVoters)} - {Math.min(page * pageSize, totalVoters)} de{" "}
+              Mostrando {Math.min((page - 1) * pageSize + 1, totalVoters)} -{" "}
+              {Math.min(page * pageSize, totalVoters)} de{" "}
               {totalVoters.toLocaleString("es-ES")} registros
             </p>
             <div className="flex flex-wrap items-center gap-2">
@@ -377,7 +437,10 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
                     {item}
                   </button>
                 ) : (
-                  <span key={`${item}-${index}`} className="px-1 text-slate-400">
+                  <span
+                    key={`${item}-${index}`}
+                    className="px-1 text-slate-400"
+                  >
                     ...
                   </span>
                 ),
@@ -398,17 +461,33 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
       <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div className="flex items-center gap-4">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[#2f8f3a] shadow-sm">
-            <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M14 2v6h6" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 13h8M8 17h6" />
+            <svg
+              className="h-8 w-8"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M14 2v6h6"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M8 13h8M8 17h6"
+              />
             </svg>
           </div>
           <div>
             <p className="font-semibold text-slate-900">{file.fileName}</p>
-            <p className="mt-1 text-sm text-slate-500">
-              Fuente: {formatSourceType(file.sourceType)}. Procesado el {formatDate(file.uploadedAt)}.
-            </p>
+
           </div>
         </div>
 
@@ -422,6 +501,15 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
               Reemplazar archivo
             </button>
           ) : null}
+          {onDeleteFile ? (
+            <button
+              type="button"
+              onClick={onDeleteFile}
+              className="rounded-xl border border-red-300 px-5 py-3 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50"
+            >
+              Eliminar archivo
+            </button>
+          ) : null}
           {onConfirm ? (
             <button
               type="button"
@@ -430,13 +518,38 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2f8f3a] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#277531] disabled:opacity-50"
             >
               {confirming ? (
-                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                <svg
+                  className="h-4 w-4 animate-spin"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
                 </svg>
               ) : (
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                <svg
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M5 13l4 4L19 7"
+                  />
                 </svg>
               )}
               <span>{confirming ? "Confirmando..." : "Confirmar padrón"}</span>

@@ -35,7 +35,7 @@ const UploadProgressModal: React.FC<UploadProgressModalProps> = ({
   isOpen,
   progress,
   title = 'Procesando padrón...',
-  subtitle = 'El backend está leyendo el documento y preparando el staging editable.',
+  subtitle = 'Se está leyendo el documento y preparando el padrón.',
 }) => {
   return (
     <Modal2

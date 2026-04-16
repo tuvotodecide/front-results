@@ -1,10 +1,17 @@
 import { apiSlice } from "../apiSlice";
+import {
+  normalizeCreatePresentialSessionResult,
+  normalizePresentialCurrentState,
+} from "@/domains/votacion/kiosk/presentialSessionAdapters";
 import type {
   ComparisonReportStatus,
   ConfirmPadronStagingResult,
   CreateEventNewsDto,
+  CreatePresentialSessionDto,
   CreateEventRoleDto,
   CreateParticipationDto,
+  CurrentPadronVoterMutationResult,
+  CreatePresentialSessionResult,
   CreateVotingEventDto,
   CreateVotingOptionDto,
   EligibilityResult,
@@ -21,6 +28,7 @@ import type {
   PadronVoter,
   PadronWorkflowSummary,
   ParticipationStatus,
+  PresentialCurrentState,
   ReviewReadinessResponse,
   PublishEventResponse,
   ReplaceCandidatesDto,
@@ -92,10 +100,15 @@ const toVotingEvent = (raw: any): VotingEvent => {
     votingStart: source?.votingStart ?? null,
     votingEnd: source?.votingEnd ?? null,
     resultsPublishAt: source?.resultsPublishAt ?? null,
+    publishDeadline: source?.publishDeadline ?? null,
     state,
     status: state,
     publicEligibilityEnabled: Boolean(source?.publicEligibilityEnabled),
     publicEligibility: Boolean(source?.publicEligibilityEnabled),
+    canEditPadronInLimitedMode:
+      source?.canEditPadronInLimitedMode === undefined
+        ? undefined
+        : Boolean(source.canEditPadronInLimitedMode),
     createdAt: source?.createdAt,
     updatedAt: source?.updatedAt,
     roles: Array.isArray(source?.roles)
@@ -241,6 +254,10 @@ const toPadronWorkflowSummary = (raw: any): PadronWorkflowSummary => {
   return {
     eventId: String(source?.eventId ?? ""),
     eventState: source?.eventState ?? undefined,
+    canEditPadronInLimitedMode:
+      source?.canEditPadronInLimitedMode === undefined
+        ? undefined
+        : Boolean(source.canEditPadronInLimitedMode),
     currentVersion: currentVersion
       ? {
           padronVersionId: String(currentVersion?.padronVersionId ?? ""),
@@ -272,6 +289,13 @@ const toPadronWorkflowSummary = (raw: any): PadronWorkflowSummary => {
     activeDraft: source?.activeDraft ? toPadronImportJob(source.activeDraft) : null,
   };
 };
+
+const toCreatePresentialSessionResult = (
+  raw: any,
+): CreatePresentialSessionResult => normalizeCreatePresentialSessionResult(raw);
+
+const toPresentialCurrentState = (raw: any): PresentialCurrentState =>
+  normalizePresentialCurrentState(raw);
 
 export const votingEventsEndpoints = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -477,7 +501,11 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
         uploadedAt: response?.createdAt,
         totals: response?.totals,
       }),
-      invalidatesTags: (_result, _error, { eventId }) => [{ type: "VotingEventPadron", id: eventId }],
+      invalidatesTags: (_result, _error, { eventId }) => [
+        { type: "VotingEventPadron", id: eventId },
+        { type: "VotingEventPadronSummary", id: eventId },
+        { type: "VotingEvents", id: eventId },
+      ],
     }),
 
     uploadPadronSource: builder.mutation<PadronImportJob, { eventId: string; file: File }>({
@@ -494,6 +522,7 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
       invalidatesTags: (_result, _error, { eventId }) => [
         { type: "VotingEventPadron", id: eventId },
         { type: "VotingEventPadronSummary", id: eventId },
+        { type: "VotingEvents", id: eventId },
       ],
     }),
 
@@ -556,6 +585,7 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
       invalidatesTags: (_result, _error, { eventId }) => [
         { type: "VotingEventPadron", id: eventId },
         { type: "VotingEventPadronSummary", id: eventId },
+        { type: "VotingEvents", id: eventId },
       ],
     }),
 
@@ -572,6 +602,7 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
       invalidatesTags: (_result, _error, { eventId }) => [
         { type: "VotingEventPadron", id: eventId },
         { type: "VotingEventPadronSummary", id: eventId },
+        { type: "VotingEvents", id: eventId },
       ],
     }),
 
@@ -590,6 +621,7 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
       invalidatesTags: (_result, _error, { eventId }) => [
         { type: "VotingEventPadron", id: eventId },
         { type: "VotingEventPadronSummary", id: eventId },
+        { type: "VotingEvents", id: eventId },
       ],
     }),
 
@@ -684,6 +716,52 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
         totalPages: Number(response?.totalPages ?? 0),
       }),
       providesTags: (_result, _error, { eventId }) => [{ type: "VotingEventPadron", id: eventId }],
+    }),
+
+    addCurrentPadronVoter: builder.mutation<
+      CurrentPadronVoterMutationResult,
+      { eventId: string; carnet: string; enabled?: boolean }
+    >({
+      query: ({ eventId, ...body }) => ({
+        url: `/voting/events/${eventId}/padron/voters`,
+        method: "POST",
+        body,
+      }),
+      transformResponse: (response: any) => ({
+        id: String(response?.id ?? response?._id ?? ""),
+        padronVersionId: String(response?.padronVersionId ?? ""),
+        carnetNorm: String(response?.carnetNorm ?? ""),
+        enabled: response?.enabled !== false,
+        mode: response?.mode === "VOTING_LIMITED" ? "VOTING_LIMITED" : undefined,
+      }),
+      invalidatesTags: (_result, _error, { eventId }) => [
+        { type: "VotingEventPadron", id: eventId },
+        { type: "VotingEventPadronSummary", id: eventId },
+        { type: "VotingEvents", id: eventId },
+      ],
+    }),
+
+    enableCurrentPadronVoter: builder.mutation<
+      CurrentPadronVoterMutationResult,
+      { eventId: string; voterId: string }
+    >({
+      query: ({ eventId, voterId }) => ({
+        url: `/voting/events/${eventId}/padron/voters/${voterId}/enable`,
+        method: "POST",
+        body: {},
+      }),
+      transformResponse: (response: any) => ({
+        id: String(response?.id ?? response?._id ?? ""),
+        padronVersionId: String(response?.padronVersionId ?? ""),
+        carnetNorm: String(response?.carnetNorm ?? ""),
+        enabled: response?.enabled !== false,
+        mode: response?.mode === "VOTING_LIMITED" ? "VOTING_LIMITED" : undefined,
+      }),
+      invalidatesTags: (_result, _error, { eventId }) => [
+        { type: "VotingEventPadron", id: eventId },
+        { type: "VotingEventPadronSummary", id: eventId },
+        { type: "VotingEvents", id: eventId },
+      ],
     }),
 
     downloadPadronCsv: builder.query<
@@ -820,6 +898,30 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
       }),
     }),
 
+    createPresentialSession: builder.mutation<
+      CreatePresentialSessionResult,
+      { eventId: string; data?: CreatePresentialSessionDto }
+    >({
+      query: ({ eventId, data }) => ({
+        url: `/voting/events/${eventId}/presential-sessions`,
+        method: "POST",
+        body: data ?? {},
+      }),
+      transformResponse: toCreatePresentialSessionResult,
+    }),
+
+    getCurrentPresentialSession: builder.query<
+      PresentialCurrentState,
+      { eventId: string; stationId?: string; kioskToken?: string }
+    >({
+      query: ({ eventId, stationId, kioskToken }) => ({
+        url: `/voting/events/${eventId}/presential-sessions/current`,
+        params: stationId ? { stationId } : undefined,
+        headers: kioskToken ? { "x-kiosk-token": kioskToken } : undefined,
+      }),
+      transformResponse: toPresentialCurrentState,
+    }),
+
     createEventNews: builder.mutation<EventNews, { eventId: string; data: CreateEventNewsDto }>({
       query: ({ eventId, data }) => ({
         url: `/voting/events/${eventId}/news`,
@@ -871,6 +973,8 @@ export const {
   useAddPadronStagingEntryMutation,
   useUpdatePadronStagingEntryMutation,
   useDeletePadronStagingEntryMutation,
+  useAddCurrentPadronVoterMutation,
+  useEnableCurrentPadronVoterMutation,
   useConfirmPadronStagingMutation,
   useGetPadronVersionsQuery,
   useLazyGetPadronVersionsQuery,
@@ -891,5 +995,8 @@ export const {
   useCreateParticipationMutation,
   useGetParticipationStatusQuery,
   useLazyGetParticipationStatusQuery,
+  useCreatePresentialSessionMutation,
+  useGetCurrentPresentialSessionQuery,
+  useLazyGetCurrentPresentialSessionQuery,
   useCreateEventNewsMutation,
 } = votingEventsEndpoints;

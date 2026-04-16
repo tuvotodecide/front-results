@@ -66,15 +66,15 @@ const ElectionsPage: React.FC = () => {
     if (event.status === 'DRAFT') {
       // Ir a configuración (Paso 1)
       navigate(`/votacion/elecciones/${event.id}/config/cargos`);
-    } else if (event.status === 'READY_FOR_REVIEW') {
+    } else if (event.status === 'READY_FOR_REVIEW' || event.status === 'PUBLISHED') {
       navigate(`/votacion/elecciones/${event.id}/config/review`);
     } else if (
-      event.status === 'PUBLISHED' ||
       event.status === 'OFFICIALLY_PUBLISHED' ||
+      event.status === 'ACTIVE' ||
       event.status === 'CLOSED' ||
       event.status === 'RESULTS_PUBLISHED'
     ) {
-      // Elección publicada/activa/terminada - ir a vista de estado (read-only)
+      // Elección oficialmente publicada/activa/terminada - ir a vista de estado
       navigate(`/votacion/elecciones/${event.id}/status`);
     } else {
       // Fallback a review

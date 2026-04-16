@@ -30,6 +30,10 @@ const getStaticNextPublicEnv = (key: string): string | undefined => {
       return process.env.NEXT_PUBLIC_VOTE_CHAIN_CURRENCY_SYMBOL;
     case "NEXT_PUBLIC_VOTE_CONTRACT_ADDRESS":
       return process.env.NEXT_PUBLIC_VOTE_CONTRACT_ADDRESS;
+    case "NEXT_PUBLIC_GEMINI_API_KEY":
+      return process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+    case "NEXT_PUBLIC_GEMINI_PADRON_MODEL":
+      return process.env.NEXT_PUBLIC_GEMINI_PADRON_MODEL;
     default:
       return undefined;
   }

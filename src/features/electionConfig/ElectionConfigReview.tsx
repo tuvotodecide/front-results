@@ -15,13 +15,19 @@ import ActivatedSuccessModal from './components/ActivatedSuccessModal';
 import { useElectionPublish } from './data/useElectionPublish';
 import Modal2 from '../../components/Modal2';
 import ConfigPageFallback from './components/ConfigPageFallback';
-import { hasDraftAlreadyStarted, useClientNow } from './renderUtils';
+import {
+  canEditElectionBeforeCutoff,
+  hasDraftAlreadyStarted,
+  hasVotingEnded,
+  isDuringVotingWindow,
+  useClientNow,
+} from './renderUtils';
 import { useDeleteVotingEventMutation } from '../../store/votingEvents';
 
 const pendingLabels: Record<string, string> = {
   datos_base: 'Datos base de la votación',
   horarios: 'Cronograma completo y válido',
-  publish_deadline: 'Ventana de publicación de 36 horas',
+  publish_deadline: 'Ventana de publicación de 24 horas',
   cargos: 'Cargos configurados',
   opciones: 'Planchas registradas',
   candidatos: 'Candidatos asignados',
@@ -29,7 +35,7 @@ const pendingLabels: Record<string, string> = {
   cobertura_cargos: 'Cobertura de todos los cargos',
   padron: 'Padrón cargado',
   padron_invalid: 'Padrón sin registros inválidos',
-  padron_validation: 'Validación del padrón',
+  padron_validation: 'Confirmar la versión final del padrón',
   publication_window_expired: 'La ventana de publicación oficial venció',
 };
 
@@ -122,6 +128,9 @@ const ElectionConfigReview: React.FC = () => {
   }
 
   const eventState = votingEvent?.state ?? votingEvent?.status ?? 'DRAFT';
+  const fullElectionEditingEnabled = canEditElectionBeforeCutoff(votingEvent, nowMs);
+  const votingInProgress = isDuringVotingWindow(votingEvent, nowMs);
+  const votingClosed = hasVotingEnded(votingEvent, nowMs);
   const canOpenReview = eventState === 'DRAFT' && isReadyToPublish && reviewReadiness?.isReady;
   const canConfirmOfficialPublication =
     eventState === 'READY_FOR_REVIEW' &&
@@ -199,11 +208,11 @@ const ElectionConfigReview: React.FC = () => {
                     <p className="mt-2 text-green-700">
                       {eventState === 'READY_FOR_REVIEW'
                         ? 'La revisión previa está abierta. Ya puedes confirmar la publicación oficial dentro de la ventana permitida.'
-                        : 'La configuración está completa para abrir revisión.'}
+                        : 'La configuración está completa para notificar a los votantes.'}
                     </p>
                   ) : (
                     <div className="mt-2 text-amber-800">
-                      <p>Faltan estos puntos antes de abrir revisión:</p>
+                      <p>Faltan estos puntos antes de notificar a los votantes:</p>
                       <ul className="mt-2 list-disc space-y-1 pl-5">
                         {reviewReadiness.pending.map((item) => (
                           <li key={item}>{pendingLabels[item] ?? item}</li>
@@ -213,14 +222,42 @@ const ElectionConfigReview: React.FC = () => {
                   )}
                   {reviewReadiness.publicationWindow?.deadline && (
                     <p className="mt-3 text-xs text-gray-500">
-                      La publicación oficial debe confirmarse antes de que falten 36 horas para iniciar la votación.
+                      La publicación oficial debe confirmarse antes del límite de publicación oficial, 24 horas antes del inicio.
                     </p>
                   )}
                 </div>
               )}
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+                <h2 className="font-semibold">Etapa 1: revisión y notificación</h2>
+                <p className="mt-2">
+                  Notifica a los empadronados y deja constancia de revisión previa. No equivale a publicación oficial.
+                </p>
+              </div>
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+                <h2 className="font-semibold">Etapa 2: publicación oficial</h2>
+                <p className="mt-2">
+                  La confirmación oficial ocurre después y sigue separada de la revisión. El límite de publicación oficial llega 24 horas antes del inicio.
+                </p>
+
+              </div>
+              {fullElectionEditingEnabled ? (
+                <div className="rounded-lg border border-emerald-200 bg-white p-4 text-sm text-emerald-800 shadow-sm">
+                  Antes del límite de publicación oficial puedes volver a editar toda la elección aunque ya exista padrón confirmado, revisión abierta o publicación oficial.
+                </div>
+              ) : null}
+              {votingInProgress ? (
+                <div className="rounded-lg border border-blue-200 bg-white p-4 text-sm text-blue-800 shadow-sm">
+                  La votación está activa. La revisión y la publicación oficial ya no se gestionan desde esta vista.
+                </div>
+              ) : null}
+              {votingClosed ? (
+                <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
+                  La votación ya finalizó. Esta vista queda solo para consulta histórica.
+                </div>
+              ) : null}
               {isPublicationExpired && (
                 <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-                  La ventana de publicación oficial venció. Esta votación ya no debe editarse como borrador; elimínala y crea una nueva.
+                  La ventana de publicación oficial venció. Esta votación ya no debe editarse como borrador ni publicarse normalmente.
                 </div>
               )}
               {configSummary && <ConfigSummaryCard summary={configSummary} />}
@@ -265,7 +302,23 @@ const ElectionConfigReview: React.FC = () => {
                 >
                   {deletingEvent ? 'Eliminando...' : 'Eliminar votación vencida'}
                 </button>
-              ) : eventState === 'OFFICIALLY_PUBLISHED' || eventState === 'PUBLISHED' ? (
+              ) : votingInProgress ? (
+                <button
+                  type="button"
+                  disabled
+                  className="w-full cursor-not-allowed rounded-lg bg-gray-300 px-8 py-3 font-semibold text-gray-500 sm:w-auto"
+                >
+                  La votación ya está activa
+                </button>
+              ) : votingClosed ? (
+                <button
+                  type="button"
+                  disabled
+                  className="w-full cursor-not-allowed rounded-lg bg-gray-300 px-8 py-3 font-semibold text-gray-500 sm:w-auto"
+                >
+                  La votación ya finalizó
+                </button>
+              ) : eventState === 'OFFICIALLY_PUBLISHED' ? (
                 <button
                   type="button"
                   disabled
@@ -273,7 +326,7 @@ const ElectionConfigReview: React.FC = () => {
                 >
                   Publicación oficial confirmada
                 </button>
-              ) : eventState === 'READY_FOR_REVIEW' ? (
+              ) : eventState === 'READY_FOR_REVIEW' || eventState === 'PUBLISHED' ? (
                 <button
                   type="button"
                   onClick={handleConfirmClick}
@@ -301,12 +354,10 @@ const ElectionConfigReview: React.FC = () => {
                     }
                   `}
                 >
-                  {openingReview ? 'Abriendo revisión...' : 'Abrir revisión'}
+                  {openingReview ? 'Notificando...' : 'Notificar a los votantes'}
                 </button>
               )}
-              <p className="text-xs text-gray-500 mt-2">
-                Abrir revisión notifica a empadronados. La publicación oficial se confirma después, desde backend.
-              </p>
+
             </div>
           </div>
         </div>

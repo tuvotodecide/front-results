@@ -1,7 +1,7 @@
 // Vista del padrón cargado con stats, tabla y paginación
 // Basado en capturas 07_loaded_table_top.png, 08_loaded_file_footer.png, 09_loaded_with_fix_button.png
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { Voter, PadronFile } from '../types';
 
 interface LoadedPadronViewProps {
@@ -13,13 +13,21 @@ interface LoadedPadronViewProps {
   page: number;
   totalPages: number;
   pageSize: number;
+  searchValue?: string;
   onPageChange: (page: number) => void;
   onSearchChange: (search: string) => void;
   onFixInvalid?: () => void;
+  onEditFile?: () => void;
   onReplaceFile?: () => void;
   onDeleteFile?: () => void;
   onDownloadCsv?: () => void;
   onFinish?: () => void;
+  finishDisabled?: boolean;
+  finishLabel?: string;
+  onAddRecord?: () => void;
+  onEnableVoter?: (voter: Voter) => void;
+  enablingVoterId?: string | null;
+  addRecordLabel?: string;
   loading?: boolean;
   downloading?: boolean;
   readOnly?: boolean;
@@ -66,25 +74,39 @@ const LoadedPadronView: React.FC<LoadedPadronViewProps> = ({
   page,
   totalPages,
   pageSize,
+  searchValue = '',
   onPageChange,
   onSearchChange,
   onFixInvalid,
+  onEditFile,
   onReplaceFile,
   onDeleteFile,
   onDownloadCsv,
   onFinish,
+  finishDisabled = false,
+  finishLabel = 'Finalizar configuración',
+  onAddRecord,
+  onEnableVoter,
+  enablingVoterId = null,
+  addRecordLabel = 'Agregar registro',
   loading = false,
   downloading = false,
   readOnly = false,
 }) => {
-  const [searchValue, setSearchValue] = useState('');
+  const [searchInputValue, setSearchInputValue] = useState(searchValue);
+
+  useEffect(() => {
+    setSearchInputValue(searchValue);
+  }, [searchValue]);
 
   const formatNumber = (num: number) => num.toLocaleString('es-ES');
   const totalRecords = validCount + invalidCount;
+  const showVotingLimitedActions = Boolean(onAddRecord || onEnableVoter);
+  const showFooterActions = !readOnly && Boolean(onEditFile || onReplaceFile || onDeleteFile || onFinish);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSearchChange(searchValue);
+    onSearchChange(searchInputValue);
   };
 
   const formatDate = (dateStr: string) => {
@@ -141,7 +163,7 @@ const LoadedPadronView: React.FC<LoadedPadronViewProps> = ({
           </div>
           <p className="text-4xl font-bold text-red-600">{formatNumber(invalidCount)}</p>
           <p className="text-sm text-red-600 mt-1">Errores de formato o datos</p>
-          {invalidCount > 0 && !readOnly && (
+          {invalidCount > 0 && !readOnly && onFixInvalid && (
             <button
               type="button"
               onClick={onFixInvalid}
@@ -168,11 +190,26 @@ const LoadedPadronView: React.FC<LoadedPadronViewProps> = ({
               <form onSubmit={handleSearchSubmit} className="relative">
                 <input
                   type="text"
-                  value={searchValue}
-                  onChange={(e) => setSearchValue(e.target.value)}
+                  value={searchInputValue}
+                  onChange={(e) => setSearchInputValue(e.target.value)}
                   placeholder="Buscar por carnet"
-                  className="w-64 pl-4 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#459151] focus:border-[#459151]"
+                  className="w-64 pl-4 pr-16 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#459151] focus:border-[#459151]"
                 />
+                {searchInputValue && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchInputValue('');
+                      onSearchChange('');
+                    }}
+                    className="absolute right-9 top-1/2 -translate-y-1/2 rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                    aria-label="Limpiar búsqueda"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6L6 18" />
+                    </svg>
+                  </button>
+                )}
                 <button
                   type="submit"
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
@@ -183,7 +220,7 @@ const LoadedPadronView: React.FC<LoadedPadronViewProps> = ({
                 </button>
               </form>
 
-              {/* Descargar CSV */}
+              {/* Descargar padrón */}
               <button
                 type="button"
                 onClick={onDownloadCsv}
@@ -193,8 +230,21 @@ const LoadedPadronView: React.FC<LoadedPadronViewProps> = ({
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
-                {downloading ? 'Descargando...' : 'Descargar CSV'}
+                {downloading ? 'Descargando...' : 'Descargar padrón'}
               </button>
+
+              {onAddRecord && (
+                <button
+                  type="button"
+                  onClick={onAddRecord}
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#459151] px-4 py-2 font-medium text-white transition-colors hover:bg-[#3a7a44]"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m7-7H5" />
+                  </svg>
+                  {addRecordLabel}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -206,19 +256,22 @@ const LoadedPadronView: React.FC<LoadedPadronViewProps> = ({
               <th className="text-left px-6 py-4 font-semibold text-gray-700">Carnet</th>
               <th className="text-left px-6 py-4 font-semibold text-gray-700">Habilitado</th>
               <th className="text-right px-6 py-4 font-semibold text-gray-700">Estado</th>
+              {showVotingLimitedActions && (
+                <th className="text-right px-6 py-4 font-semibold text-gray-700">Acciones</th>
+              )}
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={3} className="px-6 py-12 text-center">
+                <td colSpan={showVotingLimitedActions ? 4 : 3} className="px-6 py-12 text-center">
                   <div className="w-8 h-8 border-4 border-[#459151] border-t-transparent rounded-full animate-spin mx-auto" />
                   <p className="mt-4 text-gray-500">Cargando...</p>
                 </td>
               </tr>
             ) : voters.length === 0 ? (
               <tr>
-                <td colSpan={3} className="px-6 py-12 text-center text-gray-500">
+                <td colSpan={showVotingLimitedActions ? 4 : 3} className="px-6 py-12 text-center text-gray-500">
                   No se encontraron registros
                 </td>
               </tr>
@@ -253,6 +306,30 @@ const LoadedPadronView: React.FC<LoadedPadronViewProps> = ({
                       </span>
                     )}
                   </td>
+                  {showVotingLimitedActions && (
+                    <td className="px-6 py-4 text-right">
+                      {voter.enabled ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-[#459151]">
+                          Ya habilitado
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => onEnableVoter?.(voter)}
+                          disabled={!onEnableVoter || enablingVoterId === voter.id}
+                          className="inline-flex items-center gap-2 rounded-lg bg-[#459151] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#3a7a44] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {enablingVoterId === voter.id ? (
+                            <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                          ) : null}
+                          Habilitar
+                        </button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))
             )}
@@ -323,49 +400,65 @@ const LoadedPadronView: React.FC<LoadedPadronViewProps> = ({
           </div>
         </div>
 
-        {!readOnly && (
+        {showFooterActions && (
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onReplaceFile}
-              className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-white transition-colors"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Reemplazar archivo
-            </button>
+            {onEditFile ? (
+              <button
+                type="button"
+                onClick={onEditFile}
+                className="inline-flex items-center gap-2 px-4 py-2 border border-[#459151]/30 text-[#2f8f3a] font-medium rounded-lg hover:bg-white transition-colors"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.586-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.414-8.586z" />
+                </svg>
+                Editar padrón
+              </button>
+            ) : null}
+            {onReplaceFile ? (
+              <button
+                type="button"
+                onClick={onReplaceFile}
+                className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-white transition-colors"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Reemplazar archivo
+              </button>
+            ) : null}
 
-            <button
-              type="button"
-              onClick={onDeleteFile}
-              className="inline-flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 font-medium rounded-lg hover:bg-red-50 transition-colors"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-              Eliminar
-            </button>
+            {onDeleteFile ? (
+              <button
+                type="button"
+                onClick={onDeleteFile}
+                className="inline-flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 font-medium rounded-lg hover:bg-red-50 transition-colors"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Eliminar
+              </button>
+            ) : null}
           </div>
         )}
       </div>
 
       {/* Botón finalizar */}
-      {!readOnly && (
+      {!readOnly && onFinish && (
         <div className="flex justify-end">
           <button
             type="button"
             onClick={onFinish}
-            disabled={invalidCount > 0}
+            disabled={invalidCount > 0 || finishDisabled}
             className={`
               inline-flex items-center gap-2 px-8 py-3 font-semibold rounded-lg transition-all
-              ${invalidCount === 0
+              ${invalidCount === 0 && !finishDisabled
                 ? 'bg-[#459151] hover:bg-[#3a7a44] text-white shadow-md hover:shadow-lg'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }
             `}
           >
-            Finalizar configuración
+            {finishLabel}
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
