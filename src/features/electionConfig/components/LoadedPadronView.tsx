@@ -17,7 +17,6 @@ interface LoadedPadronViewProps {
   onPageChange: (page: number) => void;
   onSearchChange: (search: string) => void;
   onFixInvalid?: () => void;
-  onEditFile?: () => void;
   onReplaceFile?: () => void;
   onDeleteFile?: () => void;
   onDownloadCsv?: () => void;
@@ -78,7 +77,6 @@ const LoadedPadronView: React.FC<LoadedPadronViewProps> = ({
   onPageChange,
   onSearchChange,
   onFixInvalid,
-  onEditFile,
   onReplaceFile,
   onDeleteFile,
   onDownloadCsv: _onDownloadCsv,
@@ -102,7 +100,7 @@ const LoadedPadronView: React.FC<LoadedPadronViewProps> = ({
   const formatNumber = (num: number) => num.toLocaleString('es-ES');
   const totalRecords = validCount + invalidCount;
   const showVotingLimitedActions = Boolean(onAddRecord || onEnableVoter);
-  const showFooterActions = !readOnly && Boolean(onEditFile || onReplaceFile || onDeleteFile || onFinish);
+  const showFooterActions = !readOnly && Boolean(onReplaceFile || onDeleteFile || onFinish);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -389,18 +387,6 @@ const LoadedPadronView: React.FC<LoadedPadronViewProps> = ({
 
         {showFooterActions && (
           <div className="flex items-center gap-3">
-            {onEditFile ? (
-              <button
-                type="button"
-                onClick={onEditFile}
-                className="inline-flex items-center gap-2 px-4 py-2 border border-[#459151]/30 text-[#2f8f3a] font-medium rounded-lg hover:bg-white transition-colors"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.586-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.414-8.586z" />
-                </svg>
-                Editar padrón
-              </button>
-            ) : null}
             {onReplaceFile ? (
               <button
                 type="button"
@@ -410,7 +396,7 @@ const LoadedPadronView: React.FC<LoadedPadronViewProps> = ({
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                Reemplazar archivo
+                Reemplazar documento
               </button>
             ) : null}
 

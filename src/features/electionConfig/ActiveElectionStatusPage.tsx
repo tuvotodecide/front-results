@@ -39,7 +39,6 @@ import {
   canEditElectionBeforeCutoff,
   canEditPadronInLimitedMode,
   formatDateTimeForUi,
-  getPublishDeadlineMs,
   getOptionColors,
   hasDraftAlreadyStarted,
   hasVotingEnded,
@@ -280,6 +279,9 @@ const ActiveElectionStatusPage: React.FC = () => {
     votingEnd: "",
     resultsPublishAt: "",
   });
+  const minimumVotingStartValue = toDateTimeLocalValue(
+    new Date((nowMs ?? Date.now()) + THIRTY_SIX_HOURS_MS).toISOString(),
+  );
 
   const { data: event, isLoading: loadingEvent } = useGetVotingEventQuery(
     actualElectionId,
@@ -371,7 +373,6 @@ const ActiveElectionStatusPage: React.FC = () => {
     lifecycle === "RESULTS_PUBLISHED";
   const votingPadronLimitedMode = canEditPadronInLimitedMode(event, nowMs);
   const postCutoffReadOnly = isAfterPublishCutoffBeforeVoting(event, nowMs);
-  const publishDeadlineMs = getPublishDeadlineMs(event);
   const presentialKioskEnabled = Boolean(event?.presentialKioskEnabled);
 
   useEffect(() => {
@@ -551,12 +552,16 @@ const ActiveElectionStatusPage: React.FC = () => {
     if (!actualElectionId) return;
 
     try {
-      await createEventNews({
+      const result = await createEventNews({
         eventId: actualElectionId,
         data: payload,
       }).unwrap();
       setNewsError(null);
-      setNewsMessage("Noticia publicada correctamente para los votantes del padrón actual.");
+      setNewsMessage(
+        result.imageUrl
+          ? "Noticia publicada correctamente con imagen."
+          : "Noticia publicada correctamente para los votantes del padrón actual.",
+      );
       setIsNewsModalOpen(false);
     } catch (error: any) {
       const message = getRequestErrorMessage(error, "No se pudo publicar la noticia.");
@@ -627,9 +632,6 @@ const ActiveElectionStatusPage: React.FC = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{event?.name}</h1>
             <p className="mt-2 max-w-3xl text-gray-600">{event?.objective}</p>
-            <div className="mt-4">
-              <StatusBadge state={lifecycle} />
-            </div>
           </div>
         </div>
 
@@ -638,10 +640,10 @@ const ActiveElectionStatusPage: React.FC = () => {
             title="Horario de Votación"
             note={
               officialPublicationLocked
-                ? "La publicación oficial ya fue confirmada. El cronograma queda bloqueado y solo se mantiene la gestión limitada de padrón."
+                ? "La publicación oficial ya fue confirmada."
                 : scheduleEditable
-                ? "Puedes modificar el cronograma hasta el límite de publicación oficial. La fecha de inicio debe seguir quedando al menos 36 horas adelante."
-                : "El cronograma ya no puede modificarse porque el límite de publicación oficial ya pasó o la votación ya comenzó."
+                ? "Puedes modificar el cronograma hasta el límite de publicación oficial. "
+                : "Ya no puede modificarse porque el límite de publicación oficial ya pasó o la votación ya comenzó."
             }
             action={
               scheduleEditable ? (
@@ -663,20 +665,18 @@ const ActiveElectionStatusPage: React.FC = () => {
               { label: "Desde", value: formatDateTimeForUi(event?.votingStart) },
               { label: "Hasta", value: formatDateTimeForUi(event?.votingEnd) },
               {
-                label: "Límite de publicación",
-                value: publishDeadlineMs ? formatDateTimeForUi(new Date(publishDeadlineMs).toISOString()) : 'No definido',
-              },
-              {
                 label: "Resultados",
                 value: formatDateTimeForUi(event?.resultsPublishAt),
               },
             ]}
           />
-          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+          <div className="bg-white border border-gray-200 rounded-xl p-5 text-center shadow-sm">
             <div className="mb-3">
               <h3 className="font-semibold text-gray-800">Estado actual</h3>
             </div>
-            <StatusBadge state={lifecycle} />
+            <div className="flex justify-center">
+              <StatusBadge state={lifecycle} />
+            </div>
           </div>
           {presentialKioskEnabled ? (
             <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
@@ -689,7 +689,7 @@ const ActiveElectionStatusPage: React.FC = () => {
                   onClick={handleOpenKiosk}
                   className="inline-flex items-center justify-center rounded-lg bg-[#459151] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3a7a44]"
                 >
-                  Abrir kiosco
+                  Abrir página QR
                 </button>
                 <button
                   type="button"
@@ -705,9 +705,8 @@ const ActiveElectionStatusPage: React.FC = () => {
         </div>
 
         {canCreateNews ? (
-          <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-4 text-sm text-blue-800">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <span>La publicación oficial ya notificó a los votantes del padrón actual.</span>
+          <div className="rounded-xl  px-4 py-4 text-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
               <button
                 type="button"
                 onClick={() => {
@@ -990,6 +989,7 @@ const ActiveElectionStatusPage: React.FC = () => {
               <input
                 type="datetime-local"
                 value={scheduleForm.votingStart}
+                min={minimumVotingStartValue}
                 onChange={(event) =>
                   handleScheduleInputChange("votingStart", event.target.value)
                 }

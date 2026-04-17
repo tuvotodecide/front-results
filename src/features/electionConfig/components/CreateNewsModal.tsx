@@ -118,14 +118,14 @@ const CreateNewsModal: React.FC<CreateNewsModalProps> = ({
 
           <label className="block">
             <span className="mb-2 block text-sm font-medium text-slate-700">
-              Imagen opcional
+              URL de imagen (opcional)
             </span>
             <input
               type="url"
               value={imageUrl}
               onChange={(event) => setImageUrl(event.target.value)}
               disabled={isLoading}
-              placeholder="Enlace de imagen"
+              placeholder="https://.../imagen.png"
               className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#459151] focus:ring-2 focus:ring-[#459151]/15 disabled:bg-slate-100"
             />
           </label>

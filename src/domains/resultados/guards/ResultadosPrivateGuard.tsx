@@ -64,7 +64,8 @@ export default function ResultadosPrivateGuard({
     normalizedPathname.startsWith(path),
   );
   const isRestrictedRole =
-    user?.role === "MAYOR" || user?.role === "GOVERNOR";
+    Boolean(domainContext || hasLegacyAccess) &&
+    (user?.role === "MAYOR" || user?.role === "GOVERNOR");
   const allowedForRestricted =
     normalizedPathname.startsWith("/control-personal") ||
     normalizedPathname.startsWith("/auditoria-tse");

@@ -158,23 +158,23 @@ describe("auth multi-context", () => {
       message: "Tu solicitud territorial está pendiente de aprobación.",
     });
 
-    expect(
-      resolveDeniedDomainAccessNotice("resultados", {
-        accessStatus: null,
-        user: {
-          id: "user-2",
-          email: "mayor@test.com",
-          name: "Mayor",
-          role: "MAYOR",
-          active: true,
-          territorialAccessStatus: "PENDING_APPROVAL",
-        },
-      }),
-    ).toMatchObject({
+    const deniedNotice = resolveDeniedDomainAccessNotice("resultados", {
+      accessStatus: null,
+      user: {
+        id: "user-2",
+        email: "mayor@test.com",
+        name: "Mayor",
+        role: "MAYOR",
+        active: true,
+        territorialAccessStatus: "PENDING_APPROVAL",
+      },
+    });
+
+    expect(deniedNotice).toMatchObject({
       kind: "denied",
       message: "Tu solicitud territorial está pendiente de aprobación.",
-      registerPath: undefined,
     });
+    expect(deniedNotice).not.toHaveProperty("registerPath");
   });
 
   it("persists activeContext changes", () => {

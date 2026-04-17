@@ -4,7 +4,7 @@ import {
   parseEnabledCell,
   parsePadronCsv,
   revalidateRows,
-} from "@/features/electionConfig/ElectionConfigPadron";
+} from "@/features/electionConfig/data/padronCsvParser";
 
 const makeFile = (content: string, name = "padron.csv") => {
   const file = new File([content], name, { type: "text/csv" }) as File & {
@@ -46,7 +46,7 @@ describe("padron csv parser", () => {
     expect(result.totalRecords).toBe(4);
     expect(result.validCount).toBe(1);
     expect(result.invalidCount).toBe(3);
-    expect(result.rows.map((row) => row.invalidReason)).toEqual([
+    expect(result.voters.map((row: Voter) => row.invalidReason)).toEqual([
       undefined,
       "duplicate",
       "invalid_format",
@@ -76,11 +76,11 @@ describe("padron csv parser", () => {
     ];
 
     const corrected = revalidateRows([
-      rows[0],
-      { ...rows[1], carnet: "7654321", invalidReason: undefined },
+      rows[0]!,
+      { ...rows[1]!, carnet: "7654321", invalidReason: undefined },
     ]);
 
-    expect(corrected.every((row) => row.status === "valid")).toBe(true);
+    expect(corrected.every((row: Voter) => row.status === "valid")).toBe(true);
     expect(buildUploadCsv(corrected)).toBe(
       ["carnet,habilitado", "1234567,si", "7654321,no"].join("\n"),
     );

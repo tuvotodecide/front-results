@@ -21,7 +21,7 @@ export default function KioskQrSvg({
       bgColor="#FFFFFF"
       fgColor="#174F2E"
       level="M"
-      title="Código QR del kiosco presencial"
+      title="Código QR"
       className={className}
     />
   );

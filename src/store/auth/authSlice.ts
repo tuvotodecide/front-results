@@ -377,7 +377,11 @@ export const authSlice = createSlice({
         action.payload?.access_token ??
         action.payload?.token ??
         null;
-      const validToken = token && !isTokenExpired(token) ? token : null;
+      const existingToken =
+        token && (token === state.token || token === state.accessToken)
+          ? token
+          : null;
+      const validToken = token && !isTokenExpired(token) ? token : existingToken;
       const decoded = decodeToken(validToken);
       const availableContexts = normalizeContexts(
         action.payload?.availableContexts,

@@ -931,7 +931,13 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: any) => ({
+        id: response?.id ? String(response.id) : undefined,
         eventId: String(response?.eventId ?? ""),
+        title: response?.title ?? undefined,
+        body: response?.body ?? undefined,
+        imageUrl: response?.imageUrl ?? undefined,
+        link: response?.link ?? undefined,
+        publishedAt: response?.publishedAt ?? undefined,
         sent: Number(response?.sent ?? 0),
         skipped: response?.skipped ?? null,
       }),

@@ -275,6 +275,7 @@ const ElectionConfigPadron: React.FC = () => {
   const nowMs = useClientNow();
   const replaceFileInputRef = useRef<HTMLInputElement>(null);
   const startedPollingImportRef = useRef<string | null>(null);
+  const autoOpenedConfirmedPadronRef = useRef<string | null>(null);
 
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
@@ -806,7 +807,7 @@ const ElectionConfigPadron: React.FC = () => {
     event.target.value = "";
   };
 
-  const handleEditConfirmedPadron = async () => {
+  const handleEditConfirmedPadron = useCallback(async () => {
     if (!currentVersion) return;
 
     try {
@@ -835,7 +836,39 @@ const ElectionConfigPadron: React.FC = () => {
     } catch (editError: any) {
       setError(getRequestErrorMessage(editError, "No se pudo reabrir el padrón para edición."));
     }
-  };
+  }, [actualElectionId, currentFile?.fileName, currentVersion, downloadPadronCsv]);
+
+  useEffect(() => {
+    const currentVersionId = currentVersion?.padronVersionId ?? null;
+
+    if (
+      !currentVersionId ||
+      !fullPadronEditingEnabled ||
+      limitedPadronModeAllowed ||
+      closedPadronReadOnly ||
+      postCutoffReadOnly ||
+      clientDraft ||
+      activeDraft
+    ) {
+      return;
+    }
+
+    if (autoOpenedConfirmedPadronRef.current === currentVersionId) {
+      return;
+    }
+
+    autoOpenedConfirmedPadronRef.current = currentVersionId;
+    void handleEditConfirmedPadron();
+  }, [
+    activeDraft,
+    clientDraft,
+    closedPadronReadOnly,
+    currentVersion?.padronVersionId,
+    fullPadronEditingEnabled,
+    handleEditConfirmedPadron,
+    limitedPadronModeAllowed,
+    postCutoffReadOnly,
+  ]);
 
   const handleDeleteClientDraft = () => {
     setClientDraft(null);
@@ -1312,7 +1345,6 @@ const ElectionConfigPadron: React.FC = () => {
               searchValue={searchTerm}
               onPageChange={setPage}
               onSearchChange={setSearchTerm}
-              onEditFile={fullPadronEditingEnabled ? () => void handleEditConfirmedPadron() : undefined}
               onReplaceFile={handleReplaceFile}
               loading={fetchingCurrentVoters}
               readOnly={!fullPadronEditingEnabled}

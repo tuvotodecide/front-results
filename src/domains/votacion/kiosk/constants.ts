@@ -14,7 +14,7 @@ export const normalizeKioskStationId = (stationId?: string | null) => {
 export const getKioskDisplayName = (stationId?: string | null) => {
   const normalized = normalizeKioskStationId(stationId);
   if (normalized === DEFAULT_KIOSK_STATION_ID) {
-    return "Kiosco principal";
+    return "Página del QR";
   }
 
   return normalized;

@@ -390,7 +390,7 @@ const RegisterResultadosPage = () => {
               />
             </div>
             <h1 className="text-2xl font-bold text-gray-800 tracking-tight">
-              {isExistingIdentityFlow ? "Solicitar acceso" : "Registrarse"}
+              {isExistingIdentityFlow ? "Acceso territorial" : "Registrarse"}
             </h1>
             <p className="text-gray-500 text-sm mt-1 text-center">
               {isExistingIdentityFlow

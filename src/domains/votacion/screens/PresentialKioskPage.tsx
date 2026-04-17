@@ -184,7 +184,24 @@ const getRemainingCopy = (
   sessionStatus?: string | null,
 ) => {
   if (secondsLeft !== null && sessionStatus === "READY") {
-    return `Código disponible por ${secondsLeft} segundos más.`;
+    if (secondsLeft <= 0) {
+      return "Este código se renovará en breve.";
+    }
+
+    const minutes = Math.floor(secondsLeft / 60);
+    const seconds = secondsLeft % 60;
+
+    if (minutes > 0) {
+      return seconds > 0
+        ? `Disponible por ${minutes} min ${seconds} s.`
+        : `Disponible por ${minutes} min.`;
+    }
+
+    return `Disponible por ${seconds} s.`;
+  }
+
+  if (sessionStatus === "READY") {
+    return "Código disponible por unos minutos.";
   }
 
   if (sessionStatus === "CLAIMED") {
@@ -536,6 +553,9 @@ export default function PresentialKioskPage() {
     secondsLeft,
     currentState?.session?.status ?? null,
   );
+  const showRetryButton =
+    currentState?.isEventActive &&
+    (connectionPhase === "error" || !currentState?.session);
 
   const handleRetry = async () => {
     setFeedback(null);
@@ -690,23 +710,27 @@ export default function PresentialKioskPage() {
               )}
             </div>
 
-            <div className="mt-8 flex flex-col gap-4 rounded-[1.5rem] border border-slate-200 bg-white/90 px-5 py-4 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
-              <div>
-                <p className="text-sm font-semibold text-slate-900">
-                  Tiempo restante
-                </p>
-                <p className="mt-1 text-sm text-slate-600">
-                  {remainingCopy}
-                </p>
+            {currentState?.isEventActive ? (
+              <div className="mt-8 flex flex-col gap-4 rounded-[1.5rem] border border-slate-200 bg-white/90 px-5 py-4 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">
+                    Tiempo restante
+                  </p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    {remainingCopy}
+                  </p>
+                </div>
+                {showRetryButton ? (
+                  <button
+                    type="button"
+                    onClick={() => void handleRetry()}
+                    className="inline-flex items-center justify-center rounded-xl bg-[#2F8A46] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#256f39]"
+                  >
+                    Intentar de nuevo
+                  </button>
+                ) : null}
               </div>
-              <button
-                type="button"
-                onClick={() => void handleRetry()}
-                className="inline-flex items-center justify-center rounded-xl bg-[#2F8A46] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#256f39]"
-              >
-                Reintentar generar QR
-              </button>
-            </div>
+            ) : null}
           </section>
         </div>
       </div>

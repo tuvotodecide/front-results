@@ -54,15 +54,10 @@ const EmptyState: React.FC<EmptyStateProps> = ({ onCreateClick }) => {
           <div className="text-gray-600 space-y-4 mb-8 max-w-4xl mx-auto">
             <p>
               Esta plataforma permite a los ciudadanos bolivianos monitorear y participar
-              activamente en el proceso electoral de Bolivia 2026. Aquí podrás encontrar
-              información actualizada sobre las votaciones, resultados en tiempo real
-              y
-              noticias relacionadas con el proceso democrático.
+              activamente en los procesos electorales de Bolivia. 
             </p>
             <p>
-              Nuestro objetivo es promover la transparencia y la participación ciudadana
-              en el sistema electoral boliviano. Con herramientas accesibles y confiables,
-              trabajamos para fortalecer la democracia y asegurar que cada voto cuente.
+              También puedes crear tus propias votaciones para instituciones, organizaciones, y que voten desde la aplicación móvil.
             </p>
           </div>
 

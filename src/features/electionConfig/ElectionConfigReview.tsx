@@ -155,6 +155,9 @@ const ElectionConfigReview: React.FC = () => {
     votingEnd: '',
     resultsPublishAt: '',
   });
+  const minimumVotingStartValue = toDateTimeLocalValue(
+    new Date((nowMs ?? Date.now()) + THIRTY_SIX_HOURS_MS).toISOString(),
+  );
 
   const isReadyToPublish = configSummary
     ? configSummary.positionsOk && configSummary.partiesOk && configSummary.padronOk
@@ -325,12 +328,16 @@ const ElectionConfigReview: React.FC = () => {
     if (!actualElectionId) return;
 
     try {
-      await createEventNews({
+      const result = await createEventNews({
         eventId: actualElectionId,
         data: payload,
       }).unwrap();
       setNewsError(null);
-      setNewsSuccess('Noticia publicada correctamente para los votantes del padrón actual.');
+      setNewsSuccess(
+        result.imageUrl
+          ? 'Noticia publicada correctamente con imagen.'
+          : 'Noticia publicada correctamente para los votantes del padrón actual.',
+      );
       setIsNewsModalOpen(false);
     } catch (error: any) {
       const message = getRequestErrorMessage(error, 'No se pudo publicar la noticia.');
@@ -412,16 +419,6 @@ const ElectionConfigReview: React.FC = () => {
                   </ul>
                 </div>
               ) : null}
-              {fullElectionEditingEnabled ? (
-                <div className="rounded-lg border border-emerald-200 bg-white p-4 text-sm text-emerald-800 shadow-sm">
-                  Antes del límite de publicación oficial puedes volver a editar toda la elección si todavía corresponde hacer ajustes.
-                </div>
-              ) : null}
-              {reviewAlreadyNotified ? (
-                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800 shadow-sm">
-                  La revisión previa ya notificó a los votantes del padrón actual.
-                </div>
-              ) : null}
               <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700 shadow-sm">
                 <div className="flex items-center justify-between gap-4">
                   <div>
@@ -449,11 +446,6 @@ const ElectionConfigReview: React.FC = () => {
                     />
                   </button>
                 </div>
-                <p className="mt-3 text-xs text-gray-500">
-                  {presentialKioskEnabled
-                    ? 'Se habilitará el kiosco cuando corresponda.'
-                    : 'No se mostrará kiosco como requisito.'}
-                </p>
                 {presentialMessage ? (
                   <p className="mt-3 rounded-lg bg-green-50 px-3 py-2 text-xs font-medium text-green-700">
                     {presentialMessage}
@@ -680,6 +672,7 @@ const ElectionConfigReview: React.FC = () => {
               <input
                 type="datetime-local"
                 value={scheduleForm.votingStart}
+                min={minimumVotingStartValue}
                 onChange={(event) => handleScheduleInputChange('votingStart', event.target.value)}
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-[#459151] focus:ring-2 focus:ring-[#459151]/15"
               />

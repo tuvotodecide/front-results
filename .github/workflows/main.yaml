@@ -7,15 +7,73 @@ on:
     paths:
       - "Dockerfile"
       - "package.json"
+      - "package-lock.json"
       - "src/**"
       - "public/**"
+      - "tests/**"
+      - "cypress/**"
+      - "cypress.config.ts"
+      - "middleware.ts"
+      - "eslint.config.js"
+      - "next.config.ts"
+      - "tsconfig*.json"
       - "vite.config.ts"
+      - "vitest.config.ts"
+      - ".github/workflows/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "Dockerfile"
+      - "package.json"
+      - "package-lock.json"
+      - "src/**"
+      - "public/**"
+      - "tests/**"
+      - "cypress/**"
+      - "cypress.config.ts"
+      - "middleware.ts"
+      - "eslint.config.js"
+      - "next.config.ts"
+      - "tsconfig*.json"
+      - "vite.config.ts"
+      - "vitest.config.ts"
       - ".github/workflows/**"
 
 env:
   BUILD_PLATFORMS: linux/arm64
 
 jobs:
+  quality:
+    name: Quality checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Integration tests
+        run: npm run test:integration
+
+      - name: Build
+        run: npm run build
+
   build:
     name: Build & Push Docker image
     runs-on: ubuntu-latest
