@@ -202,7 +202,7 @@ describe("canonical auth resultados pages", () => {
     expect(localStorage.getItem("pendingReason")).toBe("SUPERADMIN_APPROVAL");
   });
 
-  it("prefills query values and keeps department loading enabled in cross access", () => {
+  it("prefills query values and keeps department loading enabled in cross access", async () => {
     currentSearchParams = new URLSearchParams(
       "email=josetigre2000@gmail.com&name=Usuario&crossAccess=1",
     );
@@ -221,15 +221,17 @@ describe("canonical auth resultados pages", () => {
       },
     });
 
-    expect(
-      container.querySelector('[data-cy="register-email"]'),
-    ).toHaveValue("josetigre2000@gmail.com");
-    expect(
-      container.querySelector('[data-cy="register-name"]'),
-    ).toHaveValue("Usuario");
-    expect(
-      container.querySelector('[data-cy="register-dni"]'),
-    ).toHaveValue("1234567");
+    await waitFor(() => {
+      expect(
+        container.querySelector('[data-cy="register-email"]'),
+      ).toHaveValue("josetigre2000@gmail.com");
+      expect(
+        container.querySelector('[data-cy="register-name"]'),
+      ).toHaveValue("Usuario");
+      expect(
+        container.querySelector('[data-cy="register-dni"]'),
+      ).toHaveValue("1234567");
+    });
     expect(screen.getByText("Solicitar acceso")).toBeInTheDocument();
     expect(getDepartmentsQuery).toHaveBeenCalledWith(
       { limit: 100 },
