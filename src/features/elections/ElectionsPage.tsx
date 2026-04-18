@@ -12,6 +12,10 @@ import EmptyState from './components/EmptyState';
 import type { VotingEvent } from '../../store/votingEvents/types';
 import { formatDateTimeForUi, hasDraftAlreadyStarted, useClientNow } from '../electionConfig/renderUtils';
 
+const ONE_HOUR_MS = 60 * 60 * 1000;
+const CRITICAL_PUBLICATION_WINDOW_START_MS = 48 * ONE_HOUR_MS;
+const CRITICAL_PUBLICATION_WINDOW_END_MS = 24 * ONE_HOUR_MS;
+
 // Mapear estados del backend a labels en español
 const statusLabels: Record<string, string> = {
   DRAFT: 'Borrador',
@@ -37,6 +41,35 @@ const statusColors: Record<string, string> = {
 
 const canDeleteEvent = (event: VotingEvent) =>
   ['DRAFT', 'READY_FOR_REVIEW', 'PUBLICATION_EXPIRED'].includes(event.status);
+
+const isInOfficialPublicationReminderWindow = (
+  event: VotingEvent,
+  nowMs: number | null,
+) => {
+  if (nowMs === null) return false;
+
+  if (
+    [
+      'OFFICIALLY_PUBLISHED',
+      'PUBLICATION_EXPIRED',
+      'ACTIVE',
+      'CLOSED',
+      'RESULTS_PUBLISHED',
+    ].includes(event.status)
+  ) {
+    return false;
+  }
+
+  if (!event.votingStart) return false;
+  const votingStartMs = new Date(event.votingStart).getTime();
+  if (Number.isNaN(votingStartMs)) return false;
+
+  const timeUntilStart = votingStartMs - nowMs;
+  return (
+    timeUntilStart <= CRITICAL_PUBLICATION_WINDOW_START_MS &&
+    timeUntilStart > CRITICAL_PUBLICATION_WINDOW_END_MS
+  );
+};
 
 const ElectionsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -174,16 +207,23 @@ const ElectionsPage: React.FC = () => {
 
         {/* Lista de elecciones */}
         <div className="grid gap-4">
-          {events.map((event) => (
-            <div
-              key={event.id}
-              onClick={() => handleElectionClick(event)}
-              className={`bg-white rounded-xl shadow-sm border border-gray-200 p-6 transition-all ${
-                hasDraftAlreadyStarted(event, nowMs) || event.status === 'PUBLICATION_EXPIRED'
-                  ? 'border-amber-200 bg-amber-50/40 cursor-default'
-                  : 'hover:shadow-md hover:border-[#459151] cursor-pointer'
-              }`}
-            >
+          {events.map((event) => {
+            const publicationReminderActive = isInOfficialPublicationReminderWindow(event, nowMs);
+            const blockedCard =
+              hasDraftAlreadyStarted(event, nowMs) || event.status === 'PUBLICATION_EXPIRED';
+
+            return (
+              <div
+                key={event.id}
+                onClick={() => handleElectionClick(event)}
+                className={`rounded-xl border bg-white p-6 shadow-sm transition-all ${
+                  blockedCard
+                    ? 'border-amber-200 bg-amber-50/40 cursor-default'
+                    : publicationReminderActive
+                      ? 'border-yellow-300 bg-yellow-50/30 hover:border-yellow-500 hover:shadow-md cursor-pointer'
+                      : 'border-gray-200 hover:shadow-md hover:border-[#459151] cursor-pointer'
+                }`}
+              >
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold text-gray-900 mb-1">
@@ -205,14 +245,14 @@ const ElectionsPage: React.FC = () => {
                         Pendiente de configurar
                       </span>
                     )}
+                    {publicationReminderActive && (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-200 text-yellow-700">
+                        Publicar oficialmente
+                      </span>
+                    )}
                     {hasDraftAlreadyStarted(event, nowMs) && (
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
                         Inicio vencido
-                      </span>
-                    )}
-                    {event.status === 'PUBLICATION_EXPIRED' && (
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
-                        Publicación vencida
                       </span>
                     )}
                   </div>
@@ -250,8 +290,9 @@ const ElectionsPage: React.FC = () => {
                   La ventana de publicación oficial venció. Puedes eliminarla para crear una nueva.
                 </p>
               )}
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
       </div>
 

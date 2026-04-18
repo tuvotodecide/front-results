@@ -1,9 +1,9 @@
 // Wizard para crear nueva votación (2 pasos)
 // Basado en capturas 02_step1.png y 03_step2.png
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from '@/domains/votacion/navigation/compat-private';
-import { Formik, Form, Field, ErrorMessage } from 'formik';
+import { Formik, Form, Field, ErrorMessage, type FieldProps } from 'formik';
 import * as Yup from 'yup';
 import Stepper from './Stepper';
 import ConfirmCreateModal from './ConfirmCreateModal';
@@ -77,6 +77,70 @@ const step2Schema = Yup.object({
       }
     ),
 });
+
+const CalendarIcon = () => (
+  <svg
+    className="h-5 w-5"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8 2v4m8-4v4M3 10h18" />
+    <rect x="3" y="4" width="18" height="18" rx="2" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" />
+  </svg>
+);
+
+interface DateTimeFieldProps {
+  id: string;
+  name: keyof ElectionFormStep2;
+  min?: string;
+  hint?: string;
+}
+
+const DateTimeField: React.FC<DateTimeFieldProps> = ({ id, name, min, hint }) => {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const openPicker = () => {
+    const input = inputRef.current as (HTMLInputElement & { showPicker?: () => void }) | null;
+    input?.focus();
+    input?.showPicker?.();
+  };
+
+  return (
+    <Field name={name}>
+      {({ field }: FieldProps<string>) => (
+        <>
+          <div className="group relative">
+            <input
+              {...field}
+              ref={inputRef}
+              id={id}
+              type="datetime-local"
+              min={min}
+              onClick={openPicker}
+              className="w-full cursor-pointer rounded-xl border border-gray-300 bg-white py-3 pl-4 pr-20 text-gray-800 shadow-sm outline-none transition-all [color-scheme:light] [appearance:textfield] hover:border-[#459151] focus:border-[#459151] focus:ring-2 focus:ring-[#459151]/20 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+            />
+            <button
+              type="button"
+              onClick={openPicker}
+              aria-label="Abrir selector de fecha y hora"
+              className="absolute inset-y-0 right-0 flex w-16 items-center justify-center rounded-r-xl border-l border-[#459151]/25 bg-[#EFF7F0] text-[#2E6A38] transition-colors group-hover:bg-[#E1F0E4] group-focus-within:bg-[#D7EBDC] group-focus-within:text-[#24582D]"
+            >
+              <CalendarIcon />
+            </button>
+          </div>
+          {hint ? (
+            <p className="mt-1 text-xs text-gray-500">
+              {hint}
+            </p>
+          ) : null}
+        </>
+      )}
+    </Field>
+  );
+};
 
 interface CreateElectionWizardProps {
   onSuccess?: () => void;
@@ -271,9 +335,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
             >
               {({ isValid, dirty, values }) => (
                 <Form className="space-y-6">
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                    La publicación oficial debe confirmarse antes del límite de 24 horas previo al inicio de la votación.
-                  </div>
+
                   {/* Fecha apertura */}
                   <div>
                     <label
@@ -282,12 +344,11 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                     >
                       ¿Cuándo abre la votación?
                     </label>
-                    <Field
+                    <DateTimeField
                       id="votingStartDate"
                       name="votingStartDate"
-                      type="datetime-local"
                       min={minimumVotingStartDateTime}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#459151] focus:border-[#459151] transition-colors"
+                      hint="Toca el calendario para elegir fecha y hora."
                     />
                     <ErrorMessage
                       name="votingStartDate"
@@ -305,12 +366,11 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                     >
                       ¿Cuándo cierra la votación?
                     </label>
-                    <Field
+                    <DateTimeField
                       id="votingEndDate"
                       name="votingEndDate"
-                      type="datetime-local"
                       min={values.votingStartDate || minimumVotingStartDateTime || currentLocalDateTime}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#459151] focus:border-[#459151] transition-colors"
+                      hint="Debe ser posterior al inicio."
                     />
                     <ErrorMessage
                       name="votingEndDate"
@@ -327,16 +387,15 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                     >
                       ¿Cuándo se muestran los resultados?
                     </label>
-                    <Field
+                    <DateTimeField
                       id="resultsDate"
                       name="resultsDate"
-                      type="datetime-local"
                       min={
                         values.votingEndDate
                           ? addMinutesToLocalDateTime(values.votingEndDate, 1, currentLocalDateTime)
                           : values.votingStartDate || currentLocalDateTime
                       }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#459151] focus:border-[#459151] transition-colors"
+                      hint="Debe ser después del cierre."
                     />
                     <ErrorMessage
                       name="resultsDate"
