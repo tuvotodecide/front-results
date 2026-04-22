@@ -74,6 +74,7 @@ type RecordModalState =
 const PAGE_SIZE = 50;
 const SUPPORTED_PADRON_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".png", ".webp"];
 const PADRON_AI_TIMEOUT_MS = 40000;
+const CONFIRM_PADRON_STEP = "Confirmar padrón";
 const FINAL_STEP_LABEL = "Finalizar configuración";
 
 const wait = (ms: number) =>
@@ -473,6 +474,7 @@ const ElectionConfigPadron: React.FC = () => {
         carnet: record.carnet,
         fullName: "",
         enabled: record.enabled,
+        hasIdentity: true,
         status: "valid" as const,
         sourceKind: record.sourceKind,
         sourceRow: record.sourceRow ?? null,
@@ -500,6 +502,7 @@ const ElectionConfigPadron: React.FC = () => {
           carnet: entry.ci,
           fullName: "",
           enabled: entry.enabled,
+          hasIdentity: entry.hasIdentity,
           status: "valid" as const,
           sourceKind: entry.sourceKind,
           sourceRow: entry.sourceRow ?? null,
@@ -512,6 +515,10 @@ const ElectionConfigPadron: React.FC = () => {
     [page, searchNeedle, stagingData?.data],
   );
 
+  const areAllRegistered: boolean = useMemo(() => {
+    return stagingVoters.every((voter) => voter.hasIdentity);
+  }, [stagingVoters]);
+
   const currentVoters: Voter[] = useMemo(
     () =>
       (currentVotersData?.voters ?? [])
@@ -521,6 +528,7 @@ const ElectionConfigPadron: React.FC = () => {
           carnet: voter.carnetNorm,
           fullName: voter.fullName ?? "",
           enabled: voter.enabled !== false,
+          hasIdentity: false,
           status: "valid" as const,
         }))
         .filter((voter) => {
@@ -1103,6 +1111,8 @@ const ElectionConfigPadron: React.FC = () => {
       return;
     }
 
+    if (clientDraft) return;
+
     navigate(`/votacion/elecciones/${actualElectionId}/config/review`);
   };
 
@@ -1313,6 +1323,7 @@ const ElectionConfigPadron: React.FC = () => {
             <PadronStagingView
               file={stagingFile}
               voters={stagingVoters}
+              observationsLabel={areAllRegistered ? undefined : "Todos los votantes deben estar registrados en la aplicación electoral para finalizar la configuración."}
               totalVoters={stagingData?.total ?? activeDraft.summary.stagingCount}
               enabledCount={activeDraft.summary.enabledCount}
               disabledCount={activeDraft.summary.disabledCount}
@@ -1369,14 +1380,14 @@ const ElectionConfigPadron: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => void handleFinish()}
-                  disabled={!canFinalizePadron}
+                  disabled={!canFinalizePadron || !areAllRegistered}
                   className={`inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 font-semibold transition ${
-                    canFinalizePadron
+                    canFinalizePadron && areAllRegistered
                       ? "bg-[#459151] text-white hover:bg-[#3a7a44]"
                       : "cursor-not-allowed bg-slate-200 text-slate-500"
                   }`}
                 >
-                  <span>{FINAL_STEP_LABEL}</span>
+                  <span>{clientDraft ? CONFIRM_PADRON_STEP : FINAL_STEP_LABEL}</span>
                   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>

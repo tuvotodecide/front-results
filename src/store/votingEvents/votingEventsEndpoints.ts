@@ -239,6 +239,7 @@ const toPadronStagingEntry = (raw: any): PadronStagingEntry => {
     importJobId: String(source?.importJobId ?? ""),
     ci: String(source?.ci ?? source?.carnetNorm ?? ""),
     enabled: source?.enabled !== false,
+    hasIdentity: source?.hasIdentity !== false,
     sourceKind: source?.sourceKind === "MANUAL" ? "MANUAL" : "PARSED",
     sourceRow:
       source?.sourceRow === null || source?.sourceRow === undefined

@@ -16,6 +16,7 @@ interface PadronStagingViewProps {
   downloading?: boolean;
   confirming?: boolean;
   parsedLabel?: string;
+  observationsLabel?: string;
   onPageChange: (page: number) => void;
   onSearchChange: (search: string) => void;
   onInspectObservations?: () => void;
@@ -113,6 +114,7 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
   downloading: _downloading = false,
   confirming: _confirming = false,
   parsedLabel: _parsedLabel = "Parseado",
+  observationsLabel,
   onPageChange,
   onSearchChange,
   onInspectObservations,
@@ -176,6 +178,11 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
               <p className="mt-1 text-sm text-slate-500">
                 Revisa y corrige el padrón antes de continuar.
               </p>
+              { observationsLabel && 
+                <p className="mt-1 text-sm text-red-500">
+                  {observationsLabel}
+                </p>
+              }
               {observedCount > 0 && onInspectObservations ? (
                 <button
                   type="button"
@@ -309,6 +316,9 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
                       <div>
                         <p className="font-medium text-slate-900">
                           {voter.carnet}
+                          {!voter.hasIdentity && (
+                            <span className="ml-2 text-red-600 text-xs font-semibold align-middle">No registrado</span>
+                          )}
                         </p>
                       </div>
                     </td>

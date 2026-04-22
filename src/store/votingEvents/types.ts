@@ -268,6 +268,7 @@ export interface PadronStagingEntry {
   importJobId: string;
   ci: string;
   enabled: boolean;
+  hasIdentity: boolean;
   sourceKind: "PARSED" | "MANUAL";
   sourceRow?: number | null;
   createdAt?: string | null;

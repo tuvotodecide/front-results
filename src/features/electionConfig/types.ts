@@ -83,6 +83,7 @@ export interface Voter {
   rowNumber: number;
   carnet: string;
   fullName: string;
+  hasIdentity: boolean;
   enabled: boolean;
   status: VoterStatus;
   invalidReason?: InvalidReason;
