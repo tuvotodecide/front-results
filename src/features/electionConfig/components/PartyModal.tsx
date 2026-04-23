@@ -9,6 +9,7 @@ interface PartyModalProps {
   isLoading: boolean;
   editingParty?: Party | null;
   submitError?: string | null;
+  isReferendum?: boolean;
 }
 
 const DEFAULT_COLOR = '#2E7D32';
@@ -21,6 +22,7 @@ const PartyModal: React.FC<PartyModalProps> = ({
   isLoading,
   editingParty,
   submitError,
+  isReferendum = false,
 }) => {
   const [name, setName] = useState('');
   // Cambiado a array para soportar múltiples colores
@@ -120,7 +122,9 @@ const PartyModal: React.FC<PartyModalProps> = ({
 
     if (!name.trim()) newErrors.name = 'El nombre es obligatorio';
     if (colors.some(c => !validateHex(c))) newErrors.colors = 'Formato de color inválido';
-    if (!logoBase64 && !logoPreview) newErrors.logo = 'El logo es obligatorio';
+    if (!logoBase64 && !logoPreview) {
+      newErrors.logo = isReferendum ? 'La imagen es obligatoria' : 'El logo es obligatorio';
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -141,7 +145,7 @@ const PartyModal: React.FC<PartyModalProps> = ({
     <Modal2
       isOpen={isOpen}
       onClose={onClose}
-      title="Datos del Partido"
+      title={isReferendum ? 'Datos de la opción' : 'Datos del Partido'}
       size="md"
       type="plain"
       closeOnEscape={false}
@@ -153,10 +157,10 @@ const PartyModal: React.FC<PartyModalProps> = ({
           </div>
         )}
 
-        {/* Nombre del Partido */}
+        {/* Nombre */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Nombre del Partido
+            {isReferendum ? 'Nombre de la opción' : 'Nombre del Partido'}
           </label>
           <input
             type="text"
@@ -165,7 +169,7 @@ const PartyModal: React.FC<PartyModalProps> = ({
               setName(e.target.value);
               setErrors((prev) => ({ ...prev, name: undefined }));
             }}
-            placeholder="Ej: Movimiento Futuro"
+            placeholder={isReferendum ? 'Ej: Sí' : 'Ej: Movimiento Futuro'}
             disabled={isLoading}
             className={`
               w-full px-4 py-3 border rounded-lg
@@ -179,10 +183,10 @@ const PartyModal: React.FC<PartyModalProps> = ({
           )}
         </div>
 
-        {/* Colores del Partido */}
+        {/* Colores */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-4">
-            Colores del Partido
+            {isReferendum ? 'Colores de la opción' : 'Colores del Partido'}
           </label>
           <div className="space-y-3">
             {colors.map((color, index) => (
@@ -252,10 +256,10 @@ const PartyModal: React.FC<PartyModalProps> = ({
           <p className="mt-2 text-xs text-gray-400">Puedes agregar hasta 4 colores en total.</p>
         </div>
 
-        {/* Logo (Lógica original intacta) */}
+        {/* Imagen / logo */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Logo *
+            {isReferendum ? 'Imagen *' : 'Logo *'}
           </label>
           <div
             onClick={(e) => {
@@ -271,10 +275,12 @@ const PartyModal: React.FC<PartyModalProps> = ({
               <div className="flex flex-col items-center gap-2">
                 <img
                   src={logoPreview}
-                  alt="Logo preview"
+                  alt={isReferendum ? 'Vista previa de la imagen' : 'Logo preview'}
                   className="w-32 h-32 object-contain rounded"
                 />
-                <p className="text-sm text-gray-500">Click para cambiar</p>
+                <p className="text-sm text-gray-500">
+                  {isReferendum ? 'Haz clic para cambiar la imagen' : 'Click para cambiar'}
+                </p>
               </div>
             ) : (
               <>
@@ -292,7 +298,9 @@ const PartyModal: React.FC<PartyModalProps> = ({
                   />
                 </svg>
                 <p className="text-gray-500">
-                  Arrastra tu logo aquí o clic para buscar
+                  {isReferendum
+                    ? 'Arrastra la imagen aquí o haz clic para buscar'
+                    : 'Arrastra tu logo aquí o clic para buscar'}
                 </p>
               </>
             )}

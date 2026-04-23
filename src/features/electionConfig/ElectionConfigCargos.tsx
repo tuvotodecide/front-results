@@ -250,6 +250,7 @@ const ElectionConfigCargos: React.FC = () => {
                 ...(hasPartiesWithCandidates ? [2] : []),
                 ...(isPadronReady ? [3] : []),
               ] as ConfigStep[]}
+              isReferendum={isReferendum}
               onStepChange={handleGoToStep}
               canNavigate={(step) => {
                 if (step === 1) return true;

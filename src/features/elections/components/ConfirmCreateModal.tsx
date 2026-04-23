@@ -5,6 +5,7 @@ import React from 'react';
 import Modal2 from '../../../components/Modal2';
 import type { ElectionFormData } from '../types';
 import ScheduleSummaryCard from '../../electionConfig/components/ScheduleSummaryCard';
+import { PRE_PUBLICATION_CUTOFF_HOURS } from '../../electionConfig/renderUtils';
 
 interface ConfirmCreateModalProps {
   isOpen: boolean;
@@ -22,6 +23,19 @@ const ConfirmCreateModal: React.FC<ConfirmCreateModalProps> = ({
   isLoading,
 }) => {
   if (!formData) return null;
+
+  const votingStartDate = formData.votingStartDate ? new Date(formData.votingStartDate) : null;
+  const hasValidVotingStartDate = Boolean(votingStartDate && !Number.isNaN(votingStartDate.getTime()));
+  const officialPublicationDeadline = hasValidVotingStartDate
+    ? new Date(votingStartDate!.getTime() - PRE_PUBLICATION_CUTOFF_HOURS * 60 * 60 * 1000)
+    : null;
+  const officialPublicationDeadlineLabel = officialPublicationDeadline?.toLocaleDateString('es-ES', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
   return (
     <Modal2
@@ -50,6 +64,12 @@ const ConfirmCreateModal: React.FC<ConfirmCreateModalProps> = ({
         {formData.isReferendum ? (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
             Después de crearla, no podrás cambiar este tipo de votación. La papeleta se mostrará como una consulta con opciones de respuesta.
+          </div>
+        ) : null}
+
+        {officialPublicationDeadlineLabel ? (
+          <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+            La publicación oficial debe realizarse hasta el <span className="font-semibold">{officialPublicationDeadlineLabel}</span>. Si no se publica antes de ese momento, la votación caducará.
           </div>
         ) : null}
 

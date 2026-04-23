@@ -465,6 +465,7 @@ const ElectionConfigPlanchas: React.FC = () => {
                 ...(hasMinimumCompleteParties ? [2] : []),
                 ...(isPadronReady ? [3] : []),
               ] as ConfigStep[]}
+              isReferendum={isReferendum}
               onStepChange={handleGoToStep}
               canNavigate={(step) => {
                 if (step === 1 || step === 2) return true;
@@ -560,6 +561,7 @@ const ElectionConfigPlanchas: React.FC = () => {
         isLoading={creating || updating}
         editingParty={editingParty}
         submitError={error}
+        isReferendum={isReferendum}
       />
 
       {/* Modal Gestión de Candidatos */}

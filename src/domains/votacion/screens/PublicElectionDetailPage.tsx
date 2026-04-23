@@ -134,7 +134,10 @@ const StatusCard: React.FC<{ status: PublicElectionDetail["status"] }> = ({ stat
   </div>
 );
 
-const WinnerCard: React.FC<{ candidate: Candidate }> = ({ candidate }) => (
+const WinnerCard: React.FC<{ candidate: Candidate; isReferendum?: boolean }> = ({
+  candidate,
+  isReferendum = false,
+}) => (
   <div className="bg-emerald-50 border-2 border-emerald-200 rounded-xl p-6 shadow-sm">
     <div className="flex items-center gap-5">
       <div className="relative flex-shrink-0">
@@ -151,7 +154,7 @@ const WinnerCard: React.FC<{ candidate: Candidate }> = ({ candidate }) => (
           )}
         </div>
         <div className="absolute -top-1 -right-1 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-          GANADOR
+          {isReferendum ? "OPCIÓN GANADORA" : "GANADOR"}
         </div>
       </div>
       <div className="flex-1">
@@ -166,7 +169,10 @@ const WinnerCard: React.FC<{ candidate: Candidate }> = ({ candidate }) => (
   </div>
 );
 
-const TieCard: React.FC<{ candidates: Candidate[] }> = ({ candidates }) => (
+const TieCard: React.FC<{ candidates: Candidate[]; isReferendum?: boolean }> = ({
+  candidates,
+  isReferendum = false,
+}) => (
   <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-6 shadow-sm">
     <div className="flex flex-col gap-4">
       <div>
@@ -174,10 +180,16 @@ const TieCard: React.FC<{ candidates: Candidate[] }> = ({ candidates }) => (
           EMPATE
         </span>
         <h3 className="mt-3 text-xl font-bold text-slate-800">
-          La elección registra un empate
+          {isReferendum ? "La consulta registra un empate" : "La elección registra un empate"}
         </h3>
         <p className="mt-1 text-slate-600">
-          {candidates.length === 2 ? "Candidaturas empatadas:" : "Candidaturas empatadas en el primer lugar:"}
+          {isReferendum
+            ? candidates.length === 2
+              ? "Opciones empatadas:"
+              : "Opciones empatadas en el primer lugar:"
+            : candidates.length === 2
+              ? "Candidaturas empatadas:"
+              : "Candidaturas empatadas en el primer lugar:"}
         </p>
       </div>
       <div className="grid gap-4 md:grid-cols-2">
@@ -196,7 +208,7 @@ const TieCard: React.FC<{ candidates: Candidate[] }> = ({ candidates }) => (
   </div>
 );
 
-const LiveVotingCard: React.FC = () => (
+const LiveVotingCard: React.FC<{ isReferendum?: boolean }> = ({ isReferendum = false }) => (
   <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 shadow-sm">
     <div className="flex items-start gap-4">
       <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -204,7 +216,9 @@ const LiveVotingCard: React.FC = () => (
       </div>
       <div className="flex-1">
         <div className="flex items-center gap-2 mb-1">
-          <h3 className="font-semibold text-blue-800">Votación en curso</h3>
+          <h3 className="font-semibold text-blue-800">
+            {isReferendum ? "Consulta en curso" : "Votación en curso"}
+          </h3>
           <span className="px-2 py-0.5 bg-blue-500 text-white text-xs font-semibold rounded-full">
             EN VIVO
           </span>
@@ -245,14 +259,16 @@ const BlankVotesCard: React.FC<{
   </div>
 );
 
-const NoResultsCard: React.FC = () => (
+const NoResultsCard: React.FC<{ isReferendum?: boolean }> = ({ isReferendum = false }) => (
   <div className="bg-slate-50 border border-slate-200 rounded-xl p-8 shadow-sm text-center">
     <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
       <ClockIcon className="w-8 h-8 text-slate-400" />
     </div>
     <h3 className="font-semibold text-slate-700 mb-2">Aún no hay resultados disponibles</h3>
     <p className="text-sm text-slate-500">
-      La votación aún no ha comenzado. Los resultados estarán disponibles una vez finalice el proceso.
+      {isReferendum
+        ? "La consulta aún no ha comenzado. Los resultados estarán disponibles una vez finalice el proceso."
+        : "La votación aún no ha comenzado. Los resultados estarán disponibles una vez finalice el proceso."}
     </p>
   </div>
 );
@@ -438,9 +454,13 @@ const PublicElectionDetailPage: React.FC = () => {
   const hasTie = tiedCandidates.length > 1;
   const blankVotesCandidate = election.results?.candidates.find((candidate) => candidate.id === "blank") ?? null;
   const ballotDescription =
-    election.status === "FINISHED"
-      ? "Conoce a los candidatos y partidos políticos que participaron en esta elección"
-      : "Conoce a los candidatos y partidos políticos que participan en esta elección";
+    election.isReferendum
+      ? election.status === "FINISHED"
+        ? "Conoce las opciones que participaron en esta consulta"
+        : "Conoce las opciones disponibles en esta consulta"
+      : election.status === "FINISHED"
+        ? "Conoce a los candidatos y partidos políticos que participaron en esta elección"
+        : "Conoce a los candidatos y partidos políticos que participan en esta elección";
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -471,7 +491,11 @@ const PublicElectionDetailPage: React.FC = () => {
           <>
             {(hasTie || winnerCandidate) && (
               <div className="mb-6">
-                {hasTie ? <TieCard candidates={tiedCandidates} /> : winnerCandidate ? <WinnerCard candidate={winnerCandidate} /> : null}
+                {hasTie ? (
+                  <TieCard candidates={tiedCandidates} isReferendum={election.isReferendum} />
+                ) : winnerCandidate ? (
+                  <WinnerCard candidate={winnerCandidate} isReferendum={election.isReferendum} />
+                ) : null}
               </div>
             )}
             <VoteDistributionSection
@@ -490,12 +514,14 @@ const PublicElectionDetailPage: React.FC = () => {
           </>
         )}
 
-        {election.status === "FINISHED" && !hasResults && <NoResultsCard />}
+        {election.status === "FINISHED" && !hasResults && (
+          <NoResultsCard isReferendum={election.isReferendum} />
+        )}
 
         {election.status === "LIVE" && (
           <>
             <div className="mb-6">
-              <LiveVotingCard />
+              <LiveVotingCard isReferendum={election.isReferendum} />
             </div>
             {hasResults ? (
               <>
@@ -516,21 +542,27 @@ const PublicElectionDetailPage: React.FC = () => {
                 )}
               </>
             ) : (
-              <NoResultsCard />
+              <NoResultsCard isReferendum={election.isReferendum} />
             )}
           </>
         )}
 
-        {election.status === "UPCOMING" && <NoResultsCard />}
+        {election.status === "UPCOMING" && (
+          <NoResultsCard isReferendum={election.isReferendum} />
+        )}
 
         <div className="mt-8 space-y-5">
           <div>
-            <h2 className="text-2xl font-bold text-slate-800">Papeleta Electoral</h2>
+            <h2 className="text-2xl font-bold text-slate-800">
+              {election.isReferendum ? "Consulta" : "Papeleta Electoral"}
+            </h2>
             <p className="mt-1 text-slate-500">{ballotDescription}</p>
           </div>
           {election.ballotParties.length === 0 ? (
             <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500 shadow-sm">
-              Esta elección todavía no tiene candidaturas públicas configuradas.
+              {election.isReferendum
+                ? "Esta consulta todavía no tiene opciones públicas configuradas."
+                : "Esta elección todavía no tiene candidaturas públicas configuradas."}
             </div>
           ) : (
             <div className="grid gap-6 xl:grid-cols-2">

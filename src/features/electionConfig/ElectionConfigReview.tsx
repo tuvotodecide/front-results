@@ -636,6 +636,7 @@ const ElectionConfigReview: React.FC = () => {
         onClose={() => setShowConfirmModal(false)}
         onConfirm={handleActivate}
         isLoading={activating}
+        isReferendum={Boolean(ballotPreview?.isReferendum)}
       />
 
       {/* Modal de éxito */}

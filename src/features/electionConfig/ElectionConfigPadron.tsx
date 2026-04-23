@@ -38,6 +38,7 @@ import {
   useGetEventOptionsQuery,
   useGetEventReviewReadinessQuery,
   useGetEventRolesQuery,
+  useLazyGetPadronStagingQuery,
   useGetPadronStagingQuery,
   useGetPadronVotersQuery,
   useGetPadronWorkflowSummaryQuery,
@@ -57,6 +58,7 @@ type RecordModalState =
 
 const PAGE_SIZE = 50;
 const GEMINI_STAGING_BATCH_SIZE = 25;
+const STAGING_SYNC_PAGE_SIZE = 200;
 const SUPPORTED_PADRON_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".png", ".webp"];
 const FINAL_STEP_LABEL = "Finalizar configuración";
 
@@ -211,6 +213,7 @@ const ElectionConfigPadron: React.FC = () => {
   );
 
   const [fetchImportStatus] = useLazyGetPadronImportStatusQuery();
+  const [fetchStagingPage] = useLazyGetPadronStagingQuery();
   const [uploadPadronSource, { isLoading: uploadingPadronSource }] = useUploadPadronSourceMutation();
   const [addPadronStagingEntry, { isLoading: addingEntry }] = useAddPadronStagingEntryMutation();
   const [updatePadronStagingEntry, { isLoading: updatingEntry }] = useUpdatePadronStagingEntryMutation();
@@ -456,6 +459,26 @@ const ElectionConfigPadron: React.FC = () => {
     stagingUninitialized,
   ]);
 
+  const getAllCurrentStagingEntries = useCallback(async () => {
+    const entries: Array<{ id: string }> = [];
+    let currentPage = 1;
+    let totalPages = 1;
+
+    do {
+      const response = await fetchStagingPage({
+        eventId: actualElectionId,
+        page: currentPage,
+        limit: STAGING_SYNC_PAGE_SIZE,
+      }).unwrap();
+
+      entries.push(...response.data.map((entry) => ({ id: entry.id })));
+      totalPages = Math.max(Number(response.totalPages ?? 1), 1);
+      currentPage += 1;
+    } while (currentPage <= totalPages);
+
+    return entries;
+  }, [actualElectionId, fetchStagingPage]);
+
   const persistGeminiRecordsIntoStaging = useCallback(
     async (
       records: Array<{
@@ -492,6 +515,37 @@ const ElectionConfigPadron: React.FC = () => {
       return pendingRecords.length;
     },
     [actualElectionId, addPadronStagingEntry],
+  );
+
+  const replaceStagingWithGeminiRecords = useCallback(
+    async (
+      records: Array<{
+        carnet: string;
+        enabled: boolean;
+      }>,
+    ) => {
+      const currentEntries = await getAllCurrentStagingEntries();
+
+      for (let index = 0; index < currentEntries.length; index += GEMINI_STAGING_BATCH_SIZE) {
+        const batch = currentEntries.slice(index, index + GEMINI_STAGING_BATCH_SIZE);
+        await Promise.all(
+          batch.map((entry) =>
+            deletePadronStagingEntry({
+              eventId: actualElectionId,
+              entryId: entry.id,
+            }).unwrap(),
+          ),
+        );
+      }
+
+      return persistGeminiRecordsIntoStaging(records);
+    },
+    [
+      actualElectionId,
+      deletePadronStagingEntry,
+      getAllCurrentStagingEntries,
+      persistGeminiRecordsIntoStaging,
+    ],
   );
 
   const handleFileSelect = useCallback(
@@ -558,11 +612,9 @@ const ElectionConfigPadron: React.FC = () => {
         setUploadSummaryJobId(importJob.importJobId);
         setFrontendGeminiObservations([]);
 
-        let resolvedImportJob = importJob;
-
         if (importJob.status === "PROCESSING") {
           setUploadProgress(52);
-          resolvedImportJob = await pollImportJobUntilReady(importJob.importJobId);
+          await pollImportJobUntilReady(importJob.importJobId);
         } else {
           setUploadProgress(100);
           await refetchWorkflowSummary();
@@ -570,25 +622,19 @@ const ElectionConfigPadron: React.FC = () => {
           setSummaryModalState("summary");
         }
 
-        const needsGeminiStagingFallback =
-          geminiSummary.totalCount > 0 &&
-          Number(resolvedImportJob.summary?.stagingCount ?? 0) === 0;
+        setSummaryModalState("uploading");
+        setUploadProgress(92);
+        const seededCount = await replaceStagingWithGeminiRecords(geminiDraft.records);
 
-        if (needsGeminiStagingFallback) {
-          setSummaryModalState("uploading");
-          setUploadProgress(92);
-          const seededCount = await persistGeminiRecordsIntoStaging(geminiDraft.records);
+        await refetchVisiblePadronData();
 
-          await refetchVisiblePadronData();
-
-          setUploadProgress(100);
-          setSummaryModalState("summary");
-          setInfo(
-            seededCount > 0
-              ? "Gemini detectó registros válidos y los cargó al staging editable cuando el procesamiento del backend no generó filas."
-              : "El documento fue analizado, pero no se pudieron persistir registros editables en el staging.",
-          );
-        }
+        setUploadProgress(100);
+        setSummaryModalState("summary");
+        setInfo(
+          seededCount > 0
+            ? "Se cargaron al padrón editable los registros detectados correctamente en el documento."
+            : "El documento fue analizado, pero no se pudieron persistir registros editables en el staging.",
+        );
       } catch (uploadError: any) {
         if (progressInterval !== null) {
           window.clearInterval(progressInterval);
@@ -607,10 +653,10 @@ const ElectionConfigPadron: React.FC = () => {
     },
     [
       actualElectionId,
-      persistGeminiRecordsIntoStaging,
       pollImportJobUntilReady,
       refetchReviewReadiness,
       refetchVisiblePadronData,
+      replaceStagingWithGeminiRecords,
       refetchWorkflowSummary,
       uploadPadronSource,
     ],
@@ -823,6 +869,7 @@ const ElectionConfigPadron: React.FC = () => {
                 ...(hasPartiesWithCandidates ? [2] : []),
                 ...(padronStepCompleted ? [3] : []),
               ] as ConfigStep[]}
+              isReferendum={Boolean(event?.isReferendum)}
               onStepChange={handleGoToStep}
               canNavigate={(step) => step === 1 || step === 2 || step === 3}
             />

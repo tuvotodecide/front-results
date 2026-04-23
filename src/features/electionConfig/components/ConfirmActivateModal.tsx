@@ -9,6 +9,7 @@ interface ConfirmActivateModalProps {
   onClose: () => void;
   onConfirm: () => void;
   isLoading: boolean;
+  isReferendum?: boolean;
 }
 
 const ConfirmActivateModal: React.FC<ConfirmActivateModalProps> = ({
@@ -16,6 +17,7 @@ const ConfirmActivateModal: React.FC<ConfirmActivateModalProps> = ({
   onClose,
   onConfirm,
   isLoading,
+  isReferendum = false,
 }) => {
   return (
     <Modal2
@@ -53,7 +55,9 @@ const ConfirmActivateModal: React.FC<ConfirmActivateModalProps> = ({
 
         {/* Descripción */}
         <p className="text-gray-600 mb-8 px-4">
-          Esta acción publica oficialmente la elección y bloquea los cambios estructurales en cargos, planchas y padrón. Revisa la configuración antes de continuar.
+          {isReferendum
+            ? 'Esta acción publica oficialmente la consulta y bloquea los cambios estructurales en la configuración, las opciones y el padrón. Revisa la configuración antes de continuar.'
+            : 'Esta acción publica oficialmente la elección y bloquea los cambios estructurales en cargos, planchas y padrón. Revisa la configuración antes de continuar.'}
         </p>
 
         {/* Botones */}

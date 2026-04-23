@@ -10,13 +10,8 @@ interface ConfigStepsTabsProps {
   completedSteps?: ConfigStep[];
   onStepChange?: (step: ConfigStep) => void;
   canNavigate?: (step: ConfigStep) => boolean;
+  isReferendum?: boolean;
 }
-
-const steps: { step: ConfigStep; label: string }[] = [
-  { step: 1, label: '1. Cargos' },
-  { step: 2, label: '2. Planchas' },
-  { step: 3, label: '3. Padrón' },
-];
 
 const CheckIcon = () => (
   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
@@ -29,7 +24,20 @@ const ConfigStepsTabs: React.FC<ConfigStepsTabsProps> = ({
   completedSteps = [],
   onStepChange,
   canNavigate = () => true,
+  isReferendum = false,
 }) => {
+  const steps: { step: ConfigStep; label: string }[] = isReferendum
+    ? [
+        { step: 1, label: '1. Configuración' },
+        { step: 2, label: '2. Opciones' },
+        { step: 3, label: '3. Padrón' },
+      ]
+    : [
+        { step: 1, label: '1. Cargos' },
+        { step: 2, label: '2. Planchas' },
+        { step: 3, label: '3. Padrón' },
+      ];
+
   const getStepStatus = (step: ConfigStep): StepStatus => {
     if (currentStep === step) return 'active';
     if (completedSteps.includes(step)) return 'completed';

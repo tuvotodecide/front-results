@@ -50,6 +50,7 @@ import {
   isDuringVotingWindow,
   PRE_PUBLICATION_CUTOFF_HOURS,
   PRE_PUBLICATION_CUTOFF_MS,
+  REFERENDUM_OPTION_LABEL,
   stableCreatedAt,
   toLocalDateTimeValue,
   useClientNow,
@@ -67,7 +68,10 @@ const roleToPosition = (role: EventRole): Position => ({
   createdAt: stableCreatedAt(role.createdAt),
 });
 
-const optionToParty = (option: VotingOption): PartyWithCandidates => ({
+const optionToParty = (
+  option: VotingOption,
+  isReferendum = false,
+): PartyWithCandidates => ({
   id: option.id,
   electionId: option.eventId,
   name: option.name,
@@ -79,7 +83,7 @@ const optionToParty = (option: VotingOption): PartyWithCandidates => ({
     id: candidate.id,
     partyId: option.id,
     positionId: candidate.roleName,
-    positionName: candidate.roleName,
+    positionName: isReferendum ? REFERENDUM_OPTION_LABEL : candidate.roleName,
     fullName: candidate.name,
     photoUrl: candidate.photoUrl,
   })),
@@ -103,12 +107,18 @@ const getInitial = (value?: string | null) =>
     .charAt(0)
     .toUpperCase() || "?";
 
-const getBallotDescription = (lifecycle: string) =>
-  lifecycle === "RESULTS" ||
-  lifecycle === "RESULTS_PUBLISHED" ||
-  lifecycle === "CLOSED"
-    ? "Conoce a los candidatos y partidos políticos que participaron en esta votación."
-    : "Conoce a los candidatos y partidos políticos que participan en esta votación.";
+const getBallotDescription = (lifecycle: string, isReferendum: boolean) =>
+  isReferendum
+    ? lifecycle === "RESULTS" ||
+      lifecycle === "RESULTS_PUBLISHED" ||
+      lifecycle === "CLOSED"
+      ? "Conoce las opciones que participaron en esta consulta."
+      : "Conoce las opciones disponibles en esta consulta."
+    : lifecycle === "RESULTS" ||
+        lifecycle === "RESULTS_PUBLISHED" ||
+        lifecycle === "CLOSED"
+      ? "Conoce a los candidatos y partidos políticos que participaron en esta votación."
+      : "Conoce a los candidatos y partidos políticos que participan en esta votación.";
 
 const getPadronDisplayName = (sourceType?: string | null) => {
   if (sourceType === "PDF_IMPORT") {
@@ -281,6 +291,7 @@ const ActiveElectionStatusPage: React.FC = () => {
     },
     );
   const lifecycle = deriveLifecycle(event, nowMs);
+  const isReferendum = Boolean(event?.isReferendum);
   const shouldShowResults = lifecycle === "RESULTS";
   const { data: resultsData } = useGetEventResultsQuery(actualElectionId, {
     skip: !actualElectionId || !shouldShowResults,
@@ -296,7 +307,10 @@ const ActiveElectionStatusPage: React.FC = () => {
   const [enableCurrentPadronVoter] = useEnableCurrentPadronVoterMutation();
 
   const positions = useMemo(() => roles.map(roleToPosition), [roles]);
-  const parties = useMemo(() => options.map(optionToParty), [options]);
+  const parties = useMemo(
+    () => options.map((option) => optionToParty(option, isReferendum)),
+    [isReferendum, options],
+  );
   const currentPadron = workflowSummary?.currentVersion ?? null;
   const voters: Voter[] = useMemo(() => {
     if (activeWorkflowDraft) {
@@ -778,7 +792,9 @@ const ActiveElectionStatusPage: React.FC = () => {
 
         {fullElectionEditingEnabled ? (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
-            Mientras siga abierta esta etapa, puedes ajustar la configuración, el cronograma, las planchas, los candidatos y el padrón.
+            {isReferendum
+              ? "Mientras siga abierta esta etapa, puedes ajustar la configuración, el cronograma, las opciones y el padrón."
+              : "Mientras siga abierta esta etapa, puedes ajustar la configuración, el cronograma, las planchas, los candidatos y el padrón."}
           </div>
         ) : null}
 
@@ -820,7 +836,9 @@ const ActiveElectionStatusPage: React.FC = () => {
                   Resultados disponibles
                 </h2>
                 <p className="mt-1 text-sm text-violet-700">
-                  Ya se publicaron los resultados de esta votación.
+                  {isReferendum
+                    ? "Ya se publicaron los resultados de esta consulta."
+                    : "Ya se publicaron los resultados de esta votación."}
                 </p>
               </div>
               <button
@@ -840,11 +858,21 @@ const ActiveElectionStatusPage: React.FC = () => {
           <ConfigStepsTabs
             currentStep={activeTab}
             completedSteps={[1, 2, 3]}
+            isReferendum={isReferendum}
             onStepChange={setActiveTab}
           />
 
-          {activeTab === 1 && <PositionsTable positions={positions} readOnly />}
-          {activeTab === 2 && <PartiesTable parties={parties} readOnly />}
+          {activeTab === 1 &&
+            (isReferendum ? (
+              <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+                <p className="text-sm font-semibold text-gray-800">
+                  La consulta ya tiene su estructura lista.
+                </p>
+              </div>
+            ) : (
+              <PositionsTable positions={positions} readOnly />
+            ))}
+          {activeTab === 2 && <PartiesTable parties={parties} readOnly isReferendum={isReferendum} />}
           {activeTab === 3 && displayPadronFile && (
             <LoadedPadronView
               file={displayPadronFile}
@@ -884,16 +912,18 @@ const ActiveElectionStatusPage: React.FC = () => {
           <div className="w-full space-y-5">
             <div>
               <h2 className="text-2xl font-bold text-gray-900">
-                Papeleta Electoral
+                {isReferendum ? "Consulta" : "Papeleta Electoral"}
               </h2>
               <p className="mt-1 text-gray-600">
-                {getBallotDescription(lifecycle)}
+                {getBallotDescription(lifecycle, isReferendum)}
               </p>
             </div>
 
             {parties.length === 0 ? (
               <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-500 shadow-sm">
-                No hay planchas configuradas todavía.
+                {isReferendum
+                  ? "No hay opciones configuradas todavía."
+                  : "No hay planchas configuradas todavía."}
               </div>
             ) : (
               <div className="grid gap-6 xl:grid-cols-2">
