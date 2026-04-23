@@ -122,12 +122,12 @@ const getBallotDescription = (lifecycle: string, isReferendum: boolean) =>
 
 const getPadronDisplayName = (sourceType?: string | null) => {
   if (sourceType === "PDF_IMPORT") {
-    return "Documento PDF confirmado";
+    return "Padrón actual cargado desde PDF";
   }
   if (sourceType === "IMAGE_IMPORT") {
-    return "Imagen confirmada";
+    return "Padrón actual cargado desde imagen";
   }
-  return "Padrón confirmado";
+  return "Padrón actual cargado";
 };
 
 const deriveLifecycle = (event?: {
@@ -379,8 +379,8 @@ const ActiveElectionStatusPage: React.FC = () => {
     ? {
         fileName:
           activeWorkflowDraft.sourceType === "IMAGE"
-            ? "Imagen en edición autosalvada"
-            : "Documento PDF en edición autosalvada",
+            ? "Borrador de padrón guardado desde imagen"
+            : "Borrador de padrón guardado desde PDF",
         uploadedAt:
           activeWorkflowDraft.processedAt ??
           activeWorkflowDraft.updatedAt ??

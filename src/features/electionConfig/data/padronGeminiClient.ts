@@ -260,15 +260,15 @@ const extractJsonText = (response: GeminiGenerateContentResponse) => {
 
   const blockReason = response.promptFeedback?.blockReason;
   if (blockReason) {
-    throw new Error(`La IA bloqueó la solicitud (${blockReason}).`);
+    throw new Error("No se pudo analizar el documento en este momento.");
   }
 
   const finishReason = response.candidates?.[0]?.finishReason;
   if (finishReason) {
-    throw new Error(`La IA no devolvió contenido utilizable (${finishReason}).`);
+    throw new Error("No se pudo obtener un resultado utilizable del documento.");
   }
 
-  throw new Error("La IA no devolvió un resultado de texto para el padrón.");
+  throw new Error("No se pudo obtener un resultado del documento.");
 };
 
 const parseGeminiJson = (rawText: string): GeminiRawResponse => {
@@ -280,7 +280,7 @@ const parseGeminiJson = (rawText: string): GeminiRawResponse => {
     if (firstBrace >= 0 && lastBrace > firstBrace) {
       return JSON.parse(rawText.slice(firstBrace, lastBrace + 1)) as GeminiRawResponse;
     }
-    throw new Error("La IA devolvió una respuesta que no es JSON válido.");
+    throw new Error("No se pudo interpretar el resultado del documento.");
   }
 };
 
@@ -304,7 +304,7 @@ const normalizeGeminiResult = (
     if (!entry || typeof entry !== "object") {
       observations.push({
         code: "INVALID_RECORD",
-        message: "La IA devolvió una fila sin estructura válida.",
+        message: "Se detectó una fila con un formato que no se pudo interpretar.",
         rowIndex: index + 1,
         rawValue: String(entry ?? ""),
       });
@@ -316,7 +316,7 @@ const normalizeGeminiResult = (
     if (!carnet) {
       observations.push({
         code: "INVALID_CARNET",
-        message: "La IA devolvió una fila sin carnet legible.",
+        message: "Se detectó una fila sin un carnet legible.",
         rowIndex: index + 1,
         rawValue: JSON.stringify(raw),
       });
@@ -327,7 +327,7 @@ const normalizeGeminiResult = (
     if (enabled === null) {
       observations.push({
         code: "INVALID_ENABLED_VALUE",
-        message: "No se pudo interpretar la columna de habilitación.",
+        message: "No se pudo interpretar si el registro está habilitado o no.",
         rowIndex: index + 1,
         rawValue: JSON.stringify(raw),
       });
@@ -338,7 +338,7 @@ const normalizeGeminiResult = (
     if (!carnetKey) {
       observations.push({
         code: "INVALID_CARNET",
-        message: "El carnet quedó vacío después de normalizarlo.",
+        message: "Se detectó un registro sin carnet utilizable.",
         rowIndex: index + 1,
         rawValue: JSON.stringify(raw),
       });
@@ -348,7 +348,7 @@ const normalizeGeminiResult = (
     if (seenCarnets.has(carnetKey)) {
       observations.push({
         code: "DUPLICATE_CARNET",
-        message: "La IA devolvió un carnet duplicado.",
+        message: "Se detectó un carnet duplicado.",
         rowIndex: index + 1,
         rawValue: carnet,
       });
@@ -369,7 +369,7 @@ const normalizeGeminiResult = (
   if (!records.length && !observations.length) {
     observations.push({
       code: "EMPTY_RESULT",
-      message: "La IA no pudo extraer registros ni observaciones del documento.",
+      message: "No se pudieron extraer registros u observaciones del documento.",
       rowIndex: null,
       rawValue: null,
     });
@@ -402,12 +402,12 @@ const uploadFileToGemini = async (
 
   if (!startResponse.ok) {
     const message = await startResponse.text();
-    throw new Error(`No se pudo iniciar la carga del archivo en la IA. ${message}`);
+    throw new Error(`No se pudo preparar el archivo para revisarlo. ${message}`);
   }
 
   const uploadUrl = startResponse.headers.get("x-goog-upload-url");
   if (!uploadUrl) {
-    throw new Error("La IA no devolvió una URL de carga para el archivo.");
+    throw new Error("No se pudo preparar correctamente el archivo para revisarlo.");
   }
 
   const uploadResponse = await fetch(uploadUrl, {
@@ -422,13 +422,13 @@ const uploadFileToGemini = async (
 
   if (!uploadResponse.ok) {
     const message = await uploadResponse.text();
-    throw new Error(`La IA no pudo recibir el archivo. ${message}`);
+    throw new Error(`No se pudo cargar el archivo para revisarlo. ${message}`);
   }
 
   const uploadData = (await uploadResponse.json()) as GeminiUploadFileResponse;
   const uploadedFile = uploadData.file ?? uploadData;
   if (!uploadedFile?.uri || !uploadedFile?.name) {
-    throw new Error("La IA no devolvió la referencia del archivo cargado.");
+    throw new Error("No se pudo confirmar la carga del archivo.");
   }
 
   if (uploadedFile.state === "PROCESSING") {
@@ -446,7 +446,7 @@ const uploadFileToGemini = async (
 
       if (!statusResponse.ok) {
         const message = await statusResponse.text();
-        throw new Error(`No se pudo consultar el estado del archivo en la IA. ${message}`);
+        throw new Error(`No se pudo verificar el estado del archivo. ${message}`);
       }
 
       const statusData = (await statusResponse.json()) as GeminiUploadFileResponse;
@@ -456,11 +456,11 @@ const uploadFileToGemini = async (
       }
 
       if (statusFile?.state && statusFile.state !== "PROCESSING") {
-        throw new Error(`La IA dejó el archivo en estado ${statusFile.state}.`);
+        throw new Error("No se pudo dejar el archivo listo para revisarlo.");
       }
     }
 
-    throw new Error("La IA tardó demasiado en preparar el archivo para analizarlo.");
+    throw new Error("El documento tardó demasiado en quedar listo para su revisión.");
   }
 
   return uploadedFile as Required<GeminiUploadFileResponse>["file"];
@@ -539,7 +539,7 @@ const requestGeminiPadronJson = async (
 
   if (!response.ok) {
     const message = await response.text();
-    throw new Error(`La IA no pudo analizar el padrón. ${message}`);
+    throw new Error(`No se pudo analizar el padrón. ${message}`);
   }
 
   return (await response.json()) as GeminiGenerateContentResponse;

@@ -52,7 +52,7 @@ const ConfigSummaryCard: React.FC<ConfigSummaryCardProps> = ({ summary, isRefere
             <CheckIcon />
           </div>
           <span className={`text-sm ${summary.padronOk ? 'text-gray-700' : 'text-gray-400'}`}>
-            Padrón cargado
+            Padrón listo
           </span>
         </div>
       </div>

@@ -46,11 +46,11 @@ const basePendingLabels: Record<string, string> = {
   cargos: 'Cargos configurados',
   opciones: 'Planchas registradas',
   candidatos: 'Candidatos asignados',
-  candidatos_invalidos: 'Candidatos con cargos válidos',
-  cobertura_cargos: 'Cobertura de todos los cargos',
+  candidatos_invalidos: 'Candidatos configurados correctamente',
+  cobertura_cargos: 'Cobertura completa de cargos',
   padron: 'Padrón cargado',
-  padron_invalid: 'Padrón sin registros inválidos',
-  padron_validation: 'Validación estructural del padrón',
+  padron_invalid: 'Padrón sin errores de registro',
+  padron_validation: 'Padrón listo para revisión',
   publication_window_expired: 'La ventana de publicación oficial venció',
 };
 

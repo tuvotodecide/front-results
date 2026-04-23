@@ -585,15 +585,15 @@ const ElectionConfigPadron: React.FC = () => {
           setObservationsOpen(true);
           setError(
             geminiSummary.totalCount === 0
-              ? "LA IA no pudo extraer registros utilizables del documento. Revisa las observaciones antes de intentar nuevamente."
-              : "La IA detectó observaciones que requieren revisión antes de continuar con la carga del padrón.",
+              ? "No se pudieron detectar registros utilizables en el documento. Revisa las observaciones antes de intentar nuevamente."
+              : "Se detectaron observaciones que requieren revisión antes de continuar con la carga del padrón.",
           );
           return;
         }
 
         if (geminiDraft.observations.length > 0) {
           setInfo(
-            "La IA detectó observaciones informativas, pero no bloquean el avance",
+            "Se detectaron observaciones informativas, pero la carga puede continuar",
           );
         }
 
@@ -632,8 +632,8 @@ const ElectionConfigPadron: React.FC = () => {
         setSummaryModalState("summary");
         setInfo(
           seededCount > 0
-            ? "Se cargaron al padrón editable los registros detectados correctamente en el documento."
-            : "El documento fue analizado, pero no se pudieron persistir registros editables en el staging.",
+            ? "Se cargaron los registros detectados correctamente en el documento."
+            : "No se pudieron dejar los registros listos para continuar. Intenta nuevamente.",
         );
       } catch (uploadError: any) {
         if (progressInterval !== null) {
@@ -1012,7 +1012,7 @@ const ElectionConfigPadron: React.FC = () => {
             />
           ) : (
             <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-900">No hay un padrón editable disponible</h2>
+              <h2 className="text-lg font-semibold text-slate-900">No hay un padrón disponible para revisar</h2>
               <p className="mt-2 text-sm text-slate-500">
                 En esta etapa el padrón queda en solo lectura y no se puede reemplazar desde esta vista.
               </p>
@@ -1053,7 +1053,7 @@ const ElectionConfigPadron: React.FC = () => {
         isOpen={summaryModalState === "uploading"}
         progress={uploadProgress}
         title="Analizando archivo del padrón..."
-        subtitle="La IA está leyendo el documento."
+        subtitle="Estamos revisando el documento."
       />
 
       <UploadSummaryModal

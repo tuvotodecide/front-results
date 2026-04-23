@@ -78,14 +78,14 @@ const UploadSummaryModal: React.FC<UploadSummaryModalProps> = ({
 
         <h2 className="mb-3 text-3xl font-bold text-slate-800">Resultado del análisis</h2>
         <p className="mx-auto mb-8 max-w-2xl text-sm text-slate-500">
-          Revisa el resumen generado antes de pasar al padrón editable.
+          Revisa el resumen antes de continuar.
         </p>
 
         <div className="mx-auto mb-8 grid max-w-3xl grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="flex min-h-[156px] flex-col rounded-2xl border-2 border-blue-200 bg-blue-50 p-5 text-left">
             <p className="text-sm font-semibold text-blue-700">Total</p>
             <p className="mt-4 text-4xl font-bold text-blue-700">{formatNumber(totalCount)}</p>
-            <p className="mt-auto pt-4 text-sm leading-6 text-blue-600">Registros llevados al padrón</p>
+            <p className="mt-auto pt-4 text-sm leading-6 text-blue-600">Registros listos para revisar</p>
           </div>
 
           <div className="flex min-h-[156px] flex-col rounded-2xl border-2 border-green-200 bg-green-50 p-5 text-left">
@@ -109,7 +109,7 @@ const UploadSummaryModal: React.FC<UploadSummaryModalProps> = ({
               <span className="font-semibold text-slate-700">Observados</span>
             </div>
             <p className="mt-4 text-4xl font-bold text-red-600">{formatNumber(observedCount)}</p>
-            <p className="mt-auto pt-4 text-sm leading-6 text-red-600">Para revisar si hace falta</p>
+            <p className="mt-auto pt-4 text-sm leading-6 text-red-600">Requieren revisión</p>
           </div>
         </div>
 

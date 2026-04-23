@@ -138,15 +138,15 @@ export const usePadron = (electionId: string, options: UsePadronOptions = {}): U
     uploading: importState.isLoading,
     getInvalidVoters: async () => [],
     saveCorrections: async () => {
-      throw new Error('Correcciones de padrón no implementadas en backend');
+      throw new Error('Las correcciones del padrón no están disponibles en este momento.');
     },
     savingCorrections: false,
     deleteVoter: async () => {
-      throw new Error('Eliminar votante no implementado en backend');
+      throw new Error('No se puede eliminar este registro en este momento.');
     },
     deletingVoter: false,
     deletePadron: async () => {
-      throw new Error('Eliminar padrón no implementado en backend');
+      throw new Error('No se puede eliminar el padrón en este momento.');
     },
     deletingPadron: false,
     replacePadron: uploadCSV,

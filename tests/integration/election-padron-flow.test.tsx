@@ -308,7 +308,7 @@ describe("padron flow integration", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Paso 3" }));
 
-    expect(screen.getByText("Documento PDF en edición autosalvada")).toBeInTheDocument();
+    expect(screen.getByText("Borrador de padrón guardado desde PDF")).toBeInTheDocument();
   });
 
   it("keeps Gemini in the main upload flow and allows informative observations", async () => {
@@ -364,7 +364,7 @@ describe("padron flow integration", () => {
 
     expect(
       await screen.findByText(
-        /Se cargaron al padrón editable los registros detectados correctamente en el documento/i,
+        /Se cargaron los registros detectados correctamente en el documento/i,
       ),
     ).toBeInTheDocument();
     expect(analyzePadronDocumentWithGeminiMock).toHaveBeenCalledTimes(1);
@@ -415,7 +415,7 @@ describe("padron flow integration", () => {
     fireEvent.click(screen.getByRole("button", { name: /cargar padrón/i }));
 
     expect(
-      await screen.findByText(/La IA detectó observaciones que requieren revisión/i),
+      await screen.findByText(/Se detectaron observaciones que requieren revisión/i),
     ).toBeInTheDocument();
     expect(screen.getByTestId("padron-observations-modal")).toBeInTheDocument();
     expect(uploadPadronSourceMock).not.toHaveBeenCalled();
