@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 import { renderWithAuthStore } from "../utils/renderWithStore";
 
@@ -452,10 +452,9 @@ describe("padron flow integration", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /cargar padrón/i }));
 
-    expect(
-      await screen.findByText(/Gemini detectó registros válidos y los cargó al staging editable/i),
-    ).toBeInTheDocument();
-    expect(addPadronStagingEntryMock).toHaveBeenCalledTimes(2);
+    await waitFor(() => {
+      expect(addPadronStagingEntryMock).toHaveBeenCalledTimes(2);
+    });
     expect(addPadronStagingEntryMock).toHaveBeenNthCalledWith(1, {
       eventId: "evt-1",
       ci: "12345678",

@@ -56,6 +56,7 @@ type RecordModalState =
   | { open: true; mode: "edit"; voter: Voter };
 
 const PAGE_SIZE = 50;
+const GEMINI_STAGING_BATCH_SIZE = 25;
 const SUPPORTED_PADRON_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".png", ".webp"];
 const FINAL_STEP_LABEL = "Finalizar configuración";
 
@@ -460,6 +461,44 @@ const ElectionConfigPadron: React.FC = () => {
     stagingUninitialized,
   ]);
 
+  const persistGeminiRecordsIntoStaging = useCallback(
+    async (
+      records: Array<{
+        carnet: string;
+        enabled: boolean;
+      }>,
+    ) => {
+      const pendingRecords = records.reduce<Array<{ ci: string; enabled: boolean }>>((acc, record) => {
+        const ci = normalizePadronCarnet(record.carnet);
+        if (!ci || acc.some((entry) => entry.ci === ci)) {
+          return acc;
+        }
+
+        acc.push({
+          ci,
+          enabled: record.enabled !== false,
+        });
+        return acc;
+      }, []);
+
+      for (let index = 0; index < pendingRecords.length; index += GEMINI_STAGING_BATCH_SIZE) {
+        const batch = pendingRecords.slice(index, index + GEMINI_STAGING_BATCH_SIZE);
+        await Promise.all(
+          batch.map((record) =>
+            addPadronStagingEntry({
+              eventId: actualElectionId,
+              ci: record.ci,
+              enabled: record.enabled,
+            }).unwrap(),
+          ),
+        );
+      }
+
+      return pendingRecords.length;
+    },
+    [actualElectionId, addPadronStagingEntry],
+  );
+
   const handleFileSelect = useCallback(
     async (selectedFile: File) => {
       if (!selectedFile || !isSupportedPadronFile(selectedFile)) {
@@ -525,16 +564,38 @@ const ElectionConfigPadron: React.FC = () => {
         setUploadSummaryJobId(importJob.importJobId);
         setFrontendGeminiObservations([]);
 
+        let resolvedImportJob = importJob;
+
         if (importJob.status === "PROCESSING") {
           setUploadProgress(52);
-          await pollImportJobUntilReady(importJob.importJobId);
-          return;
+          resolvedImportJob = await pollImportJobUntilReady(importJob.importJobId);
+        } else {
+          setUploadProgress(100);
+          await refetchWorkflowSummary();
+          await refetchReviewReadiness();
+          setSummaryModalState("summary");
         }
 
-        setUploadProgress(100);
-        await refetchWorkflowSummary();
-        await refetchReviewReadiness();
-        setSummaryModalState("summary");
+        const needsGeminiStagingFallback =
+          geminiSummary.totalCount > 0 &&
+          Number(resolvedImportJob.summary?.stagingCount ?? 0) === 0;
+
+        if (needsGeminiStagingFallback) {
+          setSummaryModalState("uploading");
+          setUploadProgress(92);
+
+          const seededCount = await persistGeminiRecordsIntoStaging(geminiDraft.records);
+
+          await refetchVisiblePadronData();
+
+          setUploadProgress(100);
+          setSummaryModalState("summary");
+          setInfo(
+            seededCount > 0
+              ? "Gemini detectó registros válidos y los cargó al staging editable cuando el procesamiento del backend no generó filas."
+              : "El documento fue analizado, pero no se pudieron persistir registros editables en el staging.",
+          );
+        }
       } catch (uploadError: any) {
         if (progressInterval !== null) {
           window.clearInterval(progressInterval);
@@ -551,7 +612,15 @@ const ElectionConfigPadron: React.FC = () => {
         );
       }
     },
-    [actualElectionId, pollImportJobUntilReady, refetchReviewReadiness, refetchWorkflowSummary, uploadPadronSource],
+    [
+      actualElectionId,
+      persistGeminiRecordsIntoStaging,
+      pollImportJobUntilReady,
+      refetchReviewReadiness,
+      refetchVisiblePadronData,
+      refetchWorkflowSummary,
+      uploadPadronSource,
+    ],
   );
 
   const handleReplaceFile = () => {
