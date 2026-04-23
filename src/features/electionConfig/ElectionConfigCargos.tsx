@@ -271,9 +271,7 @@ const ElectionConfigCargos: React.FC = () => {
 
           {isReferendum ? (
             <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
-              Este evento fue creado como referéndum. No necesitas gestionar cargos manualmente:
-              el sistema usa un cargo técnico interno para mantener la integridad de candidatos,
-              review y resultados.
+              Este evento fue creado como referéndum. No necesitas gestionar cargos manualmente
             </div>
           ) : null}
 
@@ -288,10 +286,7 @@ const ElectionConfigCargos: React.FC = () => {
               <p className="text-sm font-semibold text-gray-800">
                 Configuración de consulta lista
               </p>
-              <p className="mt-2 text-sm text-gray-600">
-                El cargo técnico interno queda protegido y no se muestra ni se edita como un
-                cargo manual de una elección normal.
-              </p>
+
             </div>
           ) : (
             <PositionsTable

@@ -37,12 +37,7 @@ const ConfirmCreateModal: React.FC<ConfirmCreateModalProps> = ({
             <p className="font-medium text-gray-900">{formData.institution}</p>
           </div>
 
-          <div>
-            <p className="text-sm text-gray-500">Tipo de votación</p>
-            <p className="font-medium text-gray-900">
-              {formData.isReferendum ? 'Referéndum' : 'Elección normal'}
-            </p>
-          </div>
+
 
           {formData.description && (
             <div>
@@ -54,9 +49,7 @@ const ConfirmCreateModal: React.FC<ConfirmCreateModalProps> = ({
 
         {formData.isReferendum ? (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Este tipo quedará fijo después de crear la votación. La papeleta se mostrará como una
-            consulta y el sistema configurará un cargo técnico interno para mantener la integridad
-            del proceso.
+            No se podrá cambiar el tipo de votación luego. La papeleta se mostrará como una consulta con opciones de respuesta.
           </div>
         ) : null}
 

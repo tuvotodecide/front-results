@@ -55,7 +55,19 @@ vi.mock("@/store/votingEvents", () => ({
 }));
 
 vi.mock("@/features/electionConfig/components/ConfigStepsTabs", () => ({
-  default: () => <div data-testid="steps-tabs" />,
+  default: ({ onStepChange }: any) => (
+    <div data-testid="steps-tabs">
+      <button type="button" onClick={() => onStepChange?.(1)}>
+        Paso 1
+      </button>
+      <button type="button" onClick={() => onStepChange?.(2)}>
+        Paso 2
+      </button>
+      <button type="button" onClick={() => onStepChange?.(3)}>
+        Paso 3
+      </button>
+    </div>
+  ),
 }));
 vi.mock("@/features/electionConfig/components/ConfigPageFallback", () => ({
   default: ({ title }: { title: string }) => <div>{title}</div>,
@@ -133,6 +145,7 @@ const baseEvent = {
 
 const noopMutation = [vi.fn(), { isLoading: false }] as const;
 const uploadPadronSourceMock = vi.fn();
+const addPadronStagingEntryMock = vi.fn();
 
 describe("padron flow integration", () => {
   beforeEach(() => {
@@ -141,8 +154,12 @@ describe("padron flow integration", () => {
     analyzePadronDocumentWithGeminiMock.mockReset();
     hasGeminiPadronConfigMock.mockReturnValue(true);
     uploadPadronSourceMock.mockReset();
+    addPadronStagingEntryMock.mockReset();
     uploadPadronSourceMock.mockReturnValue({
       unwrap: vi.fn().mockResolvedValue({ importJobId: "job-upload", status: "PARSED" }),
+    });
+    addPadronStagingEntryMock.mockReturnValue({
+      unwrap: vi.fn().mockResolvedValue({ id: "entry-new" }),
     });
 
     vi.mocked(votingEvents.useGetVotingEventQuery).mockReturnValue({
@@ -240,7 +257,10 @@ describe("padron flow integration", () => {
       uploadPadronSourceMock,
       { isLoading: false },
     ] as any);
-    vi.mocked(votingEvents.useAddPadronStagingEntryMutation).mockReturnValue(noopMutation as any);
+    vi.mocked(votingEvents.useAddPadronStagingEntryMutation).mockReturnValue([
+      addPadronStagingEntryMock,
+      { isLoading: false },
+    ] as any);
     vi.mocked(votingEvents.useUpdatePadronStagingEntryMutation).mockReturnValue(noopMutation as any);
     vi.mocked(votingEvents.useDeletePadronStagingEntryMutation).mockReturnValue(noopMutation as any);
     vi.mocked(votingEvents.useAddCurrentPadronVoterMutation).mockReturnValue(noopMutation as any);
@@ -264,13 +284,15 @@ describe("padron flow integration", () => {
   });
 
   it("shows the autosaved active draft as the current padron source in status before publication", () => {
-    const { getByText } = renderWithAuthStore(<ActiveElectionStatusPage />, {
+    renderWithAuthStore(<ActiveElectionStatusPage />, {
       tenantId: "tenant-1",
       active: true,
       role: "ADMIN",
     });
 
-    expect(getByText("Documento PDF en edición autosalvada")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Paso 3" }));
+
+    expect(screen.getByText("Documento PDF en edición autosalvada")).toBeInTheDocument();
   });
 
   it("keeps Gemini in the main upload flow and allows informative observations", async () => {
@@ -310,6 +332,15 @@ describe("padron flow integration", () => {
       isError: false,
       refetch: vi.fn(),
     } as any);
+    uploadPadronSourceMock.mockReturnValue({
+      unwrap: vi.fn().mockResolvedValue({
+        importJobId: "job-upload",
+        status: "PARSED",
+        summary: {
+          stagingCount: 1,
+        },
+      }),
+    });
 
     render(<ElectionConfigPadron />);
 
@@ -367,5 +398,73 @@ describe("padron flow integration", () => {
     ).toBeInTheDocument();
     expect(screen.getByTestId("padron-observations-modal")).toBeInTheDocument();
     expect(uploadPadronSourceMock).not.toHaveBeenCalled();
+  });
+
+  it("persists Gemini records into staging when the backend import returns an empty draft", async () => {
+    analyzePadronDocumentWithGeminiMock.mockResolvedValue({
+      fileName: "padron.pdf",
+      uploadedAt: "2026-04-16T12:00:00.000Z",
+      sourceType: "PDF_GEMINI",
+      analysisProvider: "GEMINI_CLIENT",
+      model: "gemini-test",
+      records: [
+        {
+          id: "record-1",
+          carnet: "12345678",
+          enabled: true,
+          sourceKind: "PARSED",
+          sourceRow: 1,
+          updatedAt: null,
+        },
+        {
+          id: "record-2",
+          carnet: "87654321",
+          enabled: false,
+          sourceKind: "PARSED",
+          sourceRow: 2,
+          updatedAt: null,
+        },
+      ],
+      observations: [],
+    });
+    uploadPadronSourceMock.mockReturnValue({
+      unwrap: vi.fn().mockResolvedValue({
+        importJobId: "job-upload",
+        status: "FAILED",
+        summary: {
+          stagingCount: 0,
+        },
+      }),
+    });
+    vi.mocked(votingEvents.useGetPadronWorkflowSummaryQuery).mockReturnValue({
+      data: {
+        eventId: "evt-1",
+        eventState: "DRAFT",
+        currentVersion: null,
+        activeDraft: null,
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as any);
+
+    render(<ElectionConfigPadron />);
+
+    fireEvent.click(screen.getByRole("button", { name: /cargar padrón/i }));
+
+    expect(
+      await screen.findByText(/Gemini detectó registros válidos y los cargó al staging editable/i),
+    ).toBeInTheDocument();
+    expect(addPadronStagingEntryMock).toHaveBeenCalledTimes(2);
+    expect(addPadronStagingEntryMock).toHaveBeenNthCalledWith(1, {
+      eventId: "evt-1",
+      ci: "12345678",
+      enabled: true,
+    });
+    expect(addPadronStagingEntryMock).toHaveBeenNthCalledWith(2, {
+      eventId: "evt-1",
+      ci: "87654321",
+      enabled: false,
+    });
   });
 });

@@ -66,14 +66,7 @@ const ConfigSummaryCard: React.FC<ConfigSummaryCardProps> = ({ summary }) => {
               </svg>
               <span className="text-sm font-medium text-[#459151]">Listo para publicar</span>
             </div>
-            <div className="inline-flex items-center gap-2 rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-2">
-              <svg className="h-5 w-5 text-yellow-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="text-sm font-medium text-yellow-800">
-                Publicar oficialmente 1 día antes de la fecha de inicio
-              </span>
-            </div>
+
           </div>
         ) : (
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">

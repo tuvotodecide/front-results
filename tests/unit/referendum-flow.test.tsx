@@ -153,7 +153,9 @@ describe("referendum minimal flow", () => {
     await user.click(screen.getByRole("button", { name: "CREAR" }));
 
     expect(await screen.findByText("¿Crear votación?")).toBeInTheDocument();
-    expect(screen.getByText(/este tipo quedará fijo/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/no se podrá cambiar el tipo de votación luego/i),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Confirmar" }));
 
@@ -202,7 +204,12 @@ describe("referendum minimal flow", () => {
   it("keeps referendum roles in read-only informational mode", () => {
     render(<ElectionConfigCargos />);
 
-    expect(screen.getAllByText(/cargo técnico interno/i).length).toBeGreaterThan(0);
+    expect(
+      screen.getByText(/cargo técnico configurado automáticamente/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/no necesitas gestionar cargos manualmente/i),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /agregar cargo/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^editar$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^eliminar$/i })).not.toBeInTheDocument();
