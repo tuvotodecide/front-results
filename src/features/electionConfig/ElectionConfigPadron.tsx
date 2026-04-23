@@ -557,7 +557,7 @@ const ElectionConfigPadron: React.FC = () => {
 
       if (!hasGeminiPadronConfig()) {
         setError(
-          "No se pudo iniciar el análisis del padrón porque Gemini no está configurado en el frontend.",
+          "No se pudo iniciar el análisis del padrón porque la IA no está configurado en el frontend.",
         );
         return;
       }
@@ -585,15 +585,15 @@ const ElectionConfigPadron: React.FC = () => {
           setObservationsOpen(true);
           setError(
             geminiSummary.totalCount === 0
-              ? "Gemini no pudo extraer registros utilizables del documento. Revisa las observaciones antes de intentar nuevamente."
-              : "Gemini detectó observaciones que requieren revisión antes de continuar con la carga del padrón.",
+              ? "LA IA no pudo extraer registros utilizables del documento. Revisa las observaciones antes de intentar nuevamente."
+              : "La IA detectó observaciones que requieren revisión antes de continuar con la carga del padrón.",
           );
           return;
         }
 
         if (geminiDraft.observations.length > 0) {
           setInfo(
-            "Gemini detectó observaciones informativas, pero no bloquean el avance. Continuaremos con la carga al staging editable.",
+            "La IA detectó observaciones informativas, pero no bloquean el avance",
           );
         }
 

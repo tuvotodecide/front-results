@@ -40,6 +40,7 @@ vi.mock("@/store/votingEvents", () => ({
   useGetEventOptionsQuery: vi.fn(),
   useGetEventReviewReadinessQuery: vi.fn(),
   useGetEventRolesQuery: vi.fn(),
+  useLazyGetPadronStagingQuery: vi.fn(),
   useGetPadronStagingQuery: vi.fn(),
   useGetPadronVotersQuery: vi.fn(),
   useGetPadronWorkflowSummaryQuery: vi.fn(),
@@ -146,6 +147,7 @@ const baseEvent = {
 const noopMutation = [vi.fn(), { isLoading: false }] as const;
 const uploadPadronSourceMock = vi.fn();
 const addPadronStagingEntryMock = vi.fn();
+const fetchPadronStagingPageMock = vi.fn();
 
 describe("padron flow integration", () => {
   beforeEach(() => {
@@ -160,6 +162,17 @@ describe("padron flow integration", () => {
     });
     addPadronStagingEntryMock.mockReturnValue({
       unwrap: vi.fn().mockResolvedValue({ id: "entry-new" }),
+    });
+    fetchPadronStagingPageMock.mockReset();
+    fetchPadronStagingPageMock.mockReturnValue({
+      unwrap: vi.fn().mockResolvedValue({
+        importJob: null,
+        data: [],
+        page: 1,
+        limit: 200,
+        total: 0,
+        totalPages: 1,
+      }),
     });
 
     vi.mocked(votingEvents.useGetVotingEventQuery).mockReturnValue({
@@ -253,6 +266,9 @@ describe("padron flow integration", () => {
       refetch: vi.fn(),
     } as any);
     vi.mocked(votingEvents.useLazyGetPadronImportStatusQuery).mockReturnValue([vi.fn()] as any);
+    vi.mocked(votingEvents.useLazyGetPadronStagingQuery).mockReturnValue([
+      fetchPadronStagingPageMock,
+    ] as any);
     vi.mocked(votingEvents.useUploadPadronSourceMutation).mockReturnValue([
       uploadPadronSourceMock,
       { isLoading: false },
@@ -346,9 +362,14 @@ describe("padron flow integration", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /cargar padrón/i }));
 
-    expect(await screen.findByText(/Gemini detectó observaciones informativas/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        /Se cargaron al padrón editable los registros detectados correctamente en el documento/i,
+      ),
+    ).toBeInTheDocument();
     expect(analyzePadronDocumentWithGeminiMock).toHaveBeenCalledTimes(1);
     expect(uploadPadronSourceMock).toHaveBeenCalledTimes(1);
+    expect(addPadronStagingEntryMock).toHaveBeenCalledTimes(1);
   });
 
   it("stops before staging when Gemini finds actionable observations", async () => {
@@ -394,7 +415,7 @@ describe("padron flow integration", () => {
     fireEvent.click(screen.getByRole("button", { name: /cargar padrón/i }));
 
     expect(
-      await screen.findByText(/Gemini detectó observaciones que requieren revisión/i),
+      await screen.findByText(/La IA detectó observaciones que requieren revisión/i),
     ).toBeInTheDocument();
     expect(screen.getByTestId("padron-observations-modal")).toBeInTheDocument();
     expect(uploadPadronSourceMock).not.toHaveBeenCalled();
