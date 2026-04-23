@@ -7,6 +7,8 @@ import ElectionsPage from "@/features/elections/ElectionsPage";
 import ElectionConfigReview from "@/features/electionConfig/ElectionConfigReview";
 import ConfirmActivateModal from "@/features/electionConfig/components/ConfirmActivateModal";
 import type { UseElectionPublishReturn } from "@/features/electionConfig/data/useElectionPublish";
+import type { VotingEvent, ReviewReadinessResponse } from "@/store/votingEvents/types";
+import type { ConfigSummary } from "@/features/electionConfig/data/ElectionPublishRepository.mock";
 
 const navigateMock = vi.fn();
 const refetchMock = vi.fn();
@@ -76,6 +78,57 @@ import * as votingEvents from "@/store/votingEvents";
 
 const deleteMutation = [vi.fn(), { isLoading: false }] as const;
 const noopMutation = [vi.fn(), { isLoading: false }] as const;
+
+const makeVotingEvent = (
+  overrides: Partial<VotingEvent> = {},
+): VotingEvent => ({
+  id: "evt-1",
+  tenantId: "tenant-1",
+  name: "Elección 2026",
+  chainRequestId: "chain-req-1",
+  objective: "Elegir directiva",
+  votingStart: "2026-04-18T18:00:00.000Z",
+  votingEnd: "2026-04-18T20:00:00.000Z",
+  resultsPublishAt: "2026-04-18T21:00:00.000Z",
+  publishDeadline: "2026-04-18T06:00:00.000Z",
+  state: "READY_FOR_REVIEW",
+  status: "READY_FOR_REVIEW",
+  publicEligibilityEnabled: true,
+  publicEligibility: true,
+  presentialKioskEnabled: false,
+  ...overrides,
+});
+
+const makeConfigSummary = (
+  overrides: Partial<ConfigSummary> = {},
+): ConfigSummary => ({
+  positionsOk: true,
+  partiesOk: true,
+  padronOk: true,
+  positionsCount: 1,
+  partiesCount: 1,
+  votersCount: 10,
+  enabledToVoteCount: 8,
+  disabledToVoteCount: 2,
+  ...overrides,
+});
+
+const makeReviewReadiness = (
+  overrides: Partial<ReviewReadinessResponse> = {},
+): ReviewReadinessResponse => ({
+  id: "evt-1",
+  state: "READY_FOR_REVIEW",
+  isReady: true,
+  pending: [],
+  publishDeadline: "2026-04-18T06:00:00.000Z",
+  publicationWindow: {
+    deadline: "2026-04-18T06:00:00.000Z",
+    expired: false,
+    canConfirmOfficialPublication: true,
+    hoursUntilDeadline: 18,
+  },
+  ...overrides,
+});
 
 describe("publication deadlines UX", () => {
   beforeEach(() => {
@@ -175,33 +228,13 @@ describe("publication deadlines UX", () => {
 
   it("shows an explicit reminder in review before the deadline and blocks publication once expired", () => {
     let publishHookValue: UseElectionPublishReturn = {
-      votingEvent: {
-        id: "evt-1",
-        state: "READY_FOR_REVIEW",
-        status: "READY_FOR_REVIEW",
-        votingStart: "2026-04-18T18:00:00.000Z",
-        votingEnd: "2026-04-18T20:00:00.000Z",
-        resultsPublishAt: "2026-04-18T21:00:00.000Z",
-        publishDeadline: "2026-04-18T06:00:00.000Z",
-      },
+      votingEvent: makeVotingEvent(),
       ballotPreview: null,
-      configSummary: {
-        positionsOk: true,
-        partiesOk: true,
-        padronOk: true,
-      },
-      reviewReadiness: {
-        isReady: true,
-        pending: [],
-        publicationWindow: {
-          deadline: "2026-04-18T06:00:00.000Z",
-          expired: false,
-          canConfirmOfficialPublication: true,
-          hoursUntilDeadline: 18,
-        },
-      },
+      configSummary: makeConfigSummary(),
+      reviewReadiness: makeReviewReadiness(),
       loading: false,
       error: null,
+      electionStatus: "DRAFT",
       openReview: vi.fn(),
       openingReview: false,
       activateElection: vi.fn(),
@@ -224,33 +257,28 @@ describe("publication deadlines UX", () => {
     ).toBeEnabled();
 
     publishHookValue = {
-      votingEvent: {
-        id: "evt-1",
+      votingEvent: makeVotingEvent({
         state: "PUBLICATION_EXPIRED",
         status: "PUBLICATION_EXPIRED",
-        votingStart: "2026-04-18T18:00:00.000Z",
-        votingEnd: "2026-04-18T20:00:00.000Z",
-        resultsPublishAt: "2026-04-18T21:00:00.000Z",
         publishDeadline: "2026-04-17T06:00:00.000Z",
-      },
+      }),
       ballotPreview: null,
-      configSummary: {
-        positionsOk: true,
-        partiesOk: true,
-        padronOk: true,
-      },
-      reviewReadiness: {
+      configSummary: makeConfigSummary(),
+      reviewReadiness: makeReviewReadiness({
+        state: "PUBLICATION_EXPIRED",
         isReady: false,
         pending: ["publication_window_expired"],
+        publishDeadline: "2026-04-17T06:00:00.000Z",
         publicationWindow: {
           deadline: "2026-04-17T06:00:00.000Z",
           expired: true,
           canConfirmOfficialPublication: false,
           hoursUntilDeadline: 0,
         },
-      },
+      }),
       loading: false,
       error: null,
+      electionStatus: "DRAFT",
       openReview: vi.fn(),
       openingReview: false,
       activateElection: vi.fn(),

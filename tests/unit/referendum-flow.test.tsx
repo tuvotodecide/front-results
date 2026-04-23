@@ -139,7 +139,9 @@ describe("referendum minimal flow", () => {
     );
     await user.click(screen.getByRole("switch", { name: "¿Es referéndum?" }));
 
-    expect(screen.getByText(/este tipo no podrá cambiarse después/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/ya no podrás cambiar este tipo de votación/i),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Siguiente" }));
     await user.type(screen.getByLabelText("¿Cuándo abre la votación?"), "2027-06-01T12:00");
@@ -150,7 +152,7 @@ describe("referendum minimal flow", () => {
     );
     await user.click(screen.getByRole("button", { name: "CREAR" }));
 
-    expect(await screen.findByText("Referéndum")).toBeInTheDocument();
+    expect(await screen.findByText("¿Crear votación?")).toBeInTheDocument();
     expect(screen.getByText(/este tipo quedará fijo/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Confirmar" }));

@@ -11,6 +11,10 @@ import PadronStagingView from "./components/PadronStagingView";
 import UploadProgressModal from "./components/UploadProgressModal";
 import UploadSummaryModal from "./components/UploadSummaryModal";
 import {
+  analyzePadronDocumentWithGemini,
+  getGeminiDraftSummary,
+  hasGeminiPadronConfig,
+  isBlockingGeminiObservation,
   normalizePadronCarnet,
 } from "./data/padronGeminiClient";
 import { getRequestErrorMessage } from "./requestErrorMessage";
@@ -39,6 +43,7 @@ import {
   useGetPadronWorkflowSummaryQuery,
   useGetVotingEventQuery,
   useLazyGetPadronImportStatusQuery,
+  type PadronImportError,
   useUploadPadronSourceMutation,
   useUpdatePadronStagingEntryMutation,
 } from "../../store/votingEvents";
@@ -126,6 +131,9 @@ const ElectionConfigPadron: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [frontendGeminiObservations, setFrontendGeminiObservations] = useState<
+    PadronImportError[]
+  >([]);
 
   const {
     data: event,
@@ -334,6 +342,10 @@ const ElectionConfigPadron: React.FC = () => {
   const activeDraftObservedCount = activeDraft
     ? activeDraft.summary.invalidCount + activeDraft.summary.duplicateCount
     : 0;
+  const displayedObservations =
+    frontendGeminiObservations.length > 0
+      ? frontendGeminiObservations
+      : effectiveWorkflowActiveDraft?.errors ?? [];
   const isPadronConfirmed = Boolean(currentVersion?.padronVersionId) && !activeDraft;
   const stagingDraftReadyForNextStep = activeDraft
     ? activeDraft.summary.stagingCount > 0 &&
@@ -455,26 +467,63 @@ const ElectionConfigPadron: React.FC = () => {
         return;
       }
 
+      if (!hasGeminiPadronConfig()) {
+        setError(
+          "No se pudo iniciar el análisis del padrón porque Gemini no está configurado en el frontend.",
+        );
+        return;
+      }
+
       setError(null);
       setInfo(null);
       setSuccess(null);
       setUploadSummaryJobId(null);
       setObservationsOpen(false);
+      setFrontendGeminiObservations([]);
 
       setSummaryModalState("uploading");
-      setUploadProgress(12);
+      setUploadProgress(8);
 
-      const progressInterval = window.setInterval(() => {
-        setUploadProgress((current) => Math.min(current + 5, 82));
-      }, 320);
+      let progressInterval: number | null = null;
 
       try {
+        const geminiDraft = await analyzePadronDocumentWithGemini(selectedFile);
+        const geminiSummary = getGeminiDraftSummary(geminiDraft);
+        const blockingObservations = geminiDraft.observations.filter(isBlockingGeminiObservation);
+
+        if (blockingObservations.length > 0 || geminiSummary.totalCount === 0) {
+          setFrontendGeminiObservations(geminiDraft.observations);
+          setSummaryModalState("none");
+          setUploadProgress(0);
+          setObservationsOpen(true);
+          setError(
+            geminiSummary.totalCount === 0
+              ? "Gemini no pudo extraer registros utilizables del documento. Revisa las observaciones antes de intentar nuevamente."
+              : "Gemini detectó observaciones que requieren revisión antes de continuar con la carga del padrón.",
+          );
+          return;
+        }
+
+        if (geminiDraft.observations.length > 0) {
+          setInfo(
+            "Gemini detectó observaciones informativas, pero no bloquean el avance. Continuaremos con la carga al staging editable.",
+          );
+        }
+
+        setUploadProgress(24);
+        progressInterval = window.setInterval(() => {
+          setUploadProgress((current) => Math.min(current + 5, 82));
+        }, 320);
+
         const importJob = await uploadPadronSource({
           eventId: actualElectionId,
           file: selectedFile,
         }).unwrap();
-        window.clearInterval(progressInterval);
+        if (progressInterval !== null) {
+          window.clearInterval(progressInterval);
+        }
         setUploadSummaryJobId(importJob.importJobId);
+        setFrontendGeminiObservations([]);
 
         if (importJob.status === "PROCESSING") {
           setUploadProgress(52);
@@ -487,10 +536,19 @@ const ElectionConfigPadron: React.FC = () => {
         await refetchReviewReadiness();
         setSummaryModalState("summary");
       } catch (uploadError: any) {
-        window.clearInterval(progressInterval);
+        if (progressInterval !== null) {
+          window.clearInterval(progressInterval);
+        }
         setSummaryModalState("none");
         setUploadProgress(0);
-        setError(getRequestErrorMessage(uploadError, "No se pudo procesar el archivo del padrón."));
+        setError(
+          uploadError?.message === "GEMINI_API_KEY_MISSING"
+            ? "No se pudo iniciar el análisis del padrón."
+            : getRequestErrorMessage(
+                uploadError,
+                "No se pudo analizar y cargar el archivo del padrón.",
+              ),
+        );
       }
     },
     [actualElectionId, pollImportJobUntilReady, refetchReviewReadiness, refetchWorkflowSummary, uploadPadronSource],
@@ -889,8 +947,8 @@ const ElectionConfigPadron: React.FC = () => {
       <UploadProgressModal
         isOpen={summaryModalState === "uploading"}
         progress={uploadProgress}
-        title="Revisando archivo del padrón..."
-        subtitle="Estamos procesando el documento y generando el staging editable."
+        title="Analizando archivo del padrón..."
+        subtitle="La IA está leyendo el documento."
       />
 
       <UploadSummaryModal
@@ -918,10 +976,15 @@ const ElectionConfigPadron: React.FC = () => {
 
       <PadronObservationsModal
         isOpen={observationsOpen}
-        errors={effectiveWorkflowActiveDraft?.errors ?? []}
-        onClose={() => setObservationsOpen(false)}
+        errors={displayedObservations}
+        onClose={() => {
+          setObservationsOpen(false);
+          if (frontendGeminiObservations.length > 0) {
+            setFrontendGeminiObservations([]);
+          }
+        }}
         onAddRecord={
-          effectiveWorkflowActiveDraft
+          effectiveWorkflowActiveDraft && frontendGeminiObservations.length === 0
             ? () => {
                 setObservationsOpen(false);
                 setRecordModal({ open: true, mode: "create" });

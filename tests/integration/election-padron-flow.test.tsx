@@ -1,8 +1,10 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { vi } from "vitest";
 import { renderWithAuthStore } from "../utils/renderWithStore";
 
 const navigateMock = vi.fn();
+const analyzePadronDocumentWithGeminiMock = vi.fn();
+const hasGeminiPadronConfigMock = vi.fn(() => true);
 
 vi.mock("@/domains/votacion/navigation/compat-private", () => ({
   useNavigate: () => navigateMock,
@@ -16,6 +18,17 @@ vi.mock("@/features/electionConfig/renderUtils", async () => {
   return {
     ...actual,
     useClientNow: () => new Date("2026-04-17T12:00:00.000Z").getTime(),
+  };
+});
+vi.mock("@/features/electionConfig/data/padronGeminiClient", async () => {
+  const actual = await vi.importActual<typeof import("@/features/electionConfig/data/padronGeminiClient")>(
+    "@/features/electionConfig/data/padronGeminiClient",
+  );
+  return {
+    ...actual,
+    analyzePadronDocumentWithGemini: (...args: any[]) =>
+      analyzePadronDocumentWithGeminiMock(...args),
+    hasGeminiPadronConfig: () => hasGeminiPadronConfigMock(),
   };
 });
 
@@ -57,10 +70,27 @@ vi.mock("@/features/electionConfig/components/LoadedPadronView", () => ({
   ),
 }));
 vi.mock("@/features/electionConfig/components/PadronDropzone", () => ({
-  default: () => <div data-testid="padron-dropzone" />,
+  default: ({ onFileSelect }: any) => (
+    <button
+      type="button"
+      data-testid="padron-dropzone"
+      onClick={() =>
+        onFileSelect(new File(["padron"], "padron.pdf", { type: "application/pdf" }))
+      }
+    >
+      Cargar padrón
+    </button>
+  ),
 }));
 vi.mock("@/features/electionConfig/components/PadronObservationsModal", () => ({
-  default: () => null,
+  default: ({ isOpen, errors }: any) =>
+    isOpen ? (
+      <div data-testid="padron-observations-modal">
+        {errors.map((error: any, index: number) => (
+          <span key={`${error.code}-${index}`}>{error.message}</span>
+        ))}
+      </div>
+    ) : null,
 }));
 vi.mock("@/features/electionConfig/components/PadronRecordModal", () => ({
   default: () => null,
@@ -102,11 +132,18 @@ const baseEvent = {
 };
 
 const noopMutation = [vi.fn(), { isLoading: false }] as const;
+const uploadPadronSourceMock = vi.fn();
 
 describe("padron flow integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     navigateMock.mockReset();
+    analyzePadronDocumentWithGeminiMock.mockReset();
+    hasGeminiPadronConfigMock.mockReturnValue(true);
+    uploadPadronSourceMock.mockReset();
+    uploadPadronSourceMock.mockReturnValue({
+      unwrap: vi.fn().mockResolvedValue({ importJobId: "job-upload", status: "PARSED" }),
+    });
 
     vi.mocked(votingEvents.useGetVotingEventQuery).mockReturnValue({
       data: baseEvent,
@@ -199,7 +236,10 @@ describe("padron flow integration", () => {
       refetch: vi.fn(),
     } as any);
     vi.mocked(votingEvents.useLazyGetPadronImportStatusQuery).mockReturnValue([vi.fn()] as any);
-    vi.mocked(votingEvents.useUploadPadronSourceMutation).mockReturnValue(noopMutation as any);
+    vi.mocked(votingEvents.useUploadPadronSourceMutation).mockReturnValue([
+      uploadPadronSourceMock,
+      { isLoading: false },
+    ] as any);
     vi.mocked(votingEvents.useAddPadronStagingEntryMutation).mockReturnValue(noopMutation as any);
     vi.mocked(votingEvents.useUpdatePadronStagingEntryMutation).mockReturnValue(noopMutation as any);
     vi.mocked(votingEvents.useDeletePadronStagingEntryMutation).mockReturnValue(noopMutation as any);
@@ -231,5 +271,101 @@ describe("padron flow integration", () => {
     });
 
     expect(getByText("Documento PDF en edición autosalvada")).toBeInTheDocument();
+  });
+
+  it("keeps Gemini in the main upload flow and allows informative observations", async () => {
+    analyzePadronDocumentWithGeminiMock.mockResolvedValue({
+      fileName: "padron.pdf",
+      uploadedAt: "2026-04-16T12:00:00.000Z",
+      sourceType: "PDF_GEMINI",
+      analysisProvider: "GEMINI_CLIENT",
+      model: "gemini-test",
+      records: [
+        {
+          id: "record-1",
+          carnet: "12345678",
+          enabled: true,
+          sourceKind: "PARSED",
+          sourceRow: 1,
+          updatedAt: null,
+        },
+      ],
+      observations: [
+        {
+          code: "GEMINI_OBSERVATION",
+          message: "Encabezado de columna identificado y omitido",
+          rowIndex: null,
+          rawValue: null,
+        },
+      ],
+    });
+    vi.mocked(votingEvents.useGetPadronWorkflowSummaryQuery).mockReturnValue({
+      data: {
+        eventId: "evt-1",
+        eventState: "DRAFT",
+        currentVersion: null,
+        activeDraft: null,
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as any);
+
+    render(<ElectionConfigPadron />);
+
+    fireEvent.click(screen.getByRole("button", { name: /cargar padrón/i }));
+
+    expect(await screen.findByText(/Gemini detectó observaciones informativas/i)).toBeInTheDocument();
+    expect(analyzePadronDocumentWithGeminiMock).toHaveBeenCalledTimes(1);
+    expect(uploadPadronSourceMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops before staging when Gemini finds actionable observations", async () => {
+    analyzePadronDocumentWithGeminiMock.mockResolvedValue({
+      fileName: "padron.pdf",
+      uploadedAt: "2026-04-16T12:00:00.000Z",
+      sourceType: "PDF_GEMINI",
+      analysisProvider: "GEMINI_CLIENT",
+      model: "gemini-test",
+      records: [
+        {
+          id: "record-1",
+          carnet: "12345678",
+          enabled: true,
+          sourceKind: "PARSED",
+          sourceRow: 1,
+          updatedAt: null,
+        },
+      ],
+      observations: [
+        {
+          code: "GEMINI_OBSERVATION",
+          message: "Fila incompleta que requiere revisión manual",
+          rowIndex: 3,
+          rawValue: "12345678,",
+        },
+      ],
+    });
+    vi.mocked(votingEvents.useGetPadronWorkflowSummaryQuery).mockReturnValue({
+      data: {
+        eventId: "evt-1",
+        eventState: "DRAFT",
+        currentVersion: null,
+        activeDraft: null,
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as any);
+
+    render(<ElectionConfigPadron />);
+
+    fireEvent.click(screen.getByRole("button", { name: /cargar padrón/i }));
+
+    expect(
+      await screen.findByText(/Gemini detectó observaciones que requieren revisión/i),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("padron-observations-modal")).toBeInTheDocument();
+    expect(uploadPadronSourceMock).not.toHaveBeenCalled();
   });
 });

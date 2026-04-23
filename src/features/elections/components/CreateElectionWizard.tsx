@@ -155,8 +155,22 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
   const [minimumVotingStartDateTime, setMinimumVotingStartDateTime] = useState('');
 
   useEffect(() => {
-    setCurrentLocalDateTime(getCurrentLocalDateTime());
-    setMinimumVotingStartDateTime(getMinimumLocalDateTime(MIN_CREATE_LEAD_MS));
+    const refreshMinimumDateTime = () => {
+      setCurrentLocalDateTime(getCurrentLocalDateTime());
+      setMinimumVotingStartDateTime(getMinimumLocalDateTime(MIN_CREATE_LEAD_MS));
+    };
+
+    refreshMinimumDateTime();
+
+    const intervalId = window.setInterval(refreshMinimumDateTime, 60 * 1000);
+    window.addEventListener('focus', refreshMinimumDateTime);
+    document.addEventListener('visibilitychange', refreshMinimumDateTime);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', refreshMinimumDateTime);
+      document.removeEventListener('visibilitychange', refreshMinimumDateTime);
+    };
   }, []);
 
   // Step 1: Info básica
@@ -242,9 +256,10 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
             <Formik
               initialValues={step1Data}
               validationSchema={step1Schema}
+              validateOnMount
               onSubmit={handleStep1Submit}
             >
-              {({ isValid, dirty }) => (
+              {({ isValid }) => (
                 <Form className="space-y-6">
                   {/* Campo Institución */}
                   <div>
@@ -306,7 +321,10 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                             role="switch"
                             aria-label="¿Es referéndum?"
                             aria-checked={field.value}
-                            onClick={() => form.setFieldValue('isReferendum', !field.value)}
+                            onClick={() => {
+                              void form.setFieldValue('isReferendum', !field.value, true);
+                              void form.setFieldTouched('isReferendum', true, false);
+                            }}
                             className={`relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors ${
                               field.value ? 'bg-[#459151]' : 'bg-gray-300'
                             }`}
@@ -325,9 +343,9 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                       {({ field }: FieldProps<boolean>) =>
                         field.value ? (
                           <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                            Este tipo no podrá cambiarse después. La papeleta funcionará como una
-                            consulta y el sistema usará opciones de referéndum con un cargo técnico
-                            interno para no romper validaciones ni resultados.
+                            Si eliges referéndum, luego ya no podrás cambiar este tipo de
+                            votación. La papeleta se mostrará como una consulta con opciones de
+                            respuesta.
                           </div>
                         ) : null
                       }
@@ -338,7 +356,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                   <div className="flex justify-center pt-4">
                     <button
                       type="submit"
-                      disabled={!isValid || !dirty}
+                      disabled={!isValid}
                       className="px-12 py-3 bg-[#459151] hover:bg-[#3a7a44] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Siguiente
@@ -354,7 +372,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
         {step === 2 && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-8">
             <h1 className="text-2xl font-bold text-gray-900 text-center mb-8">
-              Definir Fechas para la elección
+              Definir fechas para la elección
             </h1>
 
             <Formik
@@ -364,9 +382,10 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                 resultsDate: '',
               }}
               validationSchema={step2Schema}
+              validateOnMount
               onSubmit={handleStep2Submit}
             >
-              {({ isValid, dirty, values }) => (
+              {({ isValid, values }) => (
                 <Form className="space-y-6">
                   <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                     La elección debe crearse con al menos {MIN_CREATE_LEAD_HOURS} horas de anticipación respecto a la hora actual.
@@ -384,11 +403,8 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                       id="votingStartDate"
                       name="votingStartDate"
                       min={minimumVotingStartDateTime}
-                      hint="Toca el calendario para elegir fecha y hora."
                     />
-                    <p className="mt-1 text-xs text-gray-500">
-                      Debe quedar al menos {MIN_CREATE_LEAD_HOURS} horas adelante. Primer horario permitido: {minimumVotingStartDateTime || currentLocalDateTime}.
-                    </p>
+
                     <ErrorMessage
                       name="votingStartDate"
                       component="p"
@@ -409,11 +425,9 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                       id="votingEndDate"
                       name="votingEndDate"
                       min={values.votingStartDate || minimumVotingStartDateTime || currentLocalDateTime}
-                      hint="Debe ser posterior al inicio."
+                      hint="Debe ser posterior a la fecha y hora de inicio."
                     />
-                    <p className="mt-1 text-xs text-gray-500">
-                      El cierre siempre debe quedar después del inicio configurado.
-                    </p>
+
                     <ErrorMessage
                       name="votingEndDate"
                       component="p"
@@ -437,11 +451,9 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                           ? addMinutesToLocalDateTime(values.votingEndDate, 1, currentLocalDateTime)
                           : values.votingStartDate || currentLocalDateTime
                       }
-                      hint="Debe ser después del cierre."
+                      hint="Debe ser al menos 1 minuto posterior al cierre."
                     />
-                    <p className="mt-1 text-xs text-gray-500">
-                      Los resultados deben publicarse al menos 1 minuto después del cierre.
-                    </p>
+
                     <ErrorMessage
                       name="resultsDate"
                       component="p"
@@ -460,7 +472,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                     </button>
                     <button
                       type="submit"
-                      disabled={!isValid || !dirty}
+                      disabled={!isValid}
                       className="px-12 py-3 bg-[#459151] hover:bg-[#3a7a44] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       CREAR

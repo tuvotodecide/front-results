@@ -168,9 +168,6 @@ const PadronDropzone: React.FC<PadronDropzoneProps> = ({
           </div>
           <div className="text-blue-800">
             <p className="font-semibold">El flujo principal del padrón usa PDF o imagen.</p>
-            <p className="mt-1 text-sm text-blue-700">
-              El archivo se procesará para generar un padrón editable persistido. Revisa el staging resultante y corrige allí los registros necesarios.
-            </p>
           </div>
         </div>
       </div>

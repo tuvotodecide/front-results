@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Suspense } from "react";
+import "../index.css";
 import "./globals.css";
 import Providers from "./providers";
 import NavigationProgressBar from "./NavigationProgressBar";
