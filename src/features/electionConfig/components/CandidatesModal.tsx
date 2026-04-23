@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Modal2 from '../../../components/Modal2';
 import type { Position, CandidateInput, Candidate } from '../types';
+import { REFERENDUM_OPTION_LABEL } from '../renderUtils';
 
 interface CandidatesModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ interface CandidatesModalProps {
   existingCandidates?: Candidate[];
   partyName?: string;
   submitError?: string | null;
+  isReferendum?: boolean;
 }
 
 interface CandidateFormData {
@@ -36,6 +38,7 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
   existingCandidates = [],
   partyName,
   submitError,
+  isReferendum = false,
 }) => {
   const [candidates, setCandidates] = useState<CandidateFormData[]>([]);
   const [showValidation, setShowValidation] = useState(false);
@@ -133,7 +136,8 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
 
         {partyName && (
           <p className="text-sm text-gray-500 -mt-2">
-            Partido: <span className="font-medium text-gray-700">{partyName}</span>
+            {isReferendum ? 'Opción' : 'Partido'}:{' '}
+            <span className="font-medium text-gray-700">{partyName}</span>
           </p>
         )}
 
@@ -147,7 +151,7 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
               {/* Nombre del cargo */}
               <div className="w-32 flex-shrink-0">
                 <span className="font-medium text-gray-700">
-                  {candidate.positionName}
+                  {isReferendum ? REFERENDUM_OPTION_LABEL : candidate.positionName}
                 </span>
               </div>
 
@@ -230,7 +234,9 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
 
         {positions.length === 0 && (
           <div className="text-center py-8 text-gray-500">
-            No hay cargos definidos. Primero define los cargos en el Paso 1.
+            {isReferendum
+              ? 'No se pudo cargar la configuración técnica del referéndum. Reintenta antes de continuar.'
+              : 'No hay cargos definidos. Primero define los cargos en el Paso 1.'}
           </div>
         )}
 

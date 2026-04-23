@@ -4,6 +4,7 @@ export interface CreateVotingEventDto {
   tenantId: string;
   name: string;
   objective: string;
+  isReferendum?: boolean;
   votingStart?: string;
   votingEnd?: string;
   resultsPublishAt?: string;
@@ -115,6 +116,7 @@ export interface VotingEvent {
   name: string;
   chainRequestId: string;
   objective: string;
+  isReferendum?: boolean;
   votingStart?: string | null;
   votingEnd?: string | null;
   resultsPublishAt?: string | null;
@@ -190,7 +192,7 @@ export type PadronImportJobStatus =
   | "FAILED"
   | "CONFIRMED";
 
-export type PadronImportSourceType = "PDF" | "IMAGE";
+export type PadronImportSourceType = "PDF" | "IMAGE" | "SYSTEM";
 
 export interface PadronImportError {
   code: string;
@@ -207,6 +209,7 @@ export interface PadronImportJobSummary {
   stagingCount: number;
   enabledCount: number;
   disabledCount: number;
+  missingIdentityCount: number;
 }
 
 export interface PadronImportJob {
@@ -269,7 +272,7 @@ export interface PadronStagingEntry {
   ci: string;
   enabled: boolean;
   hasIdentity: boolean;
-  sourceKind: "PARSED" | "MANUAL";
+  sourceKind: "PARSED" | "MANUAL" | "CLONED";
   sourceRow?: number | null;
   createdAt?: string | null;
   updatedAt?: string | null;

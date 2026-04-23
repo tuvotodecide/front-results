@@ -81,6 +81,7 @@ const ElectionConfigCargos: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const isOperating = creating || updating || deleting;
+  const isReferendum = Boolean(event?.isReferendum);
   const hasPositions = positions.length > 0;
   const hasPartiesWithCandidates = options.some((opt) => opt.candidates.length > 0);
   const isPadronReady = padronVersions.length > 0;
@@ -211,7 +212,7 @@ const ElectionConfigCargos: React.FC = () => {
           ? 'Durante la votación ya no se puede modificar la estructura de cargos.'
           : hasVotingEnded(event, nowMs) || areResultsAvailable(event, nowMs)
             ? 'La votación ya finalizó y la estructura de cargos queda en solo lectura.'
-            : 'Ya faltan menos de 24 horas para el inicio. Los cargos quedan en solo lectura.';
+            : 'Ya faltan menos de 6 horas para el inicio. Los cargos quedan en solo lectura.';
 
     return (
       <ConfigPageFallback
@@ -260,15 +261,37 @@ const ElectionConfigCargos: React.FC = () => {
 
           {/* Texto del paso + info */}
           <div className="flex items-center gap-2 mb-6">
-            <p className="text-gray-600">Paso 1 de 3: Define los cargos.</p>
+            <p className="text-gray-600">
+              {isReferendum
+                ? 'Paso 1 de 3: Cargo técnico configurado automáticamente.'
+                : 'Paso 1 de 3: Define los cargos.'}
+            </p>
             <InfoPopover />
           </div>
+
+          {isReferendum ? (
+            <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
+              Este evento fue creado como referéndum. No necesitas gestionar cargos manualmente:
+              el sistema usa un cargo técnico interno para mantener la integridad de candidatos,
+              review y resultados.
+            </div>
+          ) : null}
 
           {/* Tabla de cargos */}
           {loading ? (
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-12 text-center">
               <div className="w-8 h-8 border-4 border-[#459151] border-t-transparent rounded-full animate-spin mx-auto" />
               <p className="mt-4 text-gray-500">Cargando cargos...</p>
+            </div>
+          ) : isReferendum ? (
+            <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+              <p className="text-sm font-semibold text-gray-800">
+                Configuración de consulta lista
+              </p>
+              <p className="mt-2 text-sm text-gray-600">
+                El cargo técnico interno queda protegido y no se muestra ni se edita como un
+                cargo manual de una elección normal.
+              </p>
             </div>
           ) : (
             <PositionsTable
@@ -280,19 +303,21 @@ const ElectionConfigCargos: React.FC = () => {
           )}
 
           {/* Botón Agregar Cargo */}
-          <div className="flex justify-end mt-4">
-            <button
-              type="button"
-              onClick={handleAddClick}
-              disabled={isOperating}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[#459151] hover:bg-[#3a7a44] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              Agregar Cargo
-            </button>
-          </div>
+          {!isReferendum ? (
+            <div className="flex justify-end mt-4">
+              <button
+                type="button"
+                onClick={handleAddClick}
+                disabled={isOperating}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-[#459151] hover:bg-[#3a7a44] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Agregar Cargo
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -312,7 +337,9 @@ const ElectionConfigCargos: React.FC = () => {
               }
             `}
           >
-            Siguiente: Agregar planchas y candidatos
+            {isReferendum
+              ? 'Siguiente: Configurar opciones y alternativas'
+              : 'Siguiente: Agregar planchas y candidatos'}
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>

@@ -13,8 +13,7 @@ import type { VotingEvent } from '../../store/votingEvents/types';
 import { formatDateTimeForUi, hasDraftAlreadyStarted, useClientNow } from '../electionConfig/renderUtils';
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
-const CRITICAL_PUBLICATION_WINDOW_START_MS = 48 * ONE_HOUR_MS;
-const CRITICAL_PUBLICATION_WINDOW_END_MS = 24 * ONE_HOUR_MS;
+const DEADLINE_REMINDER_WINDOW_MS = 24 * ONE_HOUR_MS;
 
 // Mapear estados del backend a labels en español
 const statusLabels: Record<string, string> = {
@@ -22,7 +21,7 @@ const statusLabels: Record<string, string> = {
   PUBLISHED: 'Publicada',
   READY_FOR_REVIEW: 'En revisión previa',
   OFFICIALLY_PUBLISHED: 'Publicada oficialmente',
-  PUBLICATION_EXPIRED: 'Publicación vencida',
+  PUBLICATION_EXPIRED: 'Caducada',
   ACTIVE: 'Activa',
   CLOSED: 'Finalizada',
   RESULTS_PUBLISHED: 'Resultados publicados',
@@ -60,15 +59,12 @@ const isInOfficialPublicationReminderWindow = (
     return false;
   }
 
-  if (!event.votingStart) return false;
-  const votingStartMs = new Date(event.votingStart).getTime();
-  if (Number.isNaN(votingStartMs)) return false;
+  if (!event.publishDeadline) return false;
+  const publishDeadlineMs = new Date(event.publishDeadline).getTime();
+  if (Number.isNaN(publishDeadlineMs)) return false;
 
-  const timeUntilStart = votingStartMs - nowMs;
-  return (
-    timeUntilStart <= CRITICAL_PUBLICATION_WINDOW_START_MS &&
-    timeUntilStart > CRITICAL_PUBLICATION_WINDOW_END_MS
-  );
+  const timeUntilDeadline = publishDeadlineMs - nowMs;
+  return timeUntilDeadline > 0 && timeUntilDeadline <= DEADLINE_REMINDER_WINDOW_MS;
 };
 
 const ElectionsPage: React.FC = () => {
@@ -92,7 +88,12 @@ const ElectionsPage: React.FC = () => {
   };
 
   const handleElectionClick = (event: VotingEvent) => {
-    if (hasDraftAlreadyStarted(event, nowMs) || event.status === 'PUBLICATION_EXPIRED') {
+    if (hasDraftAlreadyStarted(event, nowMs)) {
+      return;
+    }
+
+    if (event.status === 'PUBLICATION_EXPIRED') {
+      navigate(`/votacion/elecciones/${event.id}/config/review`);
       return;
     }
 
@@ -209,8 +210,9 @@ const ElectionsPage: React.FC = () => {
         <div className="grid gap-4">
           {events.map((event) => {
             const publicationReminderActive = isInOfficialPublicationReminderWindow(event, nowMs);
-            const blockedCard =
-              hasDraftAlreadyStarted(event, nowMs) || event.status === 'PUBLICATION_EXPIRED';
+            const startAlreadyExpired = hasDraftAlreadyStarted(event, nowMs);
+            const expiredElection = event.status === 'PUBLICATION_EXPIRED';
+            const blockedCard = startAlreadyExpired;
 
             return (
               <div
@@ -219,6 +221,8 @@ const ElectionsPage: React.FC = () => {
                 className={`rounded-xl border bg-white p-6 shadow-sm transition-all ${
                   blockedCard
                     ? 'border-amber-200 bg-amber-50/40 cursor-default'
+                    : expiredElection
+                      ? 'border-red-200 bg-red-50/40 hover:border-red-400 hover:shadow-md cursor-pointer'
                     : publicationReminderActive
                       ? 'border-yellow-300 bg-yellow-50/30 hover:border-yellow-500 hover:shadow-md cursor-pointer'
                       : 'border-gray-200 hover:shadow-md hover:border-[#459151] cursor-pointer'
@@ -247,10 +251,10 @@ const ElectionsPage: React.FC = () => {
                     )}
                     {publicationReminderActive && (
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-200 text-yellow-700">
-                        Publicar oficialmente
+                        Publicación pendiente
                       </span>
                     )}
-                    {hasDraftAlreadyStarted(event, nowMs) && (
+                    {startAlreadyExpired && (
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
                         Inicio vencido
                       </span>
@@ -280,14 +284,19 @@ const ElectionsPage: React.FC = () => {
                   )}
                 </div>
               </div>
-              {hasDraftAlreadyStarted(event, nowMs) && (
+              {startAlreadyExpired && (
                 <p className="mt-4 text-sm text-amber-800">
                   Esta votación ya alcanzó su hora de inicio sin estar lista. No debería seguir configurándose; elimínala y crea una nueva.
                 </p>
               )}
-              {event.status === 'PUBLICATION_EXPIRED' && (
+              {publicationReminderActive && event.publishDeadline && (
+                <p className="mt-4 text-sm text-amber-800">
+                  Recuerda confirmar la publicación oficial antes del {formatDateTimeForUi(event.publishDeadline)}. Si el plazo vence, la elección quedará caducada y ya no podrá publicarse.
+                </p>
+              )}
+              {expiredElection && (
                 <p className="mt-4 text-sm text-red-800">
-                  La ventana de publicación oficial venció. Puedes eliminarla para crear una nueva.
+                  Esta elección quedó caducada porque la ventana de publicación oficial venció. Ya no puede modificarse ni publicarse.
                 </p>
               )}
               </div>

@@ -8,27 +8,14 @@ import * as Yup from 'yup';
 import Stepper from './Stepper';
 import ConfirmCreateModal from './ConfirmCreateModal';
 import { useCreateElection } from '../data/useElectionRepository';
-import { THIRTY_SIX_HOURS_MS } from '../../electionConfig/renderUtils';
+import {
+  addMinutesToLocalDateTime,
+  getCurrentLocalDateTime,
+  getMinimumLocalDateTime,
+  MIN_CREATE_LEAD_HOURS,
+  MIN_CREATE_LEAD_MS,
+} from '../../electionConfig/renderUtils';
 import type { ElectionFormData, ElectionFormStep1, ElectionFormStep2 } from '../types';
-
-const toLocalDateTimeValue = (value: Date) => {
-  const timezoneOffset = value.getTimezoneOffset() * 60000;
-  return new Date(value.getTime() - timezoneOffset).toISOString().slice(0, 16);
-};
-
-const getCurrentLocalDateTime = () => toLocalDateTimeValue(new Date());
-
-const getMinimumVotingStartDateTime = () =>
-  toLocalDateTimeValue(new Date(Date.now() + THIRTY_SIX_HOURS_MS));
-
-const addMinutesToLocalDateTime = (value?: string, minutes = 1, fallback = '') => {
-  if (!value) return fallback;
-  const base = new Date(value);
-  if (Number.isNaN(base.getTime())) return fallback;
-
-  const next = new Date(base.getTime() + minutes * 60 * 1000);
-  return toLocalDateTimeValue(next);
-};
 
 // Validación Step 1
 const step1Schema = Yup.object({
@@ -40,6 +27,7 @@ const step1Schema = Yup.object({
     .required('Este campo es obligatorio')
     .min(10, 'Mínimo 10 caracteres')
     .max(1000, 'Máximo 1000 caracteres'),
+  isReferendum: Yup.boolean().required(),
 });
 
 // Validación Step 2
@@ -47,11 +35,11 @@ const step2Schema = Yup.object({
   votingStartDate: Yup.string()
     .required('Este campo es obligatorio')
     .test(
-      'minimum-36-hours',
-      'Debe programarse con al menos 36 horas de anticipación.',
+      'minimum-12-hours',
+      `Debe programarse con al menos ${MIN_CREATE_LEAD_HOURS} horas de anticipación.`,
       (value) => {
         if (!value) return true;
-        return new Date(value).getTime() >= Date.now() + THIRTY_SIX_HOURS_MS;
+        return new Date(value).getTime() >= Date.now() + MIN_CREATE_LEAD_MS;
       }
     ),
   votingEndDate: Yup.string()
@@ -158,6 +146,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
   const [step1Data, setStep1Data] = useState<ElectionFormStep1>({
     institution: '',
     description: '',
+    isReferendum: false,
   });
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingData, setPendingData] = useState<ElectionFormData | null>(null);
@@ -167,7 +156,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
 
   useEffect(() => {
     setCurrentLocalDateTime(getCurrentLocalDateTime());
-    setMinimumVotingStartDateTime(getMinimumVotingStartDateTime());
+    setMinimumVotingStartDateTime(getMinimumLocalDateTime(MIN_CREATE_LEAD_MS));
   }, []);
 
   // Step 1: Info básica
@@ -197,6 +186,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
       const newElection = await createElection({
         institution: pendingData.institution,
         description: pendingData.description,
+        isReferendum: pendingData.isReferendum,
         votingStartDate: pendingData.votingStartDate,
         votingEndDate: pendingData.votingEndDate,
         resultsDate: pendingData.resultsDate,
@@ -301,6 +291,49 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                     />
                   </div>
 
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">¿Es referéndum?</p>
+                        <p className="mt-1 text-sm text-gray-500">
+                          Actívalo si esta votación es una consulta y no una elección tradicional.
+                        </p>
+                      </div>
+                      <Field name="isReferendum">
+                        {({ field, form }: FieldProps<boolean>) => (
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-label="¿Es referéndum?"
+                            aria-checked={field.value}
+                            onClick={() => form.setFieldValue('isReferendum', !field.value)}
+                            className={`relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors ${
+                              field.value ? 'bg-[#459151]' : 'bg-gray-300'
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                                field.value ? 'translate-x-6' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                        )}
+                      </Field>
+                    </div>
+
+                    <Field name="isReferendum">
+                      {({ field }: FieldProps<boolean>) =>
+                        field.value ? (
+                          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                            Este tipo no podrá cambiarse después. La papeleta funcionará como una
+                            consulta y el sistema usará opciones de referéndum con un cargo técnico
+                            interno para no romper validaciones ni resultados.
+                          </div>
+                        ) : null
+                      }
+                    </Field>
+                  </div>
+
                   {/* Botón Siguiente */}
                   <div className="flex justify-center pt-4">
                     <button
@@ -335,6 +368,9 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
             >
               {({ isValid, dirty, values }) => (
                 <Form className="space-y-6">
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    La elección debe crearse con al menos {MIN_CREATE_LEAD_HOURS} horas de anticipación respecto a la hora actual.
+                  </div>
 
                   {/* Fecha apertura */}
                   <div>
@@ -350,6 +386,9 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                       min={minimumVotingStartDateTime}
                       hint="Toca el calendario para elegir fecha y hora."
                     />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Debe quedar al menos {MIN_CREATE_LEAD_HOURS} horas adelante. Primer horario permitido: {minimumVotingStartDateTime || currentLocalDateTime}.
+                    </p>
                     <ErrorMessage
                       name="votingStartDate"
                       component="p"
@@ -372,6 +411,9 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                       min={values.votingStartDate || minimumVotingStartDateTime || currentLocalDateTime}
                       hint="Debe ser posterior al inicio."
                     />
+                    <p className="mt-1 text-xs text-gray-500">
+                      El cierre siempre debe quedar después del inicio configurado.
+                    </p>
                     <ErrorMessage
                       name="votingEndDate"
                       component="p"
@@ -397,6 +439,9 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                       }
                       hint="Debe ser después del cierre."
                     />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Los resultados deben publicarse al menos 1 minuto después del cierre.
+                    </p>
                     <ErrorMessage
                       name="resultsDate"
                       component="p"

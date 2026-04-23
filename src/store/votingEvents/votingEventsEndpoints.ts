@@ -97,6 +97,7 @@ const toVotingEvent = (raw: any): VotingEvent => {
     chainRequestId: String(source?.chainRequestId ?? ""),
     name: source?.name ?? "",
     objective: source?.objective ?? "",
+    isReferendum: Boolean(source?.isReferendum),
     votingStart: source?.votingStart ?? null,
     votingEnd: source?.votingEnd ?? null,
     resultsPublishAt: source?.resultsPublishAt ?? null,
@@ -185,7 +186,12 @@ const toPadronImportJob = (raw: any): PadronImportJob => {
     importJobId: String(source?.importJobId ?? source?.id ?? source?._id ?? ""),
     eventId: String(source?.eventId ?? ""),
     tenantId: String(source?.tenantId ?? ""),
-    sourceType: source?.sourceType === "IMAGE" ? "IMAGE" : "PDF",
+    sourceType:
+      source?.sourceType === "IMAGE"
+        ? "IMAGE"
+        : source?.sourceType === "SYSTEM"
+          ? "SYSTEM"
+          : "PDF",
     status: (source?.status ?? "PROCESSING") as PadronImportJob["status"],
     isActiveDraft: Boolean(source?.isActiveDraft),
     originalFile: {
@@ -207,6 +213,7 @@ const toPadronImportJob = (raw: any): PadronImportJob => {
       stagingCount: Number(source?.summary?.stagingCount ?? 0),
       enabledCount: Number(source?.summary?.enabledCount ?? 0),
       disabledCount: Number(source?.summary?.disabledCount ?? 0),
+      missingIdentityCount: Number(source?.summary?.missingIdentityCount ?? 0),
     },
     errors: Array.isArray(source?.errors)
       ? source.errors.map((error: any) => ({
@@ -240,7 +247,12 @@ const toPadronStagingEntry = (raw: any): PadronStagingEntry => {
     ci: String(source?.ci ?? source?.carnetNorm ?? ""),
     enabled: source?.enabled !== false,
     hasIdentity: source?.hasIdentity !== false,
-    sourceKind: source?.sourceKind === "MANUAL" ? "MANUAL" : "PARSED",
+    sourceKind:
+      source?.sourceKind === "MANUAL"
+        ? "MANUAL"
+        : source?.sourceKind === "CLONED"
+          ? "CLONED"
+          : "PARSED",
     sourceRow:
       source?.sourceRow === null || source?.sourceRow === undefined
         ? null

@@ -87,7 +87,7 @@ export interface Voter {
   enabled: boolean;
   status: VoterStatus;
   invalidReason?: InvalidReason;
-  sourceKind?: 'PARSED' | 'MANUAL';
+  sourceKind?: 'PARSED' | 'MANUAL' | 'CLONED';
   sourceRow?: number | null;
   updatedAt?: string | null;
 }

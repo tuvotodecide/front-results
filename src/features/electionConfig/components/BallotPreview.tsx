@@ -3,13 +3,27 @@
 
 import React from 'react';
 import type { PartyWithCandidates } from '../types';
-import { getOptionColors } from '../renderUtils';
+import { getOptionColors, REFERENDUM_OPTION_LABEL } from '../renderUtils';
 
 interface BallotPreviewProps {
   parties: PartyWithCandidates[];
+  isReferendum?: boolean;
+  question?: string;
 }
 
-const BallotPreview: React.FC<BallotPreviewProps> = ({ parties }) => {
+const BallotPreview: React.FC<BallotPreviewProps> = ({
+  parties,
+  isReferendum = false,
+  question,
+}) => {
+  const title = isReferendum
+    ? question?.trim() || 'Consulta sometida a votación'
+    : 'Elige a tu candidato';
+  const subtitle = isReferendum
+    ? 'Selecciona la opción de tu preferencia'
+    : 'Selecciona al candidato de tu preferencia';
+  const actionLabel = isReferendum ? 'Selecciona una opción' : 'Selecciona un candidato';
+
   return (
     <div className="flex flex-col h-full">
       {/* Header de la app */}
@@ -20,14 +34,14 @@ const BallotPreview: React.FC<BallotPreviewProps> = ({ parties }) => {
           </svg>
         </button>
         <h1 className="text-lg font-semibold text-gray-800 flex-1 text-center pr-5">
-          Elige a tu candidato
+          {title}
         </h1>
       </div>
 
       {/* Subtítulo */}
       <div className="px-4 py-3 bg-gray-50">
         <p className="text-sm text-gray-600 text-center">
-          Selecciona al candidato de tu preferencia
+          {subtitle}
         </p>
       </div>
 
@@ -85,7 +99,9 @@ const BallotPreview: React.FC<BallotPreviewProps> = ({ parties }) => {
                       <div className="flex-1 min-w-0">
                         {party.candidates.slice(0, 2).map((candidate, idx) => (
                           <div key={candidate.id} className={idx > 0 ? 'mt-1' : ''}>
-                            <p className="text-xs text-gray-500">{candidate.positionName}:</p>
+                            <p className="text-xs text-gray-500">
+                              {isReferendum ? REFERENDUM_OPTION_LABEL : candidate.positionName}:
+                            </p>
                             <p className="text-sm font-medium text-gray-800 truncate">
                               {candidate.fullName}
                             </p>
@@ -115,7 +131,7 @@ const BallotPreview: React.FC<BallotPreviewProps> = ({ parties }) => {
           disabled
           className="w-full py-3 bg-gray-300 text-gray-500 font-semibold rounded-lg text-sm uppercase tracking-wide cursor-not-allowed"
         >
-          Selecciona un candidato
+          {actionLabel}
         </button>
       </div>
     </div>

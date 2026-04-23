@@ -5,6 +5,7 @@ import {
   useGetEventRolesQuery,
   useGetPadronSummaryQuery,
   useGetPadronVersionsQuery,
+  useGetPadronWorkflowSummaryQuery,
   useGetVotingEventQuery,
   useConfirmOfficialPublicationMutation,
   useMarkEventReadyForReviewMutation,
@@ -47,6 +48,11 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
     useGetEventOptionsQuery(electionId, { skip: !electionId });
   const { data: padronVersions = [], isLoading: loadingPadron, refetch: refetchPadron } =
     useGetPadronVersionsQuery(electionId, { skip: !electionId });
+  const {
+    data: padronWorkflow,
+    isLoading: loadingPadronWorkflow,
+    refetch: refetchPadronWorkflow,
+  } = useGetPadronWorkflowSummaryQuery(electionId, { skip: !electionId });
   const { data: padronSummary, isLoading: loadingPadronSummary, refetch: refetchPadronSummary } =
     useGetPadronSummaryQuery(electionId, { skip: !electionId });
   const { data: reviewReadiness, isLoading: loadingReadiness, refetch: refetchReadiness } =
@@ -80,6 +86,8 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
     return {
       electionId: event.id,
       electionTitle: event.name,
+      electionObjective: event.objective,
+      isReferendum: Boolean(event.isReferendum),
       parties,
     };
   }, [event, options]);
@@ -93,23 +101,44 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
     const positionsCount = roles.length;
     const partiesCount = options.length;
     const partiesWithCandidates = options.filter((o) => (o.candidates ?? []).length > 0).length;
-    const currentPadron = padronVersions.find((v) => v.isCurrent) ?? padronVersions[0];
-    const votersCount = currentPadron?.validCount ?? 0;
-    const invalidCount = currentPadron?.invalidCount ?? 0;
-    const enabledToVoteCount = padronSummary?.enabledToVote ?? 0;
-    const disabledToVoteCount = padronSummary?.disabledToVote ?? 0;
+    const activeDraft = padronWorkflow?.activeDraft ?? null;
+    const currentPadron = padronWorkflow?.currentVersion
+      ? {
+          validCount: Number(padronWorkflow.currentVersion.totals.validCount ?? 0),
+          invalidCount: Number(padronWorkflow.currentVersion.totals.invalidCount ?? 0),
+        }
+      : padronVersions.find((v) => v.isCurrent) ?? padronVersions[0];
+    const votersCount = activeDraft
+      ? Number(activeDraft.summary.stagingCount ?? 0)
+      : Number(currentPadron?.validCount ?? 0);
+    const invalidCount = activeDraft
+      ? Number(activeDraft.summary.invalidCount ?? 0) + Number(activeDraft.summary.duplicateCount ?? 0)
+      : Number(currentPadron?.invalidCount ?? 0);
+    const missingIdentityCount = activeDraft
+      ? Number(activeDraft.summary.missingIdentityCount ?? 0)
+      : 0;
+    const enabledToVoteCount = activeDraft
+      ? Number(activeDraft.summary.enabledCount ?? 0)
+      : Number(padronSummary?.enabledToVote ?? 0);
+    const disabledToVoteCount = activeDraft
+      ? Number(activeDraft.summary.disabledCount ?? 0)
+      : Number(padronSummary?.disabledToVote ?? 0);
 
     return {
       positionsOk: positionsCount > 0,
       partiesOk: partiesWithCandidates > 0,
-      padronOk: votersCount > 0 && invalidCount === 0 && !padronPending,
+      padronOk:
+        votersCount > 0 &&
+        invalidCount === 0 &&
+        missingIdentityCount === 0 &&
+        !padronPending,
       positionsCount,
       partiesCount,
       votersCount,
       enabledToVoteCount,
       disabledToVoteCount,
     };
-  }, [roles, options, padronVersions, padronSummary, reviewReadiness?.pending]);
+  }, [options, padronSummary, padronVersions, padronWorkflow, reviewReadiness?.pending, roles]);
 
   const electionStatus: ElectionStatus = useMemo(() => {
     if (!event) return 'DRAFT';
@@ -166,10 +195,19 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
       refetchRoles(),
       refetchOptions(),
       refetchPadron(),
+      refetchPadronWorkflow(),
       refetchPadronSummary(),
       refetchReadiness(),
     ]);
-  }, [refetchEvent, refetchRoles, refetchOptions, refetchPadron, refetchPadronSummary, refetchReadiness]);
+  }, [
+    refetchEvent,
+    refetchOptions,
+    refetchPadron,
+    refetchPadronSummary,
+    refetchPadronWorkflow,
+    refetchReadiness,
+    refetchRoles,
+  ]);
 
   return {
     votingEvent: event,
@@ -182,6 +220,7 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
       loadingRoles ||
       loadingOptions ||
       loadingPadron ||
+      loadingPadronWorkflow ||
       loadingPadronSummary ||
       loadingReadiness,
     error: null,

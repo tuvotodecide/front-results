@@ -138,6 +138,58 @@ export const normalizePadronCarnet = (value: string) =>
 const buildCarnetKey = (value: string) =>
   normalizePadronCarnet(value).replace(/[\s.-]/g, "");
 
+const isInformationalGeminiObservation = (observation: PadronImportError) => {
+  const code = String(observation.code ?? "").trim().toUpperCase();
+  const message = String(observation.message ?? "").trim().toLowerCase();
+
+  if (code !== "GEMINI_OBSERVATION") {
+    return false;
+  }
+
+  const normalizedRawValue = String(observation.rawValue ?? "").trim();
+  const hasSpecificRowReference =
+    observation.rowIndex !== null &&
+    observation.rowIndex !== undefined &&
+    Number.isFinite(Number(observation.rowIndex));
+
+  if (
+    message.includes("encabezado") ||
+    message.includes("omitid") ||
+    message.includes("ruido") ||
+    message.includes("ignorado")
+  ) {
+    return true;
+  }
+
+  return !normalizedRawValue && !hasSpecificRowReference;
+};
+
+export const isBlockingGeminiObservation = (observation: PadronImportError) => {
+  const code = String(observation.code ?? "").trim().toUpperCase();
+  const message = String(observation.message ?? "").trim().toLowerCase();
+
+  if (code !== "GEMINI_OBSERVATION") {
+    return true;
+  }
+
+  if (isInformationalGeminiObservation(observation)) {
+    return false;
+  }
+
+  return (
+    message.includes("error") ||
+    message.includes("inválid") ||
+    message.includes("invalid") ||
+    message.includes("ambigu") ||
+    message.includes("incomplet") ||
+    message.includes("falt") ||
+    message.includes("no se pudo") ||
+    message.includes("no fue posible") ||
+    message.includes("correg") ||
+    message.includes("revis")
+  );
+};
+
 const parseEnabledValue = (value: unknown): boolean | null => {
   if (typeof value === "boolean") {
     return value;
@@ -590,12 +642,13 @@ export const toggleGeminiDraftRecord = (
 export const getGeminiDraftSummary = (draft: GeminiPadronDraft) => {
   const enabledCount = draft.records.filter((record) => record.enabled).length;
   const disabledCount = draft.records.length - enabledCount;
+  const blockingObservationsCount = draft.observations.filter(isBlockingGeminiObservation).length;
 
   return {
     totalCount: draft.records.length,
     enabledCount,
     disabledCount,
-    observedCount: draft.observations.length,
+    observedCount: blockingObservationsCount,
   };
 };
 

@@ -122,6 +122,7 @@ export const parsePadronCsv = async (file: File): Promise<PadronUploadResult> =>
       carnet,
       fullName: "",
       enabled: enabledCell.enabled,
+      hasIdentity: true,
       status: invalidReason ? "invalid" : "valid",
       invalidReason: invalidReason ?? undefined,
     };

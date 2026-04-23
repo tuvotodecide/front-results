@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 
-export const THIRTY_SIX_HOURS_MS = 36 * 60 * 60 * 1000;
-export const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+export const MIN_CREATE_LEAD_HOURS = 12;
+export const PRE_PUBLICATION_CUTOFF_HOURS = 6;
+export const MIN_CREATE_LEAD_MS = MIN_CREATE_LEAD_HOURS * 60 * 60 * 1000;
+export const PRE_PUBLICATION_CUTOFF_MS = PRE_PUBLICATION_CUTOFF_HOURS * 60 * 60 * 1000;
+export const REFERENDUM_TECHNICAL_ROLE = 'CONSULTA';
+export const REFERENDUM_OPTION_LABEL = 'Alternativa';
 
 type EventTimelineInput = {
   status?: string | null;
@@ -26,6 +30,25 @@ export const getOptionColors = (source: {
 
   if (colors.length > 0) return colors;
   return [source.colorHex ?? source.color ?? '#000000'];
+};
+
+export const toLocalDateTimeValue = (value: Date) => {
+  const timezoneOffset = value.getTimezoneOffset() * 60000;
+  return new Date(value.getTime() - timezoneOffset).toISOString().slice(0, 16);
+};
+
+export const getCurrentLocalDateTime = () => toLocalDateTimeValue(new Date());
+
+export const getMinimumLocalDateTime = (leadMs: number, nowMs = Date.now()) =>
+  toLocalDateTimeValue(new Date(nowMs + leadMs));
+
+export const addMinutesToLocalDateTime = (value?: string, minutes = 1, fallback = '') => {
+  if (!value) return fallback;
+  const base = new Date(value);
+  if (Number.isNaN(base.getTime())) return fallback;
+
+  const next = new Date(base.getTime() + minutes * 60 * 1000);
+  return toLocalDateTimeValue(next);
 };
 
 export const useClientNow = () => {
@@ -56,6 +79,80 @@ const toTimestamp = (value?: string | null) => {
   return Number.isNaN(timestamp) ? null : timestamp;
 };
 
+export type ScheduleFormValues = {
+  votingStart: string;
+  votingEnd: string;
+  resultsPublishAt: string;
+};
+
+export type ScheduleFieldErrors = Partial<Record<keyof ScheduleFormValues, string>>;
+
+export const validateScheduleFieldErrors = (
+  form: ScheduleFormValues,
+  options: {
+    nowMs: number;
+    minimumStartLeadMs: number;
+    minimumStartMessage: string;
+  },
+): ScheduleFieldErrors => {
+  const errors: ScheduleFieldErrors = {};
+  const { nowMs, minimumStartLeadMs, minimumStartMessage } = options;
+
+  if (!form.votingStart.trim()) {
+    errors.votingStart = 'Debes completar la fecha y hora de inicio.';
+  }
+
+  if (!form.votingEnd.trim()) {
+    errors.votingEnd = 'Debes completar la fecha y hora de cierre.';
+  }
+
+  if (!form.resultsPublishAt.trim()) {
+    errors.resultsPublishAt = 'Debes completar la fecha y hora de publicación de resultados.';
+  }
+
+  const votingStart = new Date(form.votingStart);
+  const votingEnd = new Date(form.votingEnd);
+  const resultsPublishAt = new Date(form.resultsPublishAt);
+
+  const hasValidVotingStart =
+    form.votingStart.trim() && !Number.isNaN(votingStart.getTime());
+  const hasValidVotingEnd =
+    form.votingEnd.trim() && !Number.isNaN(votingEnd.getTime());
+  const hasValidResults =
+    form.resultsPublishAt.trim() && !Number.isNaN(resultsPublishAt.getTime());
+
+  if (form.votingStart.trim() && !hasValidVotingStart) {
+    errors.votingStart = 'Debes ingresar una fecha y hora de inicio válida.';
+  }
+
+  if (form.votingEnd.trim() && !hasValidVotingEnd) {
+    errors.votingEnd = 'Debes ingresar una fecha y hora de cierre válida.';
+  }
+
+  if (form.resultsPublishAt.trim() && !hasValidResults) {
+    errors.resultsPublishAt = 'Debes ingresar una fecha y hora de resultados válida.';
+  }
+
+  if (hasValidVotingStart && votingStart.getTime() < nowMs + minimumStartLeadMs) {
+    errors.votingStart = minimumStartMessage;
+  }
+
+  if (hasValidVotingStart && hasValidVotingEnd && votingEnd.getTime() <= votingStart.getTime()) {
+    errors.votingEnd = 'La fecha de cierre debe ser posterior a la fecha de inicio.';
+  }
+
+  if (
+    hasValidVotingEnd &&
+    hasValidResults &&
+    resultsPublishAt.getTime() < votingEnd.getTime() + 60 * 1000
+  ) {
+    errors.resultsPublishAt =
+      'La publicación de resultados debe ser al menos 1 minuto posterior al cierre.';
+  }
+
+  return errors;
+};
+
 export const getPublishDeadlineMs = (event?: EventTimelineInput | null) => {
   if (!event) return null;
 
@@ -69,7 +166,7 @@ export const getPublishDeadlineMs = (event?: EventTimelineInput | null) => {
     return null;
   }
 
-  return votingStart - TWENTY_FOUR_HOURS_MS;
+  return votingStart - PRE_PUBLICATION_CUTOFF_MS;
 };
 
 export const isDuringVotingWindow = (

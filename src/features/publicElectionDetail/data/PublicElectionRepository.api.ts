@@ -1,5 +1,6 @@
 import type { IPublicElectionRepository, PublicElectionDetail, PublicElectionStatus } from '../types';
 import { getRuntimeEnv } from '../../../shared/system/runtimeEnv';
+import { REFERENDUM_OPTION_LABEL } from '../../electionConfig/renderUtils';
 
 const API_BASE_URL =
   getRuntimeEnv('VITE_BASE_API_URL', 'NEXT_PUBLIC_BASE_API_URL') ||
@@ -110,6 +111,7 @@ const mapDetailToPublic = (raw: any): PublicElectionDetail => {
     id: String(raw?.id ?? ''),
     title: raw?.name ?? '',
     subtitle: raw?.objective ?? '',
+    isReferendum: Boolean(raw?.isReferendum),
     status,
     schedule,
     results:
@@ -127,7 +129,7 @@ const mapDetailToPublic = (raw: any): PublicElectionDetail => {
         ? option.candidates.map((candidate: any, candidateIndex: number) => ({
             id: String(candidate?.id ?? `${String(option?.id ?? index)}-${candidateIndex + 1}`),
             fullName: candidate?.name ?? '',
-            positionName: candidate?.roleName ?? '',
+            positionName: raw?.isReferendum ? REFERENDUM_OPTION_LABEL : candidate?.roleName ?? '',
             photoUrl: candidate?.photoUrl ?? undefined,
           }))
         : [],

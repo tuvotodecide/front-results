@@ -4,6 +4,7 @@ export interface Election {
   id: string;
   institution: string;
   description: string;
+  isReferendum?: boolean;
   votingStartDate: string; // ISO date
   votingEndDate: string;
   resultsDate: string;
@@ -14,6 +15,7 @@ export interface Election {
 export interface CreateElectionPayload {
   institution: string;
   description: string;
+  isReferendum: boolean;
   votingStartDate: string;
   votingEndDate: string;
   resultsDate: string;
@@ -22,6 +24,7 @@ export interface CreateElectionPayload {
 export interface ElectionFormStep1 {
   institution: string;
   description: string;
+  isReferendum: boolean;
 }
 
 export interface ElectionFormStep2 {

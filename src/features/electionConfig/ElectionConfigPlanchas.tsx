@@ -20,6 +20,7 @@ import {
   hasDraftAlreadyStarted,
   hasVotingEnded,
   isDuringVotingWindow,
+  REFERENDUM_OPTION_LABEL,
   stableCreatedAt,
   useClientNow,
 } from './renderUtils';
@@ -97,7 +98,10 @@ const partyHasCompleteCandidates = (
 };
 
 // Popover de información para Planchas
-const PlanchasInfoPopover: React.FC<{ className?: string }> = ({ className = '' }) => {
+const PlanchasInfoPopover: React.FC<{
+  className?: string;
+  isReferendum?: boolean;
+}> = ({ className = '', isReferendum = false }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -134,10 +138,14 @@ const PlanchasInfoPopover: React.FC<{ className?: string }> = ({ className = '' 
                 </button>
               </div>
               <p className="text-sm text-gray-700 mb-3">
-                Una plancha/partido agrupa candidatos por cada cargo definido (Ej: Presidente, Vicepresidente).
+                {isReferendum
+                  ? 'Cada opción del referéndum agrupa una alternativa principal visible en la papeleta.'
+                  : 'Una plancha/partido agrupa candidatos por cada cargo definido (Ej: Presidente, Vicepresidente).'}
               </p>
               <p className="text-sm text-gray-600 italic">
-                Crea el partido y luego asigna candidatos para cada cargo.
+                {isReferendum
+                  ? 'Crea la opción y luego asigna la alternativa principal con nombre y foto.'
+                  : 'Crea el partido y luego asigna candidatos para cada cargo.'}
               </p>
             </div>
           </div>
@@ -195,6 +203,7 @@ const ElectionConfigPlanchas: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const isOperating = creating || updating || deleting || savingCandidates;
+  const isReferendum = Boolean(event?.isReferendum);
 
   // Verificar estados de los pasos
   const hasPositions = positions.length > 0;
@@ -341,7 +350,9 @@ const ElectionConfigPlanchas: React.FC = () => {
   const handleNextStep = () => {
     if (!hasMinimumCompleteParties) {
       setError(
-        'Debes registrar al menos un partido y completar todos sus candidatos con nombre y foto antes de continuar.',
+        isReferendum
+          ? `Debes registrar al menos una opción y completar su ${REFERENDUM_OPTION_LABEL.toLowerCase()} con nombre y foto antes de continuar.`
+          : 'Debes registrar al menos un partido y completar todos sus candidatos con nombre y foto antes de continuar.',
       );
       return;
     }
@@ -381,7 +392,7 @@ const ElectionConfigPlanchas: React.FC = () => {
           ? 'Durante la votación ya no se pueden modificar planchas ni candidatos.'
           : hasVotingEnded(event, nowMs) || areResultsAvailable(event, nowMs)
             ? 'La votación ya finalizó y las planchas quedan en solo lectura.'
-            : 'Ya faltan menos de 24 horas para el inicio. Las planchas quedan en solo lectura.';
+            : 'Ya faltan menos de 6 horas para el inicio. Las planchas quedan en solo lectura.';
 
     return (
       <ConfigPageFallback
@@ -464,13 +475,19 @@ const ElectionConfigPlanchas: React.FC = () => {
 
           {/* Texto del paso + info */}
           <div className="flex items-center gap-2 mb-6">
-            <p className="text-gray-600">Paso 2 de 3: Agrega partidos y candidatos.</p>
-            <PlanchasInfoPopover />
+            <p className="text-gray-600">
+              {isReferendum
+                ? 'Paso 2 de 3: Agrega opciones y alternativas.'
+                : 'Paso 2 de 3: Agrega partidos y candidatos.'}
+            </p>
+            <PlanchasInfoPopover isReferendum={isReferendum} />
           </div>
 
           {!hasMinimumCompleteParties && (
             <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              Debes registrar al menos un partido y completar todos los cargos con nombre y foto para continuar al padrón.
+              {isReferendum
+                ? `Debes registrar al menos una opción y completar su ${REFERENDUM_OPTION_LABEL.toLowerCase()} con nombre y foto para continuar al padrón.`
+                : 'Debes registrar al menos un partido y completar todos los cargos con nombre y foto para continuar al padrón.'}
             </div>
           )}
 
@@ -487,6 +504,7 @@ const ElectionConfigPlanchas: React.FC = () => {
               onDelete={handleDeleteParty}
               onEditCandidates={handleEditCandidates}
               loading={isOperating}
+              isReferendum={isReferendum}
             />
           )}
 
@@ -501,7 +519,7 @@ const ElectionConfigPlanchas: React.FC = () => {
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
-              Crear Partido
+              {isReferendum ? 'Crear Opción' : 'Crear Partido'}
             </button>
           </div>
         </div>
@@ -557,6 +575,7 @@ const ElectionConfigPlanchas: React.FC = () => {
         existingCandidates={currentPartyForCandidates?.candidates || []}
         partyName={currentPartyForCandidates?.name}
         submitError={error}
+        isReferendum={isReferendum}
       />
 
       {/* Modal Confirmar Eliminación */}

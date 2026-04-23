@@ -48,12 +48,12 @@ const ConfirmActivateModal: React.FC<ConfirmActivateModalProps> = ({
 
         {/* Título */}
         <h2 className="text-xl font-bold text-gray-800 mb-3">
-          ¿Confirmar publicación oficial?
+          Confirmar publicación oficial
         </h2>
 
         {/* Descripción */}
         <p className="text-gray-600 mb-8 px-4">
-          Se cerrará la revisión previa y la votación quedará oficialmente publicada. Ya no podrás editar cargos, planchas ni padrón.
+          Esta acción publica oficialmente la elección y bloquea los cambios estructurales en cargos, planchas y padrón. Revisa la configuración antes de continuar.
         </p>
 
         {/* Botones */}
@@ -62,15 +62,15 @@ const ConfirmActivateModal: React.FC<ConfirmActivateModalProps> = ({
             type="button"
             onClick={onClose}
             disabled={isLoading}
-            className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors disabled:opacity-50"
+            className="min-w-[150px] px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors disabled:opacity-50"
           >
-            Cancelar
+            Volver
           </button>
           <button
             type="button"
             onClick={onConfirm}
             disabled={isLoading}
-            className="px-6 py-3 bg-[#459151] hover:bg-[#3a7a44] text-white font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="min-w-[150px] px-6 py-3 bg-[#459151] hover:bg-[#3a7a44] text-white font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>
@@ -81,7 +81,7 @@ const ConfirmActivateModal: React.FC<ConfirmActivateModalProps> = ({
                 Confirmando...
               </>
             ) : (
-              'Sí, confirmar'
+              'Confirmar publicación'
             )}
           </button>
         </div>

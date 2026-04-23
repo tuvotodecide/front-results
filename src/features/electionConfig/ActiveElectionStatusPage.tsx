@@ -14,11 +14,12 @@ import {
   useAddCurrentPadronVoterMutation,
   useCreateEventNewsMutation,
   useEnableCurrentPadronVoterMutation,
+  useGetPadronStagingQuery,
+  useGetPadronWorkflowSummaryQuery,
   useGetVotingEventQuery,
   useGetVotingEventsQuery,
   useGetEventRolesQuery,
   useGetEventOptionsQuery,
-  useGetPadronVersionsQuery,
   useGetPadronVotersQuery,
   useGetEventResultsQuery,
   useCreatePresentialSessionMutation,
@@ -35,19 +36,24 @@ import { useSelector } from "react-redux";
 import Modal2 from "../../components/Modal2";
 import { getRequestErrorMessage } from "./requestErrorMessage";
 import {
+  addMinutesToLocalDateTime,
   areResultsAvailable,
   canEditElectionBeforeCutoff,
   canEditPadronInLimitedMode,
   formatDateTimeForUi,
+  getMinimumLocalDateTime,
   getOptionColors,
   hasDraftAlreadyStarted,
   hasVotingEnded,
   isAfterPublishCutoffBeforeVoting,
   isOfficiallyPublished,
   isDuringVotingWindow,
+  PRE_PUBLICATION_CUTOFF_HOURS,
+  PRE_PUBLICATION_CUTOFF_MS,
   stableCreatedAt,
-  THIRTY_SIX_HOURS_MS,
+  toLocalDateTimeValue,
   useClientNow,
+  validateScheduleFieldErrors,
 } from "./renderUtils";
 import {
   buildPresentialKioskPath,
@@ -78,61 +84,6 @@ const optionToParty = (option: VotingOption): PartyWithCandidates => ({
     photoUrl: candidate.photoUrl,
   })),
 });
-
-const toDateTimeLocalValue = (value?: string | null) => {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-
-  const pad = (part: number) => String(part).padStart(2, "0");
-
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
-    date.getHours(),
-  )}:${pad(date.getMinutes())}`;
-};
-
-const validateScheduleForm = (
-  form: { votingStart: string; votingEnd: string; resultsPublishAt: string },
-  enforceWindowRule: boolean,
-  nowMs: number,
-) => {
-  if (
-    !form.votingStart.trim() ||
-    !form.votingEnd.trim() ||
-    !form.resultsPublishAt.trim()
-  ) {
-    return "Debes completar las tres fechas para guardar el cronograma.";
-  }
-
-  const votingStart = new Date(form.votingStart);
-  const votingEnd = new Date(form.votingEnd);
-  const resultsPublishAt = new Date(form.resultsPublishAt);
-
-  if (
-    Number.isNaN(votingStart.getTime()) ||
-    Number.isNaN(votingEnd.getTime()) ||
-    Number.isNaN(resultsPublishAt.getTime())
-  ) {
-    return "Debes ingresar fechas válidas para guardar el cronograma.";
-  }
-
-  if (votingStart >= votingEnd) {
-    return "La fecha de inicio debe ser anterior a la fecha de fin.";
-  }
-
-  if (resultsPublishAt <= votingEnd) {
-    return "La publicación de resultados debe ser posterior al fin de la votación.";
-  }
-
-  if (
-    enforceWindowRule &&
-    votingStart.getTime() - nowMs < THIRTY_SIX_HOURS_MS
-  ) {
-    return "La fecha de inicio debe poder modificarse hasta 36 horas antes de iniciar.";
-  }
-
-  return null;
-};
 
 const canEditSchedule = (event?: {
   state?: string | null;
@@ -208,7 +159,7 @@ const StatusBadge: React.FC<{ state?: string }> = ({ state }) => {
     PUBLISHED: "Publicada",
     READY_FOR_REVIEW: "En revisión previa",
     OFFICIALLY_PUBLISHED: "Publicada oficialmente",
-    PUBLICATION_EXPIRED: "Publicación vencida",
+    PUBLICATION_EXPIRED: "Caducada",
     ACTIVE: "En votación",
     CLOSED: "Finalizada",
     RESULTS: "Resultados disponibles",
@@ -279,8 +230,9 @@ const ActiveElectionStatusPage: React.FC = () => {
     votingEnd: "",
     resultsPublishAt: "",
   });
-  const minimumVotingStartValue = toDateTimeLocalValue(
-    new Date((nowMs ?? Date.now()) + THIRTY_SIX_HOURS_MS).toISOString(),
+  const minimumVotingStartValue = getMinimumLocalDateTime(
+    PRE_PUBLICATION_CUTOFF_MS,
+    nowMs ?? Date.now(),
   );
 
   const { data: event, isLoading: loadingEvent } = useGetVotingEventQuery(
@@ -289,6 +241,7 @@ const ActiveElectionStatusPage: React.FC = () => {
       skip: !actualElectionId,
     },
   );
+  const limitedModeByEvent = canEditPadronInLimitedMode(event, nowMs);
   const { data: events = [] } = useGetVotingEventsQuery(
     tenantId ? { tenantId } : undefined,
     {
@@ -305,14 +258,27 @@ const ActiveElectionStatusPage: React.FC = () => {
     useGetEventOptionsQuery(actualElectionId, {
       skip: !actualElectionId,
     });
-  const { data: padronVersions = [], isLoading: loadingPadronVersions, refetch: refetchPadronVersions } =
-    useGetPadronVersionsQuery(actualElectionId, {
+  const {
+    data: workflowSummary,
+    isLoading: loadingPadronWorkflowSummary,
+    refetch: refetchPadronWorkflowSummary,
+  } = useGetPadronWorkflowSummaryQuery(actualElectionId, {
       skip: !actualElectionId,
     });
+  const activeWorkflowDraft = limitedModeByEvent ? null : workflowSummary?.activeDraft ?? null;
   const { data: padronData, isLoading: loadingPadronVoters, refetch: refetchPadronVoters } =
     useGetPadronVotersQuery(
       { eventId: actualElectionId, page, limit: 20 },
-      { skip: !actualElectionId },
+      { skip: !actualElectionId || Boolean(activeWorkflowDraft) },
+    );
+  const {
+    data: stagingData,
+    isLoading: loadingPadronStaging,
+  } = useGetPadronStagingQuery(
+    { eventId: actualElectionId, page, limit: 20 },
+    {
+      skip: !actualElectionId || !activeWorkflowDraft,
+    },
     );
   const lifecycle = deriveLifecycle(event, nowMs);
   const shouldShowResults = lifecycle === "RESULTS";
@@ -331,20 +297,30 @@ const ActiveElectionStatusPage: React.FC = () => {
 
   const positions = useMemo(() => roles.map(roleToPosition), [roles]);
   const parties = useMemo(() => options.map(optionToParty), [options]);
-  const currentPadron =
-    padronVersions.find((item) => item.isCurrent) ?? padronVersions[0];
-  const voters: Voter[] = useMemo(
-    () =>
-      (padronData?.voters ?? []).map((voter, index) => ({
-        id: voter.id,
+  const currentPadron = workflowSummary?.currentVersion ?? null;
+  const voters: Voter[] = useMemo(() => {
+    if (activeWorkflowDraft) {
+      return (stagingData?.data ?? []).map((entry, index) => ({
+        id: entry.id,
         rowNumber: index + 1 + (page - 1) * 20,
-        carnet: voter.carnetNorm,
-        fullName: voter.fullName ?? "-",
-        enabled: voter.enabled,
+        carnet: entry.ci,
+        fullName: entry.hasIdentity ? "Con identidad verificada" : "Sin identidad verificada",
+        enabled: entry.enabled,
+        hasIdentity: entry.hasIdentity,
         status: "valid",
-      })),
-    [padronData?.voters, page],
-  );
+      }));
+    }
+
+    return (padronData?.voters ?? []).map((voter, index) => ({
+      id: voter.id,
+      rowNumber: index + 1 + (page - 1) * 20,
+      carnet: voter.carnetNorm,
+      fullName: voter.fullName ?? "-",
+      enabled: voter.enabled,
+      hasIdentity: true,
+      status: "valid",
+    }));
+  }, [activeWorkflowDraft, padronData?.voters, page, stagingData?.data]);
 
   const filteredVoters = useMemo(
     () =>
@@ -371,15 +347,69 @@ const ActiveElectionStatusPage: React.FC = () => {
     lifecycle === "CLOSED" ||
     lifecycle === "RESULTS" ||
     lifecycle === "RESULTS_PUBLISHED";
-  const votingPadronLimitedMode = canEditPadronInLimitedMode(event, nowMs);
+  const votingPadronLimitedMode = limitedModeByEvent;
   const postCutoffReadOnly = isAfterPublishCutoffBeforeVoting(event, nowMs);
   const presentialKioskEnabled = Boolean(event?.presentialKioskEnabled);
+  const scheduleFieldErrors = useMemo(
+    () =>
+      validateScheduleFieldErrors(scheduleForm, {
+        nowMs: nowMs ?? Date.now(),
+        minimumStartLeadMs: PRE_PUBLICATION_CUTOFF_MS,
+        minimumStartMessage: `La fecha de inicio debe quedar al menos ${PRE_PUBLICATION_CUTOFF_HOURS} horas por delante para conservar la ventana de modificación y publicación oficial.`,
+      }),
+    [nowMs, scheduleForm],
+  );
+  const hasScheduleFieldErrors = Object.keys(scheduleFieldErrors).length > 0;
+  const currentPublishDeadlineLabel = formatDateTimeForUi(event?.publishDeadline);
+  const displayPadronFile = activeWorkflowDraft
+    ? {
+        fileName:
+          activeWorkflowDraft.sourceType === "IMAGE"
+            ? "Imagen en edición autosalvada"
+            : "Documento PDF en edición autosalvada",
+        uploadedAt:
+          activeWorkflowDraft.processedAt ??
+          activeWorkflowDraft.updatedAt ??
+          activeWorkflowDraft.createdAt ??
+          new Date().toISOString(),
+        totalRecords: Number(activeWorkflowDraft.summary.stagingCount ?? 0),
+        validCount: Number(activeWorkflowDraft.summary.enabledCount ?? 0),
+        invalidCount:
+          Number(activeWorkflowDraft.summary.invalidCount ?? 0) +
+          Number(activeWorkflowDraft.summary.duplicateCount ?? 0),
+      }
+    : currentPadron
+      ? {
+          fileName: getPadronDisplayName(currentPadron.sourceType),
+          uploadedAt: currentPadron.createdAt ?? new Date().toISOString(),
+          totalRecords:
+            Number(currentPadron.totals.validCount ?? 0) +
+            Number(currentPadron.totals.invalidCount ?? 0),
+          validCount: Number(currentPadron.totals.validCount ?? 0),
+          invalidCount: Number(currentPadron.totals.invalidCount ?? 0),
+        }
+      : null;
+  const displayPadronTotal = activeWorkflowDraft
+    ? Number(stagingData?.total ?? activeWorkflowDraft.summary.stagingCount ?? 0)
+    : Number(padronData?.total ?? 0);
+  const displayPadronTotalPages = activeWorkflowDraft
+    ? Number(stagingData?.totalPages ?? 1)
+    : Number(padronData?.totalPages ?? 1);
+  const displayPadronValidCount = activeWorkflowDraft
+    ? Number(activeWorkflowDraft.summary.enabledCount ?? 0)
+    : Number(currentPadron?.totals.validCount ?? 0);
+  const displayPadronInvalidCount = activeWorkflowDraft
+    ? Number(activeWorkflowDraft.summary.invalidCount ?? 0) +
+      Number(activeWorkflowDraft.summary.duplicateCount ?? 0)
+    : Number(currentPadron?.totals.invalidCount ?? 0);
 
   useEffect(() => {
     setScheduleForm({
-      votingStart: toDateTimeLocalValue(event?.votingStart),
-      votingEnd: toDateTimeLocalValue(event?.votingEnd),
-      resultsPublishAt: toDateTimeLocalValue(event?.resultsPublishAt),
+      votingStart: event?.votingStart ? toLocalDateTimeValue(new Date(event.votingStart)) : "",
+      votingEnd: event?.votingEnd ? toLocalDateTimeValue(new Date(event.votingEnd)) : "",
+      resultsPublishAt: event?.resultsPublishAt
+        ? toLocalDateTimeValue(new Date(event.resultsPublishAt))
+        : "",
     });
   }, [event?.resultsPublishAt, event?.votingEnd, event?.votingStart]);
 
@@ -387,8 +417,9 @@ const ActiveElectionStatusPage: React.FC = () => {
     loadingEvent ||
     loadingRoles ||
     loadingOptions ||
-    loadingPadronVersions ||
-    loadingPadronVoters;
+    loadingPadronWorkflowSummary ||
+    loadingPadronVoters ||
+    loadingPadronStaging;
 
   const handleSaveLimitedPadronRecord = async (payload: { ci: string; enabled: boolean }) => {
     if (!actualElectionId) return;
@@ -403,7 +434,7 @@ const ActiveElectionStatusPage: React.FC = () => {
       }).unwrap();
       setRecordModal({ open: false });
       setPadronMessage("Votante habilitado agregado al padrón vigente.");
-      await Promise.all([refetchPadronVoters(), refetchPadronVersions()]);
+      await Promise.all([refetchPadronVoters(), refetchPadronWorkflowSummary()]);
     } catch (error: any) {
       throw new Error(
         getRequestErrorMessage(error, "No se pudo agregar el votante al padrón vigente."),
@@ -424,7 +455,7 @@ const ActiveElectionStatusPage: React.FC = () => {
         voterId: voter.id,
       }).unwrap();
       setPadronMessage("Votante habilitado en el padrón vigente.");
-      await Promise.all([refetchPadronVoters(), refetchPadronVersions()]);
+      await Promise.all([refetchPadronVoters(), refetchPadronWorkflowSummary()]);
     } catch (error: any) {
       setPadronError(
         getRequestErrorMessage(error, "No se pudo habilitar el votante en el padrón vigente."),
@@ -506,14 +537,13 @@ const ActiveElectionStatusPage: React.FC = () => {
   const handleScheduleSave = async () => {
     if (!scheduleEditable || !actualElectionId) return;
 
-    const scheduleValidationError = validateScheduleForm(
-      scheduleForm,
-      (event?.state ?? event?.status ?? "DRAFT") !== "DRAFT",
-      nowMs ?? new Date().getTime(),
-    );
-
-    if (scheduleValidationError) {
-      setScheduleError(scheduleValidationError);
+    if (hasScheduleFieldErrors) {
+      setScheduleError(
+        scheduleFieldErrors.votingStart ??
+          scheduleFieldErrors.votingEnd ??
+          scheduleFieldErrors.resultsPublishAt ??
+          "Corrige las fechas antes de guardar el cronograma.",
+      );
       return;
     }
 
@@ -576,7 +606,7 @@ const ActiveElectionStatusPage: React.FC = () => {
   };
 
   const isUpdateButtonDisabled = () => {
-    return updatingSchedule;
+    return updatingSchedule || hasScheduleFieldErrors;
   };
 
   const navigateToElection = (targetEvent: {
@@ -754,7 +784,7 @@ const ActiveElectionStatusPage: React.FC = () => {
 
         {postCutoffReadOnly ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
-            Ya faltan menos de 24 horas para el inicio. La elección queda en solo lectura hasta que comience la votación.
+            Ya faltan menos de {PRE_PUBLICATION_CUTOFF_HOURS} horas para el inicio. La elección queda en solo lectura hasta que comience la votación.
           </div>
         ) : null}
 
@@ -815,21 +845,15 @@ const ActiveElectionStatusPage: React.FC = () => {
 
           {activeTab === 1 && <PositionsTable positions={positions} readOnly />}
           {activeTab === 2 && <PartiesTable parties={parties} readOnly />}
-          {activeTab === 3 && currentPadron && (
+          {activeTab === 3 && displayPadronFile && (
             <LoadedPadronView
-              file={{
-                fileName: getPadronDisplayName(currentPadron.sourceType),
-                uploadedAt: currentPadron.uploadedAt || currentPadron.createdAt,
-                totalRecords: currentPadron.totalRecords,
-                validCount: currentPadron.validCount,
-                invalidCount: currentPadron.invalidCount,
-              }}
+              file={displayPadronFile}
               voters={filteredVoters}
-              totalVoters={padronData?.total ?? 0}
-              validCount={currentPadron.validCount}
-              invalidCount={currentPadron.invalidCount}
+              totalVoters={displayPadronTotal}
+              validCount={displayPadronValidCount}
+              invalidCount={displayPadronInvalidCount}
               page={page}
-              totalPages={padronData?.totalPages ?? 1}
+              totalPages={displayPadronTotalPages}
               pageSize={20}
               searchValue={searchTerm}
               onPageChange={setPage}
@@ -850,7 +874,7 @@ const ActiveElectionStatusPage: React.FC = () => {
               }
               enablingVoterId={currentPadronActionVoterId}
               addRecordLabel="Agregar habilitado"
-              loading={loadingPadronVoters}
+              loading={activeWorkflowDraft ? loadingPadronStaging : loadingPadronVoters}
               readOnly
             />
           )}
@@ -981,6 +1005,13 @@ const ActiveElectionStatusPage: React.FC = () => {
             </div>
           ) : null}
 
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <p className="font-semibold">Límite para modificar y publicar oficialmente</p>
+            <p className="mt-1">
+              La elección solo puede seguir modificándose y publicándose hasta {currentPublishDeadlineLabel}. La nueva fecha de inicio debe quedar al menos {PRE_PUBLICATION_CUTOFF_HOURS} horas por delante.
+            </p>
+          </div>
+
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block">
               <span className="mb-2 block text-sm font-medium text-gray-700">
@@ -993,8 +1024,18 @@ const ActiveElectionStatusPage: React.FC = () => {
                 onChange={(event) =>
                   handleScheduleInputChange("votingStart", event.target.value)
                 }
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-800 outline-none transition focus:border-[#459151] focus:ring-2 focus:ring-[#459151]/15"
+                className={`w-full rounded-lg px-4 py-3 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-[#459151]/15 ${
+                  scheduleFieldErrors.votingStart
+                    ? "border border-red-300 bg-red-50 focus:border-red-400"
+                    : "border border-gray-300 focus:border-[#459151]"
+                }`}
               />
+              <p className="mt-1 text-xs text-gray-500">
+                Debe quedar al menos {PRE_PUBLICATION_CUTOFF_HOURS} horas adelante.
+              </p>
+              {scheduleFieldErrors.votingStart ? (
+                <p className="mt-1 text-sm text-red-600">{scheduleFieldErrors.votingStart}</p>
+              ) : null}
             </label>
 
             <label className="block">
@@ -1004,11 +1045,22 @@ const ActiveElectionStatusPage: React.FC = () => {
               <input
                 type="datetime-local"
                 value={scheduleForm.votingEnd}
+                min={scheduleForm.votingStart || minimumVotingStartValue}
                 onChange={(event) =>
                   handleScheduleInputChange("votingEnd", event.target.value)
                 }
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-800 outline-none transition focus:border-[#459151] focus:ring-2 focus:ring-[#459151]/15"
+                className={`w-full rounded-lg px-4 py-3 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-[#459151]/15 ${
+                  scheduleFieldErrors.votingEnd
+                    ? "border border-red-300 bg-red-50 focus:border-red-400"
+                    : "border border-gray-300 focus:border-[#459151]"
+                }`}
               />
+              <p className="mt-1 text-xs text-gray-500">
+                Debe ser posterior al inicio configurado.
+              </p>
+              {scheduleFieldErrors.votingEnd ? (
+                <p className="mt-1 text-sm text-red-600">{scheduleFieldErrors.votingEnd}</p>
+              ) : null}
             </label>
 
             <label className="block md:col-span-2">
@@ -1018,21 +1070,31 @@ const ActiveElectionStatusPage: React.FC = () => {
               <input
                 type="datetime-local"
                 value={scheduleForm.resultsPublishAt}
+                min={addMinutesToLocalDateTime(
+                  scheduleForm.votingEnd,
+                  1,
+                  scheduleForm.votingStart || minimumVotingStartValue,
+                )}
                 onChange={(event) =>
                   handleScheduleInputChange(
                     "resultsPublishAt",
                     event.target.value,
                   )
                 }
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-800 outline-none transition focus:border-[#459151] focus:ring-2 focus:ring-[#459151]/15"
+                className={`w-full rounded-lg px-4 py-3 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-[#459151]/15 ${
+                  scheduleFieldErrors.resultsPublishAt
+                    ? "border border-red-300 bg-red-50 focus:border-red-400"
+                    : "border border-gray-300 focus:border-[#459151]"
+                }`}
               />
+              <p className="mt-1 text-xs text-gray-500">
+                Debe publicarse al menos 1 minuto después del cierre.
+              </p>
+              {scheduleFieldErrors.resultsPublishAt ? (
+                <p className="mt-1 text-sm text-red-600">{scheduleFieldErrors.resultsPublishAt}</p>
+              ) : null}
             </label>
           </div>
-
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Cambiar horarios actualiza el cronograma visible de la elección. La revisión previa y la publicación oficial siguen siendo pasos separados, y la fecha de inicio debe seguir quedando al menos 36 horas adelante.
-          </div>
-
 
 
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

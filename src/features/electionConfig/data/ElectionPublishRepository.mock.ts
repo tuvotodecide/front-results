@@ -6,6 +6,8 @@ import type { PartyWithCandidates } from '../types';
 export interface BallotPreviewData {
   electionId: string;
   electionTitle: string;
+  electionObjective?: string;
+  isReferendum?: boolean;
   parties: PartyWithCandidates[];
 }
 

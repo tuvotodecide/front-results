@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import type { PartyWithCandidates } from '../types';
-import { getOptionColors } from '../renderUtils';
+import { getOptionColors, REFERENDUM_OPTION_LABEL } from '../renderUtils';
 
 interface PartiesTableProps {
   parties: PartyWithCandidates[];
@@ -12,6 +12,7 @@ interface PartiesTableProps {
   onEditCandidates?: (party: PartyWithCandidates) => void;
   loading?: boolean;
   readOnly?: boolean;
+  isReferendum?: boolean;
 }
 
 const ChevronIcon = ({ isOpen }: { isOpen: boolean }) => (
@@ -33,6 +34,7 @@ const PartiesTable: React.FC<PartiesTableProps> = ({
   onEditCandidates,
   loading = false,
   readOnly = false,
+  isReferendum = false,
 }) => {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
@@ -53,7 +55,9 @@ const PartiesTable: React.FC<PartiesTableProps> = ({
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
         <div className="p-12 text-center">
           <p className="text-gray-500">
-            Crear planchas y asignar candidatos para continuar con la creación de votación
+            {isReferendum
+              ? 'Crea opciones y asigna alternativas para continuar con la creación de la consulta'
+              : 'Crear planchas y asignar candidatos para continuar con la creación de votación'}
           </p>
         </div>
       </div>
@@ -67,7 +71,9 @@ const PartiesTable: React.FC<PartiesTableProps> = ({
         <thead>
           <tr className="bg-gray-50 border-b border-gray-200">
             <th className="text-left px-6 py-4 font-semibold text-gray-700 w-12"></th>
-            <th className="text-left px-4 py-4 font-semibold text-gray-700">Partido</th>
+            <th className="text-left px-4 py-4 font-semibold text-gray-700">
+              {isReferendum ? 'Opción' : 'Partido'}
+            </th>
             <th className="text-center px-4 py-4 font-semibold text-gray-700 w-24">Color</th>
             <th className="text-center px-4 py-4 font-semibold text-gray-700 w-24">Logo</th>
             {!readOnly && (
@@ -164,7 +170,7 @@ const PartiesTable: React.FC<PartiesTableProps> = ({
                       <div className="pl-8">
                         <div className="flex items-center justify-between mb-4">
                           <h4 className="font-medium text-[#459151]">
-                            Candidatos asignados
+                            {isReferendum ? 'Alternativas asignadas' : 'Candidatos asignados'}
                           </h4>
                           {!readOnly && (
                             <button
@@ -173,7 +179,7 @@ const PartiesTable: React.FC<PartiesTableProps> = ({
                               disabled={loading}
                               className="px-4 py-2 bg-[#459151] hover:bg-[#3a7a44] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
                             >
-                              Editar Candidatos
+                              {isReferendum ? 'Editar Alternativa' : 'Editar Candidatos'}
                             </button>
                           )}
                         </div>
@@ -203,7 +209,7 @@ const PartiesTable: React.FC<PartiesTableProps> = ({
                                 {/* Cargo y nombre */}
                                 <div>
                                   <span className="text-gray-500 text-sm">
-                                    {candidate.positionName}:
+                                    {isReferendum ? REFERENDUM_OPTION_LABEL : candidate.positionName}:
                                   </span>
                                   <span className="ml-2 font-medium text-gray-800">
                                     {candidate.fullName}
@@ -214,7 +220,9 @@ const PartiesTable: React.FC<PartiesTableProps> = ({
                           </div>
                         ) : (
                           <p className="text-gray-500 text-sm italic">
-                            No hay candidatos asignados. Haz clic en "Editar Candidatos" para agregar.
+                            {isReferendum
+                              ? 'No hay alternativa asignada. Haz clic en "Editar Alternativa" para agregarla.'
+                              : 'No hay candidatos asignados. Haz clic en "Editar Candidatos" para agregar.'}
                           </p>
                         )}
                       </div>

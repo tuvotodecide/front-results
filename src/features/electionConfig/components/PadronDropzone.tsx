@@ -167,9 +167,9 @@ const PadronDropzone: React.FC<PadronDropzoneProps> = ({
             </svg>
           </div>
           <div className="text-blue-800">
-            <p className="font-semibold">Puedes cargar un PDF o imagen para intentar el análisis automático.</p>
+            <p className="font-semibold">El flujo principal del padrón usa PDF o imagen.</p>
             <p className="mt-1 text-sm text-blue-700">
-              Si el análisis automático está disponible, intentaremos convertir el archivo en un padrón editable. Si no está disponible o no se detectan datos útiles, podrás continuar con carga manual sin bloquear el flujo.
+              El archivo se procesará para generar un padrón editable persistido. Revisa el staging resultante y corrige allí los registros necesarios.
             </p>
           </div>
         </div>

@@ -18,13 +18,18 @@ import Modal2 from '../../components/Modal2';
 import ConfigPageFallback from './components/ConfigPageFallback';
 import { getRequestErrorMessage } from './requestErrorMessage';
 import {
+  addMinutesToLocalDateTime,
   canEditElectionBeforeCutoff,
   formatDateTimeForUi,
+  getMinimumLocalDateTime,
   hasDraftAlreadyStarted,
   hasVotingEnded,
   isDuringVotingWindow,
-  THIRTY_SIX_HOURS_MS,
+  PRE_PUBLICATION_CUTOFF_HOURS,
+  PRE_PUBLICATION_CUTOFF_MS,
+  toLocalDateTimeValue,
   useClientNow,
+  validateScheduleFieldErrors,
 } from './renderUtils';
 import {
   useCreateEventNewsMutation,
@@ -37,7 +42,7 @@ import {
 const pendingLabels: Record<string, string> = {
   datos_base: 'Datos base de la votación',
   horarios: 'Cronograma completo y válido',
-  publish_deadline: 'Ventana de publicación de 24 horas',
+  publish_deadline: `Ventana de publicación de ${PRE_PUBLICATION_CUTOFF_HOURS} horas`,
   cargos: 'Cargos configurados',
   opciones: 'Planchas registradas',
   candidatos: 'Candidatos asignados',
@@ -45,55 +50,8 @@ const pendingLabels: Record<string, string> = {
   cobertura_cargos: 'Cobertura de todos los cargos',
   padron: 'Padrón cargado',
   padron_invalid: 'Padrón sin registros inválidos',
-  padron_validation: 'Finalizar configuración del padrón',
+  padron_validation: 'Validación estructural del padrón',
   publication_window_expired: 'La ventana de publicación oficial venció',
-};
-
-const toDateTimeLocalValue = (value?: string | null) => {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-
-  const pad = (part: number) => String(part).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
-    date.getHours(),
-  )}:${pad(date.getMinutes())}`;
-};
-
-const validateScheduleForm = (
-  form: { votingStart: string; votingEnd: string; resultsPublishAt: string },
-  enforceWindowRule: boolean,
-  nowMs: number,
-) => {
-  if (!form.votingStart.trim() || !form.votingEnd.trim() || !form.resultsPublishAt.trim()) {
-    return 'Debes completar las tres fechas para guardar el cronograma.';
-  }
-
-  const votingStart = new Date(form.votingStart);
-  const votingEnd = new Date(form.votingEnd);
-  const resultsPublishAt = new Date(form.resultsPublishAt);
-
-  if (
-    Number.isNaN(votingStart.getTime()) ||
-    Number.isNaN(votingEnd.getTime()) ||
-    Number.isNaN(resultsPublishAt.getTime())
-  ) {
-    return 'Debes ingresar fechas válidas para guardar el cronograma.';
-  }
-
-  if (votingStart >= votingEnd) {
-    return 'La fecha de inicio debe ser anterior a la fecha de fin.';
-  }
-
-  if (resultsPublishAt <= votingEnd) {
-    return 'La publicación de resultados debe ser posterior al fin de la votación.';
-  }
-
-  if (enforceWindowRule && votingStart.getTime() - nowMs < THIRTY_SIX_HOURS_MS) {
-    return 'La fecha de inicio debe poder modificarse hasta 36 horas antes de iniciar.';
-  }
-
-  return null;
 };
 
 const ElectionConfigReview: React.FC = () => {
@@ -133,9 +91,15 @@ const ElectionConfigReview: React.FC = () => {
 
   useEffect(() => {
     setScheduleForm({
-      votingStart: toDateTimeLocalValue(votingEvent?.votingStart),
-      votingEnd: toDateTimeLocalValue(votingEvent?.votingEnd),
-      resultsPublishAt: toDateTimeLocalValue(votingEvent?.resultsPublishAt),
+      votingStart: votingEvent?.votingStart
+        ? toLocalDateTimeValue(new Date(votingEvent.votingStart))
+        : '',
+      votingEnd: votingEvent?.votingEnd
+        ? toLocalDateTimeValue(new Date(votingEvent.votingEnd))
+        : '',
+      resultsPublishAt: votingEvent?.resultsPublishAt
+        ? toLocalDateTimeValue(new Date(votingEvent.resultsPublishAt))
+        : '',
     });
   }, [votingEvent?.resultsPublishAt, votingEvent?.votingEnd, votingEvent?.votingStart]);
 
@@ -155,8 +119,9 @@ const ElectionConfigReview: React.FC = () => {
     votingEnd: '',
     resultsPublishAt: '',
   });
-  const minimumVotingStartValue = toDateTimeLocalValue(
-    new Date((nowMs ?? Date.now()) + THIRTY_SIX_HOURS_MS).toISOString(),
+  const minimumVotingStartValue = getMinimumLocalDateTime(
+    PRE_PUBLICATION_CUTOFF_MS,
+    nowMs ?? Date.now(),
   );
 
   const isReadyToPublish = configSummary
@@ -238,6 +203,23 @@ const ElectionConfigReview: React.FC = () => {
     !votingInProgress &&
     !votingClosed;
   const savingPresentialOption = updatingPresentialOption || enablingPresentialOption;
+  const scheduleFieldErrors = validateScheduleFieldErrors(scheduleForm, {
+    nowMs: nowMs ?? Date.now(),
+    minimumStartLeadMs: PRE_PUBLICATION_CUTOFF_MS,
+    minimumStartMessage: `La fecha de inicio debe quedar al menos ${PRE_PUBLICATION_CUTOFF_HOURS} horas por delante para conservar la ventana de modificación y publicación oficial.`,
+  });
+  const hasScheduleFieldErrors = Object.keys(scheduleFieldErrors).length > 0;
+  const publicationDeadlineLabel = formatDateTimeForUi(
+    reviewReadiness?.publicationWindow?.deadline ?? votingEvent?.publishDeadline,
+  );
+  const hoursUntilPublicationDeadline = reviewReadiness?.publicationWindow?.hoursUntilDeadline ?? null;
+  const showOfficialPublicationReminder =
+    !isPublicationExpired &&
+    !votingInProgress &&
+    !votingClosed &&
+    eventState !== 'OFFICIALLY_PUBLISHED';
+  const publicationReminderUrgent =
+    hoursUntilPublicationDeadline !== null && hoursUntilPublicationDeadline <= 24;
 
   const handlePresentialToggle = async (enabled: boolean) => {
     if (!actualElectionId || !canChangePresentialOption || savingPresentialOption) {
@@ -285,14 +267,13 @@ const ElectionConfigReview: React.FC = () => {
   const handleScheduleSave = async () => {
     if (!scheduleEditable || !actualElectionId) return;
 
-    const scheduleValidationError = validateScheduleForm(
-      scheduleForm,
-      (votingEvent?.state ?? votingEvent?.status ?? 'DRAFT') !== 'DRAFT',
-      nowMs ?? Date.now(),
-    );
-
-    if (scheduleValidationError) {
-      setScheduleError(scheduleValidationError);
+    if (hasScheduleFieldErrors) {
+      setScheduleError(
+        scheduleFieldErrors.votingStart ??
+          scheduleFieldErrors.votingEnd ??
+          scheduleFieldErrors.resultsPublishAt ??
+          'Corrige las fechas antes de guardar el cronograma.',
+      );
       return;
     }
 
@@ -403,7 +384,11 @@ const ElectionConfigReview: React.FC = () => {
 
               {/* Phone Mockup */}
               <PhoneMockup>
-                <BallotPreview parties={ballotPreview?.parties || []} />
+                <BallotPreview
+                  parties={ballotPreview?.parties || []}
+                  isReferendum={ballotPreview?.isReferendum}
+                  question={ballotPreview?.electionObjective}
+                />
               </PhoneMockup>
             </div>
 
@@ -482,6 +467,32 @@ const ElectionConfigReview: React.FC = () => {
                   La ventana de publicación oficial venció. Esta votación ya no debe editarse como borrador ni publicarse normalmente.
                 </div>
               )}
+              {showOfficialPublicationReminder ? (
+                <div
+                  className={`rounded-lg p-4 text-sm shadow-sm ${
+                    publicationReminderUrgent
+                      ? 'border border-orange-200 bg-orange-50 text-orange-900'
+                      : 'border border-amber-200 bg-amber-50 text-amber-800'
+                  }`}
+                >
+                  <p className="font-semibold">Publicación oficial pendiente</p>
+                  <p className="mt-1">
+                    Esta elección todavía no está publicada oficialmente.{' '}
+                    {canConfirmOfficialPublication
+                      ? 'Confírmala'
+                      : 'Déjala lista y confírmala'}{' '}
+                    antes del {publicationDeadlineLabel}; si el plazo vence, la elección quedará caducada.
+                  </p>
+                </div>
+              ) : null}
+              {!isPublicationExpired ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm">
+                  <p className="font-semibold">Plazo de modificación y publicación oficial</p>
+                  <p className="mt-1">
+                    Puedes modificar y confirmar la publicación oficial hasta {publicationDeadlineLabel}. Si faltan menos de {PRE_PUBLICATION_CUTOFF_HOURS} horas para el inicio, ambas acciones quedan bloqueadas.
+                  </p>
+                </div>
+              ) : null}
               {scheduleSuccess ? (
                 <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-700">
                   {scheduleSuccess}
@@ -548,6 +559,11 @@ const ElectionConfigReview: React.FC = () => {
 
             {/* Botón confirmar */}
             <div className="w-full sm:w-auto text-center sm:text-right">
+              {reviewReadiness?.publicationWindow?.expired ? (
+                <p className="mb-2 text-sm text-red-700">
+                  Ya no se puede publicar oficialmente porque el plazo cerró el {publicationDeadlineLabel}.
+                </p>
+              ) : null}
               {isPublicationExpired ? (
                 <button
                   type="button"
@@ -662,8 +678,11 @@ const ElectionConfigReview: React.FC = () => {
             </div>
           ) : null}
 
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-            La fecha de inicio debe seguir quedando al menos 36 horas adelante.
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <p className="font-semibold">Límite para modificar y publicar oficialmente</p>
+            <p className="mt-1">
+              La elección solo puede seguir modificándose y publicándose hasta {publicationDeadlineLabel}. La nueva fecha de inicio debe quedar al menos {PRE_PUBLICATION_CUTOFF_HOURS} horas por delante.
+            </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -674,8 +693,18 @@ const ElectionConfigReview: React.FC = () => {
                 value={scheduleForm.votingStart}
                 min={minimumVotingStartValue}
                 onChange={(event) => handleScheduleInputChange('votingStart', event.target.value)}
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-[#459151] focus:ring-2 focus:ring-[#459151]/15"
+                className={`w-full rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition focus:ring-2 focus:ring-[#459151]/15 ${
+                  scheduleFieldErrors.votingStart
+                    ? 'border border-red-300 bg-red-50 focus:border-red-400'
+                    : 'border border-slate-300 focus:border-[#459151]'
+                }`}
               />
+              <p className="mt-1 text-xs text-slate-500">
+                Debe quedar al menos {PRE_PUBLICATION_CUTOFF_HOURS} horas adelante.
+              </p>
+              {scheduleFieldErrors.votingStart ? (
+                <p className="mt-1 text-sm text-red-600">{scheduleFieldErrors.votingStart}</p>
+              ) : null}
             </label>
 
             <label className="block">
@@ -683,9 +712,17 @@ const ElectionConfigReview: React.FC = () => {
               <input
                 type="datetime-local"
                 value={scheduleForm.votingEnd}
+                min={scheduleForm.votingStart || minimumVotingStartValue}
                 onChange={(event) => handleScheduleInputChange('votingEnd', event.target.value)}
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-[#459151] focus:ring-2 focus:ring-[#459151]/15"
+                className={`w-full rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition focus:ring-2 focus:ring-[#459151]/15 ${
+                  scheduleFieldErrors.votingEnd
+                    ? 'border border-red-300 bg-red-50 focus:border-red-400'
+                    : 'border border-slate-300 focus:border-[#459151]'
+                }`}
               />
+              {scheduleFieldErrors.votingEnd ? (
+                <p className="mt-1 text-sm text-red-600">{scheduleFieldErrors.votingEnd}</p>
+              ) : null}
             </label>
           </div>
 
@@ -694,9 +731,24 @@ const ElectionConfigReview: React.FC = () => {
             <input
               type="datetime-local"
               value={scheduleForm.resultsPublishAt}
+              min={addMinutesToLocalDateTime(
+                scheduleForm.votingEnd,
+                1,
+                scheduleForm.votingStart || minimumVotingStartValue,
+              )}
               onChange={(event) => handleScheduleInputChange('resultsPublishAt', event.target.value)}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-[#459151] focus:ring-2 focus:ring-[#459151]/15"
+              className={`w-full rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition focus:ring-2 focus:ring-[#459151]/15 ${
+                scheduleFieldErrors.resultsPublishAt
+                  ? 'border border-red-300 bg-red-50 focus:border-red-400'
+                  : 'border border-slate-300 focus:border-[#459151]'
+              }`}
             />
+            <p className="mt-1 text-xs text-slate-500">
+              Debe publicarse al menos 1 minuto después del cierre.
+            </p>
+            {scheduleFieldErrors.resultsPublishAt ? (
+              <p className="mt-1 text-sm text-red-600">{scheduleFieldErrors.resultsPublishAt}</p>
+            ) : null}
           </label>
 
           <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
@@ -717,7 +769,7 @@ const ElectionConfigReview: React.FC = () => {
             <button
               type="button"
               onClick={() => void handleScheduleSave()}
-              disabled={updatingSchedule}
+              disabled={updatingSchedule || hasScheduleFieldErrors}
               className="inline-flex items-center justify-center rounded-xl bg-[#459151] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#3a7a44] disabled:opacity-50"
             >
               {updatingSchedule ? 'Guardando...' : 'Guardar horarios'}
