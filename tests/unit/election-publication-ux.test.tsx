@@ -6,6 +6,7 @@ import { renderWithAuthStore } from "../utils/renderWithStore";
 import ElectionsPage from "@/features/elections/ElectionsPage";
 import ElectionConfigReview from "@/features/electionConfig/ElectionConfigReview";
 import ConfirmActivateModal from "@/features/electionConfig/components/ConfirmActivateModal";
+import type { UseElectionPublishReturn } from "@/features/electionConfig/data/useElectionPublish";
 
 const navigateMock = vi.fn();
 const refetchMock = vi.fn();
@@ -173,7 +174,7 @@ describe("publication deadlines UX", () => {
   });
 
   it("shows an explicit reminder in review before the deadline and blocks publication once expired", () => {
-    let publishHookValue = {
+    let publishHookValue: UseElectionPublishReturn = {
       votingEvent: {
         id: "evt-1",
         state: "READY_FOR_REVIEW",
@@ -200,12 +201,14 @@ describe("publication deadlines UX", () => {
         },
       },
       loading: false,
+      error: null,
       openReview: vi.fn(),
       openingReview: false,
       activateElection: vi.fn(),
       activating: false,
       activationResult: null,
       copyToClipboard: vi.fn(),
+      getShareUrl: vi.fn(),
       refetch: refetchMock,
     };
     useElectionPublishMock.mockImplementation(() => publishHookValue);
@@ -247,12 +250,14 @@ describe("publication deadlines UX", () => {
         },
       },
       loading: false,
+      error: null,
       openReview: vi.fn(),
       openingReview: false,
       activateElection: vi.fn(),
       activating: false,
       activationResult: null,
       copyToClipboard: vi.fn(),
+      getShareUrl: vi.fn(),
       refetch: refetchMock,
     };
 
