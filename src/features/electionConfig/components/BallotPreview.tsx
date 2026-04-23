@@ -17,7 +17,7 @@ const BallotPreview: React.FC<BallotPreviewProps> = ({
   question,
 }) => {
   const title = isReferendum
-    ? question?.trim() || 'Consulta sometida a votación'
+    ? question?.trim() || 'Consulta'
     : 'Elige a tu candidato';
   const subtitle = isReferendum
     ? 'Selecciona la opción de tu preferencia'
@@ -49,7 +49,7 @@ const BallotPreview: React.FC<BallotPreviewProps> = ({
       <div className="flex-1 px-4 py-2 space-y-3 overflow-y-auto">
         {parties.length === 0 ? (
           <div className="text-center py-8 text-gray-400 text-sm">
-            No hay planchas configuradas
+            {isReferendum ? 'No hay opciones configuradas' : 'No hay planchas configuradas'}
           </div>
         ) : (
           parties.map((party) => {
@@ -108,7 +108,9 @@ const BallotPreview: React.FC<BallotPreviewProps> = ({
                           </div>
                         ))}
                         {party.candidates.length === 0 && (
-                          <p className="text-xs text-gray-400 italic">Sin candidatos</p>
+                          <p className="text-xs text-gray-400 italic">
+                            {isReferendum ? 'Sin opciones configuradas' : 'Sin candidatos'}
+                          </p>
                         )}
                       </div>
                     </div>

@@ -56,7 +56,7 @@ const PartiesTable: React.FC<PartiesTableProps> = ({
         <div className="p-12 text-center">
           <p className="text-gray-500">
             {isReferendum
-              ? 'Crea opciones y asigna alternativas para continuar con la creación de la consulta'
+              ? 'Crea opciones y completa su respuesta para continuar con la consulta'
               : 'Crear planchas y asignar candidatos para continuar con la creación de votación'}
           </p>
         </div>
@@ -170,7 +170,7 @@ const PartiesTable: React.FC<PartiesTableProps> = ({
                       <div className="pl-8">
                         <div className="flex items-center justify-between mb-4">
                           <h4 className="font-medium text-[#459151]">
-                            {isReferendum ? 'Alternativas asignadas' : 'Candidatos asignados'}
+                            {isReferendum ? 'Respuesta configurada' : 'Candidatos asignados'}
                           </h4>
                           {!readOnly && (
                             <button
@@ -179,7 +179,7 @@ const PartiesTable: React.FC<PartiesTableProps> = ({
                               disabled={loading}
                               className="px-4 py-2 bg-[#459151] hover:bg-[#3a7a44] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
                             >
-                              {isReferendum ? 'Editar Alternativa' : 'Editar Candidatos'}
+                              {isReferendum ? 'Editar respuesta' : 'Editar Candidatos'}
                             </button>
                           )}
                         </div>
@@ -221,7 +221,7 @@ const PartiesTable: React.FC<PartiesTableProps> = ({
                         ) : (
                           <p className="text-gray-500 text-sm italic">
                             {isReferendum
-                              ? 'No hay alternativa asignada. Haz clic en "Editar Alternativa" para agregarla.'
+                              ? 'No hay respuesta configurada. Haz clic en "Editar respuesta" para agregarla.'
                               : 'No hay candidatos asignados. Haz clic en "Editar Candidatos" para agregar.'}
                           </p>
                         )}

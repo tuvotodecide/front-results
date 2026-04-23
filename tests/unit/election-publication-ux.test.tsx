@@ -248,10 +248,7 @@ describe("publication deadlines UX", () => {
 
     const { rerender } = render(<ElectionConfigReview />);
 
-    expect(screen.getByText("Publicación oficial pendiente")).toBeInTheDocument();
-    expect(
-      screen.getByText(/todavía no está publicada oficialmente/i),
-    ).toBeInTheDocument();
+
     expect(
       screen.getByRole("button", { name: /confirmar publicación oficial/i }),
     ).toBeEnabled();

@@ -379,11 +379,6 @@ const ElectionConfigPadron: React.FC = () => {
     !isPadronStateHydrating &&
     (padronReadyForNextStep || stagingDraftReadyForNextStep);
   const padronStepCompleted = padronReadyForNextStep || stagingDraftReadyForNextStep;
-  const showPadronPendingNotice =
-    showFinalizeConfigurationCta &&
-    ((activeDraft && !stagingDraftReadyForNextStep) || (isPadronConfirmed && !padronReadyForNextStep)) &&
-    !isPadronStateHydrating &&
-    !postCutoffReadOnly;
   const structuralErrors =
     eventLoadFailed ||
     rolesLoadFailed ||
@@ -514,7 +509,6 @@ const ElectionConfigPadron: React.FC = () => {
       }
 
       setError(null);
-      setInfo(null);
       setSuccess(null);
       setUploadSummaryJobId(null);
       setObservationsOpen(false);
@@ -583,7 +577,6 @@ const ElectionConfigPadron: React.FC = () => {
         if (needsGeminiStagingFallback) {
           setSummaryModalState("uploading");
           setUploadProgress(92);
-
           const seededCount = await persistGeminiRecordsIntoStaging(geminiDraft.records);
 
           await refetchVisiblePadronData();
@@ -876,11 +869,7 @@ const ElectionConfigPadron: React.FC = () => {
             </div>
           ) : null}
 
-          {showPadronPendingNotice ? (
-            <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              El padrón actualizado
-            </div>
-          ) : null}
+
 
           {baseLoading ? (
             <div className="rounded-2xl border border-gray-200 bg-white p-12 text-center shadow-sm">
@@ -892,7 +881,7 @@ const ElectionConfigPadron: React.FC = () => {
               <div className="mx-auto h-10 w-10 rounded-full border-4 border-[#459151] border-t-transparent animate-spin" />
               <p className="mt-4 text-gray-700">Actualizando el estado del padrón...</p>
               <p className="mt-2 text-sm text-gray-500">
-                En cuanto termine la actualización verás el padrón vigente o el staging editable sin volver a la pantalla inicial.
+                En cuanto termine la actualización verás el padrón vigente.
               </p>
             </div>
           ) : limitedPadronModeAllowed && resolvedCurrentFile ? (

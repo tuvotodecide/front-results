@@ -6,6 +6,7 @@ import type { ConfigSummary } from '../data/ElectionPublishRepository.mock';
 
 interface ConfigSummaryCardProps {
   summary: ConfigSummary;
+  isReferendum?: boolean;
 }
 
 const CheckIcon = () => (
@@ -14,7 +15,7 @@ const CheckIcon = () => (
   </svg>
 );
 
-const ConfigSummaryCard: React.FC<ConfigSummaryCardProps> = ({ summary }) => {
+const ConfigSummaryCard: React.FC<ConfigSummaryCardProps> = ({ summary, isReferendum = false }) => {
   const isReadyToPublish = summary.positionsOk && summary.partiesOk && summary.padronOk;
 
   const formatNumber = (num: number) => num.toLocaleString('es-ES');
@@ -33,7 +34,7 @@ const ConfigSummaryCard: React.FC<ConfigSummaryCardProps> = ({ summary }) => {
             <CheckIcon />
           </div>
           <span className={`text-sm ${summary.positionsOk ? 'text-gray-700' : 'text-gray-400'}`}>
-            Cargos configurados
+            {isReferendum ? 'Consulta lista' : 'Cargos configurados'}
           </span>
         </div>
 
@@ -42,7 +43,7 @@ const ConfigSummaryCard: React.FC<ConfigSummaryCardProps> = ({ summary }) => {
             <CheckIcon />
           </div>
           <span className={`text-sm ${summary.partiesOk ? 'text-gray-700' : 'text-gray-400'}`}>
-            Planchas cargadas
+            {isReferendum ? 'Opciones configuradas' : 'Planchas cargadas'}
           </span>
         </div>
 

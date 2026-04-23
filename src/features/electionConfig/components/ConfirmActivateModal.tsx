@@ -62,7 +62,7 @@ const ConfirmActivateModal: React.FC<ConfirmActivateModalProps> = ({
             type="button"
             onClick={onClose}
             disabled={isLoading}
-            className="min-w-[150px] px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors disabled:opacity-50"
+            className="min-w-[150px] px-6 py-3 bg-[#459151] hover:bg-[#3a7a44] text-white  font-medium rounded-lg transition-colors disabled:opacity-50"
           >
             Volver
           </button>
@@ -70,7 +70,7 @@ const ConfirmActivateModal: React.FC<ConfirmActivateModalProps> = ({
             type="button"
             onClick={onConfirm}
             disabled={isLoading}
-            className="min-w-[150px] px-6 py-3 bg-[#459151] hover:bg-[#3a7a44] text-white font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="min-w-[150px] px-6 py-3  bg-gray-200 hover:bg-gray-400 text-gray-700 font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>

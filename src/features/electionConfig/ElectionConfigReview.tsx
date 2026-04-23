@@ -39,7 +39,7 @@ import {
   useUpdateVotingEventMutation,
 } from '../../store/votingEvents';
 
-const pendingLabels: Record<string, string> = {
+const basePendingLabels: Record<string, string> = {
   datos_base: 'Datos base de la votación',
   horarios: 'Cronograma completo y válido',
   publish_deadline: `Ventana de publicación de ${PRE_PUBLICATION_CUTOFF_HOURS} horas`,
@@ -52,6 +52,20 @@ const pendingLabels: Record<string, string> = {
   padron_invalid: 'Padrón sin registros inválidos',
   padron_validation: 'Validación estructural del padrón',
   publication_window_expired: 'La ventana de publicación oficial venció',
+};
+
+const getPendingLabel = (key: string, isReferendum: boolean) => {
+  if (!isReferendum) return basePendingLabels[key] ?? key;
+
+  const referendumLabels: Record<string, string> = {
+    cargos: 'Consulta lista',
+    opciones: 'Opciones registradas',
+    candidatos: 'Opciones configuradas',
+    candidatos_invalidos: 'Opciones configuradas correctamente',
+    cobertura_cargos: 'Consulta completa',
+  };
+
+  return referendumLabels[key] ?? basePendingLabels[key] ?? key;
 };
 
 const ElectionConfigReview: React.FC = () => {
@@ -212,14 +226,6 @@ const ElectionConfigReview: React.FC = () => {
   const publicationDeadlineLabel = formatDateTimeForUi(
     reviewReadiness?.publicationWindow?.deadline ?? votingEvent?.publishDeadline,
   );
-  const hoursUntilPublicationDeadline = reviewReadiness?.publicationWindow?.hoursUntilDeadline ?? null;
-  const showOfficialPublicationReminder =
-    !isPublicationExpired &&
-    !votingInProgress &&
-    !votingClosed &&
-    eventState !== 'OFFICIALLY_PUBLISHED';
-  const publicationReminderUrgent =
-    hoursUntilPublicationDeadline !== null && hoursUntilPublicationDeadline <= 24;
 
   const handlePresentialToggle = async (enabled: boolean) => {
     if (!actualElectionId || !canChangePresentialOption || savingPresentialOption) {
@@ -368,7 +374,9 @@ const ElectionConfigReview: React.FC = () => {
         <div className="max-w-6xl mx-auto px-4">
           {/* Título */}
           <h1 className="text-xl md:text-2xl font-semibold text-gray-700 text-center mb-8">
-            Así verán los votantes las papeletas. Revisa antes de publicar.
+            {ballotPreview?.isReferendum
+              ? 'Así verán los votantes la consulta. Revisa antes de publicar.'
+              : 'Así verán los votantes las papeletas. Revisa antes de publicar.'}
           </h1>
 
           {/* Contenido: Preview + Resumen */}
@@ -399,7 +407,7 @@ const ElectionConfigReview: React.FC = () => {
                   <p className="font-semibold">Faltan estos puntos antes de notificar a los votantes:</p>
                   <ul className="mt-2 list-disc space-y-1 pl-5">
                     {reviewReadiness.pending.map((item) => (
-                      <li key={item}>{pendingLabels[item] ?? item}</li>
+                      <li key={item}>{getPendingLabel(item, Boolean(ballotPreview?.isReferendum))}</li>
                     ))}
                   </ul>
                 </div>
@@ -467,24 +475,7 @@ const ElectionConfigReview: React.FC = () => {
                   La ventana de publicación oficial venció. Esta votación ya no debe editarse como borrador ni publicarse normalmente.
                 </div>
               )}
-              {showOfficialPublicationReminder ? (
-                <div
-                  className={`rounded-lg p-4 text-sm shadow-sm ${
-                    publicationReminderUrgent
-                      ? 'border border-orange-200 bg-orange-50 text-orange-900'
-                      : 'border border-amber-200 bg-amber-50 text-amber-800'
-                  }`}
-                >
-                  <p className="font-semibold">Publicación oficial pendiente</p>
-                  <p className="mt-1">
-                    Esta elección todavía no está publicada oficialmente.{' '}
-                    {canConfirmOfficialPublication
-                      ? 'Confírmala'
-                      : 'Déjala lista y confírmala'}{' '}
-                    antes del {publicationDeadlineLabel}; si el plazo vence, la elección quedará caducada.
-                  </p>
-                </div>
-              ) : null}
+
               {!isPublicationExpired ? (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm">
                   <p className="font-semibold">Plazo de modificación y publicación oficial</p>
@@ -498,7 +489,12 @@ const ElectionConfigReview: React.FC = () => {
                   {scheduleSuccess}
                 </div>
               ) : null}
-              {configSummary && <ConfigSummaryCard summary={configSummary} />}
+              {configSummary && (
+                <ConfigSummaryCard
+                  summary={configSummary}
+                  isReferendum={Boolean(ballotPreview?.isReferendum)}
+                />
+              )}
               <div className="space-y-3">
                 <ScheduleSummaryCard
                   votingStart={votingEvent?.votingStart}

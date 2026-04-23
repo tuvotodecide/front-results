@@ -422,9 +422,13 @@ const PublicElectionDetailPage: React.FC = () => {
   const tiedCandidates = election.results ? getTopCandidates(election.results.candidates) : [];
   const hasTie = tiedCandidates.length > 1;
   const ballotDescription =
-    election.status === 'FINISHED'
-      ? 'Conoce a los candidatos y partidos políticos que participaron en esta elección'
-      : 'Conoce a los candidatos y partidos políticos que participan en esta elección';
+    election.isReferendum
+      ? election.status === 'FINISHED'
+        ? 'Conoce las opciones que participaron en esta consulta'
+        : 'Conoce las opciones disponibles en esta consulta'
+      : election.status === 'FINISHED'
+        ? 'Conoce a los candidatos y partidos políticos que participaron en esta elección'
+        : 'Conoce a los candidatos y partidos políticos que participan en esta elección';
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -499,12 +503,16 @@ const PublicElectionDetailPage: React.FC = () => {
         {/* Papeleta y candidaturas */}
         <div className="mt-8 space-y-5">
           <div>
-            <h2 className="text-2xl font-bold text-slate-800">Papeleta Electoral</h2>
+            <h2 className="text-2xl font-bold text-slate-800">
+              {election.isReferendum ? 'Consulta' : 'Papeleta Electoral'}
+            </h2>
             <p className="mt-1 text-slate-500">{ballotDescription}</p>
           </div>
           {election.ballotParties.length === 0 ? (
             <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500 shadow-sm">
-              Esta elección todavía no tiene candidaturas públicas configuradas.
+              {election.isReferendum
+                ? 'Esta consulta todavía no tiene opciones públicas configuradas.'
+                : 'Esta elección todavía no tiene candidaturas públicas configuradas.'}
             </div>
           ) : (
             <div className="grid gap-6 xl:grid-cols-2">

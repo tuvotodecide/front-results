@@ -122,7 +122,7 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
     <Modal2
       isOpen={isOpen}
       onClose={onClose}
-      title="Gestión de Candidatos"
+      title={isReferendum ? 'Configurar opciones' : 'Gestión de Candidatos'}
       size="2xl"
       type="plain"
       closeOnEscape={false}
@@ -161,13 +161,13 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
                   type="text"
                   value={candidate.fullName}
                   onChange={(e) => handleNameChange(candidate.positionId, e.target.value)}
-                  placeholder="Nombre completo"
+                  placeholder={isReferendum ? 'Texto de la respuesta' : 'Nombre completo'}
                   disabled={isLoading}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#459151] focus:border-[#459151] transition-colors"
                 />
                 {showValidation && !candidate.fullName.trim() && (
                   <p className="mt-1 text-xs text-red-600">
-                    El nombre es obligatorio.
+                    {isReferendum ? 'La respuesta es obligatoria.' : 'El nombre es obligatorio.'}
                   </p>
                 )}
               </div>
@@ -197,10 +197,10 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
                 >
                   {candidate.photoPreview ? (
                     <img
-                      src={candidate.photoPreview}
-                      alt="Foto candidato"
-                      className="w-full h-full object-cover"
-                    />
+                          src={candidate.photoPreview}
+                          alt={isReferendum ? 'Imagen de la opción' : 'Foto candidato'}
+                          className="w-full h-full object-cover"
+                        />
                   ) : (
                     <svg
                       className="w-8 h-8 mx-auto text-gray-400"
@@ -221,10 +221,12 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
                     +
                   </span>
                 </button>
-                <p className="text-xs text-gray-500 text-center mt-1">Subir Foto</p>
+                <p className="text-xs text-gray-500 text-center mt-1">
+                  {isReferendum ? 'Subir imagen' : 'Subir Foto'}
+                </p>
                 {showValidation && !String(candidate.photoBase64 || candidate.photoPreview || '').trim() && (
                   <p className="mt-1 text-xs text-red-600 text-center">
-                    Foto obligatoria
+                    {isReferendum ? 'Imagen obligatoria' : 'Foto obligatoria'}
                   </p>
                 )}
               </div>
@@ -235,7 +237,7 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
         {positions.length === 0 && (
           <div className="text-center py-8 text-gray-500">
             {isReferendum
-              ? 'No se pudo cargar la configuración técnica del referéndum. Reintenta antes de continuar.'
+              ? 'No se pudo cargar la configuración de la consulta. Reintenta antes de continuar.'
               : 'No hay cargos definidos. Primero define los cargos en el Paso 1.'}
           </div>
         )}
@@ -258,7 +260,7 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
             </span>
-            <span>{isLoading ? 'Guardando...' : 'Guardar Candidatos'}</span>
+            <span>{isLoading ? 'Guardando...' : isReferendum ? 'Guardar opciones' : 'Guardar Candidatos'}</span>
           </button>
         </div>
       </form>

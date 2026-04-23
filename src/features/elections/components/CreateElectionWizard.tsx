@@ -311,7 +311,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                       <div>
                         <p className="text-sm font-medium text-gray-800">¿Es referéndum?</p>
                         <p className="mt-1 text-sm text-gray-500">
-                          Actívalo si esta votación es una consulta y no una elección tradicional.
+                          Actívalo si esta votación será una consulta con opciones de respuesta.
                         </p>
                       </div>
                       <Field name="isReferendum">
@@ -342,9 +342,9 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                     <Field name="isReferendum">
                       {({ field }: FieldProps<boolean>) =>
                         field.value ? (
-                          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 font-bold">
-                            Si eliges referéndum, luego ya no podrás cambiar este tipo de
-                            votación. 
+                          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+                            Si eliges referéndum, después no podrás cambiar este tipo de votación.
+                            La papeleta se mostrará como una consulta con opciones de respuesta.
                           </div>
                         ) : null
                       }

@@ -5,9 +5,10 @@ import React, { useState, useRef, useEffect } from 'react';
 
 interface InfoPopoverProps {
   className?: string;
+  isReferendum?: boolean;
 }
 
-const InfoPopover: React.FC<InfoPopoverProps> = ({ className = '' }) => {
+const InfoPopover: React.FC<InfoPopoverProps> = ({ className = '', isReferendum = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -46,7 +47,7 @@ const InfoPopover: React.FC<InfoPopoverProps> = ({ className = '' }) => {
           transition-colors
           ${isOpen ? 'bg-[#459151] text-white' : 'bg-gray-300 text-gray-600 hover:bg-gray-400'}
         `}
-        aria-label="Información sobre cargos"
+        aria-label={isReferendum ? 'Información sobre la consulta' : 'Información sobre cargos'}
       >
         i
       </button>
@@ -60,7 +61,9 @@ const InfoPopover: React.FC<InfoPopoverProps> = ({ className = '' }) => {
           <div className="bg-[#d4edda] border border-[#c3e6cb] rounded-lg shadow-lg p-4">
             {/* Header */}
             <div className="flex items-start justify-between mb-3">
-              <h4 className="font-semibold text-gray-800">¿Qué son los cargos?</h4>
+              <h4 className="font-semibold text-gray-800">
+                {isReferendum ? '¿Cómo se organiza la consulta?' : '¿Qué son los cargos?'}
+              </h4>
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
@@ -74,17 +77,31 @@ const InfoPopover: React.FC<InfoPopoverProps> = ({ className = '' }) => {
             </div>
 
             {/* Contenido */}
-            <p className="text-sm text-gray-700 mb-3">
-              Los cargos son las posiciones que se eligen en la votación (ej.: Presidente, Vicepresidente).
-              Cada cargo define qué verá el votante en la boleta y cuántas opciones puede elegir.
-            </p>
-
-            {/* Ejemplos */}
-            <p className="text-sm font-medium text-gray-800 mb-2">Ejemplos:</p>
-            <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
-              <li>Presidente (elige 1)</li>
-              <li>Vicepresidente (elige 1)</li>
-            </ul>
+            {isReferendum ? (
+              <>
+                <p className="text-sm text-gray-700 mb-3">
+                  En un referéndum no necesitas configurar cargos. La consulta ya queda lista para que
+                  después agregues sus opciones y definas cómo se verán en la papeleta.
+                </p>
+                <p className="text-sm font-medium text-gray-800 mb-2">Qué sigue:</p>
+                <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
+                  <li>Crear las opciones de la consulta</li>
+                  <li>Completar la respuesta visible para cada opción</li>
+                </ul>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-gray-700 mb-3">
+                  Los cargos son las posiciones que se eligen en la votación (ej.: Presidente, Vicepresidente).
+                  Cada cargo define qué verá el votante en la boleta y cuántas opciones puede elegir.
+                </p>
+                <p className="text-sm font-medium text-gray-800 mb-2">Ejemplos:</p>
+                <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
+                  <li>Presidente (elige 1)</li>
+                  <li>Vicepresidente (elige 1)</li>
+                </ul>
+              </>
+            )}
           </div>
         </div>
       )}

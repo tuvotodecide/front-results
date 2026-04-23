@@ -139,12 +139,12 @@ const PlanchasInfoPopover: React.FC<{
               </div>
               <p className="text-sm text-gray-700 mb-3">
                 {isReferendum
-                  ? 'Cada opción del referéndum agrupa una alternativa principal visible en la papeleta.'
+                  ? 'Cada opción de la consulta muestra una respuesta visible en la papeleta.'
                   : 'Una plancha/partido agrupa candidatos por cada cargo definido (Ej: Presidente, Vicepresidente).'}
               </p>
               <p className="text-sm text-gray-600 italic">
                 {isReferendum
-                  ? 'Crea la opción y luego asigna la alternativa principal con nombre y foto.'
+                  ? 'Crea una opción y luego completa su respuesta con nombre y foto.'
                   : 'Crea el partido y luego asigna candidatos para cada cargo.'}
               </p>
             </div>
@@ -477,7 +477,7 @@ const ElectionConfigPlanchas: React.FC = () => {
           <div className="flex items-center gap-2 mb-6">
             <p className="text-gray-600">
               {isReferendum
-                ? 'Paso 2 de 3: Agrega opciones y alternativas.'
+                ? 'Paso 2 de 3: Agrega opciones y respuestas.'
                 : 'Paso 2 de 3: Agrega partidos y candidatos.'}
             </p>
             <PlanchasInfoPopover isReferendum={isReferendum} />
@@ -495,7 +495,7 @@ const ElectionConfigPlanchas: React.FC = () => {
           {loading ? (
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-12 text-center">
               <div className="w-8 h-8 border-4 border-[#459151] border-t-transparent rounded-full animate-spin mx-auto" />
-              <p className="mt-4 text-gray-500">Cargando partidos...</p>
+              <p className="mt-4 text-gray-500">{isReferendum ? 'Cargando opciones...' : 'Cargando partidos...'}</p>
             </div>
           ) : (
             <PartiesTable
@@ -519,7 +519,7 @@ const ElectionConfigPlanchas: React.FC = () => {
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
-              {isReferendum ? 'Crear Opción' : 'Crear Partido'}
+              {isReferendum ? 'Crear opción' : 'Crear Partido'}
             </button>
           </div>
         </div>
@@ -582,16 +582,20 @@ const ElectionConfigPlanchas: React.FC = () => {
       <Modal2
         isOpen={!!deleteConfirm}
         onClose={() => setDeleteConfirm(null)}
-        title="Eliminar partido"
+        title={isReferendum ? 'Eliminar opción' : 'Eliminar partido'}
         size="sm"
         type="plain"
       >
         <div className="space-y-4">
           <p className="text-gray-700">
-            ¿Estás seguro de eliminar el partido "{deleteConfirm?.name}"?
+            {isReferendum
+              ? `¿Estás seguro de eliminar la opción "${deleteConfirm?.name}"?`
+              : `¿Estás seguro de eliminar el partido "${deleteConfirm?.name}"?`}
           </p>
           <p className="text-sm text-gray-500">
-            Se eliminarán también todos los candidatos asignados. Esta acción no se puede deshacer.
+            {isReferendum
+              ? 'Se eliminará también la respuesta configurada. Esta acción no se puede deshacer.'
+              : 'Se eliminarán también todos los candidatos asignados. Esta acción no se puede deshacer.'}
           </p>
           <div className="flex justify-end gap-3 pt-2">
             <button

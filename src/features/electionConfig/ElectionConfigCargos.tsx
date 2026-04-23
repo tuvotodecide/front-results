@@ -263,15 +263,15 @@ const ElectionConfigCargos: React.FC = () => {
           <div className="flex items-center gap-2 mb-6">
             <p className="text-gray-600">
               {isReferendum
-                ? 'Paso 1 de 3: Cargo técnico configurado automáticamente.'
+                ? 'Paso 1 de 3: La consulta ya tiene su estructura lista.'
                 : 'Paso 1 de 3: Define los cargos.'}
             </p>
-            <InfoPopover />
+            <InfoPopover isReferendum={isReferendum} />
           </div>
 
           {isReferendum ? (
             <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
-              Este evento fue creado como referéndum. No necesitas gestionar cargos manualmente
+              Esta votación es un referéndum. No necesitas configurar cargos en este paso.
             </div>
           ) : null}
 
@@ -284,7 +284,7 @@ const ElectionConfigCargos: React.FC = () => {
           ) : isReferendum ? (
             <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
               <p className="text-sm font-semibold text-gray-800">
-                Configuración de consulta lista
+                Estructura de la consulta lista
               </p>
 
             </div>
@@ -333,7 +333,7 @@ const ElectionConfigCargos: React.FC = () => {
             `}
           >
             {isReferendum
-              ? 'Siguiente: Configurar opciones y alternativas'
+              ? 'Siguiente: Configurar opciones'
               : 'Siguiente: Agregar planchas y candidatos'}
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />

@@ -140,7 +140,7 @@ describe("referendum minimal flow", () => {
     await user.click(screen.getByRole("switch", { name: "¿Es referéndum?" }));
 
     expect(
-      screen.getByText(/ya no podrás cambiar este tipo de votación/i),
+      screen.getByText(/después no podrás cambiar este tipo de votación/i),
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Siguiente" }));
@@ -152,9 +152,9 @@ describe("referendum minimal flow", () => {
     );
     await user.click(screen.getByRole("button", { name: "CREAR" }));
 
-    expect(await screen.findByText("¿Crear votación?")).toBeInTheDocument();
+    expect(await screen.findByText("¿Crear consulta?")).toBeInTheDocument();
     expect(
-      screen.getByText(/no se podrá cambiar el tipo de votación luego/i),
+      screen.getByText(/después de crearla, no podrás cambiar este tipo de votación/i),
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Confirmar" }));
@@ -177,7 +177,7 @@ describe("referendum minimal flow", () => {
 
     expect(screen.getByText("¿Aprueba la nueva normativa institucional?")).toBeInTheDocument();
     expect(screen.getByText("Selecciona la opción de tu preferencia")).toBeInTheDocument();
-    expect(screen.getByText("Alternativa:")).toBeInTheDocument();
+    expect(screen.getByText("Respuesta:")).toBeInTheDocument();
     expect(screen.queryByText("CONSULTA:")).not.toBeInTheDocument();
   });
 
@@ -196,8 +196,8 @@ describe("referendum minimal flow", () => {
     expect(screen.getByText("Sí")).toBeInTheDocument();
     expect(screen.getByText("Opción")).toBeInTheDocument();
     await user.click(screen.getByText("Sí"));
-    expect(screen.getByText("Alternativas asignadas")).toBeInTheDocument();
-    expect(screen.getByText("Alternativa:")).toBeInTheDocument();
+    expect(screen.getByText("Respuesta configurada")).toBeInTheDocument();
+    expect(screen.getByText("Respuesta:")).toBeInTheDocument();
     expect(screen.queryByText("CONSULTA:")).not.toBeInTheDocument();
   });
 
@@ -205,10 +205,10 @@ describe("referendum minimal flow", () => {
     render(<ElectionConfigCargos />);
 
     expect(
-      screen.getByText(/cargo técnico configurado automáticamente/i),
+      screen.getByText(/la consulta ya tiene su estructura lista/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/no necesitas gestionar cargos manualmente/i),
+      screen.getByText(/no necesitas configurar cargos en este paso/i),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /agregar cargo/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^editar$/i })).not.toBeInTheDocument();

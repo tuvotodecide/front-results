@@ -27,7 +27,7 @@ const ConfirmCreateModal: React.FC<ConfirmCreateModalProps> = ({
     <Modal2
       isOpen={isOpen}
       onClose={onClose}
-      title="¿Crear votación?"
+      title={formData.isReferendum ? "¿Crear consulta?" : "¿Crear votación?"}
       size="md"
     >
       <div className="space-y-4">
@@ -49,7 +49,7 @@ const ConfirmCreateModal: React.FC<ConfirmCreateModalProps> = ({
 
         {formData.isReferendum ? (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            No se podrá cambiar el tipo de votación luego. La papeleta se mostrará como una consulta con opciones de respuesta.
+            Después de crearla, no podrás cambiar este tipo de votación. La papeleta se mostrará como una consulta con opciones de respuesta.
           </div>
         ) : null}
 
