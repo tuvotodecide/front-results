@@ -362,6 +362,7 @@ const ActiveElectionStatusPage: React.FC = () => {
     lifecycle === "RESULTS" ||
     lifecycle === "RESULTS_PUBLISHED";
   const votingPadronLimitedMode = limitedModeByEvent;
+  const canAddLimitedPadronRecord = votingPadronLimitedMode && !officialPublicationLocked;
   const postCutoffReadOnly = isAfterPublishCutoffBeforeVoting(event, nowMs);
   const presentialKioskEnabled = Boolean(event?.presentialKioskEnabled);
   const scheduleFieldErrors = useMemo(
@@ -749,8 +750,11 @@ const ActiveElectionStatusPage: React.FC = () => {
         </div>
 
         {canCreateNews ? (
-          <div className="rounded-xl  px-4 py-4 text-sm">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+          <div className="rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-base font-semibold text-gray-900">¿Quieres informar algo?</p>
+              </div>
               <button
                 type="button"
                 onClick={() => {
@@ -887,7 +891,7 @@ const ActiveElectionStatusPage: React.FC = () => {
               onPageChange={setPage}
               onSearchChange={setSearchTerm}
               onAddRecord={
-                votingPadronLimitedMode
+                canAddLimitedPadronRecord
                   ? () => {
                       setPadronError(null);
                       setPadronMessage(null);

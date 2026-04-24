@@ -516,17 +516,27 @@ const ElectionConfigReview: React.FC = () => {
                   </button>
                 ) : null}
                 {reviewAlreadyNotified ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setNewsError(null);
-                      setNewsSuccess(null);
-                      setIsNewsModalOpen(true);
-                    }}
-                    className="w-full rounded-lg border border-[#459151]/20 bg-white px-4 py-3 text-sm font-semibold text-[#2E6A38] transition-colors hover:bg-[#EFF7F0]"
-                  >
-                    Crear noticia
-                  </button>
+                  <div className="rounded-lg border border-gray-200 bg-white px-5 py-4 shadow-sm">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-base font-semibold text-gray-900">¿Quieres informar algo?</p>
+                        <p className="mt-1 text-sm text-gray-600">
+                          Publica una noticia para comunicar novedades de esta votación.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewsError(null);
+                          setNewsSuccess(null);
+                          setIsNewsModalOpen(true);
+                        }}
+                        className="rounded-lg border border-[#459151]/20 bg-[#EFF7F0] px-4 py-3 text-sm font-semibold text-[#2E6A38] transition-colors hover:bg-[#E4F3E7]"
+                      >
+                        Crear noticia
+                      </button>
+                    </div>
+                  </div>
                 ) : null}
               </div>
             </div>

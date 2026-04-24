@@ -88,12 +88,7 @@ const ElectionsPage: React.FC = () => {
   };
 
   const handleElectionClick = (event: VotingEvent) => {
-    if (hasDraftAlreadyStarted(event, nowMs)) {
-      return;
-    }
-
-    if (event.status === 'PUBLICATION_EXPIRED') {
-      navigate(`/votacion/elecciones/${event.id}/config/review`);
+    if (hasDraftAlreadyStarted(event, nowMs) || event.status === 'PUBLICATION_EXPIRED') {
       return;
     }
 
@@ -212,17 +207,17 @@ const ElectionsPage: React.FC = () => {
             const publicationReminderActive = isInOfficialPublicationReminderWindow(event, nowMs);
             const startAlreadyExpired = hasDraftAlreadyStarted(event, nowMs);
             const expiredElection = event.status === 'PUBLICATION_EXPIRED';
-            const blockedCard = startAlreadyExpired;
+            const blockedCard = startAlreadyExpired || expiredElection;
 
             return (
               <div
                 key={event.id}
-                onClick={() => handleElectionClick(event)}
+                onClick={blockedCard ? undefined : () => handleElectionClick(event)}
                 className={`rounded-xl border bg-white p-6 shadow-sm transition-all ${
                   blockedCard
-                    ? 'border-amber-200 bg-amber-50/40 cursor-default'
-                    : expiredElection
-                      ? 'border-red-200 bg-red-50/40 hover:border-red-400 hover:shadow-md cursor-pointer'
+                    ? expiredElection
+                      ? 'border-red-200 bg-red-50/40 cursor-default'
+                      : 'border-amber-200 bg-amber-50/40 cursor-default'
                     : publicationReminderActive
                       ? 'border-yellow-300 bg-yellow-50/30 hover:border-yellow-500 hover:shadow-md cursor-pointer'
                       : 'border-gray-200 hover:shadow-md hover:border-[#459151] cursor-pointer'
@@ -237,27 +232,30 @@ const ElectionsPage: React.FC = () => {
                     {event.objective}
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    <span
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                        statusColors[event.status] || 'bg-gray-100 text-gray-700'
-                      }`}
-                    >
-                      {statusLabels[event.status] || event.status}
-                    </span>
-                    {event.status === 'DRAFT' && (
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
-                        Pendiente de configurar
-                      </span>
-                    )}
-                    {publicationReminderActive && (
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-200 text-yellow-700">
-                        Publicación pendiente
-                      </span>
-                    )}
-                    {startAlreadyExpired && (
+                    {blockedCard ? (
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
                         Inicio vencido
                       </span>
+                    ) : (
+                      <>
+                        <span
+                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                            statusColors[event.status] || 'bg-gray-100 text-gray-700'
+                          }`}
+                        >
+                          {statusLabels[event.status] || event.status}
+                        </span>
+                        {event.status === 'DRAFT' && (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                            Pendiente de configurar
+                          </span>
+                        )}
+                        {publicationReminderActive && (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-200 text-yellow-700">
+                            Publicación pendiente
+                          </span>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>

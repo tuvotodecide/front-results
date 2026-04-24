@@ -232,6 +232,7 @@ const ElectionConfigPadron: React.FC = () => {
   const postCutoffReadOnly = isAfterPublishCutoffBeforeVoting(event, nowMs);
   const closedPadronReadOnly = hasVotingEnded(event, nowMs) || areResultsAvailable(event, nowMs);
   const officiallyPublished = isOfficiallyPublished(event);
+  const canAddLimitedPadronRecord = limitedPadronModeAllowed && !officiallyPublished;
 
   const stagingFile: PadronFile | null = activeDraft
     ? {
@@ -881,7 +882,7 @@ const ElectionConfigPadron: React.FC = () => {
           {limitedPadronModeAllowed ? (
             <div className="mb-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
               {officiallyPublished && !isDuringVotingWindow(event, nowMs)
-                ? "La publicación oficial ya fue confirmada. Desde aquí solo se permite agregar habilitados nuevos y habilitar votantes deshabilitados del padrón vigente."
+                ? "La publicación oficial ya fue confirmada. Desde aquí solo se permite habilitar votantes deshabilitados del padrón vigente."
                 : "La votación está activa. En esta etapa solo se permite agregar nuevos habilitados y habilitar votantes ya existentes que estén deshabilitados."}
             </div>
           ) : null}
@@ -944,7 +945,11 @@ const ElectionConfigPadron: React.FC = () => {
               searchValue={searchTerm}
               onPageChange={setPage}
               onSearchChange={setSearchTerm}
-              onAddRecord={() => setRecordModal({ open: true, mode: "create" })}
+              onAddRecord={
+                canAddLimitedPadronRecord
+                  ? () => setRecordModal({ open: true, mode: "create" })
+                  : undefined
+              }
               onEnableVoter={(voter) => void handleToggleEnabled(voter, true)}
               enablingVoterId={currentPadronActionVoterId}
               addRecordLabel="Agregar habilitado"
