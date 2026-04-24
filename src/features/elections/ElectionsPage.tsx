@@ -232,9 +232,13 @@ const ElectionsPage: React.FC = () => {
                     {event.objective}
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {blockedCard ? (
+                    {startAlreadyExpired ? (
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
                         Inicio vencido
+                      </span>
+                    ) : expiredElection ? (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                        Caducada
                       </span>
                     ) : (
                       <>

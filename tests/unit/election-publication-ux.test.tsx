@@ -181,7 +181,7 @@ describe("publication deadlines UX", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows Caducada in the list and still lets the user open the expired detail", async () => {
+  it("shows Caducada in the list and blocks opening the expired detail", async () => {
     const user = userEvent.setup();
     vi.mocked(votingEvents.useGetVotingEventsQuery).mockReturnValue({
       data: [
@@ -221,9 +221,7 @@ describe("publication deadlines UX", () => {
 
     await user.click(screen.getByText("Elección caducada"));
 
-    expect(navigateMock).toHaveBeenCalledWith(
-      "/votacion/elecciones/evt-expired/config/review",
-    );
+    expect(navigateMock).not.toHaveBeenCalled();
   });
 
   it("shows an explicit reminder in review before the deadline and blocks publication once expired", () => {
