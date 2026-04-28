@@ -96,9 +96,15 @@ export class PublicLandingRepositoryApi implements IPublicLandingRepository {
       }
 
       const data = await response.json();
+      const active = Array.isArray(data?.active) ? data.active : [];
+      const upcoming = Array.isArray(data?.upcoming) ? data.upcoming : [];
       const results = Array.isArray(data?.results) ? data.results : [];
 
-      return results.map((event: any) => mapLandingEvent(event, 'FINALIZADA'));
+      return [
+        ...active.map((event: any) => mapLandingEvent(event, 'ACTIVA')),
+        ...upcoming.map((event: any) => mapLandingEvent(event, 'PROXIMA')),
+        ...results.map((event: any) => mapLandingEvent(event, 'FINALIZADA')),
+      ];
     } catch {
       return publicLandingRepositoryMock.getPastElections();
     }

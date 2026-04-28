@@ -127,15 +127,7 @@ const ResultCard: React.FC<{ result: Extract<PadronCheckResult, { kind: 'single'
             )}
           </div>
         </div>
-        <div className="mt-4 pt-4 border-t border-green-200">
-          <p className="text-xs text-green-600 flex items-start gap-2">
-            <InfoIcon className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            <span>
-              <strong>Nota de Privacidad:</strong> Por motivos de seguridad, no se muestran
-              datos personales sensibles en esta consulta pública.
-            </span>
-          </p>
-        </div>
+
       </div>
     );
   }
@@ -420,8 +412,7 @@ const PadronCheckModal: React.FC<PadronCheckModalProps> = ({ isOpen, onClose, ev
                 <strong>Importante:</strong> Esta consulta es pública y gratuita.
               </p>
               <p className="text-sm text-gray-600 mt-1">
-                Los datos del padrón electoral están protegidos según la normativa vigente.
-                Solo se mostrará tu estado de habilitación y mesa asignada.
+                Los datos del padrón electoral están protegidos.
               </p>
             </div>
           </div>

@@ -159,7 +159,7 @@ const WinnerCard: React.FC<{ candidate: Candidate; isReferendum?: boolean }> = (
       </div>
       <div className="flex-1">
         <h3 className="text-xl font-bold text-slate-800">{candidate.name}</h3>
-        <p className="text-slate-600">{candidate.party}</p>
+        {!isReferendum ? <p className="text-slate-600">{candidate.party}</p> : null}
         <div className="flex items-baseline gap-3 mt-2">
           <span className="text-3xl font-bold text-emerald-700">{candidate.percent}%</span>
           <span className="text-slate-500">{formatNumber(candidate.votes)} votos</span>
@@ -196,7 +196,7 @@ const TieCard: React.FC<{ candidates: Candidate[]; isReferendum?: boolean }> = (
         {candidates.map((candidate) => (
           <div key={candidate.id} className="rounded-xl border border-amber-200 bg-white p-4">
             <h4 className="font-semibold text-slate-800">{candidate.name}</h4>
-            <p className="text-sm text-slate-500">{candidate.party}</p>
+            {!isReferendum ? <p className="text-sm text-slate-500">{candidate.party}</p> : null}
             <div className="mt-2 flex items-baseline gap-3">
               <span className="text-2xl font-bold text-amber-700">{candidate.percent}%</span>
               <span className="text-slate-500">{formatNumber(candidate.votes)} votos</span>
@@ -277,7 +277,8 @@ const CandidateRow: React.FC<{
   candidate: Candidate;
   isLeading?: boolean;
   isPreliminary?: boolean;
-}> = ({ candidate, isLeading, isPreliminary }) => (
+  isReferendum?: boolean;
+}> = ({ candidate, isLeading, isPreliminary, isReferendum = false }) => (
   <div className={`py-4 ${isLeading ? "bg-emerald-50/50 -mx-4 px-4 rounded-lg" : ""}`}>
     <div className="flex items-center gap-4">
       <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 border-slate-200">
@@ -300,7 +301,9 @@ const CandidateRow: React.FC<{
             <CheckCircleIcon className="w-5 h-5 text-emerald-600 flex-shrink-0" />
           )}
         </div>
-        <p className="text-sm text-slate-500 truncate mb-2">{candidate.party}</p>
+        {!isReferendum ? (
+          <p className="text-sm text-slate-500 truncate mb-2">{candidate.party}</p>
+        ) : null}
 
         <div className="h-2.5 bg-slate-200 rounded-full overflow-hidden">
           <div
@@ -333,7 +336,8 @@ const VoteDistributionSection: React.FC<{
   winnerId: string | null;
   tiedCandidateIds?: string[];
   isPreliminary?: boolean;
-}> = ({ candidates, winnerId, tiedCandidateIds = [], isPreliminary }) => {
+  isReferendum?: boolean;
+}> = ({ candidates, winnerId, tiedCandidateIds = [], isPreliminary, isReferendum = false }) => {
   const sortedCandidates = candidates.filter(c => c.id !== 'blank').sort((a, b) => b.percent - a.percent);
   const tiedIds = new Set(tiedCandidateIds);
   const hasTie = tiedIds.size > 1;
@@ -356,6 +360,7 @@ const VoteDistributionSection: React.FC<{
             candidate={candidate}
             isLeading={hasTie ? tiedIds.has(candidate.id) : candidate.id === winnerId}
             isPreliminary={isPreliminary}
+            isReferendum={isReferendum}
           />
         ))}
       </div>
@@ -502,6 +507,7 @@ const PublicElectionDetailPage: React.FC = () => {
               candidates={election.results!.candidates}
               winnerId={hasTie ? null : election.winnerCandidateId}
               tiedCandidateIds={hasTie ? tiedCandidates.map((candidate) => candidate.id) : []}
+              isReferendum={election.isReferendum}
             />
             {blankVotesCandidate && (
               <div className="mt-6">
@@ -530,6 +536,7 @@ const PublicElectionDetailPage: React.FC = () => {
                   winnerId={null}
                   tiedCandidateIds={tiedCandidates.length > 1 ? tiedCandidates.map((candidate) => candidate.id) : []}
                   isPreliminary
+                  isReferendum={election.isReferendum}
                 />
                 {blankVotesCandidate && (
                   <div className="mt-6">
@@ -554,7 +561,7 @@ const PublicElectionDetailPage: React.FC = () => {
         <div className="mt-8 space-y-5">
           <div>
             <h2 className="text-2xl font-bold text-slate-800">
-              {election.isReferendum ? "Consulta" : "Papeleta Electoral"}
+              {election.isReferendum ? "Referéndum" : "Papeleta Electoral"}
             </h2>
             <p className="mt-1 text-slate-500">{ballotDescription}</p>
           </div>
@@ -566,48 +573,64 @@ const PublicElectionDetailPage: React.FC = () => {
             </div>
           ) : (
             <div className="grid gap-6 xl:grid-cols-2">
-              {election.ballotParties.map((party) => (
+              {election.ballotParties.map((party, index) => (
                 <div key={party.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                   <div className="h-2" style={{ backgroundColor: party.colorHex }} />
                   <div className="p-6">
-                    <div className="flex items-center gap-4 border-b border-slate-200 pb-5">
-                      {party.logoUrl ? (
-                        <img
-                          src={party.logoUrl}
-                          alt={party.name}
-                          className="h-16 w-16 rounded-xl object-cover border border-slate-200"
-                        />
-                      ) : (
-                        <div className="h-16 w-16 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 font-bold">
-                          {party.name.charAt(0)}
+                    {election.isReferendum ? (
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Opción {index + 1}
+                          </p>
+                          <h3 className="mt-1 text-xl font-semibold text-slate-800">
+                            {party.name}
+                          </h3>
                         </div>
-                      )}
-                      <h3 className="text-xl font-semibold text-slate-800">{party.name}</h3>
-                    </div>
-
-                    <div className="space-y-5 pt-5">
-                      {party.candidates.map((candidate) => (
-                        <div key={candidate.id} className="flex items-center gap-4">
-                          {candidate.photoUrl ? (
+                        <div className="h-6 w-6 rounded-full border-2 border-slate-300" />
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-4 border-b border-slate-200 pb-5">
+                          {party.logoUrl ? (
                             <img
-                              src={candidate.photoUrl}
-                              alt={candidate.fullName}
-                              className="h-16 w-16 rounded-full object-cover border-2 border-slate-200"
+                              src={party.logoUrl}
+                              alt={party.name}
+                              className="h-16 w-16 rounded-xl object-cover border border-slate-200"
                             />
                           ) : (
-                            <div className="h-16 w-16 rounded-full bg-slate-100 border-2 border-slate-200 flex items-center justify-center text-slate-500 font-bold">
-                              {candidate.fullName.charAt(0)}
+                            <div className="h-16 w-16 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 font-bold">
+                              {party.name.charAt(0)}
                             </div>
                           )}
-                          <div>
-                            <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                              {candidate.positionName}
-                            </p>
-                            <p className="text-xl font-semibold text-slate-800">{candidate.fullName}</p>
-                          </div>
+                          <h3 className="text-xl font-semibold text-slate-800">{party.name}</h3>
                         </div>
-                      ))}
-                    </div>
+
+                        <div className="space-y-5 pt-5">
+                          {party.candidates.map((candidate) => (
+                            <div key={candidate.id} className="flex items-center gap-4">
+                              {candidate.photoUrl ? (
+                                <img
+                                  src={candidate.photoUrl}
+                                  alt={candidate.fullName}
+                                  className="h-16 w-16 rounded-full object-cover border-2 border-slate-200"
+                                />
+                              ) : (
+                                <div className="h-16 w-16 rounded-full bg-slate-100 border-2 border-slate-200 flex items-center justify-center text-slate-500 font-bold">
+                                  {candidate.fullName.charAt(0)}
+                                </div>
+                              )}
+                              <div>
+                                <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                                  {candidate.positionName}
+                                </p>
+                                <p className="text-xl font-semibold text-slate-800">{candidate.fullName}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               ))}

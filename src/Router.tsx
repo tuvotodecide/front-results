@@ -1,7 +1,7 @@
 // Legacy React Router tree kept only for historical compatibility.
 // Production routing lives in Next App Router under src/app/**.
 import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { setAuth, selectIsLoggedIn } from "./store/auth/authSlice";
 import LoadingSkeleton from "./components/LoadingSkeleton";
@@ -76,6 +76,16 @@ const ActiveElectionStatusPage = React.lazy(() =>
   import("./features/electionConfig").then((m) => ({ default: m.ActiveElectionStatusPage }))
 );
 
+const LegacyPublicElectionRedirect: React.FC = () => {
+  const { electionId } = useParams();
+
+  if (!electionId) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <Navigate to={`/votacion/elecciones/${electionId}/publica`} replace />;
+};
+
 // Wrapper que decide entre Landing Público o Home según auth y modo
 const LandingOrHomeRoute: React.FC = () => {
   const isLoggedIn = useSelector(selectIsLoggedIn);
@@ -135,6 +145,14 @@ const AppRouter: React.FC = () => {
           {/* Detalle público de elección - resultados y estado */}
           <Route
             path="/elections/:electionId/public"
+            element={
+              <PublicLayout>
+                <LegacyPublicElectionRedirect />
+              </PublicLayout>
+            }
+          />
+          <Route
+            path="/votacion/elecciones/:electionId/publica"
             element={
               <PublicLayout>
                 <PublicElectionDetailPage />

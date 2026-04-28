@@ -10,6 +10,12 @@ interface ActivatedSuccessModalProps {
   publicUrl: string;
   shareText: string;
   onCopyLink: (url: string) => Promise<boolean>;
+  title?: string;
+  description?: string;
+  shareDialogTitle?: string;
+  shareButtonLabel?: string;
+  copyButtonLabel?: string;
+  closeLabel?: string;
 }
 
 const ActivatedSuccessModal: React.FC<ActivatedSuccessModalProps> = ({
@@ -18,6 +24,12 @@ const ActivatedSuccessModal: React.FC<ActivatedSuccessModalProps> = ({
   publicUrl,
   shareText,
   onCopyLink,
+  title = 'Publicación oficial confirmada',
+  description = 'Los votantes habilitados podrán verla según las fechas configuradas.',
+  shareDialogTitle = 'Votación activada',
+  shareButtonLabel = 'Compartir en redes sociales',
+  copyButtonLabel = 'Copiar Enlace',
+  closeLabel = 'Cerrar e ir al inicio',
 }) => {
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
@@ -35,7 +47,7 @@ const ActivatedSuccessModal: React.FC<ActivatedSuccessModalProps> = ({
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Votación activada',
+          title: shareDialogTitle,
           text: shareText,
           url: publicUrl,
         });
@@ -84,12 +96,12 @@ const ActivatedSuccessModal: React.FC<ActivatedSuccessModalProps> = ({
 
         {/* Título */}
         <h2 className="text-2xl font-bold text-[#459151] mb-3">
-          Publicación oficial confirmada
+          {title}
         </h2>
 
         {/* Descripción */}
         <p className="text-gray-600 mb-8 px-2">
-          Los votantes habilitados podrán verla según las fechas configuradas.
+          {description}
         </p>
 
         {/* Botones */}
@@ -107,7 +119,7 @@ const ActivatedSuccessModal: React.FC<ActivatedSuccessModalProps> = ({
                 Texto copiado
               </>
             ) : (
-              'Compartir en redes sociales'
+              shareButtonLabel
             )}
           </button>
 
@@ -126,7 +138,7 @@ const ActivatedSuccessModal: React.FC<ActivatedSuccessModalProps> = ({
               <rect x="9" y="9" width="13" height="13" rx="2" />
               <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
             </svg>
-            {copied ? 'Enlace copiado' : 'Copiar Enlace'}
+            {copied ? 'Enlace copiado' : copyButtonLabel}
           </button>
         </div>
 
@@ -136,7 +148,7 @@ const ActivatedSuccessModal: React.FC<ActivatedSuccessModalProps> = ({
           onClick={onClose}
           className="mt-6 text-sm text-gray-500 hover:text-gray-700 underline"
         >
-          Cerrar e ir al inicio
+          {closeLabel}
         </button>
       </div>
     </Modal2>

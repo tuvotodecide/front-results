@@ -31,13 +31,13 @@ import {
 } from "./renderUtils";
 import type { ConfigStep, PadronFile, Voter } from "./types";
 import {
-  useAddCurrentPadronVoterMutation,
   useAddPadronStagingEntryMutation,
   useDeletePadronStagingEntryMutation,
   useEnableCurrentPadronVoterMutation,
   useGetEventOptionsQuery,
   useGetEventReviewReadinessQuery,
   useGetEventRolesQuery,
+  useLazyDownloadPadronPdfQuery,
   useLazyGetPadronStagingQuery,
   useGetPadronStagingQuery,
   useGetPadronVotersQuery,
@@ -127,6 +127,7 @@ const ElectionConfigPadron: React.FC = () => {
   const [summaryModalState, setSummaryModalState] = useState<SummaryModalState>("none");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadSummaryJobId, setUploadSummaryJobId] = useState<string | null>(null);
+  const [downloadingPadronPdf, setDownloadingPadronPdf] = useState(false);
   const [observationsOpen, setObservationsOpen] = useState(false);
   const [recordModal, setRecordModal] = useState<RecordModalState>({ open: false });
   const [deleteCandidate, setDeleteCandidate] = useState<Voter | null>(null);
@@ -218,8 +219,8 @@ const ElectionConfigPadron: React.FC = () => {
   const [addPadronStagingEntry, { isLoading: addingEntry }] = useAddPadronStagingEntryMutation();
   const [updatePadronStagingEntry, { isLoading: updatingEntry }] = useUpdatePadronStagingEntryMutation();
   const [deletePadronStagingEntry, { isLoading: deletingEntry }] = useDeletePadronStagingEntryMutation();
-  const [addCurrentPadronVoter, { isLoading: addingCurrentPadronVoter }] = useAddCurrentPadronVoterMutation();
   const [enableCurrentPadronVoter] = useEnableCurrentPadronVoterMutation();
+  const [downloadPadronPdf] = useLazyDownloadPadronPdfQuery();
 
   const baseLoading = loadingEvent || loadingWorkflowSummary || loadingRoles || loadingOptions;
   const hasPositions = roles.length > 0;
@@ -232,7 +233,15 @@ const ElectionConfigPadron: React.FC = () => {
   const postCutoffReadOnly = isAfterPublishCutoffBeforeVoting(event, nowMs);
   const closedPadronReadOnly = hasVotingEnded(event, nowMs) || areResultsAvailable(event, nowMs);
   const officiallyPublished = isOfficiallyPublished(event);
-  const canAddLimitedPadronRecord = limitedPadronModeAllowed && !officiallyPublished;
+  const allowPostPublicationPadronEnable =
+    event?.allowPostPublicationPadronEnable !== false;
+  const canEnableExistingLimitedPadronVoters =
+    limitedPadronModeAllowed && allowPostPublicationPadronEnable;
+  const canDownloadPublishedPadronPdf = Boolean(
+    currentVersion &&
+    event &&
+    (officiallyPublished || isDuringVotingWindow(event, nowMs) || closedPadronReadOnly),
+  );
 
   const stagingFile: PadronFile | null = activeDraft
     ? {
@@ -667,6 +676,33 @@ const ElectionConfigPadron: React.FC = () => {
     replaceFileInputRef.current?.click();
   };
 
+  const handleDownloadPadronPdf = async () => {
+    if (!actualElectionId) return;
+
+    try {
+      setError(null);
+      setDownloadingPadronPdf(true);
+      const result = await downloadPadronPdf({
+        eventId: actualElectionId,
+        padronVersionId: currentVersion?.padronVersionId,
+      }).unwrap();
+      const url = window.URL.createObjectURL(result.blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = result.fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (downloadError: any) {
+      setError(
+        getRequestErrorMessage(downloadError, "No se pudo descargar el padrón en PDF."),
+      );
+    } finally {
+      setDownloadingPadronPdf(false);
+    }
+  };
+
   const handleReplaceFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
@@ -678,17 +714,9 @@ const ElectionConfigPadron: React.FC = () => {
   const handleSaveRecord = async (payload: { ci: string; enabled: boolean }) => {
     try {
       if (limitedPadronModeAllowed) {
-        setCurrentPadronActionVoterId("__create__");
-        await addCurrentPadronVoter({
-          eventId: actualElectionId,
-          carnet: payload.ci,
-          enabled: true,
-        }).unwrap();
-        setRecordModal({ open: false });
-        setSuccess("Votante habilitado agregado al padrón vigente.");
-        await refetchCurrentVoters();
-        setCurrentPadronActionVoterId(null);
-        return;
+        throw new Error(
+          "Después de la publicación oficial ya no se pueden agregar nuevos registros al padrón vigente.",
+        );
       }
 
       if (recordModal.open && recordModal.mode === "edit" && recordModal.voter) {
@@ -724,6 +752,13 @@ const ElectionConfigPadron: React.FC = () => {
       setError(null);
 
       if (limitedPadronModeAllowed) {
+        if (!canEnableExistingLimitedPadronVoters) {
+          setError(
+            "La habilitación manual desde la tabla está desactivada para esta votación.",
+          );
+          return;
+        }
+
         if (voter.enabled || !nextEnabled) {
           return;
         }
@@ -877,13 +912,15 @@ const ElectionConfigPadron: React.FC = () => {
           </div>
 
           <p className="mb-6 text-gray-600">
-            Paso 3 de 3: Gestiona el padrón de la elección según la etapa actual.
+            {event?.isReferendum
+              ? "Paso 2 de 2: Gestiona el padrón de la consulta según la etapa actual."
+              : "Paso 3 de 3: Gestiona el padrón de la elección según la etapa actual."}
           </p>
           {limitedPadronModeAllowed ? (
             <div className="mb-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-              {officiallyPublished && !isDuringVotingWindow(event, nowMs)
+              {canEnableExistingLimitedPadronVoters
                 ? "La publicación oficial ya fue confirmada. Desde aquí solo se permite habilitar votantes deshabilitados del padrón vigente."
-                : "La votación está activa. En esta etapa solo se permite agregar nuevos habilitados y habilitar votantes ya existentes que estén deshabilitados."}
+                : "La publicación oficial ya fue confirmada. El padrón vigente queda en solo lectura porque la habilitación manual está desactivada para esta votación."}
             </div>
           ) : null}
 
@@ -945,14 +982,14 @@ const ElectionConfigPadron: React.FC = () => {
               searchValue={searchTerm}
               onPageChange={setPage}
               onSearchChange={setSearchTerm}
-              onAddRecord={
-                canAddLimitedPadronRecord
-                  ? () => setRecordModal({ open: true, mode: "create" })
+              onEnableVoter={
+                canEnableExistingLimitedPadronVoters
+                  ? (voter) => void handleToggleEnabled(voter, true)
                   : undefined
               }
-              onEnableVoter={(voter) => void handleToggleEnabled(voter, true)}
               enablingVoterId={currentPadronActionVoterId}
-              addRecordLabel="Agregar habilitado"
+              onDownloadPdf={canDownloadPublishedPadronPdf ? () => void handleDownloadPadronPdf() : undefined}
+              downloadingPdf={downloadingPadronPdf}
               loading={fetchingCurrentVoters}
               readOnly
             />
@@ -1007,6 +1044,8 @@ const ElectionConfigPadron: React.FC = () => {
               onPageChange={setPage}
               onSearchChange={setSearchTerm}
               onReplaceFile={handleReplaceFile}
+              onDownloadPdf={canDownloadPublishedPadronPdf ? () => void handleDownloadPadronPdf() : undefined}
+              downloadingPdf={downloadingPadronPdf}
               loading={fetchingCurrentVoters}
               readOnly={!fullPadronEditingEnabled}
             />
@@ -1111,10 +1150,10 @@ const ElectionConfigPadron: React.FC = () => {
         enabledLocked={limitedPadronModeAllowed && recordModal.open && recordModal.mode === "create"}
         enabledHelperText={
           limitedPadronModeAllowed && recordModal.open && recordModal.mode === "create"
-            ? "En el modo limitado solo se permite agregar nuevos votantes ya habilitados."
+            ? "Después de la publicación oficial ya no se pueden agregar nuevos registros desde esta vista."
             : undefined
         }
-        isLoading={addingEntry || updatingEntry || addingCurrentPadronVoter}
+        isLoading={addingEntry || updatingEntry}
         onClose={() => setRecordModal({ open: false })}
         onSubmit={handleSaveRecord}
       />

@@ -20,7 +20,8 @@ import {
   hasDraftAlreadyStarted,
   hasVotingEnded,
   isDuringVotingWindow,
-  REFERENDUM_OPTION_LABEL,
+  REFERENDUM_DEFAULT_COLORS,
+  REFERENDUM_TECHNICAL_ROLE,
   stableCreatedAt,
   useClientNow,
 } from './renderUtils';
@@ -97,6 +98,51 @@ const partyHasCompleteCandidates = (
   );
 };
 
+const buildReferendumPlaceholderImage = (label: string, color: string) => {
+  const initial = String(label || 'O').trim().charAt(0).toUpperCase() || 'O';
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+      <rect width="96" height="96" rx="20" fill="${color}" />
+      <text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="38" font-weight="700" fill="#ffffff">
+        ${initial}
+      </text>
+    </svg>
+  `;
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+};
+
+const getReferendumOptionColors = (
+  optionIndex: number,
+  existingColors?: string[],
+) => {
+  if (Array.isArray(existingColors) && existingColors.length > 0) {
+    return existingColors;
+  }
+
+  return [REFERENDUM_DEFAULT_COLORS[optionIndex % REFERENDUM_DEFAULT_COLORS.length]];
+};
+
+const buildReferendumCandidates = (
+  optionName: string,
+  positions: Position[],
+  optionColors: string[],
+) => {
+  const roles = positions.length > 0 ? positions : [{
+    id: REFERENDUM_TECHNICAL_ROLE,
+    name: REFERENDUM_TECHNICAL_ROLE,
+    electionId: '',
+    createdAt: '',
+  }];
+  const fallbackPhoto = buildReferendumPlaceholderImage(optionName, optionColors[0] || '#2563EB');
+
+  return roles.map((position) => ({
+    name: optionName,
+    photoUrl: fallbackPhoto,
+    roleName: position.name || REFERENDUM_TECHNICAL_ROLE,
+  }));
+};
+
 // Popover de información para Planchas
 const PlanchasInfoPopover: React.FC<{
   className?: string;
@@ -126,7 +172,9 @@ const PlanchasInfoPopover: React.FC<{
           <div className="absolute left-0 top-full mt-2 z-50 w-72 sm:w-80">
             <div className="bg-[#d4edda] border border-[#c3e6cb] rounded-lg shadow-lg p-4">
               <div className="flex items-start justify-between mb-3">
-                <h4 className="font-semibold text-gray-800">¿Qué son las planchas?</h4>
+                <h4 className="font-semibold text-gray-800">
+                  {isReferendum ? '¿Cómo se registran las opciones?' : '¿Qué son las planchas?'}
+                </h4>
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
@@ -139,12 +187,12 @@ const PlanchasInfoPopover: React.FC<{
               </div>
               <p className="text-sm text-gray-700 mb-3">
                 {isReferendum
-                  ? 'Cada opción de la consulta muestra una respuesta visible en la papeleta.'
+                  ? 'Cada opción se registra una sola vez y se muestra directamente en la papeleta.'
                   : 'Una plancha/partido agrupa candidatos por cada cargo definido (Ej: Presidente, Vicepresidente).'}
               </p>
               <p className="text-sm text-gray-600 italic">
                 {isReferendum
-                  ? 'Crea una opción y luego completa su respuesta con nombre y foto.'
+                  ? 'Solo necesitas agregar el texto visible de cada opción.'
                   : 'Crea el partido y luego asigna candidatos para cada cargo.'}
               </p>
             </div>
@@ -232,6 +280,7 @@ const ElectionConfigPlanchas: React.FC = () => {
   };
 
   const handleEditCandidates = (party: PartyWithCandidates) => {
+    if (isReferendum) return;
     setCurrentPartyForCandidates(hydratePartyCandidates(party, positions));
     setIsCandidatesModalOpen(true);
     setError(null);
@@ -240,17 +289,43 @@ const ElectionConfigPlanchas: React.FC = () => {
   const handleSaveParty = async (data: CreatePartyPayload): Promise<Party> => {
     setError(null);
     try {
+      const isReferendumFlow = Boolean(event?.isReferendum);
+      const matchedPartyIndex = editingParty
+        ? parties.findIndex((party) => party.id === editingParty.id)
+        : -1;
+      const optionIndex = matchedPartyIndex >= 0 ? matchedPartyIndex : parties.length;
+      const optionColors = isReferendumFlow
+        ? Array.isArray(data.colors) && data.colors.length > 0
+          ? data.colors
+          : getReferendumOptionColors(optionIndex, editingParty?.colors)
+        : data.colors ?? [data.colorHex];
+      const optionColor = optionColors[0];
+
       if (editingParty) {
         const updated = await updateOption({
           eventId: actualElectionId,
           optionId: editingParty.id,
           data: {
             name: data.name,
-            color: data.colorHex,
-            colors: data.colors,
-            logoUrl: data.logoBase64, // Backend debería aceptar base64 o URL
+            color: isReferendumFlow ? optionColor : data.colorHex,
+            colors: optionColors,
+            logoUrl: isReferendumFlow ? undefined : data.logoBase64,
           },
         }).unwrap();
+
+        if (isReferendumFlow) {
+          const referendumCandidates = buildReferendumCandidates(
+            updated.name,
+            positions,
+            optionColors,
+          );
+
+          await replaceCandidates({
+            eventId: actualElectionId,
+            optionId: editingParty.id,
+            data: { candidates: referendumCandidates },
+          }).unwrap();
+        }
 
         setIsPartyModalOpen(false);
         return {
@@ -267,28 +342,41 @@ const ElectionConfigPlanchas: React.FC = () => {
           eventId: actualElectionId,
           data: {
             name: data.name,
-            color: data.colorHex,
-            colors: data.colors,
-            logoUrl: data.logoBase64,
+            color: isReferendumFlow ? optionColor : data.colorHex,
+            colors: optionColors,
+            logoUrl: isReferendumFlow ? undefined : data.logoBase64,
             candidates: [], // Sin candidatos inicialmente
           },
         }).unwrap();
 
-        setIsPartyModalOpen(false);
+        if (isReferendumFlow) {
+          const referendumCandidates = buildReferendumCandidates(
+            created.name,
+            positions,
+            optionColors,
+          );
 
-        // Abrir modal de candidatos para el nuevo partido
-        const newPartyWithCandidates: PartyWithCandidates = {
-          id: created.id,
-          electionId: created.eventId,
-          name: created.name,
-          colorHex: created.color,
-          colors: getOptionColors(created),
-          logoUrl: created.logoUrl,
-          createdAt: stableCreatedAt(created.createdAt),
-          candidates: [],
-        };
-        setCurrentPartyForCandidates(newPartyWithCandidates);
-        setIsCandidatesModalOpen(true);
+          await replaceCandidates({
+            eventId: actualElectionId,
+            optionId: created.id,
+            data: { candidates: referendumCandidates },
+          }).unwrap();
+          setIsPartyModalOpen(false);
+        } else {
+          setIsPartyModalOpen(false);
+          const newPartyWithCandidates: PartyWithCandidates = {
+            id: created.id,
+            electionId: created.eventId,
+            name: created.name,
+            colorHex: created.color,
+            colors: getOptionColors(created),
+            logoUrl: created.logoUrl,
+            createdAt: stableCreatedAt(created.createdAt),
+            candidates: [],
+          };
+          setCurrentPartyForCandidates(newPartyWithCandidates);
+          setIsCandidatesModalOpen(true);
+        }
 
         return {
           id: created.id,
@@ -301,7 +389,7 @@ const ElectionConfigPlanchas: React.FC = () => {
         };
       }
     } catch (err: any) {
-      setError(getRequestErrorMessage(err, 'Error al guardar el partido'));
+      setError(getRequestErrorMessage(err, isReferendum ? 'Error al guardar la opción' : 'Error al guardar el partido'));
       throw err;
     }
   };
@@ -343,7 +431,7 @@ const ElectionConfigPlanchas: React.FC = () => {
       }).unwrap();
       setDeleteConfirm(null);
     } catch (err: any) {
-      setError(getRequestErrorMessage(err, 'Error al eliminar el partido'));
+      setError(getRequestErrorMessage(err, isReferendum ? 'Error al eliminar la opción' : 'Error al eliminar el partido'));
     }
   };
 
@@ -351,7 +439,7 @@ const ElectionConfigPlanchas: React.FC = () => {
     if (!hasMinimumCompleteParties) {
       setError(
         isReferendum
-          ? `Debes registrar al menos una opción y completar su ${REFERENDUM_OPTION_LABEL.toLowerCase()} con nombre y foto antes de continuar.`
+          ? 'Debes registrar al menos una opción antes de continuar.'
           : 'Debes registrar al menos un partido y completar todos sus candidatos con nombre y foto antes de continuar.',
       );
       return;
@@ -385,18 +473,24 @@ const ElectionConfigPlanchas: React.FC = () => {
   if (event && !canEditElectionBeforeCutoff(event, nowMs)) {
     const message =
       event.status === 'PUBLICATION_EXPIRED' || event.state === 'PUBLICATION_EXPIRED'
-        ? 'La publicación oficial venció. Las planchas ya no deben modificarse.'
+        ? `La publicación oficial venció. ${isReferendum ? 'Las opciones' : 'Las planchas'} ya no deben modificarse.`
         : event.status === 'OFFICIALLY_PUBLISHED' || event.state === 'OFFICIALLY_PUBLISHED'
-          ? 'La publicación oficial ya fue confirmada. Las planchas y candidatos quedan bloqueados y no pueden volver a editarse.'
+          ? isReferendum
+            ? 'La publicación oficial ya fue confirmada. Las opciones quedan bloqueadas y no pueden volver a editarse.'
+            : 'La publicación oficial ya fue confirmada. Las planchas y candidatos quedan bloqueados y no pueden volver a editarse.'
         : isDuringVotingWindow(event, nowMs)
-          ? 'Durante la votación ya no se pueden modificar planchas ni candidatos.'
-          : hasVotingEnded(event, nowMs) || areResultsAvailable(event, nowMs)
-            ? 'La votación ya finalizó y las planchas quedan en solo lectura.'
-            : 'Ya faltan menos de 6 horas para el inicio. Las planchas quedan en solo lectura.';
+          ? isReferendum
+            ? 'Durante la votación ya no se pueden modificar las opciones de la consulta.'
+            : 'Durante la votación ya no se pueden modificar planchas ni candidatos.'
+        : hasVotingEnded(event, nowMs) || areResultsAvailable(event, nowMs)
+            ? isReferendum
+              ? 'La votación ya finalizó y las opciones quedan en solo lectura.'
+              : 'La votación ya finalizó y las planchas quedan en solo lectura.'
+            : `Ya faltan menos de 6 horas para el inicio. ${isReferendum ? 'Las opciones' : 'Las planchas'} quedan en solo lectura.`;
 
     return (
       <ConfigPageFallback
-        title="Planchas bloqueadas"
+        title={isReferendum ? 'Opciones bloqueadas' : 'Planchas bloqueadas'}
         message={message}
         actionLabel="Volver al estado"
         onAction={() => navigate(`/votacion/elecciones/${actualElectionId}/status`)}
@@ -407,7 +501,7 @@ const ElectionConfigPlanchas: React.FC = () => {
   if (eventLoadFailed || rolesLoadFailed || optionsLoadFailed || padronLoadFailed) {
     return (
       <ConfigPageFallback
-        title="No se pudo cargar Planchas"
+        title={isReferendum ? 'No se pudieron cargar las opciones' : 'No se pudo cargar Planchas'}
         message="Alguno de los datos necesarios para este paso falló al cargar. Reintenta antes de continuar."
         actionLabel="Reintentar"
         onAction={() => {
@@ -478,7 +572,7 @@ const ElectionConfigPlanchas: React.FC = () => {
           <div className="flex items-center gap-2 mb-6">
             <p className="text-gray-600">
               {isReferendum
-                ? 'Paso 2 de 3: Agrega opciones y respuestas.'
+                ? 'Paso 1 de 2: Configura las opciones de la consulta.'
                 : 'Paso 2 de 3: Agrega partidos y candidatos.'}
             </p>
             <PlanchasInfoPopover isReferendum={isReferendum} />
@@ -487,7 +581,7 @@ const ElectionConfigPlanchas: React.FC = () => {
           {!hasMinimumCompleteParties && (
             <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
               {isReferendum
-                ? `Debes registrar al menos una opción y completar su ${REFERENDUM_OPTION_LABEL.toLowerCase()} con nombre y foto para continuar al padrón.`
+                ? 'Debes registrar al menos una opción para continuar al padrón.'
                 : 'Debes registrar al menos un partido y completar todos los cargos con nombre y foto para continuar al padrón.'}
             </div>
           )}
@@ -520,7 +614,7 @@ const ElectionConfigPlanchas: React.FC = () => {
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
-              {isReferendum ? 'Crear opción' : 'Crear Partido'}
+              {isReferendum ? 'Agregar opción' : 'Crear Partido'}
             </button>
           </div>
         </div>
@@ -564,21 +658,22 @@ const ElectionConfigPlanchas: React.FC = () => {
         isReferendum={isReferendum}
       />
 
-      {/* Modal Gestión de Candidatos */}
-      <CandidatesModal
-        isOpen={isCandidatesModalOpen}
-        onClose={() => {
-          setIsCandidatesModalOpen(false);
-          setCurrentPartyForCandidates(null);
-        }}
-        onSave={handleSaveCandidates}
-        isLoading={savingCandidates}
-        positions={positions}
-        existingCandidates={currentPartyForCandidates?.candidates || []}
-        partyName={currentPartyForCandidates?.name}
-        submitError={error}
-        isReferendum={isReferendum}
-      />
+      {!isReferendum ? (
+        <CandidatesModal
+          isOpen={isCandidatesModalOpen}
+          onClose={() => {
+            setIsCandidatesModalOpen(false);
+            setCurrentPartyForCandidates(null);
+          }}
+          onSave={handleSaveCandidates}
+          isLoading={savingCandidates}
+          positions={positions}
+          existingCandidates={currentPartyForCandidates?.candidates || []}
+          partyName={currentPartyForCandidates?.name}
+          submitError={error}
+          isReferendum={isReferendum}
+        />
+      ) : null}
 
       {/* Modal Confirmar Eliminación */}
       <Modal2
@@ -596,7 +691,7 @@ const ElectionConfigPlanchas: React.FC = () => {
           </p>
           <p className="text-sm text-gray-500">
             {isReferendum
-              ? 'Se eliminará también la respuesta configurada. Esta acción no se puede deshacer.'
+              ? 'Se eliminará también la configuración interna asociada a esta opción. Esta acción no se puede deshacer.'
               : 'Se eliminarán también todos los candidatos asignados. Esta acción no se puede deshacer.'}
           </p>
           <div className="flex justify-end gap-3 pt-2">

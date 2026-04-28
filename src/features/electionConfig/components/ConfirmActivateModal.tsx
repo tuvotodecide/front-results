@@ -56,8 +56,8 @@ const ConfirmActivateModal: React.FC<ConfirmActivateModalProps> = ({
         {/* Descripción */}
         <p className="text-gray-600 mb-8 px-4">
           {isReferendum
-            ? 'Esta acción publica oficialmente la consulta y bloquea los cambios estructurales en la configuración, las opciones y el padrón. Revisa la configuración antes de continuar.'
-            : 'Esta acción publica oficialmente la elección y bloquea los cambios estructurales en cargos, planchas y padrón. Revisa la configuración antes de continuar.'}
+            ? 'Esta acción publica oficialmente el referéndum y no podrás realizar más cambios.'
+            : 'Esta acción publica oficialmente la elección y no podrás realizar más cambios.'}
         </p>
 
         {/* Botones */}

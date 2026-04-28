@@ -66,7 +66,7 @@ const ActiveElectionsSection: React.FC<ActiveElectionsSectionProps> = ({
   };
 
   const handleViewElection = (electionId: string) => {
-    navigate(`/elections/${electionId}/public`);
+    navigate(`/votacion/elecciones/${electionId}/publica`);
   };
 
   return (

@@ -293,7 +293,7 @@ const ElectionsPage: React.FC = () => {
               )}
               {publicationReminderActive && event.publishDeadline && (
                 <p className="mt-4 text-sm text-amber-800">
-                  Recuerda confirmar la publicación oficial antes del {formatDateTimeForUi(event.publishDeadline)}. Si el plazo vence, la elección quedará caducada y ya no podrá publicarse.
+                  Recuerda confirmar la publicación oficial antes del {formatDateTimeForUi(event.publishDeadline)}  
                 </p>
               )}
               {expiredElection && (

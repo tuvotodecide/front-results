@@ -192,7 +192,7 @@ export const createMockElectionPublishRepository = (): ElectionPublishRepository
         }
       } catch {}
 
-      const publicUrl = `${window.location.origin}/votar/${electionId}`;
+      const publicUrl = `${window.location.origin}/votacion/elecciones/${electionId}/publica`;
       const shareText = `¡Participa en las elecciones! Vota aquí: ${publicUrl}`;
 
       return {

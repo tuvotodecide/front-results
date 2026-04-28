@@ -1,22 +1,22 @@
 // Página de revisión final antes de publicar la elección
 // Basado en capturas 01-04
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from "react";
 import {
   useNavigate,
   useParams,
-} from '@/domains/votacion/navigation/compat-private';
-import PhoneMockup from './components/PhoneMockup';
-import BallotPreview from './components/BallotPreview';
-import ConfigSummaryCard from './components/ConfigSummaryCard';
-import ScheduleSummaryCard from './components/ScheduleSummaryCard';
-import ConfirmActivateModal from './components/ConfirmActivateModal';
-import ActivatedSuccessModal from './components/ActivatedSuccessModal';
-import CreateNewsModal from './components/CreateNewsModal';
-import { useElectionPublish } from './data/useElectionPublish';
-import Modal2 from '../../components/Modal2';
-import ConfigPageFallback from './components/ConfigPageFallback';
-import { getRequestErrorMessage } from './requestErrorMessage';
+} from "@/domains/votacion/navigation/compat-private";
+import PhoneMockup from "./components/PhoneMockup";
+import BallotPreview from "./components/BallotPreview";
+import ConfigSummaryCard from "./components/ConfigSummaryCard";
+import ScheduleSummaryCard from "./components/ScheduleSummaryCard";
+import ConfirmActivateModal from "./components/ConfirmActivateModal";
+import ActivatedSuccessModal from "./components/ActivatedSuccessModal";
+import CreateNewsModal from "./components/CreateNewsModal";
+import { useElectionPublish } from "./data/useElectionPublish";
+import Modal2 from "../../components/Modal2";
+import ConfigPageFallback from "./components/ConfigPageFallback";
+import { getRequestErrorMessage } from "./requestErrorMessage";
 import {
   addMinutesToLocalDateTime,
   canEditElectionBeforeCutoff,
@@ -30,39 +30,39 @@ import {
   toLocalDateTimeValue,
   useClientNow,
   validateScheduleFieldErrors,
-} from './renderUtils';
+} from "./renderUtils";
 import {
   useCreateEventNewsMutation,
   useCreatePresentialSessionMutation,
   useDeleteVotingEventMutation,
   useUpdateEventScheduleMutation,
   useUpdateVotingEventMutation,
-} from '../../store/votingEvents';
+} from "../../store/votingEvents";
 
 const basePendingLabels: Record<string, string> = {
-  datos_base: 'Datos base de la votación',
-  horarios: 'Cronograma completo y válido',
+  datos_base: "Datos base de la votación",
+  horarios: "Cronograma completo y válido",
   publish_deadline: `Ventana de publicación de ${PRE_PUBLICATION_CUTOFF_HOURS} horas`,
-  cargos: 'Cargos configurados',
-  opciones: 'Planchas registradas',
-  candidatos: 'Candidatos asignados',
-  candidatos_invalidos: 'Candidatos configurados correctamente',
-  cobertura_cargos: 'Cobertura completa de cargos',
-  padron: 'Padrón cargado',
-  padron_invalid: 'Padrón sin errores de registro',
-  padron_validation: 'Padrón listo para revisión',
-  publication_window_expired: 'La ventana de publicación oficial venció',
+  cargos: "Cargos configurados",
+  opciones: "Planchas registradas",
+  candidatos: "Candidatos asignados",
+  candidatos_invalidos: "Candidatos configurados correctamente",
+  cobertura_cargos: "Cobertura completa de cargos",
+  padron: "Padrón cargado",
+  padron_invalid: "Padrón sin errores de registro",
+  padron_validation: "Padrón listo para revisión",
+  publication_window_expired: "La ventana de publicación oficial venció",
 };
 
 const getPendingLabel = (key: string, isReferendum: boolean) => {
   if (!isReferendum) return basePendingLabels[key] ?? key;
 
   const referendumLabels: Record<string, string> = {
-    cargos: 'Consulta lista',
-    opciones: 'Opciones registradas',
-    candidatos: 'Opciones configuradas',
-    candidatos_invalidos: 'Opciones configuradas correctamente',
-    cobertura_cargos: 'Consulta completa',
+    cargos: "Consulta lista",
+    opciones: "Opciones registradas",
+    candidatos: "Opciones listas para la papeleta",
+    candidatos_invalidos: "Opciones válidas",
+    cobertura_cargos: "Consulta completa",
   };
 
   return referendumLabels[key] ?? basePendingLabels[key] ?? key;
@@ -71,7 +71,7 @@ const getPendingLabel = (key: string, isReferendum: boolean) => {
 const ElectionConfigReview: React.FC = () => {
   const navigate = useNavigate();
   const { electionId } = useParams<{ electionId: string }>();
-  const actualElectionId = electionId || '';
+  const actualElectionId = electionId || "";
   const nowMs = useClientNow();
 
   const {
@@ -85,15 +85,20 @@ const ElectionConfigReview: React.FC = () => {
     activateElection,
     activating,
     activationResult,
+    getShareUrl,
     copyToClipboard,
     refetch,
   } = useElectionPublish(actualElectionId);
-  const [deleteVotingEvent, { isLoading: deletingEvent }] = useDeleteVotingEventMutation();
-  const [updateEventSchedule, { isLoading: updatingSchedule }] = useUpdateEventScheduleMutation();
-  const [updateVotingEvent, { isLoading: updatingPresentialOption }] = useUpdateVotingEventMutation();
+  const [deleteVotingEvent, { isLoading: deletingEvent }] =
+    useDeleteVotingEventMutation();
+  const [updateEventSchedule, { isLoading: updatingSchedule }] =
+    useUpdateEventScheduleMutation();
+  const [updateVotingEvent, { isLoading: updatingPresentialOption }] =
+    useUpdateVotingEventMutation();
   const [createPresentialSession, { isLoading: enablingPresentialOption }] =
     useCreatePresentialSessionMutation();
-  const [createEventNews, { isLoading: creatingNews }] = useCreateEventNewsMutation();
+  const [createEventNews, { isLoading: creatingNews }] =
+    useCreateEventNewsMutation();
   const didRefetchOnMount = useRef(false);
 
   useEffect(() => {
@@ -107,18 +112,23 @@ const ElectionConfigReview: React.FC = () => {
     setScheduleForm({
       votingStart: votingEvent?.votingStart
         ? toLocalDateTimeValue(new Date(votingEvent.votingStart))
-        : '',
+        : "",
       votingEnd: votingEvent?.votingEnd
         ? toLocalDateTimeValue(new Date(votingEvent.votingEnd))
-        : '',
+        : "",
       resultsPublishAt: votingEvent?.resultsPublishAt
         ? toLocalDateTimeValue(new Date(votingEvent.resultsPublishAt))
-        : '',
+        : "",
     });
-  }, [votingEvent?.resultsPublishAt, votingEvent?.votingEnd, votingEvent?.votingStart]);
+  }, [
+    votingEvent?.resultsPublishAt,
+    votingEvent?.votingEnd,
+    votingEvent?.votingStart,
+  ]);
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showPadronShareModal, setShowPadronShareModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [isNewsModalOpen, setIsNewsModalOpen] = useState(false);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
@@ -126,12 +136,20 @@ const ElectionConfigReview: React.FC = () => {
   const [scheduleSuccess, setScheduleSuccess] = useState<string | null>(null);
   const [newsSuccess, setNewsSuccess] = useState<string | null>(null);
   const [newsError, setNewsError] = useState<string | null>(null);
-  const [presentialMessage, setPresentialMessage] = useState<string | null>(null);
+  const [presentialMessage, setPresentialMessage] = useState<string | null>(
+    null,
+  );
   const [presentialError, setPresentialError] = useState<string | null>(null);
+  const [padronShareUrl, setPadronShareUrl] = useState("");
+  const [padronShareText, setPadronShareText] = useState("");
+
+  const [padronLimitedError, setPadronLimitedError] = useState<string | null>(
+    null,
+  );
   const [scheduleForm, setScheduleForm] = useState({
-    votingStart: '',
-    votingEnd: '',
-    resultsPublishAt: '',
+    votingStart: "",
+    votingEnd: "",
+    resultsPublishAt: "",
   });
   const minimumVotingStartValue = getMinimumLocalDateTime(
     PRE_PUBLICATION_CUTOFF_MS,
@@ -139,7 +157,9 @@ const ElectionConfigReview: React.FC = () => {
   );
 
   const isReadyToPublish = configSummary
-    ? configSummary.positionsOk && configSummary.partiesOk && configSummary.padronOk
+    ? configSummary.positionsOk &&
+      configSummary.partiesOk &&
+      configSummary.padronOk
     : false;
 
   const handleBackToEdit = () => {
@@ -153,16 +173,24 @@ const ElectionConfigReview: React.FC = () => {
   const handleOpenReview = async () => {
     try {
       await openReview();
+      if (votingEvent?.publicEligibilityEnabled) {
+        const publicUrl = await getShareUrl();
+        setPadronShareUrl(publicUrl);
+        setPadronShareText(
+          `Consulta si estás habilitado para votar aquí: ${publicUrl}`,
+        );
+        setShowPadronShareModal(true);
+      }
     } catch (error: any) {
       setShowErrorModal(true);
-      console.error('Error opening review:', error);
+      console.error("Error opening review:", error);
     }
   };
 
   const handleActivate = async () => {
     try {
       if (!votingEvent) {
-        throw new Error('Could not load voting event data');
+        throw new Error("Could not load voting event data");
       }
       await activateElection();
       setShowConfirmModal(false);
@@ -170,53 +198,63 @@ const ElectionConfigReview: React.FC = () => {
     } catch (error: any) {
       setShowConfirmModal(false);
       setShowErrorModal(true);
-      console.error('Error activating election:', error);
+      console.error("Error activating election:", error);
     }
   };
 
   const handleSuccessClose = () => {
     setShowSuccessModal(false);
     // Navegar al dashboard o detalle de la elección
-    navigate('/votacion/elecciones');
+    navigate("/votacion/elecciones");
   };
 
   const handleDeleteExpired = async () => {
     if (!actualElectionId) return;
     await deleteVotingEvent(actualElectionId).unwrap();
-    navigate('/votacion/elecciones');
+    navigate("/votacion/elecciones");
   };
 
   const isPublishButtonDisabled = () => {
     return (
-      !isReadyToPublish || activating || reviewReadiness?.publicationWindow?.expired
+      !isReadyToPublish ||
+      activating ||
+      reviewReadiness?.publicationWindow?.expired
     );
-  }
+  };
 
-  const eventState = votingEvent?.state ?? votingEvent?.status ?? 'DRAFT';
-  const fullElectionEditingEnabled = canEditElectionBeforeCutoff(votingEvent, nowMs);
+  const eventState = votingEvent?.state ?? votingEvent?.status ?? "DRAFT";
+  const fullElectionEditingEnabled = canEditElectionBeforeCutoff(
+    votingEvent,
+    nowMs,
+  );
   const votingInProgress = isDuringVotingWindow(votingEvent, nowMs);
   const votingClosed = hasVotingEnded(votingEvent, nowMs);
   const scheduleEditable = canEditElectionBeforeCutoff(votingEvent, nowMs);
-  const canOpenReview = eventState === 'DRAFT' && isReadyToPublish && reviewReadiness?.isReady;
+  const canOpenReview =
+    eventState === "DRAFT" && isReadyToPublish && reviewReadiness?.isReady;
   const canConfirmOfficialPublication =
-    eventState === 'READY_FOR_REVIEW' &&
+    eventState === "READY_FOR_REVIEW" &&
     isReadyToPublish &&
     reviewReadiness?.publicationWindow?.canConfirmOfficialPublication;
   const reviewAlreadyNotified =
-    eventState === 'READY_FOR_REVIEW' ||
-    eventState === 'PUBLISHED' ||
-    eventState === 'OFFICIALLY_PUBLISHED' ||
+    eventState === "READY_FOR_REVIEW" ||
+    eventState === "PUBLISHED" ||
+    eventState === "OFFICIALLY_PUBLISHED" ||
     votingInProgress ||
     votingClosed;
   const isPublicationExpired =
-    eventState === 'PUBLICATION_EXPIRED' || Boolean(reviewReadiness?.publicationWindow?.expired);
+    eventState === "PUBLICATION_EXPIRED" ||
+    Boolean(reviewReadiness?.publicationWindow?.expired);
   const presentialKioskEnabled = Boolean(votingEvent?.presentialKioskEnabled);
   const canChangePresentialOption =
     fullElectionEditingEnabled &&
     !isPublicationExpired &&
     !votingInProgress &&
     !votingClosed;
-  const savingPresentialOption = updatingPresentialOption || enablingPresentialOption;
+  const allowPostPublicationPadronEnable =
+    votingEvent?.allowPostPublicationPadronEnable !== false;
+  const savingPresentialOption =
+    updatingPresentialOption || enablingPresentialOption;
   const scheduleFieldErrors = validateScheduleFieldErrors(scheduleForm, {
     nowMs: nowMs ?? Date.now(),
     minimumStartLeadMs: PRE_PUBLICATION_CUTOFF_MS,
@@ -224,11 +262,16 @@ const ElectionConfigReview: React.FC = () => {
   });
   const hasScheduleFieldErrors = Object.keys(scheduleFieldErrors).length > 0;
   const publicationDeadlineLabel = formatDateTimeForUi(
-    reviewReadiness?.publicationWindow?.deadline ?? votingEvent?.publishDeadline,
+    reviewReadiness?.publicationWindow?.deadline ??
+      votingEvent?.publishDeadline,
   );
 
   const handlePresentialToggle = async (enabled: boolean) => {
-    if (!actualElectionId || !canChangePresentialOption || savingPresentialOption) {
+    if (
+      !actualElectionId ||
+      !canChangePresentialOption ||
+      savingPresentialOption
+    ) {
       return;
     }
 
@@ -250,19 +293,42 @@ const ElectionConfigReview: React.FC = () => {
 
       await refetch();
       setPresentialMessage(
-        enabled ? 'Voto presencial activado.' : 'Voto presencial desactivado.',
+        enabled ? "Voto presencial activado." : "Voto presencial desactivado.",
       );
     } catch (error: any) {
       const message = getRequestErrorMessage(
         error,
-        'No se pudo cambiar esta opción. Intenta nuevamente.',
+        "No se pudo cambiar esta opción. Intenta nuevamente.",
       );
       setPresentialError(message);
     }
   };
 
+  const handlePostPublicationPadronToggle = async (enabled: boolean) => {
+    if (!actualElectionId || !fullElectionEditingEnabled || activating) {
+      return;
+    }
+
+    setPadronLimitedError(null);
+
+    try {
+      await updateVotingEvent({
+        eventId: actualElectionId,
+        data: { allowPostPublicationPadronEnable: enabled },
+      }).unwrap();
+      await refetch();
+    } catch (error: any) {
+      setPadronLimitedError(
+        getRequestErrorMessage(
+          error,
+          "No se pudo actualizar esta configuración del padrón.",
+        ),
+      );
+    }
+  };
+
   const handleScheduleInputChange = (
-    key: 'votingStart' | 'votingEnd' | 'resultsPublishAt',
+    key: "votingStart" | "votingEnd" | "resultsPublishAt",
     value: string,
   ) => {
     setScheduleForm((current) => ({ ...current, [key]: value }));
@@ -278,7 +344,7 @@ const ElectionConfigReview: React.FC = () => {
         scheduleFieldErrors.votingStart ??
           scheduleFieldErrors.votingEnd ??
           scheduleFieldErrors.resultsPublishAt ??
-          'Corrige las fechas antes de guardar el cronograma.',
+          "Corrige las fechas antes de guardar el cronograma.",
       );
       return;
     }
@@ -289,19 +355,21 @@ const ElectionConfigReview: React.FC = () => {
         data: {
           votingStart: new Date(scheduleForm.votingStart).toISOString(),
           votingEnd: new Date(scheduleForm.votingEnd).toISOString(),
-          resultsPublishAt: new Date(scheduleForm.resultsPublishAt).toISOString(),
+          resultsPublishAt: new Date(
+            scheduleForm.resultsPublishAt,
+          ).toISOString(),
         },
       }).unwrap();
 
       await refetch();
-      setScheduleSuccess('Horario actualizado correctamente.');
+      setScheduleSuccess("Horario actualizado correctamente.");
       setScheduleError(null);
       setIsScheduleModalOpen(false);
     } catch (error: any) {
       const message =
         error?.data?.message ||
         error?.message ||
-        'No se pudo actualizar el horario.';
+        "No se pudo actualizar el horario.";
       setScheduleError(String(message));
     }
   };
@@ -322,12 +390,15 @@ const ElectionConfigReview: React.FC = () => {
       setNewsError(null);
       setNewsSuccess(
         result.imageUrl
-          ? 'Noticia publicada correctamente con imagen.'
-          : 'Noticia publicada correctamente para los votantes del padrón actual.',
+          ? "Noticia publicada correctamente con imagen."
+          : "Noticia publicada correctamente para los votantes del padrón actual.",
       );
       setIsNewsModalOpen(false);
     } catch (error: any) {
-      const message = getRequestErrorMessage(error, 'No se pudo publicar la noticia.');
+      const message = getRequestErrorMessage(
+        error,
+        "No se pudo publicar la noticia.",
+      );
       setNewsSuccess(null);
       setNewsError(message);
       throw new Error(message);
@@ -340,7 +411,7 @@ const ElectionConfigReview: React.FC = () => {
         title="ID de votación no válido"
         message="No se pudo resolver la votación seleccionada. Vuelve al listado y entra nuevamente."
         actionLabel="Volver a elecciones"
-        onAction={() => navigate('/votacion/elecciones')}
+        onAction={() => navigate("/votacion/elecciones")}
       />
     );
   }
@@ -362,7 +433,7 @@ const ElectionConfigReview: React.FC = () => {
         title="La votación ya venció antes de completarse"
         message="Como la hora de inicio ya pasó y el evento sigue en borrador, ya no debe publicarse ni seguir configurándose. Elimínalo desde la lista de votaciones."
         actionLabel="Volver a elecciones"
-        onAction={() => navigate('/votacion/elecciones')}
+        onAction={() => navigate("/votacion/elecciones")}
       />
     );
   }
@@ -375,8 +446,8 @@ const ElectionConfigReview: React.FC = () => {
           {/* Título */}
           <h1 className="text-xl md:text-2xl font-semibold text-gray-700 text-center mb-8">
             {ballotPreview?.isReferendum
-              ? 'Así verán los votantes la consulta. Revisa antes de publicar.'
-              : 'Así verán los votantes las papeletas. Revisa antes de publicar.'}
+              ? "Así verán los votantes la consulta. Revisa antes de publicar."
+              : "Así verán los votantes las papeletas. Revisa antes de publicar."}
           </h1>
 
           {/* Contenido: Preview + Resumen */}
@@ -404,10 +475,17 @@ const ElectionConfigReview: React.FC = () => {
             <div className="w-full lg:w-80 order-first lg:order-last space-y-4">
               {reviewReadiness && !reviewReadiness.isReady ? (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm">
-                  <p className="font-semibold">Faltan estos puntos antes de notificar a los votantes:</p>
+                  <p className="font-semibold">
+                    Faltan estos puntos antes de notificar a los votantes:
+                  </p>
                   <ul className="mt-2 list-disc space-y-1 pl-5">
                     {reviewReadiness.pending.map((item) => (
-                      <li key={item}>{getPendingLabel(item, Boolean(ballotPreview?.isReferendum))}</li>
+                      <li key={item}>
+                        {getPendingLabel(
+                          item,
+                          Boolean(ballotPreview?.isReferendum),
+                        )}
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -426,15 +504,21 @@ const ElectionConfigReview: React.FC = () => {
                     type="button"
                     role="switch"
                     aria-checked={presentialKioskEnabled}
-                    disabled={!canChangePresentialOption || savingPresentialOption}
-                    onClick={() => void handlePresentialToggle(!presentialKioskEnabled)}
+                    disabled={
+                      !canChangePresentialOption || savingPresentialOption
+                    }
+                    onClick={() =>
+                      void handlePresentialToggle(!presentialKioskEnabled)
+                    }
                     className={`relative inline-flex h-7 w-12 shrink-0 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                      presentialKioskEnabled ? 'bg-[#459151]' : 'bg-gray-300'
+                      presentialKioskEnabled ? "bg-[#459151]" : "bg-gray-300"
                     }`}
                   >
                     <span
                       className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                        presentialKioskEnabled ? 'translate-x-6' : 'translate-x-1'
+                        presentialKioskEnabled
+                          ? "translate-x-6"
+                          : "translate-x-1"
                       }`}
                     />
                   </button>
@@ -450,6 +534,49 @@ const ElectionConfigReview: React.FC = () => {
                   </p>
                 ) : null}
               </div>
+              <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700 shadow-sm">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="font-semibold text-gray-900">
+                      Permitir habilitar votantes después de la publicación
+                      oficial
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Si se desactiva, el padrón quedará en solo lectura.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={allowPostPublicationPadronEnable}
+                    disabled={!fullElectionEditingEnabled || activating}
+                    onClick={() =>
+                      void handlePostPublicationPadronToggle(
+                        !allowPostPublicationPadronEnable,
+                      )
+                    }
+                    className={`relative inline-flex h-7 w-12 shrink-0 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                      allowPostPublicationPadronEnable
+                        ? "bg-[#459151]"
+                        : "bg-gray-300"
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                        allowPostPublicationPadronEnable
+                          ? "translate-x-6"
+                          : "translate-x-1"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {padronLimitedError ? (
+                  <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+                    {padronLimitedError}
+                  </p>
+                ) : null}
+              </div>
               {newsSuccess ? (
                 <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-700 shadow-sm">
                   {newsSuccess}
@@ -462,39 +589,45 @@ const ElectionConfigReview: React.FC = () => {
               ) : null}
               {votingInProgress ? (
                 <div className="rounded-lg border border-blue-200 bg-white p-4 text-sm text-blue-800 shadow-sm">
-                  La votación está activa. La revisión y la publicación oficial ya no se gestionan desde esta vista.
+                  La votación está activa. La revisión y la publicación oficial
+                  ya no se gestionan desde esta vista.
                 </div>
               ) : null}
               {votingClosed ? (
                 <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
-                  La votación ya finalizó. Esta vista queda solo para consulta histórica.
+                  La votación ya finalizó. Esta vista queda solo para consulta
+                  histórica.
                 </div>
               ) : null}
               {isPublicationExpired && (
                 <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-                  La ventana de publicación oficial venció. Esta votación ya no debe editarse como borrador ni publicarse normalmente.
+                  La ventana de publicación oficial venció. Esta votación ya no
+                  debe editarse como borrador ni publicarse normalmente.
                 </div>
               )}
+              {reviewAlreadyNotified ? (
+                <div className="rounded-lg border border-gray-200 bg-white px-5 py-4 shadow-sm">
+                  <div className="flex flex-col gap-4">
+                    <div>
+                      <p className="text-base flex justify-center font-semibold text-gray-900">
+                        ¿Quieres informar algo?
+                      </p>
 
-              {!isPublicationExpired ? (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm">
-                  <p className="font-semibold">Plazo de modificación y publicación oficial</p>
-                  <p className="mt-1">
-                    Puedes modificar y confirmar la publicación oficial hasta {publicationDeadlineLabel}. Si faltan menos de {PRE_PUBLICATION_CUTOFF_HOURS} horas para el inicio, ambas acciones quedan bloqueadas.
-                  </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewsError(null);
+                        setNewsSuccess(null);
+                        setIsNewsModalOpen(true);
+                      }}
+                      className="w-full rounded-lg border border-[#459151]/20 bg-[#EFF7F0] px-4 py-3 text-sm font-semibold text-[#2E6A38] transition-colors hover:bg-[#E4F3E7] sm:w-auto"
+                    >
+                      Crear noticia
+                    </button>
+                  </div>
                 </div>
               ) : null}
-              {scheduleSuccess ? (
-                <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-700">
-                  {scheduleSuccess}
-                </div>
-              ) : null}
-              {configSummary && (
-                <ConfigSummaryCard
-                  summary={configSummary}
-                  isReferendum={Boolean(ballotPreview?.isReferendum)}
-                />
-              )}
               <div className="space-y-3">
                 <ScheduleSummaryCard
                   votingStart={votingEvent?.votingStart}
@@ -515,30 +648,34 @@ const ElectionConfigReview: React.FC = () => {
                     Modificar horarios
                   </button>
                 ) : null}
-                {reviewAlreadyNotified ? (
-                  <div className="rounded-lg border border-gray-200 bg-white px-5 py-4 shadow-sm">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <p className="text-base font-semibold text-gray-900">¿Quieres informar algo?</p>
-                        <p className="mt-1 text-sm text-gray-600">
-                          Publica una noticia para comunicar novedades de esta votación.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setNewsError(null);
-                          setNewsSuccess(null);
-                          setIsNewsModalOpen(true);
-                        }}
-                        className="rounded-lg border border-[#459151]/20 bg-[#EFF7F0] px-4 py-3 text-sm font-semibold text-[#2E6A38] transition-colors hover:bg-[#E4F3E7]"
-                      >
-                        Crear noticia
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
               </div>
+
+              {!isPublicationExpired ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm">
+                  <p className="mt-1 font-semibold">
+                    Puedes modificar y confirmar la publicación oficial hasta{" "}
+                    {publicationDeadlineLabel}
+                  </p>
+                </div>
+              ) : null}
+              {!isPublicationExpired ? (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-amber-800 shadow-sm">
+                  <p className="mt-2 font-bold uppercase">
+                    Si se atrasa, la votación quedará anulada.
+                  </p>
+                </div>
+              ) : null}
+              {scheduleSuccess ? (
+                <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-700">
+                  {scheduleSuccess}
+                </div>
+              ) : null}
+              {configSummary && (
+                <ConfigSummaryCard
+                  summary={configSummary}
+                  isReferendum={Boolean(ballotPreview?.isReferendum)}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -567,7 +704,8 @@ const ElectionConfigReview: React.FC = () => {
             <div className="w-full sm:w-auto text-center sm:text-right">
               {reviewReadiness?.publicationWindow?.expired ? (
                 <p className="mb-2 text-sm text-red-700">
-                  Ya no se puede publicar oficialmente porque el plazo cerró el {publicationDeadlineLabel}.
+                  Ya no se puede publicar oficialmente porque el plazo cerró el{" "}
+                  {publicationDeadlineLabel}.
                 </p>
               ) : null}
               {isPublicationExpired ? (
@@ -577,7 +715,9 @@ const ElectionConfigReview: React.FC = () => {
                   disabled={deletingEvent}
                   className="w-full rounded-lg bg-red-600 px-8 py-3 font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                 >
-                  {deletingEvent ? 'Eliminando...' : 'Eliminar votación vencida'}
+                  {deletingEvent
+                    ? "Eliminando..."
+                    : "Eliminar votación vencida"}
                 </button>
               ) : votingInProgress ? (
                 <button
@@ -595,7 +735,7 @@ const ElectionConfigReview: React.FC = () => {
                 >
                   La votación ya finalizó
                 </button>
-              ) : eventState === 'OFFICIALLY_PUBLISHED' ? (
+              ) : eventState === "OFFICIALLY_PUBLISHED" ? (
                 <button
                   type="button"
                   disabled
@@ -603,16 +743,21 @@ const ElectionConfigReview: React.FC = () => {
                 >
                   Publicación oficial confirmada
                 </button>
-              ) : eventState === 'READY_FOR_REVIEW' || eventState === 'PUBLISHED' ? (
+              ) : eventState === "READY_FOR_REVIEW" ||
+                eventState === "PUBLISHED" ? (
                 <button
                   type="button"
                   onClick={handleConfirmClick}
-                  disabled={isPublishButtonDisabled() || !canConfirmOfficialPublication}
+                  disabled={
+                    isPublishButtonDisabled() || !canConfirmOfficialPublication
+                  }
                   className={`
                     w-full sm:w-auto px-8 py-3 font-semibold rounded-lg transition-all
-                    ${!isPublishButtonDisabled() && canConfirmOfficialPublication
-                      ? 'bg-[#459151] hover:bg-[#3a7a44] text-white shadow-md hover:shadow-lg'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    ${
+                      !isPublishButtonDisabled() &&
+                      canConfirmOfficialPublication
+                        ? "bg-[#459151] hover:bg-[#3a7a44] text-white shadow-md hover:shadow-lg"
+                        : "bg-gray-300 text-gray-500 cursor-not-allowed"
                     }
                   `}
                 >
@@ -625,16 +770,18 @@ const ElectionConfigReview: React.FC = () => {
                   disabled={!canOpenReview || openingReview}
                   className={`
                     w-full sm:w-auto px-8 py-3 font-semibold rounded-lg transition-all
-                    ${canOpenReview && !openingReview
-                      ? 'bg-[#459151] hover:bg-[#3a7a44] text-white shadow-md hover:shadow-lg'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    ${
+                      canOpenReview && !openingReview
+                        ? "bg-[#459151] hover:bg-[#3a7a44] text-white shadow-md hover:shadow-lg"
+                        : "bg-gray-300 text-gray-500 cursor-not-allowed"
                     }
                   `}
                 >
-                  {openingReview ? 'Notificando...' : 'Notificar a los votantes'}
+                  {openingReview
+                    ? "Notificando..."
+                    : "Notificar a los votantes"}
                 </button>
               )}
-
             </div>
           </div>
         </div>
@@ -653,20 +800,35 @@ const ElectionConfigReview: React.FC = () => {
       <ActivatedSuccessModal
         isOpen={showSuccessModal}
         onClose={handleSuccessClose}
-        publicUrl={activationResult?.publicUrl || ''}
-        shareText={activationResult?.shareText || ''}
+        publicUrl={activationResult?.publicUrl || ""}
+        shareText={activationResult?.shareText || ""}
         onCopyLink={copyToClipboard}
+      />
+
+      <ActivatedSuccessModal
+        isOpen={showPadronShareModal}
+        onClose={() => setShowPadronShareModal(false)}
+        publicUrl={padronShareUrl}
+        shareText={padronShareText}
+        onCopyLink={copyToClipboard}
+        title="Votantes notificados"
+        description="Comparte este enlace para que revisen su padrón."
+        shareDialogTitle="Revisión de padrón"
+        shareButtonLabel="Compartir"
+        copyButtonLabel="Copiar enlace"
+        closeLabel="Cerrar"
       />
 
       <Modal2
         isOpen={showErrorModal}
         onClose={() => setShowErrorModal(false)}
-        title='Operación fallida'
-        type='error'
+        title="Operación fallida"
+        type="error"
         showClose
         closeOnEscape
       >
-        Operación fallida. No se ha publicado la votación. Intenta nuevamente o contacta al soporte si el problema persiste.
+        Operación fallida. No se ha publicado la votación. Intenta nuevamente o
+        contacta al soporte si el problema persiste.
       </Modal2>
 
       <Modal2
@@ -686,55 +848,74 @@ const ElectionConfigReview: React.FC = () => {
           ) : null}
 
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            <p className="font-semibold">Límite para modificar y publicar oficialmente</p>
+            <p className="font-semibold">
+              Límite para modificar y publicar oficialmente
+            </p>
             <p className="mt-1">
-              La elección solo puede seguir modificándose y publicándose hasta {publicationDeadlineLabel}. La nueva fecha de inicio debe quedar al menos {PRE_PUBLICATION_CUTOFF_HOURS} horas por delante.
+              La elección solo puede seguir modificándose y publicándose hasta{" "}
+              {publicationDeadlineLabel}. La nueva fecha de inicio debe quedar
+              al menos {PRE_PUBLICATION_CUTOFF_HOURS} horas por delante.
             </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block">
-              <span className="mb-2 block text-sm font-medium text-gray-700">Inicio de votación</span>
+              <span className="mb-2 block text-sm font-medium text-gray-700">
+                Inicio de votación
+              </span>
               <input
                 type="datetime-local"
                 value={scheduleForm.votingStart}
                 min={minimumVotingStartValue}
-                onChange={(event) => handleScheduleInputChange('votingStart', event.target.value)}
+                onChange={(event) =>
+                  handleScheduleInputChange("votingStart", event.target.value)
+                }
                 className={`w-full rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition focus:ring-2 focus:ring-[#459151]/15 ${
                   scheduleFieldErrors.votingStart
-                    ? 'border border-red-300 bg-red-50 focus:border-red-400'
-                    : 'border border-slate-300 focus:border-[#459151]'
+                    ? "border border-red-300 bg-red-50 focus:border-red-400"
+                    : "border border-slate-300 focus:border-[#459151]"
                 }`}
               />
               <p className="mt-1 text-xs text-slate-500">
-                Debe quedar al menos {PRE_PUBLICATION_CUTOFF_HOURS} horas adelante.
+                Debe quedar al menos {PRE_PUBLICATION_CUTOFF_HOURS} horas
+                adelante.
               </p>
               {scheduleFieldErrors.votingStart ? (
-                <p className="mt-1 text-sm text-red-600">{scheduleFieldErrors.votingStart}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {scheduleFieldErrors.votingStart}
+                </p>
               ) : null}
             </label>
 
             <label className="block">
-              <span className="mb-2 block text-sm font-medium text-gray-700">Cierre de votación</span>
+              <span className="mb-2 block text-sm font-medium text-gray-700">
+                Cierre de votación
+              </span>
               <input
                 type="datetime-local"
                 value={scheduleForm.votingEnd}
                 min={scheduleForm.votingStart || minimumVotingStartValue}
-                onChange={(event) => handleScheduleInputChange('votingEnd', event.target.value)}
+                onChange={(event) =>
+                  handleScheduleInputChange("votingEnd", event.target.value)
+                }
                 className={`w-full rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition focus:ring-2 focus:ring-[#459151]/15 ${
                   scheduleFieldErrors.votingEnd
-                    ? 'border border-red-300 bg-red-50 focus:border-red-400'
-                    : 'border border-slate-300 focus:border-[#459151]'
+                    ? "border border-red-300 bg-red-50 focus:border-red-400"
+                    : "border border-slate-300 focus:border-[#459151]"
                 }`}
               />
               {scheduleFieldErrors.votingEnd ? (
-                <p className="mt-1 text-sm text-red-600">{scheduleFieldErrors.votingEnd}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {scheduleFieldErrors.votingEnd}
+                </p>
               ) : null}
             </label>
           </div>
 
           <label className="block">
-            <span className="mb-2 block text-sm font-medium text-gray-700">Publicación de resultados</span>
+            <span className="mb-2 block text-sm font-medium text-gray-700">
+              Publicación de resultados
+            </span>
             <input
               type="datetime-local"
               value={scheduleForm.resultsPublishAt}
@@ -743,25 +924,41 @@ const ElectionConfigReview: React.FC = () => {
                 1,
                 scheduleForm.votingStart || minimumVotingStartValue,
               )}
-              onChange={(event) => handleScheduleInputChange('resultsPublishAt', event.target.value)}
+              onChange={(event) =>
+                handleScheduleInputChange(
+                  "resultsPublishAt",
+                  event.target.value,
+                )
+              }
               className={`w-full rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition focus:ring-2 focus:ring-[#459151]/15 ${
                 scheduleFieldErrors.resultsPublishAt
-                  ? 'border border-red-300 bg-red-50 focus:border-red-400'
-                  : 'border border-slate-300 focus:border-[#459151]'
+                  ? "border border-red-300 bg-red-50 focus:border-red-400"
+                  : "border border-slate-300 focus:border-[#459151]"
               }`}
             />
             <p className="mt-1 text-xs text-slate-500">
               Debe publicarse al menos 1 minuto después del cierre.
             </p>
             {scheduleFieldErrors.resultsPublishAt ? (
-              <p className="mt-1 text-sm text-red-600">{scheduleFieldErrors.resultsPublishAt}</p>
+              <p className="mt-1 text-sm text-red-600">
+                {scheduleFieldErrors.resultsPublishAt}
+              </p>
             ) : null}
           </label>
 
           <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-            <p><span className="font-semibold text-slate-800">Inicio:</span> {formatDateTimeForUi(votingEvent?.votingStart)}</p>
-            <p className="mt-1"><span className="font-semibold text-slate-800">Cierre:</span> {formatDateTimeForUi(votingEvent?.votingEnd)}</p>
-            <p className="mt-1"><span className="font-semibold text-slate-800">Resultados:</span> {formatDateTimeForUi(votingEvent?.resultsPublishAt)}</p>
+            <p>
+              <span className="font-semibold text-slate-800">Inicio:</span>{" "}
+              {formatDateTimeForUi(votingEvent?.votingStart)}
+            </p>
+            <p className="mt-1">
+              <span className="font-semibold text-slate-800">Cierre:</span>{" "}
+              {formatDateTimeForUi(votingEvent?.votingEnd)}
+            </p>
+            <p className="mt-1">
+              <span className="font-semibold text-slate-800">Resultados:</span>{" "}
+              {formatDateTimeForUi(votingEvent?.resultsPublishAt)}
+            </p>
           </div>
 
           <div className="flex flex-col-reverse gap-3 pt-1 sm:flex-row sm:justify-end">
@@ -779,7 +976,7 @@ const ElectionConfigReview: React.FC = () => {
               disabled={updatingSchedule || hasScheduleFieldErrors}
               className="inline-flex items-center justify-center rounded-xl bg-[#459151] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#3a7a44] disabled:opacity-50"
             >
-              {updatingSchedule ? 'Guardando...' : 'Guardar horarios'}
+              {updatingSchedule ? "Guardando..." : "Guardar horarios"}
             </button>
           </div>
         </div>

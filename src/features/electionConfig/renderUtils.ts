@@ -5,7 +5,13 @@ export const PRE_PUBLICATION_CUTOFF_HOURS = 6;
 export const MIN_CREATE_LEAD_MS = MIN_CREATE_LEAD_HOURS * 60 * 60 * 1000;
 export const PRE_PUBLICATION_CUTOFF_MS = PRE_PUBLICATION_CUTOFF_HOURS * 60 * 60 * 1000;
 export const REFERENDUM_TECHNICAL_ROLE = 'CONSULTA';
-export const REFERENDUM_OPTION_LABEL = 'Respuesta';
+export const REFERENDUM_OPTION_LABEL = 'Opción';
+export const REFERENDUM_DEFAULT_COLORS = [
+  '#2563EB',
+  '#059669',
+  '#DC2626',
+  '#D97706',
+];
 
 type EventTimelineInput = {
   status?: string | null;

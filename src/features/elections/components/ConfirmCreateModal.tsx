@@ -1,11 +1,11 @@
 // Modal de confirmación para crear elección
 // Usa Modal2 existente del repo
 
-import React from 'react';
-import Modal2 from '../../../components/Modal2';
-import type { ElectionFormData } from '../types';
-import ScheduleSummaryCard from '../../electionConfig/components/ScheduleSummaryCard';
-import { PRE_PUBLICATION_CUTOFF_HOURS } from '../../electionConfig/renderUtils';
+import React from "react";
+import Modal2 from "../../../components/Modal2";
+import type { ElectionFormData } from "../types";
+import ScheduleSummaryCard from "../../electionConfig/components/ScheduleSummaryCard";
+import { PRE_PUBLICATION_CUTOFF_HOURS } from "../../electionConfig/renderUtils";
 
 interface ConfirmCreateModalProps {
   isOpen: boolean;
@@ -24,52 +24,69 @@ const ConfirmCreateModal: React.FC<ConfirmCreateModalProps> = ({
 }) => {
   if (!formData) return null;
 
-  const votingStartDate = formData.votingStartDate ? new Date(formData.votingStartDate) : null;
-  const hasValidVotingStartDate = Boolean(votingStartDate && !Number.isNaN(votingStartDate.getTime()));
-  const officialPublicationDeadline = hasValidVotingStartDate
-    ? new Date(votingStartDate!.getTime() - PRE_PUBLICATION_CUTOFF_HOURS * 60 * 60 * 1000)
+  const votingStartDate = formData.votingStartDate
+    ? new Date(formData.votingStartDate)
     : null;
-  const officialPublicationDeadlineLabel = officialPublicationDeadline?.toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const hasValidVotingStartDate = Boolean(
+    votingStartDate && !Number.isNaN(votingStartDate.getTime()),
+  );
+  const officialPublicationDeadline = hasValidVotingStartDate
+    ? new Date(
+        votingStartDate!.getTime() -
+          PRE_PUBLICATION_CUTOFF_HOURS * 60 * 60 * 1000,
+      )
+    : null;
+  const officialPublicationDeadlineLabel =
+    officialPublicationDeadline?.toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
   return (
     <Modal2
       isOpen={isOpen}
       onClose={onClose}
-      title={formData.isReferendum ? "¿Crear consulta?" : "¿Crear votación?"}
+      title={formData.isReferendum ? "¿Crear referéndum?" : "¿Crear votación?"}
       size="md"
     >
       <div className="space-y-4">
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-3">
           <div>
-            <p className="text-sm text-gray-500">Institución</p>
+            <p className="text-sm text-gray-500">
+              {formData.isReferendum ? "Nombre del referéndum" : "Institución"}
+            </p>
             <p className="font-medium text-gray-900">{formData.institution}</p>
           </div>
 
-
-
           {formData.description && (
             <div>
-              <p className="text-sm text-gray-500">Descripción</p>
-              <p className="text-gray-700 text-sm">{formData.description}</p>
+              <p className="text-sm text-gray-500">
+                {formData.isReferendum
+                  ? "Pregunta del referéndum"
+                  : "Descripción"}
+              </p>
+              <p className="text-gray-900 text-sm font-medium">
+                {formData.description}
+              </p>
             </div>
           )}
         </div>
 
         {formData.isReferendum ? (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Después de crearla, no podrás cambiar este tipo de votación. La papeleta se mostrará como una consulta con opciones de respuesta.
+            Después de crear este referéndum, no podrás cambiar su tipo.{" "}
           </div>
         ) : null}
 
         {officialPublicationDeadlineLabel ? (
           <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-            La publicación oficial debe realizarse hasta el <span className="font-semibold">{officialPublicationDeadlineLabel}</span>. Si no se publica antes de ese momento, la votación caducará.
+            Debes realizar la publicación oficial hasta el{" "}
+            <span className="font-semibold">
+              {officialPublicationDeadlineLabel}
+            </span>
           </div>
         ) : null}
 
@@ -77,7 +94,11 @@ const ConfirmCreateModal: React.FC<ConfirmCreateModalProps> = ({
           votingStart={formData.votingStartDate}
           votingEnd={formData.votingEndDate}
           resultsPublishAt={formData.resultsDate}
-          title="Fechas de la votación"
+          title={
+            formData.isReferendum
+              ? "Fechas del referéndum"
+              : "Fechas de la votación"
+          }
           compact
         />
 
@@ -122,7 +143,7 @@ const ConfirmCreateModal: React.FC<ConfirmCreateModalProps> = ({
                 Creando...
               </>
             ) : (
-              'Confirmar'
+              "Confirmar"
             )}
           </button>
         </div>

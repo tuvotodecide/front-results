@@ -36,9 +36,6 @@ const ScheduleSummaryCard: React.FC<ScheduleSummaryCardProps> = ({
         </div>
         <div>
           <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            Revisa las fechas de apertura, cierre y publicación de resultados.
-          </p>
         </div>
       </div>
 

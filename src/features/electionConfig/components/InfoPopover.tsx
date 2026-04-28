@@ -80,13 +80,13 @@ const InfoPopover: React.FC<InfoPopoverProps> = ({ className = '', isReferendum 
             {isReferendum ? (
               <>
                 <p className="text-sm text-gray-700 mb-3">
-                  En un referéndum no necesitas configurar cargos. La consulta ya queda lista para que
-                  después agregues sus opciones y definas cómo se verán en la papeleta.
+                  En un referéndum no necesitas configurar cargos. La consulta queda preparada automáticamente para que
+                  continúes con el registro de sus opciones.
                 </p>
                 <p className="text-sm font-medium text-gray-800 mb-2">Qué sigue:</p>
                 <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
-                  <li>Crear las opciones de la consulta</li>
-                  <li>Completar la respuesta visible para cada opción</li>
+                  <li>Registrar las opciones de la consulta</li>
+                  <li>Revisar la papeleta antes de publicar</li>
                 </ul>
               </>
             ) : (

@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import type { PartyWithCandidates } from '../types';
-import { getOptionColors, REFERENDUM_OPTION_LABEL } from '../renderUtils';
+import { getOptionColors } from '../renderUtils';
 
 interface PartiesTableProps {
   parties: PartyWithCandidates[];
@@ -39,6 +39,7 @@ const PartiesTable: React.FC<PartiesTableProps> = ({
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const toggleExpand = (partyId: string) => {
+    if (isReferendum) return;
     setExpandedIds((prev) => {
       const next = new Set(prev);
       if (next.has(partyId)) {
@@ -56,7 +57,7 @@ const PartiesTable: React.FC<PartiesTableProps> = ({
         <div className="p-12 text-center">
           <p className="text-gray-500">
             {isReferendum
-              ? 'Crea opciones y completa su respuesta para continuar con la consulta'
+              ? 'Agrega las opciones de la consulta para continuar'
               : 'Crear planchas y asignar candidatos para continuar con la creación de votación'}
           </p>
         </div>
@@ -70,12 +71,18 @@ const PartiesTable: React.FC<PartiesTableProps> = ({
       <table className="w-full min-w-[720px]">
         <thead>
           <tr className="bg-gray-50 border-b border-gray-200">
-            <th className="text-left px-6 py-4 font-semibold text-gray-700 w-12"></th>
+            {!isReferendum ? (
+              <th className="text-left px-6 py-4 font-semibold text-gray-700 w-12"></th>
+            ) : null}
             <th className="text-left px-4 py-4 font-semibold text-gray-700">
               {isReferendum ? 'Opción' : 'Partido'}
             </th>
-            <th className="text-center px-4 py-4 font-semibold text-gray-700 w-24">Color</th>
-            <th className="text-center px-4 py-4 font-semibold text-gray-700 w-24">Logo</th>
+            {!isReferendum ? (
+              <>
+                <th className="text-center px-4 py-4 font-semibold text-gray-700 w-24">Color</th>
+                <th className="text-center px-4 py-4 font-semibold text-gray-700 w-24">Logo</th>
+              </>
+            ) : null}
             {!readOnly && (
               <th className="text-right px-6 py-4 font-semibold text-gray-700">Acciones</th>
             )}
@@ -91,13 +98,15 @@ const PartiesTable: React.FC<PartiesTableProps> = ({
               <React.Fragment key={party.id}>
                 {/* Fila principal */}
                 <tr
-                  className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
+                  className={`border-b border-gray-100 hover:bg-gray-50 ${isReferendum ? '' : 'cursor-pointer'}`}
                   onClick={() => toggleExpand(party.id)}
                 >
                   {/* Chevron */}
-                  <td className="px-6 py-4">
-                    <ChevronIcon isOpen={isExpanded} />
-                  </td>
+                  {!isReferendum ? (
+                    <td className="px-6 py-4">
+                      <ChevronIcon isOpen={isExpanded} />
+                    </td>
+                  ) : null}
 
                   {/* Nombre */}
                   <td className="px-4 py-4 font-medium text-gray-800">
@@ -105,32 +114,35 @@ const PartiesTable: React.FC<PartiesTableProps> = ({
                   </td>
 
                   {/* Color */}
-                  <td className="px-4 py-4 text-center">
-                    <div className="mx-auto flex w-max items-center justify-center gap-1">
-                      {colors.map((color, index) => (
-                        <span
-                          key={`${party.id}-${color}-${index}`}
-                          className="h-6 w-6 rounded border border-gray-200"
-                          style={{ backgroundColor: color }}
-                        />
-                      ))}
-                    </div>
-                  </td>
+                  {!isReferendum ? (
+                    <>
+                      <td className="px-4 py-4 text-center">
+                        <div className="mx-auto flex w-max items-center justify-center gap-1">
+                          {colors.map((color, index) => (
+                            <span
+                              key={`${party.id}-${color}-${index}`}
+                              className="h-6 w-6 rounded border border-gray-200"
+                              style={{ backgroundColor: color }}
+                            />
+                          ))}
+                        </div>
+                      </td>
 
-                  {/* Logo */}
-                  <td className="px-4 py-4 text-center">
-                    {party.logoUrl ? (
-                      <img
-                        src={party.logoUrl}
-                        alt={party.name}
-                        className="w-10 h-10 rounded-full object-cover mx-auto border border-gray-200"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-gray-200 mx-auto flex items-center justify-center">
-                        <span className="text-gray-400 text-xs">N/A</span>
-                      </div>
-                    )}
-                  </td>
+                      <td className="px-4 py-4 text-center">
+                        {party.logoUrl ? (
+                          <img
+                            src={party.logoUrl}
+                            alt={party.name}
+                            className="w-10 h-10 rounded-full object-cover mx-auto border border-gray-200"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gray-200 mx-auto flex items-center justify-center">
+                            <span className="text-gray-400 text-xs">N/A</span>
+                          </div>
+                        )}
+                      </td>
+                    </>
+                  ) : null}
 
                   {/* Acciones */}
                   {!readOnly && (
@@ -164,7 +176,7 @@ const PartiesTable: React.FC<PartiesTableProps> = ({
                 </tr>
 
                 {/* Fila expandida - Candidatos */}
-                {isExpanded && (
+                {!isReferendum && isExpanded && (
                   <tr className="bg-gray-50">
                     <td colSpan={readOnly ? 4 : 5} className="px-6 py-4">
                       <div className="pl-8">
@@ -209,7 +221,7 @@ const PartiesTable: React.FC<PartiesTableProps> = ({
                                 {/* Cargo y nombre */}
                                 <div>
                                   <span className="text-gray-500 text-sm">
-                                    {isReferendum ? REFERENDUM_OPTION_LABEL : candidate.positionName}:
+                                    {candidate.positionName}:
                                   </span>
                                   <span className="ml-2 font-medium text-gray-800">
                                     {candidate.fullName}

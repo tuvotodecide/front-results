@@ -1,6 +1,8 @@
 // Dropzone principal para subir PDF o imagen del padrón electoral
 
 import React, { useRef, useState } from 'react';
+import Modal2 from '../../../components/Modal2';
+import padronExampleImage from '../../../assets/padronej.webp';
 
 interface PadronDropzoneProps {
   onFileSelect: (file: File) => void;
@@ -52,6 +54,7 @@ const PadronDropzone: React.FC<PadronDropzoneProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isExampleOpen, setIsExampleOpen] = useState(false);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -152,23 +155,46 @@ const PadronDropzone: React.FC<PadronDropzoneProps> = ({
         </button>
       </div>
 
-      <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-4">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-blue-600">
+      <div className="rounded-xl border border-amber-200 bg-amber-50/70 px-4 py-4 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-3 text-amber-900">
+            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-amber-600 shadow-sm">
+              <svg
+                className="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 8v4m0 4h.01" strokeLinecap="round" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-amber-950">¿No conoces el formato?</p>
+              <p className="text-xs text-amber-800/90">
+                Revisa un ejemplo rápido antes de subir el padrón.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsExampleOpen(true)}
+            className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-amber-300 bg-white px-4 py-2.5 text-sm font-semibold text-amber-900 shadow-sm transition-all hover:-translate-y-[1px] hover:bg-amber-50 hover:shadow sm:w-auto"
+          >
             <svg
-              className="w-5 h-5"
+              className="h-4 w-4"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
+              aria-hidden="true"
             >
               <circle cx="12" cy="12" r="10" />
-              <path d="M12 8v4m0 4h.01" strokeLinecap="round" />
+              <path d="M12 16h.01M12 12V8" strokeLinecap="round" />
             </svg>
-          </div>
-          <div className="text-blue-800">
-            <p className="font-semibold">El flujo principal del padrón usa PDF o imagen.</p>
-          </div>
+            Ver ejemplo de padrón
+          </button>
         </div>
       </div>
 
@@ -184,6 +210,31 @@ const PadronDropzone: React.FC<PadronDropzoneProps> = ({
           </button>
         </div>
       ) : null}
+
+      <Modal2
+        isOpen={isExampleOpen}
+        onClose={() => setIsExampleOpen(false)}
+        title="Ejemplo de padrón"
+        size="lg"
+        type="plain"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            El archivo debe mostrar una fila por persona, con su carnet y estado de habilitación.
+          </p>
+          <div className="flex justify-center">
+            <img
+              src={padronExampleImage.src}
+              alt="Ejemplo visual del formato del padrón"
+              className="max-h-[65vh] w-full rounded-xl border border-slate-200 object-contain shadow-sm"
+            />
+          </div>
+          <ul className="space-y-2 text-sm text-slate-700">
+            <li>Cada fila debe mostrar carnet y estado.</li>
+            <li>Evita imágenes borrosas o con sombras.</li>
+          </ul>
+        </div>
+      </Modal2>
     </div>
   );
 };

@@ -46,6 +46,7 @@ vi.mock("@/store/votingEvents", () => ({
   useGetPadronWorkflowSummaryQuery: vi.fn(),
   useGetVotingEventQuery: vi.fn(),
   useLazyGetPadronImportStatusQuery: vi.fn(),
+  useLazyDownloadPadronPdfQuery: vi.fn(),
   useUploadPadronSourceMutation: vi.fn(),
   useUpdatePadronStagingEntryMutation: vi.fn(),
   useGetVotingEventsQuery: vi.fn(),
@@ -75,10 +76,15 @@ vi.mock("@/features/electionConfig/components/ConfigPageFallback", () => ({
 }));
 vi.mock("@/components/Modal2", () => ({ default: ({ children }: { children?: any }) => <div>{children}</div> }));
 vi.mock("@/features/electionConfig/components/LoadedPadronView", () => ({
-  default: ({ file, totalVoters }: any) => (
+  default: ({ file, totalVoters, onDownloadPdf }: any) => (
     <div data-testid="loaded-padron-view">
       <span>{file?.fileName}</span>
       <span>{totalVoters}</span>
+      {onDownloadPdf ? (
+        <button type="button" onClick={onDownloadPdf}>
+          Descargar padrón en PDF
+        </button>
+      ) : null}
     </div>
   ),
 }));
@@ -148,6 +154,7 @@ const noopMutation = [vi.fn(), { isLoading: false }] as const;
 const uploadPadronSourceMock = vi.fn();
 const addPadronStagingEntryMock = vi.fn();
 const fetchPadronStagingPageMock = vi.fn();
+const downloadPadronPdfMock = vi.fn();
 
 describe("padron flow integration", () => {
   beforeEach(() => {
@@ -157,6 +164,7 @@ describe("padron flow integration", () => {
     hasGeminiPadronConfigMock.mockReturnValue(true);
     uploadPadronSourceMock.mockReset();
     addPadronStagingEntryMock.mockReset();
+    downloadPadronPdfMock.mockReset();
     uploadPadronSourceMock.mockReturnValue({
       unwrap: vi.fn().mockResolvedValue({ importJobId: "job-upload", status: "PARSED" }),
     });
@@ -172,6 +180,12 @@ describe("padron flow integration", () => {
         limit: 200,
         total: 0,
         totalPages: 1,
+      }),
+    });
+    downloadPadronPdfMock.mockReturnValue({
+      unwrap: vi.fn().mockResolvedValue({
+        blob: new Blob(["pdf"], { type: "application/pdf" }),
+        fileName: "padron-1.pdf",
       }),
     });
 
@@ -266,6 +280,9 @@ describe("padron flow integration", () => {
       refetch: vi.fn(),
     } as any);
     vi.mocked(votingEvents.useLazyGetPadronImportStatusQuery).mockReturnValue([vi.fn()] as any);
+    vi.mocked(votingEvents.useLazyDownloadPadronPdfQuery).mockReturnValue([
+      downloadPadronPdfMock,
+    ] as any);
     vi.mocked(votingEvents.useLazyGetPadronStagingQuery).mockReturnValue([
       fetchPadronStagingPageMock,
     ] as any);
@@ -309,6 +326,38 @@ describe("padron flow integration", () => {
     fireEvent.click(screen.getByRole("button", { name: "Paso 3" }));
 
     expect(screen.getByText("Borrador de padrón guardado desde PDF")).toBeInTheDocument();
+  });
+
+  it("shows the PDF export action once the official padron is already published", () => {
+    vi.mocked(votingEvents.useGetVotingEventQuery).mockReturnValue({
+      data: { ...baseEvent, state: "OFFICIALLY_PUBLISHED", status: "OFFICIALLY_PUBLISHED" },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as any);
+    vi.mocked(votingEvents.useGetPadronWorkflowSummaryQuery).mockReturnValue({
+      data: {
+        eventId: "evt-1",
+        eventState: "OFFICIALLY_PUBLISHED",
+        currentVersion: {
+          padronVersionId: "ver-1",
+          createdAt: "2026-04-16T12:00:00.000Z",
+          createdBy: "admin-1",
+          totals: { validCount: 2, invalidCount: 0, duplicateCount: 0 },
+          sourceType: "PDF_IMPORT",
+        },
+        activeDraft: null,
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as any);
+
+    render(<ElectionConfigPadron />);
+
+    expect(
+      screen.getByRole("button", { name: "Descargar padrón en PDF" }),
+    ).toBeInTheDocument();
   });
 
   it("keeps Gemini in the main upload flow and allows informative observations", async () => {

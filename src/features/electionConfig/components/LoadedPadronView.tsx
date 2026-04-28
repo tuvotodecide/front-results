@@ -20,6 +20,7 @@ interface LoadedPadronViewProps {
   onReplaceFile?: () => void;
   onDeleteFile?: () => void;
   onDownloadCsv?: () => void;
+  onDownloadPdf?: () => void;
   onFinish?: () => void;
   finishDisabled?: boolean;
   finishLabel?: string;
@@ -29,6 +30,7 @@ interface LoadedPadronViewProps {
   addRecordLabel?: string;
   loading?: boolean;
   downloading?: boolean;
+  downloadingPdf?: boolean;
   readOnly?: boolean;
 }
 
@@ -80,6 +82,7 @@ const LoadedPadronView: React.FC<LoadedPadronViewProps> = ({
   onReplaceFile,
   onDeleteFile,
   onDownloadCsv: _onDownloadCsv,
+  onDownloadPdf,
   onFinish,
   finishDisabled = false,
   finishLabel = 'Finalizar configuración',
@@ -89,6 +92,7 @@ const LoadedPadronView: React.FC<LoadedPadronViewProps> = ({
   addRecordLabel = 'Agregar registro',
   loading = false,
   downloading: _downloading = false,
+  downloadingPdf = false,
   readOnly = false,
 }) => {
   const [searchInputValue, setSearchInputValue] = useState(searchValue);
@@ -101,6 +105,7 @@ const LoadedPadronView: React.FC<LoadedPadronViewProps> = ({
   const totalRecords = validCount + invalidCount;
   const showVotingLimitedActions = Boolean(onAddRecord || onEnableVoter);
   const showFooterActions = !readOnly && Boolean(onReplaceFile || onDeleteFile || onFinish);
+  const showDownloadPdf = Boolean(onDownloadPdf);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -376,7 +381,7 @@ const LoadedPadronView: React.FC<LoadedPadronViewProps> = ({
       </div>
 
       {/* File info card */}
-      <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 flex items-center justify-between">
+      <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <DocumentIcon />
           <div>
@@ -385,8 +390,28 @@ const LoadedPadronView: React.FC<LoadedPadronViewProps> = ({
           </div>
         </div>
 
-        {showFooterActions && (
-          <div className="flex items-center gap-3">
+        {showFooterActions || showDownloadPdf ? (
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            {showDownloadPdf ? (
+              <button
+                type="button"
+                onClick={onDownloadPdf}
+                disabled={downloadingPdf}
+                className="inline-flex items-center gap-2 rounded-lg border border-[#459151]/25 bg-white px-4 py-2 text-sm font-medium text-[#2E6A38] transition-colors hover:bg-[#EFF7F0] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {downloadingPdf ? (
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : (
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v10m0 0l-4-4m4 4l4-4M5 19h14" />
+                  </svg>
+                )}
+                Descargar padrón en PDF
+              </button>
+            ) : null}
             {onReplaceFile ? (
               <button
                 type="button"
@@ -413,7 +438,7 @@ const LoadedPadronView: React.FC<LoadedPadronViewProps> = ({
               </button>
             ) : null}
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Botón finalizar */}

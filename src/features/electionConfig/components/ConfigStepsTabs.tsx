@@ -1,5 +1,6 @@
 // Tabs de pasos para configuración de elección
-// 1. Cargos | 2. Planchas | 3. Padrón
+// Flujo normal: 1. Cargos | 2. Planchas | 3. Padrón
+// Referéndum: 1. Opciones | 2. Padrón
 // Soporta estados: pending, active, completed
 
 import React from 'react';
@@ -28,9 +29,8 @@ const ConfigStepsTabs: React.FC<ConfigStepsTabsProps> = ({
 }) => {
   const steps: { step: ConfigStep; label: string }[] = isReferendum
     ? [
-        { step: 1, label: '1. Configuración' },
-        { step: 2, label: '2. Opciones' },
-        { step: 3, label: '3. Padrón' },
+        { step: 2, label: '1. Opciones' },
+        { step: 3, label: '2. Padrón' },
       ]
     : [
         { step: 1, label: '1. Cargos' },

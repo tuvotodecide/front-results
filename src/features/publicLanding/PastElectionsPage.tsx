@@ -95,7 +95,7 @@ const PastElectionsPage: React.FC = () => {
   }, [elections, query]);
 
   const openElection = (electionId: string) => {
-    navigate(`/elections/${electionId}/public`);
+    navigate(`/votacion/elecciones/${electionId}/publica`);
   };
 
   if (loading) {
@@ -128,7 +128,7 @@ const PastElectionsPage: React.FC = () => {
             Elecciones pasadas
           </h1>
           <p className="mt-4 text-lg md:text-xl text-slate-600">
-            Busca una elección anterior y entra directamente a su vista pública.
+            Busca una elección pública y entra directamente a su vista correspondiente.
           </p>
         </div>
 

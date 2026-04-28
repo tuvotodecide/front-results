@@ -19,6 +19,7 @@ import type {
   EventResults,
   EventRole,
   PadronCsvDownload,
+  PadronPdfDownload,
   PadronImportJob,
   PadronImportResult,
   PadronStagingEntry,
@@ -111,6 +112,10 @@ const toVotingEvent = (raw: any): VotingEvent => {
       source?.canEditPadronInLimitedMode === undefined
         ? undefined
         : Boolean(source.canEditPadronInLimitedMode),
+    allowPostPublicationPadronEnable:
+      source?.allowPostPublicationPadronEnable === undefined
+        ? undefined
+        : Boolean(source.allowPostPublicationPadronEnable),
     createdAt: source?.createdAt,
     updatedAt: source?.updatedAt,
     roles: Array.isArray(source?.roles)
@@ -272,6 +277,10 @@ const toPadronWorkflowSummary = (raw: any): PadronWorkflowSummary => {
       source?.canEditPadronInLimitedMode === undefined
         ? undefined
         : Boolean(source.canEditPadronInLimitedMode),
+    allowPostPublicationPadronEnable:
+      source?.allowPostPublicationPadronEnable === undefined
+        ? undefined
+        : Boolean(source.allowPostPublicationPadronEnable),
     currentVersion: currentVersion
       ? {
           padronVersionId: String(currentVersion?.padronVersionId ?? ""),
@@ -799,6 +808,27 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
       },
     }),
 
+    downloadPadronPdf: builder.query<
+      PadronPdfDownload,
+      { eventId: string; padronVersionId?: string }
+    >({
+      query: ({ eventId, padronVersionId }) => ({
+        url: `/voting/events/${eventId}/padron/download-pdf`,
+        params: padronVersionId ? { padronVersionId } : undefined,
+        responseHandler: async (response) => response.blob(),
+      }),
+      transformResponse: (response: Blob, meta, arg) => {
+        const contentDisposition = meta?.response?.headers?.get("content-disposition") ?? "";
+        const fileNameMatch = contentDisposition.match(/filename="([^"]+)"/i);
+        return {
+          blob: response,
+          fileName:
+            fileNameMatch?.[1] ??
+            `padron-${String(arg.padronVersionId ?? arg.eventId)}.pdf`,
+        };
+      },
+    }),
+
     updateEventSchedule: builder.mutation<void, { eventId: string; data: UpdateScheduleDto }>({
       query: ({ eventId, data }) => ({
         url: `/voting/events/${eventId}/schedule`,
@@ -1003,6 +1033,7 @@ export const {
   useGetPadronVotersQuery,
   useLazyGetPadronVotersQuery,
   useLazyDownloadPadronCsvQuery,
+  useLazyDownloadPadronPdfQuery,
   useUpdateEventScheduleMutation,
   useUpdatePublicEligibilityMutation,
   useGetEventResultsQuery,

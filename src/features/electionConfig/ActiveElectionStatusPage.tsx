@@ -8,10 +8,8 @@ import ConfigStepsTabs from "./components/ConfigStepsTabs";
 import PositionsTable from "./components/PositionsTable";
 import PartiesTable from "./components/PartiesTable";
 import LoadedPadronView from "./components/LoadedPadronView";
-import PadronRecordModal from "./components/PadronRecordModal";
 import CreateNewsModal from "./components/CreateNewsModal";
 import {
-  useAddCurrentPadronVoterMutation,
   useCreateEventNewsMutation,
   useEnableCurrentPadronVoterMutation,
   useGetPadronStagingQuery,
@@ -22,6 +20,7 @@ import {
   useGetEventOptionsQuery,
   useGetPadronVotersQuery,
   useGetEventResultsQuery,
+  useLazyDownloadPadronPdfQuery,
   useCreatePresentialSessionMutation,
   useUpdateEventScheduleMutation,
 } from "../../store/votingEvents";
@@ -212,8 +211,6 @@ const TopInfoCard: React.FC<{
   </div>
 );
 
-type RecordModalState = { open: false } | { open: true; mode: "create" };
-
 const ActiveElectionStatusPage: React.FC = () => {
   const navigate = useNavigate();
   const { electionId } = useParams<{ electionId: string }>();
@@ -233,7 +230,6 @@ const ActiveElectionStatusPage: React.FC = () => {
   const [isNewsModalOpen, setIsNewsModalOpen] = useState(false);
   const [padronMessage, setPadronMessage] = useState<string | null>(null);
   const [padronError, setPadronError] = useState<string | null>(null);
-  const [recordModal, setRecordModal] = useState<RecordModalState>({ open: false });
   const [currentPadronActionVoterId, setCurrentPadronActionVoterId] = useState<string | null>(null);
   const [scheduleForm, setScheduleForm] = useState({
     votingStart: "",
@@ -300,11 +296,11 @@ const ActiveElectionStatusPage: React.FC = () => {
     useUpdateEventScheduleMutation();
   const [createPresentialSession, { isLoading: creatingKioskLink }] =
     useCreatePresentialSessionMutation();
+  const [downloadPadronPdf] = useLazyDownloadPadronPdfQuery();
   const [createEventNews, { isLoading: creatingNews }] =
     useCreateEventNewsMutation();
-  const [addCurrentPadronVoter, { isLoading: addingCurrentPadronVoter }] =
-    useAddCurrentPadronVoterMutation();
   const [enableCurrentPadronVoter] = useEnableCurrentPadronVoterMutation();
+  const [downloadingPadronPdf, setDownloadingPadronPdf] = useState(false);
 
   const positions = useMemo(() => roles.map(roleToPosition), [roles]);
   const parties = useMemo(
@@ -362,7 +358,10 @@ const ActiveElectionStatusPage: React.FC = () => {
     lifecycle === "RESULTS" ||
     lifecycle === "RESULTS_PUBLISHED";
   const votingPadronLimitedMode = limitedModeByEvent;
-  const canAddLimitedPadronRecord = votingPadronLimitedMode && !officialPublicationLocked;
+  const allowPostPublicationPadronEnable =
+    event?.allowPostPublicationPadronEnable !== false;
+  const canEnableExistingLimitedPadronVoters =
+    votingPadronLimitedMode && allowPostPublicationPadronEnable;
   const postCutoffReadOnly = isAfterPublishCutoffBeforeVoting(event, nowMs);
   const presentialKioskEnabled = Boolean(event?.presentialKioskEnabled);
   const scheduleFieldErrors = useMemo(
@@ -419,6 +418,12 @@ const ActiveElectionStatusPage: React.FC = () => {
     : Number(currentPadron?.totals.invalidCount ?? 0);
 
   useEffect(() => {
+    if (isReferendum && activeTab === 1) {
+      setActiveTab(2);
+    }
+  }, [activeTab, isReferendum]);
+
+  useEffect(() => {
     setScheduleForm({
       votingStart: event?.votingStart ? toLocalDateTimeValue(new Date(event.votingStart)) : "",
       votingEnd: event?.votingEnd ? toLocalDateTimeValue(new Date(event.votingEnd)) : "",
@@ -436,31 +441,14 @@ const ActiveElectionStatusPage: React.FC = () => {
     loadingPadronVoters ||
     loadingPadronStaging;
 
-  const handleSaveLimitedPadronRecord = async (payload: { ci: string; enabled: boolean }) => {
-    if (!actualElectionId) return;
-
-    try {
-      setPadronError(null);
-      setCurrentPadronActionVoterId("__create__");
-      await addCurrentPadronVoter({
-        eventId: actualElectionId,
-        carnet: payload.ci,
-        enabled: true,
-      }).unwrap();
-      setRecordModal({ open: false });
-      setPadronMessage("Votante habilitado agregado al padrón vigente.");
-      await Promise.all([refetchPadronVoters(), refetchPadronWorkflowSummary()]);
-    } catch (error: any) {
-      throw new Error(
-        getRequestErrorMessage(error, "No se pudo agregar el votante al padrón vigente."),
-      );
-    } finally {
-      setCurrentPadronActionVoterId(null);
-    }
-  };
-
   const handleEnableLimitedPadronVoter = async (voter: Voter) => {
     if (!actualElectionId || voter.enabled) return;
+    if (!canEnableExistingLimitedPadronVoters) {
+      setPadronError(
+        "La habilitación manual desde la tabla está desactivada para esta votación.",
+      );
+      return;
+    }
 
     try {
       setPadronError(null);
@@ -477,6 +465,33 @@ const ActiveElectionStatusPage: React.FC = () => {
       );
     } finally {
       setCurrentPadronActionVoterId(null);
+    }
+  };
+
+  const handleDownloadPadronPdf = async () => {
+    if (!actualElectionId || !currentPadron) return;
+
+    try {
+      setPadronError(null);
+      setDownloadingPadronPdf(true);
+      const result = await downloadPadronPdf({
+        eventId: actualElectionId,
+        padronVersionId: currentPadron.padronVersionId,
+      }).unwrap();
+      const url = window.URL.createObjectURL(result.blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = result.fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error: any) {
+      setPadronError(
+        getRequestErrorMessage(error, "No se pudo descargar el padrón en PDF."),
+      );
+    } finally {
+      setDownloadingPadronPdf(false);
     }
   };
 
@@ -804,13 +819,13 @@ const ActiveElectionStatusPage: React.FC = () => {
 
         {postCutoffReadOnly ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
-            Ya faltan menos de {PRE_PUBLICATION_CUTOFF_HOURS} horas para el inicio. La elección queda en solo lectura hasta que comience la votación.
+            Ya faltan menos de {PRE_PUBLICATION_CUTOFF_HOURS} horas para el inicio. {isReferendum ? "La consulta" : "La elección"} queda en solo lectura hasta que comience la votación.
           </div>
         ) : null}
 
         {lifecycle === "PUBLICATION_EXPIRED" ? (
           <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-            El plazo para confirmar la publicación oficial ya venció. La elección queda bloqueada y ya no debe seguir editándose.
+            El plazo para confirmar la publicación oficial ya venció. {isReferendum ? "La consulta" : "La elección"} queda bloqueada y ya no debe seguir editándose.
           </div>
         ) : null}
 
@@ -890,22 +905,14 @@ const ActiveElectionStatusPage: React.FC = () => {
               searchValue={searchTerm}
               onPageChange={setPage}
               onSearchChange={setSearchTerm}
-              onAddRecord={
-                canAddLimitedPadronRecord
-                  ? () => {
-                      setPadronError(null);
-                      setPadronMessage(null);
-                      setRecordModal({ open: true, mode: "create" });
-                    }
-                  : undefined
-              }
               onEnableVoter={
-                votingPadronLimitedMode
+                canEnableExistingLimitedPadronVoters
                   ? (voter) => void handleEnableLimitedPadronVoter(voter)
                   : undefined
               }
+              onDownloadPdf={currentPadron ? () => void handleDownloadPadronPdf() : undefined}
+              downloadingPdf={downloadingPadronPdf}
               enablingVoterId={currentPadronActionVoterId}
-              addRecordLabel="Agregar habilitado"
               loading={activeWorkflowDraft ? loadingPadronStaging : loadingPadronVoters}
               readOnly
             />
@@ -931,7 +938,7 @@ const ActiveElectionStatusPage: React.FC = () => {
               </div>
             ) : (
               <div className="grid gap-6 xl:grid-cols-2">
-                {parties.map((party) => (
+                {parties.map((party, index) => (
                   <div
                     key={party.id}
                     className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
@@ -945,51 +952,67 @@ const ActiveElectionStatusPage: React.FC = () => {
                       ))}
                     </div>
                     <div className="p-6">
-                      <div className="flex items-center gap-4 pb-5 border-b border-gray-200">
-                        {party.logoUrl ? (
-                          <img
-                            src={party.logoUrl}
-                            alt={party.name}
-                            className="h-16 w-16 rounded-xl object-cover border border-gray-200"
-                          />
-                        ) : (
-                          <div className="h-16 w-16 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 font-bold">
-                            {getInitial(party.name)}
+                      {isReferendum ? (
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                              Opción {index + 1}
+                            </p>
+                            <h3 className="mt-1 text-xl font-semibold text-gray-800">
+                              {party.name}
+                            </h3>
                           </div>
-                        )}
-                        <h3 className="text-xl font-semibold text-gray-800">
-                          {party.name}
-                        </h3>
-                      </div>
-
-                      <div className="space-y-5 pt-5">
-                        {party.candidates.map((candidate) => (
-                          <div
-                            key={candidate.id}
-                            className="flex items-center gap-4"
-                          >
-                            {candidate.photoUrl ? (
+                          <div className="h-6 w-6 rounded-full border-2 border-gray-300" />
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-4 pb-5 border-b border-gray-200">
+                            {party.logoUrl ? (
                               <img
-                                src={candidate.photoUrl}
-                                alt={candidate.fullName}
-                                className="h-16 w-16 rounded-full object-cover border-2 border-gray-200"
+                                src={party.logoUrl}
+                                alt={party.name}
+                                className="h-16 w-16 rounded-xl object-cover border border-gray-200"
                               />
                             ) : (
-                              <div className="h-16 w-16 rounded-full bg-gray-100 border-2 border-gray-200 flex items-center justify-center text-gray-500 font-bold">
-                                {getInitial(candidate.fullName)}
+                              <div className="h-16 w-16 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 font-bold">
+                                {getInitial(party.name)}
                               </div>
                             )}
-                            <div>
-                              <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-                                {candidate.positionName}
-                              </p>
-                              <p className="text-xl font-semibold text-gray-800">
-                                {candidate.fullName}
-                              </p>
-                            </div>
+                            <h3 className="text-xl font-semibold text-gray-800">
+                              {party.name}
+                            </h3>
                           </div>
-                        ))}
-                      </div>
+
+                          <div className="space-y-5 pt-5">
+                            {party.candidates.map((candidate) => (
+                              <div
+                                key={candidate.id}
+                                className="flex items-center gap-4"
+                              >
+                                {candidate.photoUrl ? (
+                                  <img
+                                    src={candidate.photoUrl}
+                                    alt={candidate.fullName}
+                                    className="h-16 w-16 rounded-full object-cover border-2 border-gray-200"
+                                  />
+                                ) : (
+                                  <div className="h-16 w-16 rounded-full bg-gray-100 border-2 border-gray-200 flex items-center justify-center text-gray-500 font-bold">
+                                    {getInitial(candidate.fullName)}
+                                  </div>
+                                )}
+                                <div>
+                                  <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                                    {candidate.positionName}
+                                  </p>
+                                  <p className="text-xl font-semibold text-gray-800">
+                                    {candidate.fullName}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1150,17 +1173,6 @@ const ActiveElectionStatusPage: React.FC = () => {
           </div>
         </div>
       </Modal2>
-
-      <PadronRecordModal
-        isOpen={recordModal.open}
-        mode="create"
-        enabledLocked
-        enabledHelperText="En esta etapa solo se permite agregar nuevos votantes ya habilitados."
-        isLoading={addingCurrentPadronVoter}
-        onClose={() => setRecordModal({ open: false })}
-        onSubmit={handleSaveLimitedPadronRecord}
-      />
-
       <CreateNewsModal
         isOpen={isNewsModalOpen}
         onClose={() => setIsNewsModalOpen(false)}

@@ -18,8 +18,6 @@ const CheckIcon = () => (
 const ConfigSummaryCard: React.FC<ConfigSummaryCardProps> = ({ summary, isReferendum = false }) => {
   const isReadyToPublish = summary.positionsOk && summary.partiesOk && summary.padronOk;
 
-  const formatNumber = (num: number) => num.toLocaleString('es-ES');
-
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
       {/* Título */}
@@ -80,18 +78,7 @@ const ConfigSummaryCard: React.FC<ConfigSummaryCardProps> = ({ summary, isRefere
       </div>
 
       {/* Stats */}
-      <div className="border-t border-gray-100 pt-4 space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-500">Planchas:</span>
-          <span className="text-sm font-semibold text-gray-800">{summary.partiesCount}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-500">Votantes:</span>
-          <span className="text-sm font-semibold text-gray-800">
-            {formatNumber(summary.votersCount)} registrados
-          </span>
-        </div>
-      </div>
+
     </div>
   );
 };

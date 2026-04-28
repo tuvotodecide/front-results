@@ -1,7 +1,7 @@
 // Página de configuración de elección - Paso 1: Cargos
 // Conectado a backend real con RTK Query
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   useNavigate,
   useParams,
@@ -85,6 +85,11 @@ const ElectionConfigCargos: React.FC = () => {
   const hasPositions = positions.length > 0;
   const hasPartiesWithCandidates = options.some((opt) => opt.candidates.length > 0);
   const isPadronReady = padronVersions.length > 0;
+
+  useEffect(() => {
+    if (!actualElectionId || !isReferendum) return;
+    navigate(`/votacion/elecciones/${actualElectionId}/config/planchas`, { replace: true });
+  }, [actualElectionId, isReferendum, navigate]);
 
   // Handlers
   const handleAddClick = () => {
@@ -224,6 +229,10 @@ const ElectionConfigCargos: React.FC = () => {
     );
   }
 
+  if (!loadingEvent && isReferendum) {
+    return null;
+  }
+
   return (
     <div className="bg-gray-50 min-h-[calc(100vh-64px)] flex flex-col">
       {/* Contenido principal */}
@@ -241,30 +250,31 @@ const ElectionConfigCargos: React.FC = () => {
             </div>
           )}
 
-          {/* Tabs de pasos */}
-          <div className="mb-4">
-            <ConfigStepsTabs
-              currentStep={1}
-              completedSteps={[
-                ...(hasPositions ? [1] : []),
-                ...(hasPartiesWithCandidates ? [2] : []),
-                ...(isPadronReady ? [3] : []),
-              ] as ConfigStep[]}
-              isReferendum={isReferendum}
-              onStepChange={handleGoToStep}
-              canNavigate={(step) => {
-                if (step === 1) return true;
-                if (step === 2) return hasPositions;
-                return hasPositions && hasPartiesWithCandidates;
-              }}
-            />
-          </div>
+          {!isReferendum ? (
+            <div className="mb-4">
+              <ConfigStepsTabs
+                currentStep={1}
+                completedSteps={[
+                  ...(hasPositions ? [1] : []),
+                  ...(hasPartiesWithCandidates ? [2] : []),
+                  ...(isPadronReady ? [3] : []),
+                ] as ConfigStep[]}
+                isReferendum={isReferendum}
+                onStepChange={handleGoToStep}
+                canNavigate={(step) => {
+                  if (step === 1) return true;
+                  if (step === 2) return hasPositions;
+                  return hasPositions && hasPartiesWithCandidates;
+                }}
+              />
+            </div>
+          ) : null}
 
           {/* Texto del paso + info */}
           <div className="flex items-center gap-2 mb-6">
             <p className="text-gray-600">
               {isReferendum
-                ? 'Paso 1 de 3: La consulta ya tiene su estructura lista.'
+                ? 'La pregunta ya quedó definida. Continúa con las opciones de la consulta.'
                 : 'Paso 1 de 3: Define los cargos.'}
             </p>
             <InfoPopover isReferendum={isReferendum} />
@@ -272,7 +282,7 @@ const ElectionConfigCargos: React.FC = () => {
 
           {isReferendum ? (
             <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
-              Esta votación es un referéndum. No necesitas configurar cargos en este paso.
+              No necesitas completar nada aquí. Esta parte se prepara automáticamente para que puedas seguir con las opciones.
             </div>
           ) : null}
 
@@ -285,9 +295,11 @@ const ElectionConfigCargos: React.FC = () => {
           ) : isReferendum ? (
             <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
               <p className="text-sm font-semibold text-gray-800">
-                Estructura de la consulta lista
+                Configuración inicial lista
               </p>
-
+              <p className="mt-2 text-sm text-gray-600">
+                El sistema prepara automáticamente la estructura interna necesaria para la consulta.
+              </p>
             </div>
           ) : (
             <PositionsTable
@@ -334,7 +346,7 @@ const ElectionConfigCargos: React.FC = () => {
             `}
           >
             {isReferendum
-              ? 'Siguiente: Configurar opciones'
+              ? 'Continuar: Configurar opciones'
               : 'Siguiente: Agregar planchas y candidatos'}
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />

@@ -127,10 +127,10 @@ const PastElectionsPage: React.FC = () => {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-950">
-            Elecciones pasadas
+            Elecciones 
           </h1>
           <p className="mt-4 text-lg md:text-xl text-slate-600">
-            Busca una elección anterior y entra directamente a su vista pública.
+            Busca una elección pública y entra directamente a su vista correspondiente.
           </p>
         </div>
 

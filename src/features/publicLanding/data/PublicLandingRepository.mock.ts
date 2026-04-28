@@ -134,7 +134,7 @@ const mockLandingData: PublicLandingData = {
     title: 'Confianza basada en uso real',
     institutionsLabel: 'Instituciones registradas',
     institutionsValue: '+40',
-    electionsLabel: 'Elecciones pasadas',
+    electionsLabel: 'Elecciones ',
     electionsValue: '+120',
     trustedTitle: 'Confían en nosotros',
     trustedSubtitle: 'Empresas, colegios y sindicatos',

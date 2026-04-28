@@ -56,7 +56,27 @@ vi.mock("@/features/electionConfig/components/ScheduleSummaryCard", () => ({
   default: () => <div data-testid="schedule-summary" />,
 }));
 vi.mock("@/features/electionConfig/components/ActivatedSuccessModal", () => ({
-  default: () => null,
+  default: ({
+    isOpen,
+    title,
+    description,
+    shareButtonLabel,
+    copyButtonLabel,
+  }: {
+    isOpen?: boolean;
+    title?: string;
+    description?: string;
+    shareButtonLabel?: string;
+    copyButtonLabel?: string;
+  }) =>
+    isOpen ? (
+      <div>
+        {title ? <h2>{title}</h2> : null}
+        {description ? <p>{description}</p> : null}
+        {shareButtonLabel ? <button type="button">{shareButtonLabel}</button> : null}
+        {copyButtonLabel ? <button type="button">{copyButtonLabel}</button> : null}
+      </div>
+    ) : null,
 }));
 vi.mock("@/features/electionConfig/components/CreateNewsModal", () => ({
   default: () => null,
@@ -246,6 +266,12 @@ describe("publication deadlines UX", () => {
 
     const { rerender } = render(<ElectionConfigReview />);
 
+    expect(
+      screen.getByText(/puedes modificar y confirmar la publicación oficial hasta/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/si se atrasa, la votación quedará anulada/i),
+    ).toBeInTheDocument();
 
     expect(
       screen.getByRole("button", { name: /confirmar publicación oficial/i }),
@@ -297,6 +323,136 @@ describe("publication deadlines UX", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("updates the post-publication padron switch from review", async () => {
+    const user = userEvent.setup();
+    const updateVotingEventMock = vi.fn(() => ({
+      unwrap: () => Promise.resolve({}),
+    }));
+
+    vi.mocked(votingEvents.useUpdateVotingEventMutation).mockReturnValue([
+      updateVotingEventMock,
+      { isLoading: false },
+    ] as any);
+
+    useElectionPublishMock.mockReturnValue({
+      votingEvent: makeVotingEvent({
+        allowPostPublicationPadronEnable: false,
+      }),
+      ballotPreview: null,
+      configSummary: makeConfigSummary(),
+      reviewReadiness: makeReviewReadiness(),
+      loading: false,
+      error: null,
+      electionStatus: "DRAFT",
+      openReview: vi.fn(),
+      openingReview: false,
+      activateElection: vi.fn(),
+      activating: false,
+      activationResult: null,
+      copyToClipboard: vi.fn(),
+      getShareUrl: vi.fn(),
+      refetch: refetchMock,
+    } satisfies UseElectionPublishReturn);
+
+    render(<ElectionConfigReview />);
+
+    expect(
+      screen.getByText("Permitir habilitar votantes después de la publicación oficial"),
+    ).toBeInTheDocument();
+
+    const switches = screen.getAllByRole("switch");
+    const padronSwitch = switches[switches.length - 1];
+    expect(padronSwitch).toHaveAttribute("aria-checked", "false");
+
+    await user.click(padronSwitch);
+
+    expect(updateVotingEventMock).toHaveBeenCalledWith({
+      eventId: "evt-1",
+      data: { allowPostPublicationPadronEnable: true },
+    });
+    expect(refetchMock).toHaveBeenCalled();
+  });
+
+  it("shows a share modal after notifying voters when public padron review is enabled", async () => {
+    const user = userEvent.setup();
+    const openReviewMock = vi.fn(() => Promise.resolve(makeReviewReadiness()));
+    const getShareUrlMock = vi.fn(() =>
+      Promise.resolve("https://app.test/votacion/elecciones/evt-1/publica"),
+    );
+
+    useElectionPublishMock.mockReturnValue({
+      votingEvent: makeVotingEvent({
+        state: "DRAFT",
+        status: "DRAFT",
+        publicEligibilityEnabled: true,
+      }),
+      ballotPreview: null,
+      configSummary: makeConfigSummary(),
+      reviewReadiness: makeReviewReadiness({ state: "DRAFT" }),
+      loading: false,
+      error: null,
+      electionStatus: "DRAFT",
+      openReview: openReviewMock,
+      openingReview: false,
+      activateElection: vi.fn(),
+      activating: false,
+      activationResult: null,
+      copyToClipboard: vi.fn(),
+      getShareUrl: getShareUrlMock,
+      refetch: refetchMock,
+    } satisfies UseElectionPublishReturn);
+
+    render(<ElectionConfigReview />);
+
+    await user.click(screen.getByRole("button", { name: "Notificar a los votantes" }));
+
+    expect(openReviewMock).toHaveBeenCalled();
+    expect(getShareUrlMock).toHaveBeenCalled();
+    expect(screen.getByText("Votantes notificados")).toBeInTheDocument();
+    expect(
+      screen.getByText("Comparte este enlace para que revisen su padrón."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Compartir" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Copiar enlace" })).toBeInTheDocument();
+  });
+
+  it("does not show the share modal after notifying voters when public padron review is disabled", async () => {
+    const user = userEvent.setup();
+    const openReviewMock = vi.fn(() => Promise.resolve(makeReviewReadiness()));
+    const getShareUrlMock = vi.fn();
+
+    useElectionPublishMock.mockReturnValue({
+      votingEvent: makeVotingEvent({
+        state: "DRAFT",
+        status: "DRAFT",
+        publicEligibilityEnabled: false,
+        publicEligibility: false,
+      }),
+      ballotPreview: null,
+      configSummary: makeConfigSummary(),
+      reviewReadiness: makeReviewReadiness({ state: "DRAFT" }),
+      loading: false,
+      error: null,
+      electionStatus: "DRAFT",
+      openReview: openReviewMock,
+      openingReview: false,
+      activateElection: vi.fn(),
+      activating: false,
+      activationResult: null,
+      copyToClipboard: vi.fn(),
+      getShareUrl: getShareUrlMock,
+      refetch: refetchMock,
+    } satisfies UseElectionPublishReturn);
+
+    render(<ElectionConfigReview />);
+
+    await user.click(screen.getByRole("button", { name: "Notificar a los votantes" }));
+
+    expect(openReviewMock).toHaveBeenCalled();
+    expect(getShareUrlMock).not.toHaveBeenCalled();
+    expect(screen.queryByText("Votantes notificados")).not.toBeInTheDocument();
+  });
+
   it("uses a clear confirmation modal before official publication", () => {
     render(
       <ConfirmActivateModal
@@ -309,7 +465,9 @@ describe("publication deadlines UX", () => {
 
     expect(screen.getByText("Confirmar publicación oficial")).toBeInTheDocument();
     expect(
-      screen.getByText(/bloquea los cambios estructurales en cargos, planchas y padrón/i),
+      screen.getByText(
+        /esta acción publica oficialmente la elección y no podrás realizar más cambios/i,
+      ),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Volver" })).toBeInTheDocument();
     expect(

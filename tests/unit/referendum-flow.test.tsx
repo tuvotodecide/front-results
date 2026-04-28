@@ -1,10 +1,13 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ReactNode } from "react";
 import { vi } from "vitest";
 import BallotPreview from "@/features/electionConfig/components/BallotPreview";
 import PartiesTable from "@/features/electionConfig/components/PartiesTable";
 import ElectionConfigCargos from "@/features/electionConfig/ElectionConfigCargos";
 import CreateElectionWizard from "@/features/elections/components/CreateElectionWizard";
+import PartyModal from "@/features/electionConfig/components/PartyModal";
+import ConfigStepsTabs from "@/features/electionConfig/components/ConfigStepsTabs";
 
 const createElectionMock = vi.fn();
 const navigateMock = vi.fn();
@@ -19,6 +22,18 @@ vi.mock("@/features/elections/data/useElectionRepository", () => ({
     createElection: createElectionMock,
     creating: false,
   }),
+}));
+
+vi.mock("@/components/Modal2", () => ({
+  default: ({
+    children,
+    isOpen = true,
+    title,
+  }: {
+    children?: ReactNode;
+    isOpen?: boolean;
+    title?: string;
+  }) => (isOpen ? <div>{title ? <h2>{title}</h2> : null}{children}</div> : null),
 }));
 
 vi.mock("@/store/votingEvents", () => ({
@@ -129,19 +144,32 @@ describe("referendum minimal flow", () => {
   it("creates a referendum and shows the irreversibility warning", async () => {
     const user = userEvent.setup();
     createElectionMock.mockResolvedValue({ id: "evt-ref" });
+    navigateMock.mockReset();
 
     render(<CreateElectionWizard />);
 
-    await user.type(screen.getByLabelText("¿A qué institución pertenece?"), "Consulta");
-    await user.type(
-      screen.getByLabelText("¿Cuál es el objetivo o descripción?"),
-      "¿Aprueba la nueva normativa institucional?",
-    );
     await user.click(screen.getByRole("switch", { name: "¿Es referéndum?" }));
 
     expect(
-      screen.getByText(/después no podrás cambiar este tipo de votación/i),
+      screen.getByText(/Después no podrás cambiar el tipo de votación/i),
     ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Nombre del referéndum"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Pregunta del referéndum"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /activa esta opción si la votación será una consulta con una pregunta y opciones de respuesta/i,
+      ),
+    ).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("Nombre del referéndum"), "Consulta");
+    await user.type(
+      screen.getByLabelText("Pregunta del referéndum"),
+      "¿Aprueba la nueva normativa institucional?",
+    );
 
     await user.click(screen.getByRole("button", { name: "Siguiente" }));
     await user.type(screen.getByLabelText("¿Cuándo abre la votación?"), "2027-06-01T12:00");
@@ -152,9 +180,9 @@ describe("referendum minimal flow", () => {
     );
     await user.click(screen.getByRole("button", { name: "CREAR" }));
 
-    expect(await screen.findByText("¿Crear consulta?")).toBeInTheDocument();
+    expect(await screen.findByText("¿Crear referéndum?")).toBeInTheDocument();
     expect(
-      screen.getByText(/después de crearla, no podrás cambiar este tipo de votación/i),
+      screen.getByText(/después de crear este referéndum, no podrás cambiar su tipo/i),
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Confirmar" }));
@@ -164,6 +192,30 @@ describe("referendum minimal flow", () => {
         expect.objectContaining({ isReferendum: true }),
       );
     });
+    expect(navigateMock).toHaveBeenCalledWith(
+      "/votacion/elecciones/evt-ref/config/planchas",
+      { replace: true },
+    );
+  });
+
+  it("requires question marks in the referendum question", async () => {
+    const user = userEvent.setup();
+
+    render(<CreateElectionWizard />);
+
+    await user.click(screen.getByRole("switch", { name: "¿Es referéndum?" }));
+    await user.type(screen.getByLabelText("Nombre del referéndum"), "Consulta");
+    await user.type(
+      screen.getByLabelText("Pregunta del referéndum"),
+      "Aprueba la nueva normativa institucional",
+    );
+    await user.tab();
+
+    const nextButton = screen.getByRole("button", { name: "Siguiente" });
+    expect(nextButton).toBeDisabled();
+    expect(
+      screen.getByText("Escribe la pregunta con signos de interrogación"),
+    ).toBeInTheDocument();
   });
 
   it("uses the referendum description as the ballot preview title and hides CONSULTA", () => {
@@ -177,7 +229,8 @@ describe("referendum minimal flow", () => {
 
     expect(screen.getByText("¿Aprueba la nueva normativa institucional?")).toBeInTheDocument();
     expect(screen.getByText("Selecciona la opción de tu preferencia")).toBeInTheDocument();
-    expect(screen.getByText("Respuesta:")).toBeInTheDocument();
+    expect(screen.getByText("Opción 1")).toBeInTheDocument();
+    expect(screen.getAllByText("Sí")).toHaveLength(1);
     expect(screen.queryByText("CONSULTA:")).not.toBeInTheDocument();
   });
 
@@ -189,30 +242,60 @@ describe("referendum minimal flow", () => {
     expect(screen.getByText("CONSULTA:")).toBeInTheDocument();
   });
 
-  it("renders referendum parties as options without exposing the technical role", async () => {
-    const user = userEvent.setup();
+  it("renders referendum parties as options without exposing the technical role", () => {
     render(<PartiesTable parties={[referendumParty]} isReferendum />);
 
     expect(screen.getByText("Sí")).toBeInTheDocument();
     expect(screen.getByText("Opción")).toBeInTheDocument();
-    await user.click(screen.getByText("Sí"));
-    expect(screen.getByText("Respuesta configurada")).toBeInTheDocument();
-    expect(screen.getByText("Respuesta:")).toBeInTheDocument();
+    expect(screen.queryByText("Respuesta configurada")).not.toBeInTheDocument();
     expect(screen.queryByText("CONSULTA:")).not.toBeInTheDocument();
   });
 
-  it("keeps referendum roles in read-only informational mode", () => {
+  it("redirects referendum cargos directly to options", async () => {
+    navigateMock.mockReset();
     render(<ElectionConfigCargos />);
 
-    expect(
-      screen.getByText(/la consulta ya tiene su estructura lista/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/no necesitas configurar cargos en este paso/i),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /agregar cargo/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^editar$/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^eliminar$/i })).not.toBeInTheDocument();
-    expect(screen.queryByText("CONSULTA")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith(
+        "/votacion/elecciones/evt-1/config/planchas",
+        { replace: true },
+      );
+    });
+  });
+
+  it("shows only options and padrón as visible tabs in referendum", () => {
+    render(
+      <ConfigStepsTabs
+        currentStep={2}
+        completedSteps={[2]}
+        isReferendum
+      />,
+    );
+
+    expect(screen.getByText("1. Opciones")).toBeInTheDocument();
+    expect(screen.getByText("2. Padrón")).toBeInTheDocument();
+    expect(screen.queryByText("1. Consulta")).not.toBeInTheDocument();
+    expect(screen.queryByText("3. Padrón")).not.toBeInTheDocument();
+  });
+
+  it("renders the referendum option modal without logo upload and with optional colors", () => {
+    render(
+      <PartyModal
+        isOpen
+        onClose={vi.fn()}
+        onSave={vi.fn(async () => referendumParty as any)}
+        isLoading={false}
+        isReferendum
+      />,
+    );
+
+    expect(screen.getByText("Agregar opción")).toBeInTheDocument();
+    expect(screen.getByText("Nombre de la opción")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Ej: Sí")).toBeInTheDocument();
+    expect(screen.getByText("Colores de la opción")).toBeInTheDocument();
+
+    expect(screen.queryByText("Logo *")).not.toBeInTheDocument();
+    expect(screen.queryByText(/arrastra tu logo aquí/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Guardar opción" })).toBeInTheDocument();
   });
 });

@@ -14,6 +14,7 @@ export interface UpdateVotingEventDto {
   name?: string;
   objective?: string;
   presentialKioskEnabled?: boolean;
+  allowPostPublicationPadronEnable?: boolean;
 }
 
 export interface CreateEventRoleDto {
@@ -126,6 +127,7 @@ export interface VotingEvent {
   publicEligibilityEnabled: boolean;
   publicEligibility: boolean;
   canEditPadronInLimitedMode?: boolean;
+  allowPostPublicationPadronEnable?: boolean;
   presentialKioskEnabled?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -262,6 +264,7 @@ export interface PadronWorkflowSummary {
   eventId: string;
   eventState?: string;
   canEditPadronInLimitedMode?: boolean;
+  allowPostPublicationPadronEnable?: boolean;
   currentVersion: PadronWorkflowVersion | null;
   activeDraft: PadronImportJob | null;
 }
@@ -343,6 +346,11 @@ export interface PadronImportResult {
 
 export interface PadronCsvDownload {
   content: string;
+  fileName: string;
+}
+
+export interface PadronPdfDownload {
+  blob: Blob;
   fileName: string;
 }
 

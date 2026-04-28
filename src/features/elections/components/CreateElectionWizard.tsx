@@ -26,7 +26,20 @@ const step1Schema = Yup.object({
   description: Yup.string()
     .required('Este campo es obligatorio')
     .min(10, 'Mínimo 10 caracteres')
-    .max(1000, 'Máximo 1000 caracteres'),
+    .max(1000, 'Máximo 1000 caracteres')
+    .when('isReferendum', {
+      is: true,
+      then: (schema) =>
+        schema.test(
+          'referendum-question-format',
+          'Escribe la pregunta con signos de interrogación',
+          (value) => {
+            const text = String(value || '').trim();
+            if (!text) return true;
+            return text.startsWith('¿') && text.endsWith('?');
+          },
+        ),
+    }),
   isReferendum: Yup.boolean().required(),
 });
 
@@ -211,7 +224,12 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
       if (onSuccess) {
         onSuccess();
       } else {
-        navigate(`/votacion/elecciones/${newElection.id}/config/cargos`, { replace: true });
+        navigate(
+          pendingData.isReferendum
+            ? `/votacion/elecciones/${newElection.id}/config/planchas`
+            : `/votacion/elecciones/${newElection.id}/config/cargos`,
+          { replace: true },
+        );
       }
     } catch (error: any) {
       console.error('Error creando elección:', error);
@@ -259,59 +277,14 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
               validateOnMount
               onSubmit={handleStep1Submit}
             >
-              {({ isValid }) => (
+              {({ isValid, values }) => (
                 <Form className="space-y-6">
-                  {/* Campo Institución */}
-                  <div>
-                    <label
-                      htmlFor="institution"
-                      className="block text-sm font-medium text-gray-700 mb-2"
-                    >
-                      ¿A qué institución pertenece?
-                    </label>
-                    <Field
-                      id="institution"
-                      name="institution"
-                      type="text"
-                      placeholder="Ej: Elección Presidencial 2026"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#459151] focus:border-[#459151] transition-colors"
-                    />
-                    <ErrorMessage
-                      name="institution"
-                      component="p"
-                      className="mt-1 text-sm text-red-600"
-                    />
-                  </div>
-
-                  {/* Campo Descripción */}
-                  <div>
-                    <label
-                      htmlFor="description"
-                      className="block text-sm font-medium text-gray-700 mb-2"
-                    >
-                      ¿Cuál es el objetivo o descripción?
-                    </label>
-                    <Field
-                      as="textarea"
-                      id="description"
-                      name="description"
-                      rows={5}
-                      placeholder="Describe el propósito de esta votación..."
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#459151] focus:border-[#459151] transition-colors resize-none"
-                    />
-                    <ErrorMessage
-                      name="description"
-                      component="p"
-                      className="mt-1 text-sm text-red-600"
-                    />
-                  </div>
-
                   <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-sm font-medium text-gray-800">¿Es referéndum?</p>
+                        <p className="text-sm font-medium text-gray-800">Crear como referéndum</p>
                         <p className="mt-1 text-sm text-gray-500">
-                          Actívalo si esta votación será una consulta con opciones de respuesta.
+                          Activa esta opción si la votación será una consulta con una pregunta y opciones de respuesta.
                         </p>
                       </div>
                       <Field name="isReferendum">
@@ -343,12 +316,66 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                       {({ field }: FieldProps<boolean>) =>
                         field.value ? (
                           <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
-                            Si eliges referéndum, después no podrás cambiar este tipo de votación.
-                            La papeleta se mostrará como una consulta con opciones de respuesta.
+                            Después no podrás cambiar el tipo de votación.
                           </div>
                         ) : null
                       }
                     </Field>
+                  </div>
+
+                  {/* Campo Institución */}
+                  <div>
+                    <label
+                      htmlFor="institution"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
+                      {values.isReferendum ? 'Nombre del referéndum' : '¿A qué institución pertenece?'}
+                    </label>
+                    <Field
+                      id="institution"
+                      name="institution"
+                      type="text"
+                      placeholder={
+                        values.isReferendum
+                          ? 'Ej: Referéndum institucional 2026'
+                          : 'Ej: Elección Presidencial 2026'
+                      }
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#459151] focus:border-[#459151] transition-colors"
+                    />
+                    <ErrorMessage
+                      name="institution"
+                      component="p"
+                      className="mt-1 text-sm text-red-600"
+                    />
+                  </div>
+
+                  {/* Campo Descripción */}
+                  <div>
+                    <label
+                      htmlFor="description"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
+                      {values.isReferendum
+                        ? 'Pregunta del referéndum'
+                        : '¿Cuál es el objetivo o descripción?'}
+                    </label>
+                    <Field
+                      as="textarea"
+                      id="description"
+                      name="description"
+                      rows={5}
+                      placeholder={
+                        values.isReferendum
+                          ? 'Ej: ¿Apruebas la nueva normativa institucional?'
+                          : 'Describe el propósito de esta votación...'
+                      }
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#459151] focus:border-[#459151] transition-colors resize-none"
+                    />
+                    <ErrorMessage
+                      name="description"
+                      component="p"
+                      className="mt-1 text-sm text-red-600"
+                    />
                   </div>
 
                   {/* Botón Siguiente */}
@@ -371,7 +398,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
         {step === 2 && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-8">
             <h1 className="text-2xl font-bold text-gray-900 text-center mb-8">
-              Definir fechas para la elección
+              {step1Data.isReferendum ? 'Definir fechas para la consulta' : 'Definir fechas para la elección'}
             </h1>
 
             <Formik
@@ -387,7 +414,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
               {({ isValid, values }) => (
                 <Form className="space-y-6">
                   <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                    La elección debe crearse con al menos {MIN_CREATE_LEAD_HOURS} horas de anticipación respecto a la hora actual.
+                    {step1Data.isReferendum ? 'La consulta' : 'La elección'} debe crearse con al menos {MIN_CREATE_LEAD_HOURS} horas de anticipación respecto a la hora actual.
                   </div>
 
                   {/* Fecha apertura */}
