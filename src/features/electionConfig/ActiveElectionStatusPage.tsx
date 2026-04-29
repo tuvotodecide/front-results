@@ -288,6 +288,9 @@ const ActiveElectionStatusPage: React.FC = () => {
     );
   const lifecycle = deriveLifecycle(event, nowMs);
   const isReferendum = Boolean(event?.isReferendum);
+  const referendumQuestion = isReferendum
+    ? String(event?.objective || event?.name || "").trim()
+    : "";
   const shouldShowResults = lifecycle === "RESULTS";
   const { data: resultsData } = useGetEventResultsQuery(actualElectionId, {
     skip: !actualElectionId || !shouldShowResults,
@@ -922,9 +925,20 @@ const ActiveElectionStatusPage: React.FC = () => {
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           <div className="w-full space-y-5">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">
-                {isReferendum ? "Referéndum" : "Papeleta Electoral"}
-              </h2>
+              {isReferendum ? (
+                <>
+                  <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                    Referéndum
+                  </p>
+                  <h2 className="mt-1 text-2xl font-bold text-gray-900">
+                    {referendumQuestion || "Referéndum"}
+                  </h2>
+                </>
+              ) : (
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Papeleta Electoral
+                </h2>
+              )}
               <p className="mt-1 text-gray-600">
                 {getBallotDescription(lifecycle, isReferendum)}
               </p>

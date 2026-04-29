@@ -15,6 +15,39 @@ interface CreateNewsModalProps {
   isLoading?: boolean;
 }
 
+const IMAGE_URL_PATTERN = /\.(avif|bmp|gif|jpe?g|png|svg|webp)(?:$|[?#])/i;
+
+const resolveSafeUrl = (value: string) => {
+  const rawValue = String(value || '').trim();
+  if (!rawValue) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(rawValue);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return null;
+    }
+    return rawValue;
+  } catch {
+    return null;
+  }
+};
+
+export const resolveValidNewsImageUrl = (value: string) => {
+  const safeUrl = resolveSafeUrl(value);
+  if (!safeUrl) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(safeUrl);
+    return IMAGE_URL_PATTERN.test(parsed.pathname || '') ? safeUrl : null;
+  } catch {
+    return null;
+  }
+};
+
 const CreateNewsModal: React.FC<CreateNewsModalProps> = ({
   isOpen,
   onClose,
@@ -26,6 +59,22 @@ const CreateNewsModal: React.FC<CreateNewsModalProps> = ({
   const [link, setLink] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const normalizedLink = link.trim();
+  const normalizedImageUrl = imageUrl.trim();
+  const hasLink = normalizedLink.length > 0;
+  const hasImageUrl = normalizedImageUrl.length > 0;
+  const validLinkUrl = hasLink ? resolveSafeUrl(normalizedLink) : null;
+  const validImageUrl = hasImageUrl
+    ? resolveValidNewsImageUrl(normalizedImageUrl)
+    : null;
+  const imageUrlError =
+    hasImageUrl && !validImageUrl
+      ? 'Ingresa una URL http(s) que apunte a una imagen válida, por ejemplo .png, .jpg o .webp.'
+      : null;
+  const linkError =
+    hasLink && !validLinkUrl
+      ? 'Ingresa un enlace válido que comience con http:// o https://.'
+      : null;
 
   useEffect(() => {
     if (!isOpen) {
@@ -51,14 +100,19 @@ const CreateNewsModal: React.FC<CreateNewsModalProps> = ({
       return;
     }
 
+    if (linkError || imageUrlError) {
+      setError(null);
+      return;
+    }
+
     setError(null);
 
     try {
       await onSubmit({
         title: title.trim(),
         body: body.trim(),
-        link: link.trim() || undefined,
-        imageUrl: imageUrl.trim() || undefined,
+        link: validLinkUrl || undefined,
+        imageUrl: validImageUrl || undefined,
       });
       onClose();
     } catch (submitError: any) {
@@ -109,11 +163,17 @@ const CreateNewsModal: React.FC<CreateNewsModalProps> = ({
             <input
               type="url"
               value={link}
-              onChange={(event) => setLink(event.target.value)}
+              onChange={(event) => {
+                setLink(event.target.value);
+                setError(null);
+              }}
               disabled={isLoading}
               placeholder="https://..."
               className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#459151] focus:ring-2 focus:ring-[#459151]/15 disabled:bg-slate-100"
             />
+            {linkError ? (
+              <span className="mt-2 block text-xs text-red-600">{linkError}</span>
+            ) : null}
           </label>
 
           <label className="block">
@@ -123,11 +183,17 @@ const CreateNewsModal: React.FC<CreateNewsModalProps> = ({
             <input
               type="url"
               value={imageUrl}
-              onChange={(event) => setImageUrl(event.target.value)}
+              onChange={(event) => {
+                setImageUrl(event.target.value);
+                setError(null);
+              }}
               disabled={isLoading}
               placeholder="https://.../imagen.png"
               className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#459151] focus:ring-2 focus:ring-[#459151]/15 disabled:bg-slate-100"
             />
+            {imageUrlError ? (
+              <span className="mt-2 block text-xs text-red-600">{imageUrlError}</span>
+            ) : null}
           </label>
         </div>
 

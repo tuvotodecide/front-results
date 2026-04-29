@@ -442,6 +442,9 @@ const PublicElectionDetailPage: React.FC = () => {
   const hasResults = Boolean(election.results && election.results.candidates.length > 0);
   const tiedCandidates = election.results ? getTopCandidates(election.results.candidates) : [];
   const hasTie = tiedCandidates.length > 1;
+  const referendumQuestion = election.isReferendum
+    ? String(election.subtitle || election.title || '').trim()
+    : '';
   const ballotDescription =
     election.isReferendum
       ? election.status === 'FINISHED'
@@ -530,9 +533,20 @@ const PublicElectionDetailPage: React.FC = () => {
         {/* Papeleta y candidaturas */}
         <div className="mt-8 space-y-5">
           <div>
-            <h2 className="text-2xl font-bold text-slate-800">
-              {election.isReferendum ? 'Referéndum' : 'Papeleta Electoral'}
-            </h2>
+            {election.isReferendum ? (
+              <>
+                <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                  Referéndum
+                </p>
+                <h2 className="mt-1 text-2xl font-bold text-slate-800">
+                  {referendumQuestion || 'Referéndum'}
+                </h2>
+              </>
+            ) : (
+              <h2 className="text-2xl font-bold text-slate-800">
+                Papeleta Electoral
+              </h2>
+            )}
             <p className="mt-1 text-slate-500">{ballotDescription}</p>
           </div>
           {election.ballotParties.length === 0 ? (
