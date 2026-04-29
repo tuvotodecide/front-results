@@ -325,7 +325,7 @@ describe("padron flow integration", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Paso 3" }));
 
-    expect(screen.getByText("Borrador de padrón guardado desde PDF")).toBeInTheDocument();
+    expect(screen.getByText("Borrador de padrón")).toBeInTheDocument();
   });
 
   it("shows the PDF export action once the official padron is already published", () => {
