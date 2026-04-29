@@ -74,41 +74,24 @@ const isSupportedPadronFile = (file: File) => {
 
 const normalizeSearch = (value: string) => value.trim().toLowerCase();
 
-const formatPadronSourceLabel = (sourceType?: string | null) => {
-  if (sourceType === "PDF_GEMINI" || sourceType === "PDF_IMPORT" || sourceType === "PDF") {
-    return "Documento PDF";
-  }
-  if (sourceType === "IMAGE_GEMINI" || sourceType === "IMAGE_IMPORT" || sourceType === "IMAGE") {
-    return "Imagen";
-  }
-  if (sourceType === "CSV_LEGACY") {
-    return "Padrón";
-  }
-  if (sourceType === "SYSTEM") {
-    return "Padrón";
-  }
-  if (sourceType === "MANUAL_CLIENT") {
-    return "Carga manual";
-  }
-  return "Documento";
-};
-
 const getPadronFileDisplayName = (
   fileName?: string | null,
-  sourceType?: string | null,
+  _sourceType?: string | null,
   options?: { confirmed?: boolean },
 ) => {
+  if (options?.confirmed) {
+    return "Padrón";
+  }
+
   const normalizedFileName = String(fileName ?? "").trim();
   const normalizedKey = normalizedFileName.toLowerCase();
-  const baseLabel = formatPadronSourceLabel(sourceType);
-  const suffix = options?.confirmed ? "confirmado" : "cargado";
 
   if (
     !normalizedFileName ||
     normalizedKey.includes("legacy-upload") ||
     normalizedKey.endsWith(".csv")
   ) {
-    return `${baseLabel} ${suffix}`;
+    return "Borrador de padrón";
   }
 
   return normalizedFileName;

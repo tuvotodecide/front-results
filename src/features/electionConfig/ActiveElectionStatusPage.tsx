@@ -120,13 +120,10 @@ const getBallotDescription = (lifecycle: string, isReferendum: boolean) =>
       : "Conoce a los candidatos y partidos políticos que participan en esta votación.";
 
 const getPadronDisplayName = (sourceType?: string | null) => {
-  if (sourceType === "PDF_IMPORT") {
-    return "Padrón actual cargado desde PDF";
+  if (sourceType === "PDF_IMPORT" || sourceType === "IMAGE_IMPORT") {
+    return "Padrón";
   }
-  if (sourceType === "IMAGE_IMPORT") {
-    return "Padrón actual cargado desde imagen";
-  }
-  return "Padrón actual cargado";
+  return "Padrón";
 };
 
 const deriveLifecycle = (event?: {
@@ -391,9 +388,7 @@ const ActiveElectionStatusPage: React.FC = () => {
   const displayPadronFile = activeWorkflowDraft
     ? {
         fileName:
-          activeWorkflowDraft.sourceType === "IMAGE"
-            ? "Borrador de padrón guardado desde imagen"
-            : "Borrador de padrón guardado desde PDF",
+          "Borrador de padrón",
         uploadedAt:
           activeWorkflowDraft.processedAt ??
           activeWorkflowDraft.updatedAt ??
