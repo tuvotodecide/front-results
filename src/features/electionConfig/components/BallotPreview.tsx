@@ -1,9 +1,9 @@
 // Preview de papeleta dentro del phone mockup
 // Basado en captura 01_preview.png
 
-import React from 'react';
-import type { PartyWithCandidates } from '../types';
-import { getOptionColors } from '../renderUtils';
+import React from "react";
+import type { PartyWithCandidates } from "../types";
+import { getOptionColors } from "../renderUtils";
 
 interface BallotPreviewProps {
   parties: PartyWithCandidates[];
@@ -17,20 +17,30 @@ const BallotPreview: React.FC<BallotPreviewProps> = ({
   question,
 }) => {
   const title = isReferendum
-    ? question?.trim() || 'Referéndum'
-    : 'Elige a tu candidato';
+    ? question?.trim() || "Referéndum"
+    : "Elige a tu candidato";
   const subtitle = isReferendum
-    ? 'Selecciona la opción de tu preferencia'
-    : 'Selecciona al candidato de tu preferencia';
-  const actionLabel = isReferendum ? 'Selecciona una opción' : 'Selecciona un candidato';
+    ? "Selecciona la opción de tu preferencia"
+    : "Selecciona al candidato de tu preferencia";
+  const actionLabel = "Votar en blanco";
 
   return (
     <div className="flex flex-col h-full">
       {/* Header de la app */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
         <button className="text-gray-600">
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          <svg
+            className="w-5 h-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M15 19l-7-7 7-7"
+            />
           </svg>
         </button>
         <h1 className="text-lg font-semibold text-gray-800 flex-1 text-center pr-5">
@@ -40,21 +50,23 @@ const BallotPreview: React.FC<BallotPreviewProps> = ({
 
       {/* Subtítulo */}
       <div className="px-4 py-3 bg-gray-50">
-        <p className="text-sm text-gray-600 text-center">
-          {subtitle}
-        </p>
+        <p className="text-sm text-gray-600 text-center">{subtitle}</p>
       </div>
 
       {/* Lista de partidos */}
       <div className="flex-1 px-4 py-2 space-y-3 overflow-y-auto">
         {parties.length === 0 ? (
           <div className="text-center py-8 text-gray-400 text-sm">
-            {isReferendum ? 'No hay opciones configuradas' : 'No hay planchas configuradas'}
+            {isReferendum
+              ? "No hay opciones configuradas"
+              : "No hay planchas configuradas"}
           </div>
         ) : (
           parties.map((party, index) => {
             const colors = getOptionColors(party);
-            const cardHeaderLabel = isReferendum ? `Opción ${index + 1}` : party.name;
+            const cardHeaderLabel = isReferendum
+              ? `Opción ${index + 1}`
+              : party.name;
 
             return (
               <div
@@ -65,20 +77,29 @@ const BallotPreview: React.FC<BallotPreviewProps> = ({
                 <div className="relative text-white text-sm font-medium text-center">
                   <div
                     className="absolute inset-0 grid"
-                    style={{ gridTemplateColumns: `repeat(${colors.length}, minmax(0, 1fr))` }}
+                    style={{
+                      gridTemplateColumns: `repeat(${colors.length}, minmax(0, 1fr))`,
+                    }}
                     aria-hidden="true"
                   >
                     {colors.map((color, index) => (
-                      <span key={`${party.id}-${color}-${index}`} style={{ backgroundColor: color }} />
+                      <span
+                        key={`${party.id}-${color}-${index}`}
+                        style={{ backgroundColor: color }}
+                      />
                     ))}
                   </div>
-                  <div className="relative px-4 py-2 bg-black/20">{cardHeaderLabel}</div>
+                  <div className="relative px-4 py-2 bg-black/20">
+                    {cardHeaderLabel}
+                  </div>
                 </div>
 
                 <div className="p-3">
                   <div className="flex items-center justify-between gap-3">
                     {isReferendum ? (
-                      <p className="text-sm font-medium text-gray-800">{party.name}</p>
+                      <p className="text-sm font-medium text-gray-800">
+                        {party.name}
+                      </p>
                     ) : (
                       <div className="flex items-start gap-3">
                         <div className="flex-shrink-0">
@@ -90,25 +111,42 @@ const BallotPreview: React.FC<BallotPreviewProps> = ({
                             />
                           ) : (
                             <div className="w-14 h-14 rounded-lg bg-gray-200 flex items-center justify-center">
-                              <svg className="w-8 h-8 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                              <svg
+                                className="w-8 h-8 text-gray-400"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                                />
                               </svg>
                             </div>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          {party.candidates.slice(0, 2).map((candidate, idx) => (
-                            <div key={candidate.id} className={idx > 0 ? 'mt-1' : ''}>
-                              <p className="text-xs text-gray-500">
-                                {candidate.positionName}:
-                              </p>
-                              <p className="text-sm font-medium text-gray-800 truncate">
-                                {candidate.fullName}
-                              </p>
-                            </div>
-                          ))}
+                          {party.candidates
+                            .slice(0, 2)
+                            .map((candidate, idx) => (
+                              <div
+                                key={candidate.id}
+                                className={idx > 0 ? "mt-1" : ""}
+                              >
+                                <p className="text-xs text-gray-500">
+                                  {candidate.positionName}:
+                                </p>
+                                <p className="text-sm font-medium text-gray-800 truncate">
+                                  {candidate.fullName}
+                                </p>
+                              </div>
+                            ))}
                           {party.candidates.length === 0 ? (
-                            <p className="text-xs text-gray-400 italic">Sin candidatos</p>
+                            <p className="text-xs text-gray-400 italic">
+                              Sin candidatos
+                            </p>
                           ) : null}
                         </div>
                       </div>

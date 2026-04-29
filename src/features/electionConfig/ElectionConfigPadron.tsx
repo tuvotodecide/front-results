@@ -185,9 +185,19 @@ const ElectionConfigPadron: React.FC = () => {
     },
     nowMs,
   );
+  const shouldUsePublishedPadronSnapshot = Boolean(
+    event &&
+      (isOfficiallyPublished(event) ||
+        isDuringVotingWindow(event, nowMs) ||
+        hasVotingEnded(event, nowMs) ||
+        areResultsAvailable(event, nowMs)),
+  );
   const workflowCurrentVersion = workflowSummary?.currentVersion ?? null;
   const workflowActiveDraft = workflowSummary?.activeDraft ?? null;
-  const effectiveWorkflowActiveDraft = limitedPadronModeAllowed ? null : workflowActiveDraft;
+  const effectiveWorkflowActiveDraft =
+    limitedPadronModeAllowed || shouldUsePublishedPadronSnapshot
+      ? null
+      : workflowActiveDraft;
   const {
     data: stagingData,
     isFetching: fetchingStaging,

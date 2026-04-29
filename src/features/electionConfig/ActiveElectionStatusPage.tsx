@@ -271,7 +271,17 @@ const ActiveElectionStatusPage: React.FC = () => {
   } = useGetPadronWorkflowSummaryQuery(actualElectionId, {
       skip: !actualElectionId,
     });
-  const activeWorkflowDraft = limitedModeByEvent ? null : workflowSummary?.activeDraft ?? null;
+  const shouldUsePublishedPadronSnapshot = Boolean(
+    event &&
+      (isOfficiallyPublished(event) ||
+        isDuringVotingWindow(event, nowMs) ||
+        hasVotingEnded(event, nowMs) ||
+        areResultsAvailable(event, nowMs)),
+  );
+  const activeWorkflowDraft =
+    limitedModeByEvent || shouldUsePublishedPadronSnapshot
+      ? null
+      : workflowSummary?.activeDraft ?? null;
   const { data: padronData, isLoading: loadingPadronVoters, refetch: refetchPadronVoters } =
     useGetPadronVotersQuery(
       { eventId: actualElectionId, page, limit: 20 },

@@ -88,4 +88,89 @@ describe("padron UX helpers", () => {
     expect(downloadPdfMock).toHaveBeenCalledTimes(1);
     expect(screen.getByText("Registros cargados")).toBeInTheDocument();
   });
+
+  it("keeps the padron table visible in read-only mode without habilitar actions", () => {
+    render(
+      <LoadedPadronView
+        file={{
+          fileName: "padron-vigente.pdf",
+          uploadedAt: "2026-04-18T12:00:00.000Z",
+          totalRecords: 2,
+          validCount: 1,
+          invalidCount: 1,
+        }}
+        voters={[
+          {
+            id: "v1",
+            rowNumber: 1,
+            carnet: "1234567",
+            fullName: "Ana Perez",
+            hasIdentity: true,
+            enabled: false,
+            status: "valid",
+          },
+        ]}
+        totalVoters={1}
+        validCount={1}
+        invalidCount={0}
+        page={1}
+        totalPages={1}
+        pageSize={10}
+        onPageChange={vi.fn()}
+        onSearchChange={vi.fn()}
+        onReplaceFile={vi.fn()}
+        onDeleteFile={vi.fn()}
+        onFinish={vi.fn()}
+        onAddRecord={vi.fn()}
+        readOnly
+      />,
+    );
+
+    expect(screen.getByText("Registros cargados")).toBeInTheDocument();
+    expect(screen.getByText("1234567")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Habilitar" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /agregar registro/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /reemplazar archivo/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /eliminar archivo/i })).not.toBeInTheDocument();
+  });
+
+  it("shows habilitar in limited post-publication mode when the action is enabled", () => {
+    render(
+      <LoadedPadronView
+        file={{
+          fileName: "padron-vigente.pdf",
+          uploadedAt: "2026-04-18T12:00:00.000Z",
+          totalRecords: 2,
+          validCount: 1,
+          invalidCount: 1,
+        }}
+        voters={[
+          {
+            id: "v1",
+            rowNumber: 1,
+            carnet: "1234567",
+            fullName: "Ana Perez",
+            hasIdentity: true,
+            enabled: false,
+            status: "valid",
+          },
+        ]}
+        totalVoters={1}
+        validCount={1}
+        invalidCount={0}
+        page={1}
+        totalPages={1}
+        pageSize={10}
+        onPageChange={vi.fn()}
+        onSearchChange={vi.fn()}
+        onEnableVoter={vi.fn()}
+        readOnly
+      />,
+    );
+
+    expect(screen.getByText("Registros cargados")).toBeInTheDocument();
+    expect(screen.getByText("1234567")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Habilitar" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /agregar registro/i })).not.toBeInTheDocument();
+  });
 });
