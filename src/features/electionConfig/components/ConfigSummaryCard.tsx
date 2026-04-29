@@ -32,7 +32,7 @@ const ConfigSummaryCard: React.FC<ConfigSummaryCardProps> = ({ summary, isRefere
             <CheckIcon />
           </div>
           <span className={`text-sm ${summary.positionsOk ? 'text-gray-700' : 'text-gray-400'}`}>
-            {isReferendum ? 'Consulta lista' : 'Cargos configurados'}
+            {isReferendum ? 'Referéndum listo' : 'Cargos configurados'}
           </span>
         </div>
 

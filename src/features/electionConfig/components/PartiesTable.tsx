@@ -57,7 +57,7 @@ const PartiesTable: React.FC<PartiesTableProps> = ({
         <div className="p-12 text-center">
           <p className="text-gray-500">
             {isReferendum
-              ? 'Agrega las opciones de la consulta para continuar'
+              ? 'Agrega las opciones del referéndum para continuar'
               : 'Crear planchas y asignar candidatos para continuar con la creación de votación'}
           </p>
         </div>

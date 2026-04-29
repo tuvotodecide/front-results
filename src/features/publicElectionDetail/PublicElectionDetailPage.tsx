@@ -183,7 +183,7 @@ const TieCard: React.FC<{ candidates: Candidate[]; isReferendum?: boolean }> = (
           EMPATE
         </span>
         <h3 className="mt-3 text-xl font-bold text-slate-800">
-          {isReferendum ? 'La consulta registra un empate' : 'La elección registra un empate'}
+          {isReferendum ? 'El referéndum registra un empate' : 'La elección registra un empate'}
         </h3>
         <p className="mt-1 text-slate-600">
           {isReferendum
@@ -221,7 +221,7 @@ const LiveVotingCard: React.FC<{ isReferendum?: boolean }> = ({ isReferendum = f
       <div className="flex-1">
         <div className="flex items-center gap-2 mb-1">
           <h3 className="font-semibold text-blue-800">
-            {isReferendum ? 'Consulta en curso' : 'Votación en curso'}
+            {isReferendum ? 'Referéndum en curso' : 'Votación en curso'}
           </h3>
           <span className="px-2 py-0.5 bg-blue-500 text-white text-xs font-semibold rounded-full">
             EN VIVO
@@ -244,7 +244,7 @@ const NoResultsCard: React.FC<{ isReferendum?: boolean }> = ({ isReferendum = fa
     <h3 className="font-semibold text-slate-700 mb-2">Aún no hay resultados disponibles</h3>
     <p className="text-sm text-slate-500">
       {isReferendum
-        ? 'La consulta aún no ha comenzado. Los resultados estarán disponibles una vez finalice el proceso.'
+        ? 'El referéndum aún no ha comenzado. Los resultados estarán disponibles una vez finalice el proceso.'
         : 'La votación aún no ha comenzado. Los resultados estarán disponibles una vez finalice el proceso.'}
     </p>
   </div>
@@ -445,8 +445,8 @@ const PublicElectionDetailPage: React.FC = () => {
   const ballotDescription =
     election.isReferendum
       ? election.status === 'FINISHED'
-        ? 'Conoce las opciones que participaron en esta consulta'
-        : 'Conoce las opciones disponibles en esta consulta'
+        ? 'Conoce las opciones que participaron en este referéndum'
+        : 'Conoce las opciones disponibles en este referéndum'
       : election.status === 'FINISHED'
         ? 'Conoce a los candidatos y partidos políticos que participaron en esta elección'
         : 'Conoce a los candidatos y partidos políticos que participan en esta elección';
@@ -538,7 +538,7 @@ const PublicElectionDetailPage: React.FC = () => {
           {election.ballotParties.length === 0 ? (
             <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500 shadow-sm">
               {election.isReferendum
-                ? 'Esta consulta todavía no tiene opciones públicas configuradas.'
+                ? 'Este referéndum todavía no tiene opciones públicas configuradas.'
                 : 'Esta elección todavía no tiene candidaturas públicas configuradas.'}
             </div>
           ) : (

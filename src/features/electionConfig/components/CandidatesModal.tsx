@@ -237,7 +237,7 @@ const CandidatesModal: React.FC<CandidatesModalProps> = ({
         {positions.length === 0 && (
           <div className="text-center py-8 text-gray-500">
             {isReferendum
-              ? 'No se pudo cargar la configuración de la consulta. Reintenta antes de continuar.'
+              ? 'No se pudo cargar la configuración del referéndum. Reintenta antes de continuar.'
               : 'No hay cargos definidos. Primero define los cargos en el Paso 1.'}
           </div>
         )}

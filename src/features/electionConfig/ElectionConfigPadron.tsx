@@ -913,7 +913,7 @@ const ElectionConfigPadron: React.FC = () => {
 
           <p className="mb-6 text-gray-600">
             {event?.isReferendum
-              ? "Paso 2 de 2: Gestiona el padrón de la consulta según la etapa actual."
+              ? "Paso 2 de 2: Gestiona el padrón del referéndum según la etapa actual."
               : "Paso 3 de 3: Gestiona el padrón de la elección según la etapa actual."}
           </p>
           {limitedPadronModeAllowed ? (

@@ -284,7 +284,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                       <div>
                         <p className="text-sm font-medium text-gray-800">Crear como referéndum</p>
                         <p className="mt-1 text-sm text-gray-500">
-                          Activa esta opción si la votación será una consulta con una pregunta y opciones de respuesta.
+                          Activa esta opción si la votación será un referéndum con una pregunta y opciones de respuesta.
                         </p>
                       </div>
                       <Field name="isReferendum">
@@ -398,7 +398,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
         {step === 2 && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-8">
             <h1 className="text-2xl font-bold text-gray-900 text-center mb-8">
-              {step1Data.isReferendum ? 'Definir fechas para la consulta' : 'Definir fechas para la elección'}
+              {step1Data.isReferendum ? 'Definir fechas para el referéndum' : 'Definir fechas para la elección'}
             </h1>
 
             <Formik
@@ -414,7 +414,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
               {({ isValid, values }) => (
                 <Form className="space-y-6">
                   <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                    {step1Data.isReferendum ? 'La consulta' : 'La elección'} debe crearse con al menos {MIN_CREATE_LEAD_HOURS} horas de anticipación respecto a la hora actual.
+                    {step1Data.isReferendum ? 'El referéndum' : 'La elección'} debe crearse con al menos {MIN_CREATE_LEAD_HOURS} horas de anticipación respecto a la hora actual.
                   </div>
 
                   {/* Fecha apertura */}

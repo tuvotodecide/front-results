@@ -274,7 +274,7 @@ const ElectionConfigCargos: React.FC = () => {
           <div className="flex items-center gap-2 mb-6">
             <p className="text-gray-600">
               {isReferendum
-                ? 'La pregunta ya quedó definida. Continúa con las opciones de la consulta.'
+                ? 'La pregunta ya quedó definida. Continúa con las opciones del referéndum.'
                 : 'Paso 1 de 3: Define los cargos.'}
             </p>
             <InfoPopover isReferendum={isReferendum} />
@@ -298,7 +298,7 @@ const ElectionConfigCargos: React.FC = () => {
                 Configuración inicial lista
               </p>
               <p className="mt-2 text-sm text-gray-600">
-                El sistema prepara automáticamente la estructura interna necesaria para la consulta.
+                El sistema prepara automáticamente la estructura interna necesaria para el referéndum.
               </p>
             </div>
           ) : (

@@ -17,7 +17,7 @@ const BallotPreview: React.FC<BallotPreviewProps> = ({
   question,
 }) => {
   const title = isReferendum
-    ? question?.trim() || 'Consulta'
+    ? question?.trim() || 'Referéndum'
     : 'Elige a tu candidato';
   const subtitle = isReferendum
     ? 'Selecciona la opción de tu preferencia'

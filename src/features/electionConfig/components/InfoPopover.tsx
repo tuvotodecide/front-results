@@ -47,7 +47,7 @@ const InfoPopover: React.FC<InfoPopoverProps> = ({ className = '', isReferendum 
           transition-colors
           ${isOpen ? 'bg-[#459151] text-white' : 'bg-gray-300 text-gray-600 hover:bg-gray-400'}
         `}
-        aria-label={isReferendum ? 'Información sobre la consulta' : 'Información sobre cargos'}
+        aria-label={isReferendum ? 'Información sobre el referéndum' : 'Información sobre cargos'}
       >
         i
       </button>
@@ -62,7 +62,7 @@ const InfoPopover: React.FC<InfoPopoverProps> = ({ className = '', isReferendum 
             {/* Header */}
             <div className="flex items-start justify-between mb-3">
               <h4 className="font-semibold text-gray-800">
-                {isReferendum ? '¿Cómo se organiza la consulta?' : '¿Qué son los cargos?'}
+                {isReferendum ? '¿Cómo se organiza el referéndum?' : '¿Qué son los cargos?'}
               </h4>
               <button
                 type="button"
@@ -80,12 +80,12 @@ const InfoPopover: React.FC<InfoPopoverProps> = ({ className = '', isReferendum 
             {isReferendum ? (
               <>
                 <p className="text-sm text-gray-700 mb-3">
-                  En un referéndum no necesitas configurar cargos. La consulta queda preparada automáticamente para que
+                  En un referéndum no necesitas configurar cargos. El referéndum queda preparado automáticamente para que
                   continúes con el registro de sus opciones.
                 </p>
                 <p className="text-sm font-medium text-gray-800 mb-2">Qué sigue:</p>
                 <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
-                  <li>Registrar las opciones de la consulta</li>
+                  <li>Registrar las opciones del referéndum</li>
                   <li>Revisar la papeleta antes de publicar</li>
                 </ul>
               </>

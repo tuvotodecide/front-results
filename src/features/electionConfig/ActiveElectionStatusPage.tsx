@@ -111,8 +111,8 @@ const getBallotDescription = (lifecycle: string, isReferendum: boolean) =>
     ? lifecycle === "RESULTS" ||
       lifecycle === "RESULTS_PUBLISHED" ||
       lifecycle === "CLOSED"
-      ? "Conoce las opciones que participaron en esta consulta."
-      : "Conoce las opciones disponibles en esta consulta."
+      ? "Conoce las opciones que participaron en este referéndum."
+      : "Conoce las opciones disponibles en este referéndum."
     : lifecycle === "RESULTS" ||
         lifecycle === "RESULTS_PUBLISHED" ||
         lifecycle === "CLOSED"
@@ -819,13 +819,13 @@ const ActiveElectionStatusPage: React.FC = () => {
 
         {postCutoffReadOnly ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
-            Ya faltan menos de {PRE_PUBLICATION_CUTOFF_HOURS} horas para el inicio. {isReferendum ? "La consulta" : "La elección"} queda en solo lectura hasta que comience la votación.
+            Ya faltan menos de {PRE_PUBLICATION_CUTOFF_HOURS} horas para el inicio. {isReferendum ? "El referéndum" : "La elección"} queda en solo lectura hasta que comience la votación.
           </div>
         ) : null}
 
         {lifecycle === "PUBLICATION_EXPIRED" ? (
           <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-            El plazo para confirmar la publicación oficial ya venció. {isReferendum ? "La consulta" : "La elección"} queda bloqueada y ya no debe seguir editándose.
+            El plazo para confirmar la publicación oficial ya venció. {isReferendum ? "El referéndum" : "La elección"} queda bloqueado y ya no debe seguir editándose.
           </div>
         ) : null}
 
@@ -856,7 +856,7 @@ const ActiveElectionStatusPage: React.FC = () => {
                 </h2>
                 <p className="mt-1 text-sm text-violet-700">
                   {isReferendum
-                    ? "Ya se publicaron los resultados de esta consulta."
+                    ? "Ya se publicaron los resultados de este referéndum."
                     : "Ya se publicaron los resultados de esta votación."}
                 </p>
               </div>
@@ -885,7 +885,7 @@ const ActiveElectionStatusPage: React.FC = () => {
             (isReferendum ? (
               <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
                 <p className="text-sm font-semibold text-gray-800">
-                  La consulta ya tiene su estructura lista.
+                  El referéndum ya tiene su estructura lista.
                 </p>
               </div>
             ) : (
@@ -923,7 +923,7 @@ const ActiveElectionStatusPage: React.FC = () => {
           <div className="w-full space-y-5">
             <div>
               <h2 className="text-2xl font-bold text-gray-900">
-                {isReferendum ? "Consulta" : "Papeleta Electoral"}
+                {isReferendum ? "Referéndum" : "Papeleta Electoral"}
               </h2>
               <p className="mt-1 text-gray-600">
                 {getBallotDescription(lifecycle, isReferendum)}

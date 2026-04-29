@@ -480,7 +480,7 @@ const ElectionConfigPlanchas: React.FC = () => {
             : 'La publicación oficial ya fue confirmada. Las planchas y candidatos quedan bloqueados y no pueden volver a editarse.'
         : isDuringVotingWindow(event, nowMs)
           ? isReferendum
-            ? 'Durante la votación ya no se pueden modificar las opciones de la consulta.'
+            ? 'Durante la votación ya no se pueden modificar las opciones del referéndum.'
             : 'Durante la votación ya no se pueden modificar planchas ni candidatos.'
         : hasVotingEnded(event, nowMs) || areResultsAvailable(event, nowMs)
             ? isReferendum
@@ -572,7 +572,7 @@ const ElectionConfigPlanchas: React.FC = () => {
           <div className="flex items-center gap-2 mb-6">
             <p className="text-gray-600">
               {isReferendum
-                ? 'Paso 1 de 2: Configura las opciones de la consulta.'
+                ? 'Paso 1 de 2: Configura las opciones del referéndum.'
                 : 'Paso 2 de 3: Agrega partidos y candidatos.'}
             </p>
             <PlanchasInfoPopover isReferendum={isReferendum} />

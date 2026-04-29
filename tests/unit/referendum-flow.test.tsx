@@ -161,7 +161,7 @@ describe("referendum minimal flow", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        /activa esta opción si la votación será una consulta con una pregunta y opciones de respuesta/i,
+        /activa esta opción si la votación será un referéndum con una pregunta y opciones de respuesta/i,
       ),
     ).toBeInTheDocument();
 

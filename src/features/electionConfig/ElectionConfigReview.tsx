@@ -58,11 +58,11 @@ const getPendingLabel = (key: string, isReferendum: boolean) => {
   if (!isReferendum) return basePendingLabels[key] ?? key;
 
   const referendumLabels: Record<string, string> = {
-    cargos: "Consulta lista",
+    cargos: "Referéndum listo",
     opciones: "Opciones registradas",
     candidatos: "Opciones listas para la papeleta",
     candidatos_invalidos: "Opciones válidas",
-    cobertura_cargos: "Consulta completa",
+    cobertura_cargos: "Referéndum completo",
   };
 
   return referendumLabels[key] ?? basePendingLabels[key] ?? key;
@@ -446,7 +446,7 @@ const ElectionConfigReview: React.FC = () => {
           {/* Título */}
           <h1 className="text-xl md:text-2xl font-semibold text-gray-700 text-center mb-8">
             {ballotPreview?.isReferendum
-              ? "Así verán los votantes la consulta. Revisa antes de publicar."
+              ? "Así verán los votantes el referéndum. Revisa antes de publicar."
               : "Así verán los votantes las papeletas. Revisa antes de publicar."}
           </h1>
 
