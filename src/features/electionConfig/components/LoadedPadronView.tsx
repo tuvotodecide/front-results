@@ -103,7 +103,7 @@ const LoadedPadronView: React.FC<LoadedPadronViewProps> = ({
 
   const formatNumber = (num: number) => num.toLocaleString('es-ES');
   const totalRecords = validCount + invalidCount;
-  const showVotingLimitedActions = Boolean(onAddRecord || onEnableVoter);
+  const showVotingLimitedActions = Boolean(onEnableVoter);
   const showFooterActions = !readOnly && Boolean(onReplaceFile || onDeleteFile || onFinish);
   const showDownloadPdf = Boolean(onDownloadPdf);
 
@@ -223,7 +223,7 @@ const LoadedPadronView: React.FC<LoadedPadronViewProps> = ({
                 </button>
               </form>
 
-              {onAddRecord && (
+              {!readOnly && onAddRecord && (
                 <button
                   type="button"
                   onClick={onAddRecord}
