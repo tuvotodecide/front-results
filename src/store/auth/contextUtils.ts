@@ -298,11 +298,13 @@ export const resolveDomainLogin = (
   domain: AuthDomain,
 ): DomainLoginResult => {
   const contexts = auth.availableContexts;
+  const normalizedRole = String(auth.role ?? auth.user?.role ?? "").toUpperCase();
   const globalAdminContext = contexts.find(
     (context) => context.type === "GLOBAL_ADMIN",
   );
-  const isAdminRole = ["ADMIN", "SUPERADMIN"].includes(
-    String(auth.role ?? "").toUpperCase(),
+  const isAdminRole = ["ADMIN", "SUPERADMIN"].includes(normalizedRole);
+  const accessApprovalsContext = contexts.find(
+    (context) => context.type === "ACCESS_APPROVALS",
   );
 
   if (globalAdminContext && isAdminRole) {
@@ -313,9 +315,13 @@ export const resolveDomainLogin = (
     };
   }
 
-  const accessApprovalsContext = contexts.find(
-    (context) => context.type === "ACCESS_APPROVALS",
-  );
+  if (accessApprovalsContext && normalizedRole === "ACCESS_APPROVER") {
+    return {
+      kind: "allowed",
+      context: accessApprovalsContext,
+      redirectTo: resolveHomeByContext(accessApprovalsContext),
+    };
+  }
 
   if (accessApprovalsContext && !findContextForDomain(contexts, domain)) {
     return {

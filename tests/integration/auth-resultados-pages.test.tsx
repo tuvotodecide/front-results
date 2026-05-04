@@ -272,4 +272,46 @@ describe("canonical auth resultados pages", () => {
     expect(store.getState().auth.token).toBeNull();
     expect(store.getState().auth.user).toBeNull();
   });
+
+  it("redirects access approvers back to approvals when login started from that route", async () => {
+    const user = userEvent.setup();
+    currentSearchParams = new URLSearchParams("from=/aprobaciones");
+    loginUser.mockReturnValue({
+      unwrap: vi.fn().mockResolvedValue({
+        accessToken: "token",
+        role: "ACCESS_APPROVER",
+        active: true,
+        availableContexts: [
+          { type: "TENANT", tenantId: "tenant-1" },
+          { type: "ACCESS_APPROVALS", role: "ACCESS_APPROVER" },
+        ],
+        defaultContext: { type: "TENANT", tenantId: "tenant-1" },
+        user: {
+          id: "approver-1",
+          email: "approver@test.com",
+          name: "Approver",
+          role: "ACCESS_APPROVER",
+          active: true,
+        },
+      }),
+    });
+
+    const { container } = renderWithAuthStore(<LoginResultadosPage />);
+
+    await user.type(
+      container.querySelector('[data-cy="login-email"]') as HTMLInputElement,
+      "approver@test.com",
+    );
+    await user.type(
+      container.querySelector('[data-cy="login-password"]') as HTMLInputElement,
+      "12345678",
+    );
+    await user.click(container.querySelector('[data-cy="login-submit"]') as HTMLButtonElement);
+
+    await waitFor(() => {
+      expect(navigate).toHaveBeenCalledWith("/aprobaciones", {
+        replace: true,
+      });
+    });
+  });
 });

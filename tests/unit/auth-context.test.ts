@@ -119,6 +119,32 @@ describe("auth multi-context", () => {
     });
   });
 
+  it("prioritizes approvals for ACCESS_APPROVER even when tenant access also exists", () => {
+    const approvalsContext = {
+      type: "ACCESS_APPROVALS" as const,
+      role: "ACCESS_APPROVER",
+      label: "Aprobador de accesos",
+    };
+
+    expect(
+      resolveDomainLogin(
+        {
+          ...baseState,
+          role: "ACCESS_APPROVER",
+          availableContexts: [
+            { type: "TENANT", tenantId: "tenant-1" },
+            approvalsContext,
+          ],
+        },
+        "votacion",
+      ),
+    ).toMatchObject({
+      kind: "allowed",
+      context: approvalsContext,
+      redirectTo: "/aprobaciones",
+    });
+  });
+
   it("denies a domain login when the user lacks that domain context", () => {
     expect(
       resolveDomainLogin(

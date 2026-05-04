@@ -5,7 +5,7 @@ import { ErrorMessage, Field, Form, Formik } from "formik";
 import * as Yup from "yup";
 import { useDispatch, useSelector } from "react-redux";
 import tuvotoDecideImage from "../../../assets/tuvotodecide.webp";
-import { Link, useNavigate } from "../navigation/compat";
+import { Link, useNavigate, useSearchParams } from "../navigation/compat";
 import { ModalState } from "../../../types";
 import Modal2 from "../../../components/Modal2";
 import LoadingButton from "../../../components/LoadingButton";
@@ -22,6 +22,7 @@ import {
 import {
   isSameContext,
   resolveDomainLogin,
+  resolvePostLoginRedirect,
   type DomainLoginResult,
 } from "../../../store/auth/contextUtils";
 import DomainAccessNotice from "../../auth-context/DomainAccessNotice";
@@ -148,6 +149,7 @@ const LoginVotacionPage = () => {
   const logoSrc = getLogoSrc();
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const auth = useSelector(selectAuth);
   const {
     user,
@@ -156,8 +158,10 @@ const LoginVotacionPage = () => {
     availableContexts,
     activeContext,
     defaultContext,
+    requiresContextSelection,
     accessStatus,
   } = auth;
+  const requestedPath = searchParams.get("from");
   const [showPassword, setShowPassword] = useState(false);
   const [deniedAccess, setDeniedAccess] = useState<
     Extract<DomainLoginResult, { kind: "denied" }> | null
@@ -206,7 +210,19 @@ const LoginVotacionPage = () => {
         if (!isSameContext(activeContext, result.context)) {
           dispatch(setActiveContext(result.context));
         }
-        navigate(result.redirectTo, { replace: true });
+        navigate(
+          resolvePostLoginRedirect(
+            {
+              availableContexts,
+              activeContext: result.context,
+              defaultContext,
+              requiresContextSelection,
+              accessStatus,
+            },
+            requestedPath,
+          ),
+          { replace: true },
+        );
         return;
       }
 
@@ -219,8 +235,10 @@ const LoginVotacionPage = () => {
     authRole,
     availableContexts,
     defaultContext,
+    requiresContextSelection,
     user,
     token,
+    requestedPath,
     navigate,
     dispatch,
   ]);
@@ -275,6 +293,7 @@ const LoginVotacionPage = () => {
         availableContexts: res.availableContexts ?? [],
         activeContext: null,
         defaultContext: res.defaultContext ?? null,
+        requiresContextSelection: Boolean(res.requiresContextSelection),
         accessStatus: res.accessStatus ?? null,
       };
       const result = resolveDomainLogin(loginAuth, "votacion");
@@ -294,7 +313,19 @@ const LoginVotacionPage = () => {
         }),
       );
 
-      navigate(result.redirectTo, { replace: true });
+      navigate(
+        resolvePostLoginRedirect(
+          {
+            availableContexts: loginAuth.availableContexts,
+            activeContext: result.context,
+            defaultContext: loginAuth.defaultContext,
+            requiresContextSelection: loginAuth.requiresContextSelection,
+            accessStatus: loginAuth.accessStatus,
+          },
+          requestedPath,
+        ),
+        { replace: true },
+      );
     } catch (error) {
       const deniedResult = getDeniedAccessResult(error);
       if (deniedResult) {
