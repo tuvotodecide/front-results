@@ -32,6 +32,7 @@ import {
 import type { ConfigStep, PadronFile, Voter } from "./types";
 import {
   useAddPadronStagingEntryMutation,
+  useConfirmPadronStagingMutation,
   useDeletePadronStagingEntryMutation,
   useEnableCurrentPadronVoterMutation,
   useGetEventOptionsQuery,
@@ -130,6 +131,10 @@ const ElectionConfigPadron: React.FC = () => {
   } = useGetVotingEventQuery(actualElectionId, {
     skip: !actualElectionId,
   });
+  const shouldFinalizeDeferredPadronSync =
+    Boolean(event?.convocationNotifiedAt) ||
+    event?.state === "READY_FOR_REVIEW" ||
+    event?.state === "PUBLISHED";
   const {
     data: roles = [],
     isLoading: loadingRoles,
@@ -212,6 +217,7 @@ const ElectionConfigPadron: React.FC = () => {
   const [addPadronStagingEntry, { isLoading: addingEntry }] = useAddPadronStagingEntryMutation();
   const [updatePadronStagingEntry, { isLoading: updatingEntry }] = useUpdatePadronStagingEntryMutation();
   const [deletePadronStagingEntry, { isLoading: deletingEntry }] = useDeletePadronStagingEntryMutation();
+  const [confirmPadronStaging] = useConfirmPadronStagingMutation();
   const [enableCurrentPadronVoter] = useEnableCurrentPadronVoterMutation();
   const [downloadPadronPdf] = useLazyDownloadPadronPdfQuery();
 
@@ -510,6 +516,7 @@ const ElectionConfigPadron: React.FC = () => {
               eventId: actualElectionId,
               ci: record.ci,
               enabled: record.enabled,
+              deferMaterialization: true,
             }).unwrap(),
           ),
         );
@@ -536,6 +543,7 @@ const ElectionConfigPadron: React.FC = () => {
             deletePadronStagingEntry({
               eventId: actualElectionId,
               entryId: entry.id,
+              deferMaterialization: true,
             }).unwrap(),
           ),
         );
@@ -628,6 +636,9 @@ const ElectionConfigPadron: React.FC = () => {
         setSummaryModalState("uploading");
         setUploadProgress(92);
         const seededCount = await replaceStagingWithGeminiRecords(geminiDraft.records);
+        if (shouldFinalizeDeferredPadronSync) {
+          await confirmPadronStaging({ eventId: actualElectionId }).unwrap();
+        }
 
         await refetchVisiblePadronData();
 
@@ -656,11 +667,13 @@ const ElectionConfigPadron: React.FC = () => {
     },
     [
       actualElectionId,
+      confirmPadronStaging,
       pollImportJobUntilReady,
       refetchReviewReadiness,
       refetchVisiblePadronData,
       replaceStagingWithGeminiRecords,
       refetchWorkflowSummary,
+      shouldFinalizeDeferredPadronSync,
       uploadPadronSource,
     ],
   );

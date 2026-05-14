@@ -124,6 +124,7 @@ export interface VotingEvent {
   publishDeadline?: string | null;
   state: VotingEventStatus;
   status: VotingEventStatus;
+  convocationNotifiedAt?: string | null;
   publicEligibilityEnabled: boolean;
   publicEligibility: boolean;
   canEditPadronInLimitedMode?: boolean;

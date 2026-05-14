@@ -105,6 +105,7 @@ const toVotingEvent = (raw: any): VotingEvent => {
     publishDeadline: source?.publishDeadline ?? null,
     state,
     status: state,
+    convocationNotifiedAt: source?.convocationNotifiedAt ?? null,
     publicEligibilityEnabled: Boolean(source?.publicEligibilityEnabled),
     publicEligibility: Boolean(source?.publicEligibilityEnabled),
     presentialKioskEnabled: Boolean(source?.presentialKioskEnabled),
@@ -597,11 +598,12 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
 
     addPadronStagingEntry: builder.mutation<
       PadronStagingEntry,
-      { eventId: string; ci: string; enabled?: boolean }
+      { eventId: string; ci: string; enabled?: boolean; deferMaterialization?: boolean }
     >({
-      query: ({ eventId, ...body }) => ({
+      query: ({ eventId, deferMaterialization, ...body }) => ({
         url: `/voting/events/${eventId}/padron/staging`,
         method: "POST",
+        params: deferMaterialization ? { deferMaterialization: "true" } : undefined,
         body,
       }),
       transformResponse: (response: any) => toPadronStagingEntry(response),
@@ -614,11 +616,12 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
 
     updatePadronStagingEntry: builder.mutation<
       PadronStagingEntry,
-      { eventId: string; entryId: string; ci?: string; enabled?: boolean }
+      { eventId: string; entryId: string; ci?: string; enabled?: boolean; deferMaterialization?: boolean }
     >({
-      query: ({ eventId, entryId, ...body }) => ({
+      query: ({ eventId, entryId, deferMaterialization, ...body }) => ({
         url: `/voting/events/${eventId}/padron/staging/${entryId}`,
         method: "PATCH",
+        params: deferMaterialization ? { deferMaterialization: "true" } : undefined,
         body,
       }),
       transformResponse: (response: any) => toPadronStagingEntry(response),
@@ -631,11 +634,12 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
 
     deletePadronStagingEntry: builder.mutation<
       { id: string; deleted: boolean },
-      { eventId: string; entryId: string }
+      { eventId: string; entryId: string; deferMaterialization?: boolean }
     >({
-      query: ({ eventId, entryId }) => ({
+      query: ({ eventId, entryId, deferMaterialization }) => ({
         url: `/voting/events/${eventId}/padron/staging/${entryId}`,
         method: "DELETE",
+        params: deferMaterialization ? { deferMaterialization: "true" } : undefined,
       }),
       transformResponse: (response: any) => ({
         id: String(response?.id ?? ""),
