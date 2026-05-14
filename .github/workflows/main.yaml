@@ -152,7 +152,7 @@ jobs:
       ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
       ECR_REPO: ${{ vars.ECR_REPOSITORY }}
       IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
-      PUBLIC_IP: ${{ vars.PUBLIC_IP }}
+      PUBLIC_URL: ${{ vars.PUBLIC_URL }}
       EXTERNAL_PORT: ${{ vars.EXTERNAL_PORT_DEV }}
       CONTAINER_NAME: yocustodio-app-dev
     steps:
@@ -195,9 +195,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "Checking http://${PUBLIC_IP}:${EXTERNAL_PORT}/votacion"
+          echo "Checking ${PUBLIC_URL}"
           for i in {1..24}; do
-            http_code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "http://${PUBLIC_IP}:${EXTERNAL_PORT}/votacion") || true
+            http_code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "${PUBLIC_URL}") || true
             if [[ "${http_code:-}" == "200" ]]; then
               echo "Service OK (${http_code})"
               exit 0
@@ -224,7 +224,7 @@ jobs:
       ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
       ECR_REPO: ${{ vars.ECR_REPOSITORY }}
       IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
-      PUBLIC_IP: ${{ vars.PUBLIC_IP }}
+      PUBLIC_URL: ${{ vars.PUBLIC_URL_PROD }}
       EXTERNAL_PORT: ${{ vars.EXTERNAL_PORT }}
       CONTAINER_NAME: yocustodio-app
     steps:
@@ -267,9 +267,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "Checking http://${PUBLIC_IP}:${EXTERNAL_PORT}/votacion"
+          echo "Checking ${PUBLIC_URL}"
           for i in {1..24}; do
-            http_code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "http://${PUBLIC_IP}:${EXTERNAL_PORT}/votacion") || true
+            http_code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "${PUBLIC_URL}") || true
             if [[ "${http_code:-}" == "200" ]]; then
               echo "Service OK (${http_code})"
               exit 0
