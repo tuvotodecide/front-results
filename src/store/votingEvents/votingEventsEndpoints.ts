@@ -6,6 +6,7 @@ import {
 import type {
   ComparisonReportStatus,
   ConfirmPadronStagingResult,
+  BulkDeletePadronStagingEntriesResult,
   CreateEventNewsDto,
   CreatePresentialSessionDto,
   CreateEventRoleDto,
@@ -75,6 +76,10 @@ const toPublishResponse = (raw: any): PublishEventResponse => {
     id: String(source?.id ?? source?._id ?? ""),
     state: (source?.state ?? "DRAFT") as PublishEventResponse["state"],
     nullifiers: Array.isArray(source?.nullifiers) ? source.nullifiers.map(String) : undefined,
+    removedUnregisteredCount:
+      source?.removedUnregisteredCount === undefined
+        ? undefined
+        : Number(source.removedUnregisteredCount),
     officialPublishedAt: source?.officialPublishedAt ?? null,
     publishDeadline: source?.publishDeadline ?? null,
     publicationConfirmed:
@@ -117,6 +122,8 @@ const toVotingEvent = (raw: any): VotingEvent => {
       source?.allowPostPublicationPadronEnable === undefined
         ? undefined
         : Boolean(source.allowPostPublicationPadronEnable),
+    publicUrl: source?.publicUrl ?? undefined,
+    publicPath: source?.publicPath ?? undefined,
     createdAt: source?.createdAt,
     updatedAt: source?.updatedAt,
     roles: Array.isArray(source?.roles)
@@ -401,7 +408,11 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
         body: {},
       }),
       transformResponse: (response: any) => toPublishResponse(response),
-      invalidatesTags: (_result, _error, { eventId }) => [{ type: "VotingEvents", id: eventId }],
+      invalidatesTags: (_result, _error, { eventId }) => [
+        { type: "VotingEvents", id: eventId },
+        { type: "VotingEventPadron", id: eventId },
+        { type: "VotingEventPadronSummary", id: eventId },
+      ],
     }),
 
     getEventRoles: builder.query<EventRole[], string>({
@@ -644,6 +655,32 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
       transformResponse: (response: any) => ({
         id: String(response?.id ?? ""),
         deleted: Boolean(response?.deleted),
+      }),
+      invalidatesTags: (_result, _error, { eventId }) => [
+        { type: "VotingEventPadron", id: eventId },
+        { type: "VotingEventPadronSummary", id: eventId },
+        { type: "VotingEvents", id: eventId },
+      ],
+    }),
+
+    bulkDeletePadronStagingEntries: builder.mutation<
+      BulkDeletePadronStagingEntriesResult,
+      { eventId: string; entryIds: string[] }
+    >({
+      query: ({ eventId, entryIds }) => ({
+        url: `/voting/events/${eventId}/padron/staging/bulk-delete`,
+        method: "POST",
+        body: { entryIds },
+      }),
+      transformResponse: (response: any) => ({
+        requestedCount: Number(response?.requestedCount ?? 0),
+        deletedCount: Number(response?.deletedCount ?? 0),
+        materialized: Boolean(response?.materialized),
+        convocationNotification: response?.convocationNotification
+          ? {
+              newlyNotified: Number(response.convocationNotification.newlyNotified ?? 0),
+            }
+          : undefined,
       }),
       invalidatesTags: (_result, _error, { eventId }) => [
         { type: "VotingEventPadron", id: eventId },
@@ -1028,6 +1065,7 @@ export const {
   useAddPadronStagingEntryMutation,
   useUpdatePadronStagingEntryMutation,
   useDeletePadronStagingEntryMutation,
+  useBulkDeletePadronStagingEntriesMutation,
   useAddCurrentPadronVoterMutation,
   useEnableCurrentPadronVoterMutation,
   useConfirmPadronStagingMutation,

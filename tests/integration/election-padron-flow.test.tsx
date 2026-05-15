@@ -35,6 +35,8 @@ vi.mock("@/features/electionConfig/data/padronGeminiClient", async () => {
 vi.mock("@/store/votingEvents", () => ({
   useAddCurrentPadronVoterMutation: vi.fn(),
   useAddPadronStagingEntryMutation: vi.fn(),
+  useBulkDeletePadronStagingEntriesMutation: vi.fn(),
+  useConfirmPadronStagingMutation: vi.fn(),
   useDeletePadronStagingEntryMutation: vi.fn(),
   useEnableCurrentPadronVoterMutation: vi.fn(),
   useGetEventOptionsQuery: vi.fn(),
@@ -296,6 +298,8 @@ describe("padron flow integration", () => {
     ] as any);
     vi.mocked(votingEvents.useUpdatePadronStagingEntryMutation).mockReturnValue(noopMutation as any);
     vi.mocked(votingEvents.useDeletePadronStagingEntryMutation).mockReturnValue(noopMutation as any);
+    vi.mocked(votingEvents.useBulkDeletePadronStagingEntriesMutation).mockReturnValue(noopMutation as any);
+    vi.mocked(votingEvents.useConfirmPadronStagingMutation).mockReturnValue(noopMutation as any);
     vi.mocked(votingEvents.useAddCurrentPadronVoterMutation).mockReturnValue(noopMutation as any);
     vi.mocked(votingEvents.useEnableCurrentPadronVoterMutation).mockReturnValue([vi.fn()] as any);
     vi.mocked(votingEvents.useGetVotingEventsQuery).mockReturnValue({ data: [], isLoading: false } as any);
@@ -305,15 +309,15 @@ describe("padron flow integration", () => {
     vi.mocked(votingEvents.useCreateEventNewsMutation).mockReturnValue(noopMutation as any);
   });
 
-  it("keeps finalize blocked when the active draft still has identities missing outside the current page", () => {
+  it("allows finalize when the active draft only has identities missing outside the current page", () => {
     render(<ElectionConfigPadron />);
 
     expect(
       screen.getByText(
-        "Hay 2 registros del padrón sin identidad verificada en la aplicación electoral. Corrígelos antes de continuar a revisión.",
+        "Hay 2 registros del padrón sin identidad verificada en la aplicación electoral. Se resolverán al confirmar la publicación oficial.",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /finalizar configuración/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /finalizar configuración/i })).toBeEnabled();
   });
 
   it("shows the autosaved active draft as the current padron source in status before publication", () => {
@@ -529,11 +533,13 @@ describe("padron flow integration", () => {
       eventId: "evt-1",
       ci: "12345678",
       enabled: true,
+      deferMaterialization: true,
     });
     expect(addPadronStagingEntryMock).toHaveBeenNthCalledWith(2, {
       eventId: "evt-1",
       ci: "87654321",
       enabled: false,
+      deferMaterialization: true,
     });
   });
 });

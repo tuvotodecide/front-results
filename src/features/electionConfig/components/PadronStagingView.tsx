@@ -23,6 +23,10 @@ interface PadronStagingViewProps {
   onAddRecord?: () => void;
   onEditRecord?: (voter: Voter) => void;
   onDeleteRecord?: (voter: Voter) => void;
+  selectedVoterIds?: string[];
+  bulkDeleting?: boolean;
+  onToggleRecordSelection?: (voterId: string) => void;
+  onBulkDeleteSelected?: () => void;
   onToggleEnabled?: (voter: Voter, nextEnabled: boolean) => void;
   onReplaceFile?: () => void;
   onDeleteFile?: () => void;
@@ -78,6 +82,39 @@ const Toggle: React.FC<{
   </button>
 );
 
+const RowSelectionCheckbox: React.FC<{
+  checked: boolean;
+  disabled?: boolean;
+  label: string;
+  onChange: () => void;
+}> = ({ checked, disabled = false, label, onChange }) => (
+  <label
+    className={`inline-flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
+      disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-slate-100"
+    }`}
+  >
+    <input
+      type="checkbox"
+      checked={checked}
+      onChange={onChange}
+      disabled={disabled}
+      aria-label={label}
+      className="peer sr-only"
+    />
+    <span className="flex h-5 w-5 items-center justify-center rounded-md border border-slate-300 bg-white text-transparent shadow-sm transition-colors peer-checked:border-[#2f8f3a] peer-checked:bg-[#2f8f3a] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#2f8f3a]/30 peer-disabled:bg-slate-100">
+      <svg
+        className="h-3.5 w-3.5"
+        viewBox="0 0 20 20"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 10.5l3 3 7-7" />
+      </svg>
+    </span>
+  </label>
+);
+
 const getPageNumbers = (page: number, totalPages: number) => {
   const pages: Array<number | string> = [];
   if (totalPages <= 7) {
@@ -121,6 +158,10 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
   onAddRecord,
   onEditRecord,
   onDeleteRecord,
+  selectedVoterIds = [],
+  bulkDeleting = false,
+  onToggleRecordSelection,
+  onBulkDeleteSelected,
   onToggleEnabled,
   onReplaceFile,
   onDeleteFile,
@@ -129,6 +170,8 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
 }) => {
   const [search, setSearch] = useState(searchValue);
   const totalRecords = enabledCount + disabledCount;
+  const selectedCount = selectedVoterIds.length;
+  const selectionEnabled = Boolean(onToggleRecordSelection);
 
   useEffect(() => {
     setSearch(searchValue);
@@ -248,6 +291,23 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
                 </button>
               </form>
 
+              {selectedCount > 0 && onBulkDeleteSelected ? (
+                <button
+                  type="button"
+                  onClick={onBulkDeleteSelected}
+                  disabled={bulkDeleting}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                >
+                  {bulkDeleting ? (
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : null}
+                  Eliminar seleccionados ({selectedCount})
+                </button>
+              ) : null}
+
               {onAddRecord ? (
                 <button
                   type="button"
@@ -279,6 +339,11 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50">
               <tr>
+                {selectionEnabled ? (
+                  <th className="w-14 px-3 py-4 text-center text-sm font-semibold text-slate-700">
+                    <span className="sr-only">Seleccionar registro</span>
+                  </th>
+                ) : null}
                 <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">
                   Carnet de identidad
                 </th>
@@ -293,7 +358,7 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
             <tbody className="divide-y divide-slate-100 bg-white">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-14 text-center">
+                  <td colSpan={selectionEnabled ? 4 : 3} className="px-6 py-14 text-center">
                     <div className="mx-auto h-8 w-8 rounded-full border-4 border-[#459151] border-t-transparent animate-spin" />
                     <p className="mt-4 text-sm text-slate-500">
                       Cargando registros del padrón...
@@ -303,7 +368,7 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
               ) : voters.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={selectionEnabled ? 4 : 3}
                     className="px-6 py-12 text-center text-sm text-slate-500"
                   >
                     No se encontraron registros en esta página.
@@ -312,6 +377,16 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
               ) : (
                 voters.map((voter) => (
                   <tr key={voter.id} className="hover:bg-slate-50/70">
+                    {selectionEnabled ? (
+                      <td className="w-14 px-3 py-4 text-center align-middle">
+                        <RowSelectionCheckbox
+                          checked={selectedVoterIds.includes(voter.id)}
+                          onChange={() => onToggleRecordSelection?.(voter.id)}
+                          disabled={bulkDeleting}
+                          label={`Seleccionar ${voter.carnet}`}
+                        />
+                      </td>
+                    ) : null}
                     <td className="px-6 py-4">
                       <div>
                         <p className="font-medium text-slate-900">

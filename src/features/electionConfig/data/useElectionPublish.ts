@@ -25,6 +25,8 @@ export interface UseElectionPublishReturn {
   votingEvent?: VotingEvent;
   ballotPreview: BallotPreviewData | null;
   configSummary: ConfigSummary | null;
+  publicationMissingIdentityCount: number;
+  publicationPadronCount: number;
   reviewReadiness: ReviewReadinessResponse | null;
   electionStatus: ElectionStatus;
   loading: boolean;
@@ -61,6 +63,12 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
   const [markReadyForReview, { isLoading: openingReview }] = useMarkEventReadyForReviewMutation();
   const [confirmOfficialPublication, { isLoading: activating }] = useConfirmOfficialPublicationMutation();
   const [activationResult, setActivationResult] = useState<ActivationResult | null>(null);
+  const publicationMissingIdentityCount = Number(
+    padronWorkflow?.activeDraft?.summary.missingIdentityCount ?? 0,
+  );
+  const publicationPadronCount = Number(
+    padronWorkflow?.activeDraft?.summary.stagingCount ?? 0,
+  );
 
   const ballotPreview: BallotPreviewData | null = useMemo(() => {
     if (!event) return null;
@@ -94,14 +102,16 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
 
   const configSummary: ConfigSummary | null = useMemo(() => {
     const reviewPending = new Set(reviewReadiness?.pending ?? []);
+    const activeDraft = padronWorkflow?.activeDraft ?? null;
+    const padronValidationPendingBlocks =
+      !activeDraft && reviewPending.has('padron_validation');
     const padronPending =
       reviewPending.has('padron') ||
       reviewPending.has('padron_invalid') ||
-      reviewPending.has('padron_validation');
+      padronValidationPendingBlocks;
     const positionsCount = roles.length;
     const partiesCount = options.length;
     const partiesWithCandidates = options.filter((o) => (o.candidates ?? []).length > 0).length;
-    const activeDraft = padronWorkflow?.activeDraft ?? null;
     const currentPadron = padronWorkflow?.currentVersion
       ? {
           validCount: Number(padronWorkflow.currentVersion.totals.validCount ?? 0),
@@ -114,9 +124,6 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
     const invalidCount = activeDraft
       ? Number(activeDraft.summary.invalidCount ?? 0) + Number(activeDraft.summary.duplicateCount ?? 0)
       : Number(currentPadron?.invalidCount ?? 0);
-    const missingIdentityCount = activeDraft
-      ? Number(activeDraft.summary.missingIdentityCount ?? 0)
-      : 0;
     const enabledToVoteCount = activeDraft
       ? Number(activeDraft.summary.enabledCount ?? 0)
       : Number(padronSummary?.enabledToVote ?? 0);
@@ -130,7 +137,6 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
       padronOk:
         votersCount > 0 &&
         invalidCount === 0 &&
-        missingIdentityCount === 0 &&
         !padronPending,
       positionsCount,
       partiesCount,
@@ -161,10 +167,24 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
     };
 
     setActivationResult(out);
-    await refetchReadiness();
-    await refetchEvent();
+    await Promise.all([
+      refetchReadiness(),
+      refetchEvent(),
+      refetchPadron(),
+      refetchPadronWorkflow(),
+      refetchPadronSummary(),
+    ]);
     return out;
-  }, [confirmOfficialPublication, electionId, event?.votingStart, refetchEvent, refetchReadiness]);
+  }, [
+    confirmOfficialPublication,
+    electionId,
+    event?.votingStart,
+    refetchEvent,
+    refetchPadron,
+    refetchPadronSummary,
+    refetchPadronWorkflow,
+    refetchReadiness,
+  ]);
 
   const openReview = useCallback(async (): Promise<ReviewReadinessResponse> => {
     const response = await markReadyForReview(electionId).unwrap();
@@ -213,6 +233,8 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
     votingEvent: event,
     ballotPreview,
     configSummary,
+    publicationMissingIdentityCount,
+    publicationPadronCount,
     reviewReadiness: reviewReadiness ?? null,
     electionStatus,
     loading:

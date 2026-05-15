@@ -10,6 +10,7 @@ interface ConfirmActivateModalProps {
   onConfirm: () => void;
   isLoading: boolean;
   isReferendum?: boolean;
+  unregisteredCount?: number;
 }
 
 const ConfirmActivateModal: React.FC<ConfirmActivateModalProps> = ({
@@ -18,7 +19,10 @@ const ConfirmActivateModal: React.FC<ConfirmActivateModalProps> = ({
   onConfirm,
   isLoading,
   isReferendum = false,
+  unregisteredCount = 0,
 }) => {
+  const hasUnregistered = unregisteredCount > 0;
+
   return (
     <Modal2
       isOpen={isOpen}
@@ -54,11 +58,21 @@ const ConfirmActivateModal: React.FC<ConfirmActivateModalProps> = ({
         </h2>
 
         {/* Descripción */}
+        <p className="mb-3 px-4 text-base font-semibold text-gray-700">
+          ¿Deseas publicar oficialmente esta elección?
+        </p>
         <p className="text-gray-600 mb-8 px-4">
           {isReferendum
             ? 'Esta acción publica oficialmente el referéndum y no podrás realizar más cambios.'
             : 'Esta acción publica oficialmente la elección y no podrás realizar más cambios.'}
         </p>
+
+        {hasUnregistered ? (
+          <div className="mb-6 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-left text-sm font-semibold text-red-700">
+            Existen {unregisteredCount} registros no registrados. Al confirmar
+            la publicación oficial, estos registros se eliminarán del padrón.
+          </div>
+        ) : null}
 
         {/* Botones */}
         <div className="flex gap-3 justify-center">
@@ -68,7 +82,7 @@ const ConfirmActivateModal: React.FC<ConfirmActivateModalProps> = ({
             disabled={isLoading}
             className="min-w-[150px] px-6 py-3 bg-[#459151] hover:bg-[#3a7a44] text-white  font-medium rounded-lg transition-colors disabled:opacity-50"
           >
-            Volver
+            Cancelar
           </button>
           <button
             type="button"
@@ -85,7 +99,7 @@ const ConfirmActivateModal: React.FC<ConfirmActivateModalProps> = ({
                 Confirmando...
               </>
             ) : (
-              'Confirmar publicación'
+              'Publicar oficialmente'
             )}
           </button>
         </div>

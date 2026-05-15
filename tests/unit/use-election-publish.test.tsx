@@ -105,6 +105,32 @@ describe("useElectionPublish", () => {
     const { result } = renderHook(() => useElectionPublish("evt-1"));
 
     expect(result.current.configSummary?.votersCount).toBe(10);
+    expect(result.current.configSummary?.padronOk).toBe(true);
+  });
+
+  it("keeps real padron validation pending as a blocker for a current padron", () => {
+    vi.mocked(votingEvents.useGetEventReviewReadinessQuery).mockReturnValue({
+      data: { pending: ["padron_validation"] },
+      isLoading: false,
+      refetch: vi.fn(),
+    } as any);
+    vi.mocked(votingEvents.useGetPadronWorkflowSummaryQuery).mockReturnValue({
+      data: {
+        eventId: "evt-1",
+        currentVersion: {
+          padronVersionId: "ver-1",
+          createdBy: "admin-1",
+          totals: { validCount: 20, invalidCount: 0, duplicateCount: 0 },
+          sourceType: "PDF_IMPORT",
+        },
+        activeDraft: null,
+      },
+      isLoading: false,
+      refetch: vi.fn(),
+    } as any);
+
+    const { result } = renderHook(() => useElectionPublish("evt-1"));
+
     expect(result.current.configSummary?.padronOk).toBe(false);
   });
 });

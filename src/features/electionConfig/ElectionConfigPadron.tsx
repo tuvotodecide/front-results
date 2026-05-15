@@ -32,6 +32,7 @@ import {
 import type { ConfigStep, PadronFile, Voter } from "./types";
 import {
   useAddPadronStagingEntryMutation,
+  useBulkDeletePadronStagingEntriesMutation,
   useConfirmPadronStagingMutation,
   useDeletePadronStagingEntryMutation,
   useEnableCurrentPadronVoterMutation,
@@ -115,6 +116,8 @@ const ElectionConfigPadron: React.FC = () => {
   const [observationsOpen, setObservationsOpen] = useState(false);
   const [recordModal, setRecordModal] = useState<RecordModalState>({ open: false });
   const [deleteCandidate, setDeleteCandidate] = useState<Voter | null>(null);
+  const [bulkDeleteConfirmationOpen, setBulkDeleteConfirmationOpen] = useState(false);
+  const [selectedPadronEntryIds, setSelectedPadronEntryIds] = useState<string[]>([]);
   const [currentPadronActionVoterId, setCurrentPadronActionVoterId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -217,6 +220,8 @@ const ElectionConfigPadron: React.FC = () => {
   const [addPadronStagingEntry, { isLoading: addingEntry }] = useAddPadronStagingEntryMutation();
   const [updatePadronStagingEntry, { isLoading: updatingEntry }] = useUpdatePadronStagingEntryMutation();
   const [deletePadronStagingEntry, { isLoading: deletingEntry }] = useDeletePadronStagingEntryMutation();
+  const [bulkDeletePadronStagingEntries, { isLoading: bulkDeletingEntries }] =
+    useBulkDeletePadronStagingEntriesMutation();
   const [confirmPadronStaging] = useConfirmPadronStagingMutation();
   const [enableCurrentPadronVoter] = useEnableCurrentPadronVoterMutation();
   const [downloadPadronPdf] = useLazyDownloadPadronPdfQuery();
@@ -362,8 +367,7 @@ const ElectionConfigPadron: React.FC = () => {
   const isPadronConfirmed = Boolean(currentVersion?.padronVersionId) && !activeDraft;
   const stagingDraftReadyForNextStep = activeDraft
     ? activeDraft.summary.stagingCount > 0 &&
-      activeDraftObservedCount === 0 &&
-      missingIdentityCount === 0
+      activeDraftObservedCount === 0
     : false;
   const reviewPending = new Set(reviewReadiness?.pending ?? []);
   const hasPadronReviewPending =
@@ -402,6 +406,11 @@ const ElectionConfigPadron: React.FC = () => {
   useEffect(() => {
     setPage(1);
   }, [searchTerm]);
+
+  useEffect(() => {
+    setSelectedPadronEntryIds([]);
+    setBulkDeleteConfirmationOpen(false);
+  }, [activeDraft?.importJobId, page, searchTerm]);
 
   const pollImportJobUntilReady = useCallback(
     async (importJobId: string) => {
@@ -467,6 +476,17 @@ const ElectionConfigPadron: React.FC = () => {
     refetchWorkflowSummary,
     stagingUninitialized,
   ]);
+
+  const preserveScrollDuring = useCallback(async (task: () => Promise<void>) => {
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+
+    await task();
+
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ left: scrollX, top: scrollY, behavior: "auto" });
+    });
+  }, []);
 
   const getAllCurrentStagingEntries = useCallback(async () => {
     const entries: Array<{ id: string }> = [];
@@ -803,9 +823,48 @@ const ElectionConfigPadron: React.FC = () => {
       }).unwrap();
       setDeleteCandidate(null);
       setSuccess("Registro eliminado y guardado automáticamente.");
-      await refetchVisiblePadronData();
+      await preserveScrollDuring(refetchVisiblePadronData);
     } catch (deleteError: any) {
       setError(getRequestErrorMessage(deleteError, "No se pudo eliminar el registro del padrón."));
+    }
+  };
+
+  const handleToggleRecordSelection = (voterId: string) => {
+    setSelectedPadronEntryIds((current) =>
+      current.includes(voterId)
+        ? current.filter((selectedId) => selectedId !== voterId)
+        : [...current, voterId],
+    );
+  };
+
+  const handleBulkDeleteSelected = async () => {
+    if (!selectedPadronEntryIds.length) return;
+
+    const totalStagingCount = Number(activeDraft?.summary.stagingCount ?? 0);
+    if (totalStagingCount > 0 && selectedPadronEntryIds.length >= totalStagingCount) {
+      setBulkDeleteConfirmationOpen(false);
+      setError("No se puede eliminar todos los registros del padrón.");
+      return;
+    }
+
+    try {
+      const result = await bulkDeletePadronStagingEntries({
+        eventId: actualElectionId,
+        entryIds: selectedPadronEntryIds,
+      }).unwrap();
+
+      setBulkDeleteConfirmationOpen(false);
+      setSelectedPadronEntryIds([]);
+      setSuccess(`Se eliminaron ${result.deletedCount} registros del padrón.`);
+      await preserveScrollDuring(refetchVisiblePadronData);
+    } catch (bulkDeleteError: any) {
+      setError(
+        getRequestErrorMessage(
+          bulkDeleteError,
+          "No se pudieron eliminar los registros seleccionados. Intenta nuevamente.",
+        ),
+      );
+      await preserveScrollDuring(refetchVisiblePadronData);
     }
   };
 
@@ -1014,8 +1073,8 @@ const ElectionConfigPadron: React.FC = () => {
                 areAllRegistered
                   ? undefined
                   : missingIdentityCount === 1
-                    ? "Hay 1 registro del padrón sin identidad verificada en la aplicación electoral. Corrígelo antes de continuar a revisión."
-                    : `Hay ${missingIdentityCount} registros del padrón sin identidad verificada en la aplicación electoral. Corrígelos antes de continuar a revisión.`
+                    ? "Hay 1 registro del padrón sin identidad verificada en la aplicación electoral. Se resolverá al confirmar la publicación oficial."
+                    : `Hay ${missingIdentityCount} registros del padrón sin identidad verificada en la aplicación electoral. Se resolverán al confirmar la publicación oficial.`
               }
               totalVoters={stagingData?.total ?? activeDraft.summary.stagingCount}
               enabledCount={activeDraft.summary.enabledCount}
@@ -1033,6 +1092,10 @@ const ElectionConfigPadron: React.FC = () => {
               onAddRecord={() => setRecordModal({ open: true, mode: "create" })}
               onEditRecord={(voter) => setRecordModal({ open: true, mode: "edit", voter })}
               onDeleteRecord={(voter) => setDeleteCandidate(voter)}
+              selectedVoterIds={selectedPadronEntryIds}
+              bulkDeleting={bulkDeletingEntries}
+              onToggleRecordSelection={handleToggleRecordSelection}
+              onBulkDeleteSelected={() => setBulkDeleteConfirmationOpen(true)}
               onToggleEnabled={(voter, nextEnabled) => void handleToggleEnabled(voter, nextEnabled)}
               onReplaceFile={handleReplaceFile}
             />
@@ -1074,9 +1137,9 @@ const ElectionConfigPadron: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => void handleFinish()}
-                  disabled={!canFinalizePadron || !areAllRegistered}
+                  disabled={!canFinalizePadron}
                   className={`inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 font-semibold transition ${
-                    canFinalizePadron && areAllRegistered
+                    canFinalizePadron
                       ? "bg-[#459151] text-white hover:bg-[#3a7a44]"
                       : "cursor-not-allowed bg-slate-200 text-slate-500"
                   }`}
@@ -1163,6 +1226,45 @@ const ElectionConfigPadron: React.FC = () => {
         onClose={() => setRecordModal({ open: false })}
         onSubmit={handleSaveRecord}
       />
+
+      <Modal2
+        isOpen={bulkDeleteConfirmationOpen}
+        onClose={() => setBulkDeleteConfirmationOpen(false)}
+        title="Eliminar seleccionados"
+        size="sm"
+        type="plain"
+      >
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-red-100 bg-red-50/80 p-4 text-sm text-red-800">
+            ¿Seguro que deseas eliminar {selectedPadronEntryIds.length} registros seleccionados del padrón?
+          </div>
+
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={() => setBulkDeleteConfirmationOpen(false)}
+              disabled={bulkDeletingEntries}
+              className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleBulkDeleteSelected()}
+              disabled={bulkDeletingEntries}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+            >
+              {bulkDeletingEntries ? (
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : null}
+              <span>{bulkDeletingEntries ? "Eliminando..." : "Eliminar seleccionados"}</span>
+            </button>
+          </div>
+        </div>
+      </Modal2>
 
       <Modal2
         isOpen={Boolean(deleteCandidate)}

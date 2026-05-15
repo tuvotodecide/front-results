@@ -189,8 +189,8 @@ const TopInfoCard: React.FC<{
   action?: React.ReactNode;
   note?: string;
 }> = ({ title, lines, action, note }) => (
-  <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-    <div className="mb-3 flex items-start justify-between gap-4">
+  <div className="bg-white border border-gray-200 rounded-xl p-5 text-center shadow-sm">
+    <div className="mb-3 flex flex-col items-center justify-center gap-3">
       <div>
         <h3 className="font-semibold text-gray-800">{title}</h3>
         {note ? <p className="mt-1 text-xs text-gray-500">{note}</p> : null}
@@ -222,12 +222,15 @@ const ActiveElectionStatusPage: React.FC = () => {
   const [scheduleSuccess, setScheduleSuccess] = useState<string | null>(null);
   const [kioskMessage, setKioskMessage] = useState<string | null>(null);
   const [kioskError, setKioskError] = useState<string | null>(null);
+  const [publicLinkMessage, setPublicLinkMessage] = useState<string | null>(null);
+  const [publicLinkError, setPublicLinkError] = useState<string | null>(null);
   const [newsMessage, setNewsMessage] = useState<string | null>(null);
   const [newsError, setNewsError] = useState<string | null>(null);
   const [isNewsModalOpen, setIsNewsModalOpen] = useState(false);
   const [padronMessage, setPadronMessage] = useState<string | null>(null);
   const [padronError, setPadronError] = useState<string | null>(null);
   const [currentPadronActionVoterId, setCurrentPadronActionVoterId] = useState<string | null>(null);
+  const [otherElectionsPage, setOtherElectionsPage] = useState(0);
   const [scheduleForm, setScheduleForm] = useState({
     votingStart: "",
     votingEnd: "",
@@ -358,6 +361,18 @@ const ActiveElectionStatusPage: React.FC = () => {
     () => events.filter((item) => item.id !== actualElectionId),
     [events, actualElectionId],
   );
+  const otherElectionsPageSize = 3;
+  const otherElectionsTotalPages = Math.max(
+    1,
+    Math.ceil(otherElections.length / otherElectionsPageSize),
+  );
+  const otherElectionPages = useMemo(() => {
+    const pages = [];
+    for (let index = 0; index < otherElections.length; index += otherElectionsPageSize) {
+      pages.push(otherElections.slice(index, index + otherElectionsPageSize));
+    }
+    return pages;
+  }, [otherElections]);
   const scheduleEditable = canEditSchedule(event, nowMs);
   const fullElectionEditingEnabled = canEditElectionBeforeCutoff(event, nowMs);
   const officialPublicationLocked = isOfficiallyPublished(event);
@@ -367,6 +382,7 @@ const ActiveElectionStatusPage: React.FC = () => {
     lifecycle === "CLOSED" ||
     lifecycle === "RESULTS" ||
     lifecycle === "RESULTS_PUBLISHED";
+  const showPublicElectionLink = canCreateNews;
   const votingPadronLimitedMode = limitedModeByEvent;
   const allowPostPublicationPadronEnable =
     event?.allowPostPublicationPadronEnable !== false;
@@ -385,6 +401,16 @@ const ActiveElectionStatusPage: React.FC = () => {
   );
   const hasScheduleFieldErrors = Object.keys(scheduleFieldErrors).length > 0;
   const currentPublishDeadlineLabel = formatDateTimeForUi(event?.publishDeadline);
+  const publicElectionUrl = useMemo(() => {
+    if (!actualElectionId) return "";
+    const fallbackPath = `/votacion/elecciones/${actualElectionId}/publica`;
+    const source = String(event?.publicUrl ?? event?.publicPath ?? "").trim() || fallbackPath;
+    if (/^https?:\/\//i.test(source)) {
+      return source;
+    }
+    const normalizedPath = source.startsWith("/") ? source : `/${source}`;
+    return `${window.location.origin}${normalizedPath}`;
+  }, [actualElectionId, event?.publicPath, event?.publicUrl]);
   const displayPadronFile = activeWorkflowDraft
     ? {
         fileName:
@@ -430,6 +456,12 @@ const ActiveElectionStatusPage: React.FC = () => {
       setActiveTab(2);
     }
   }, [activeTab, isReferendum]);
+
+  useEffect(() => {
+    setOtherElectionsPage((current) =>
+      Math.min(current, otherElectionsTotalPages - 1),
+    );
+  }, [otherElectionsTotalPages]);
 
   useEffect(() => {
     setScheduleForm({
@@ -516,6 +548,25 @@ const ActiveElectionStatusPage: React.FC = () => {
     });
 
     window.open(path, "_blank", "noopener,noreferrer");
+  };
+
+  const handleOpenPublicElection = () => {
+    if (!publicElectionUrl) return;
+    window.open(publicElectionUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const handleCopyPublicElectionLink = async () => {
+    if (!publicElectionUrl) return;
+
+    setPublicLinkMessage(null);
+    setPublicLinkError(null);
+
+    try {
+      await navigator.clipboard.writeText(publicElectionUrl);
+      setPublicLinkMessage("Enlace copiado.");
+    } catch {
+      setPublicLinkError("No se pudo copiar el enlace.");
+    }
   };
 
   const handleCopyKioskLink = async () => {
@@ -703,7 +754,11 @@ const ActiveElectionStatusPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div
+          className={`grid gap-4 md:grid-cols-2 ${
+            presentialKioskEnabled ? "xl:grid-cols-4" : "xl:grid-cols-3"
+          }`}
+        >
           <TopInfoCard
             title="Horario de Votación"
             note={
@@ -746,6 +801,31 @@ const ActiveElectionStatusPage: React.FC = () => {
               <StatusBadge state={lifecycle} />
             </div>
           </div>
+          {showPublicElectionLink ? (
+            <div className="bg-white border border-gray-200 rounded-xl p-5 text-center shadow-sm">
+              <div className="mb-4">
+                <h3 className="font-semibold text-gray-800">
+                  Enlace de elección para el público
+                </h3>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row xl:flex-col">
+                <button
+                  type="button"
+                  onClick={() => void handleCopyPublicElectionLink()}
+                  className="inline-flex items-center justify-center rounded-lg bg-[#459151] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3a7a44]"
+                >
+                  Copiar enlace
+                </button>
+                <button
+                  type="button"
+                  onClick={handleOpenPublicElection}
+                  className="inline-flex items-center justify-center rounded-lg border border-[#459151]/25 bg-white px-4 py-2.5 text-sm font-semibold text-[#2E6A38] transition hover:bg-[#EFF7F0]"
+                >
+                  Abrir enlace
+                </button>
+              </div>
+            </div>
+          ) : null}
           {presentialKioskEnabled ? (
             <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
               <div className="mb-4">
@@ -799,9 +879,21 @@ const ActiveElectionStatusPage: React.FC = () => {
           </div>
         ) : null}
 
+        {publicLinkMessage ? (
+          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            {publicLinkMessage}
+          </div>
+        ) : null}
+
         {kioskError ? (
           <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {kioskError}
+          </div>
+        ) : null}
+
+        {publicLinkError ? (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {publicLinkError}
           </div>
         ) : null}
 
@@ -1042,25 +1134,86 @@ const ActiveElectionStatusPage: React.FC = () => {
 
         {otherElections.length > 0 && (
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-gray-800">
-              Otras votaciones
-            </h2>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {otherElections.map((item) => (
+            <div className="text-center sm:text-left">
+              <h2 className="text-xl font-semibold text-gray-800">
+                Otras votaciones
+              </h2>
+            </div>
+
+            <div className="overflow-hidden">
+              <div
+                className="flex transition-transform duration-300 ease-out"
+                style={{ transform: `translateX(-${otherElectionsPage * 100}%)` }}
+              >
+                {otherElectionPages.map((pageItems, pageIndex) => (
+                  <div
+                    key={`other-elections-page-${pageIndex}`}
+                    aria-hidden={pageIndex !== otherElectionsPage}
+                    className="grid w-full shrink-0 gap-4 md:grid-cols-2 xl:grid-cols-3"
+                  >
+                    {pageItems.map((item) => (
+                      <button
+                        type="button"
+                        key={item.id}
+                        onClick={() => navigateToElection(item)}
+                        tabIndex={pageIndex === otherElectionsPage ? 0 : -1}
+                        className="rounded-xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:border-[#459151] hover:shadow-md"
+                      >
+                        <div className="mb-2">
+                          <StatusBadge state={item.status} />
+                        </div>
+                        <h3 className="font-semibold text-gray-800">{item.name}</h3>
+                        <p className="mt-1 text-sm text-gray-500">{item.objective}</p>
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {otherElectionsTotalPages > 1 ? (
+              <div className="flex items-center justify-center gap-3 pt-1">
                 <button
                   type="button"
-                  key={item.id}
-                  onClick={() => navigateToElection(item)}
-                  className="rounded-xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:border-[#459151] hover:shadow-md"
+                  aria-label="Anterior"
+                  onClick={() =>
+                    setOtherElectionsPage((current) => Math.max(0, current - 1))
+                  }
+                  disabled={otherElectionsPage === 0}
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-xl font-semibold text-gray-700 shadow-sm transition hover:border-[#459151] hover:text-[#2E6A38] disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  <div className="mb-2">
-                    <StatusBadge state={item.status} />
-                  </div>
-                  <h3 className="font-semibold text-gray-800">{item.name}</h3>
-                  <p className="mt-1 text-sm text-gray-500">{item.objective}</p>
+                  ‹
                 </button>
-              ))}
-            </div>
+                <div className="flex items-center gap-2">
+                  {Array.from({ length: otherElectionsTotalPages }, (_, index) => (
+                    <button
+                      type="button"
+                      key={`other-elections-dot-${index}`}
+                      aria-label={`Ir al grupo ${index + 1}`}
+                      onClick={() => setOtherElectionsPage(index)}
+                      className={`h-2.5 rounded-full transition-all ${
+                        index === otherElectionsPage
+                          ? "w-7 bg-[#459151]"
+                          : "w-2.5 bg-gray-300 hover:bg-gray-400"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  aria-label="Siguiente"
+                  onClick={() =>
+                    setOtherElectionsPage((current) =>
+                      Math.min(otherElectionsTotalPages - 1, current + 1),
+                    )
+                  }
+                  disabled={otherElectionsPage >= otherElectionsTotalPages - 1}
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-xl font-semibold text-gray-700 shadow-sm transition hover:border-[#459151] hover:text-[#2E6A38] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  ›
+                </button>
+              </div>
+            ) : null}
           </div>
         )}
       </div>

@@ -130,6 +130,8 @@ export interface VotingEvent {
   canEditPadronInLimitedMode?: boolean;
   allowPostPublicationPadronEnable?: boolean;
   presentialKioskEnabled?: boolean;
+  publicUrl?: string;
+  publicPath?: string;
   createdAt?: string;
   updatedAt?: string;
   roles?: EventRole[];
@@ -289,6 +291,15 @@ export interface PadronStagingList {
   limit: number;
   total: number;
   totalPages: number;
+}
+
+export interface BulkDeletePadronStagingEntriesResult {
+  requestedCount: number;
+  deletedCount: number;
+  materialized: boolean;
+  convocationNotification?: {
+    newlyNotified: number;
+  };
 }
 
 export interface ConfirmPadronStagingResult {
@@ -459,6 +470,7 @@ export interface PublishEventResponse {
   id: string;
   state: VotingEventStatus;
   nullifiers?: string[];
+  removedUnregisteredCount?: number;
   officialPublishedAt?: string | null;
   publishDeadline?: string | null;
   publicationConfirmed?: boolean;

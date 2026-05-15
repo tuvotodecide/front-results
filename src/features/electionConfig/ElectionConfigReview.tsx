@@ -51,6 +51,7 @@ const basePendingLabels: Record<string, string> = {
   padron: "Padrón cargado",
   padron_invalid: "Padrón sin errores de registro",
   padron_validation: "Padrón listo para revisión",
+  padron_registered_enabled: "No hay votantes registrados y habilitados para notificar.",
   publication_window_expired: "La ventana de publicación oficial venció",
 };
 
@@ -78,6 +79,8 @@ const ElectionConfigReview: React.FC = () => {
     votingEvent,
     ballotPreview,
     configSummary,
+    publicationMissingIdentityCount,
+    publicationPadronCount,
     reviewReadiness,
     loading,
     openReview,
@@ -130,6 +133,7 @@ const ElectionConfigReview: React.FC = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showPadronShareModal, setShowPadronShareModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [publishErrorMessage, setPublishErrorMessage] = useState<string | null>(null);
   const [isNewsModalOpen, setIsNewsModalOpen] = useState(false);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
@@ -161,12 +165,35 @@ const ElectionConfigReview: React.FC = () => {
       configSummary.partiesOk &&
       configSummary.padronOk
     : false;
+  const hasUnregisteredForPublication = publicationMissingIdentityCount > 0;
+  const hasOnlyUnregisteredPublicationPending = Boolean(
+    hasUnregisteredForPublication &&
+      reviewReadiness?.pending?.length &&
+      reviewReadiness.pending.every((item) => item === "padron_validation"),
+  );
+  const notificationBlockingPending = (reviewReadiness?.pending ?? []).filter(
+    (item) => !(hasUnregisteredForPublication && item === "padron_validation"),
+  );
+  const canNotifyWithUnregisteredWarning = Boolean(
+    hasUnregisteredForPublication &&
+      reviewReadiness?.pending?.length &&
+      notificationBlockingPending.length === 0,
+  );
+  const canProceedToOfficialPublication =
+    isReadyToPublish ||
+    Boolean(
+      configSummary?.positionsOk &&
+        configSummary?.partiesOk &&
+        publicationPadronCount > 0 &&
+        hasOnlyUnregisteredPublicationPending,
+    );
 
   const handleBackToEdit = () => {
     navigate(`/votacion/elecciones/${actualElectionId}/config/cargos`);
   };
 
   const handleConfirmClick = () => {
+    setPublishErrorMessage(null);
     setShowConfirmModal(true);
   };
 
@@ -197,6 +224,12 @@ const ElectionConfigReview: React.FC = () => {
       setShowSuccessModal(true);
     } catch (error: any) {
       setShowConfirmModal(false);
+      setPublishErrorMessage(
+        getRequestErrorMessage(
+          error,
+          "Operación fallida. No se ha publicado la votación. Intenta nuevamente o contacta al soporte si el problema persiste.",
+        ),
+      );
       setShowErrorModal(true);
       console.error("Error activating election:", error);
     }
@@ -216,7 +249,7 @@ const ElectionConfigReview: React.FC = () => {
 
   const isPublishButtonDisabled = () => {
     return (
-      !isReadyToPublish ||
+      !canProceedToOfficialPublication ||
       activating ||
       reviewReadiness?.publicationWindow?.expired
     );
@@ -231,10 +264,12 @@ const ElectionConfigReview: React.FC = () => {
   const votingClosed = hasVotingEnded(votingEvent, nowMs);
   const scheduleEditable = canEditElectionBeforeCutoff(votingEvent, nowMs);
   const canOpenReview =
-    eventState === "DRAFT" && isReadyToPublish && reviewReadiness?.isReady;
+    eventState === "DRAFT" &&
+    isReadyToPublish &&
+    (reviewReadiness?.isReady || canNotifyWithUnregisteredWarning);
   const canConfirmOfficialPublication =
     eventState === "READY_FOR_REVIEW" &&
-    isReadyToPublish &&
+    canProceedToOfficialPublication &&
     reviewReadiness?.publicationWindow?.canConfirmOfficialPublication;
   const reviewAlreadyNotified =
     eventState === "READY_FOR_REVIEW" ||
@@ -473,13 +508,18 @@ const ElectionConfigReview: React.FC = () => {
 
             {/* Columna derecha: Resumen (mobile: arriba, desktop: lado) */}
             <div className="w-full lg:w-80 order-first lg:order-last space-y-4">
-              {reviewReadiness && !reviewReadiness.isReady ? (
+              {hasUnregisteredForPublication ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm">
+                  Existen {publicationMissingIdentityCount} registros no registrados. No recibirán notificación ni podrán votar hasta que se registren y sean habilitados.
+                </div>
+              ) : null}
+              {reviewReadiness && notificationBlockingPending.length > 0 ? (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm">
                   <p className="font-semibold">
                     Faltan estos puntos antes de notificar a los votantes:
                   </p>
                   <ul className="mt-2 list-disc space-y-1 pl-5">
-                    {reviewReadiness.pending.map((item) => (
+                    {notificationBlockingPending.map((item) => (
                       <li key={item}>
                         {getPendingLabel(
                           item,
@@ -794,6 +834,7 @@ const ElectionConfigReview: React.FC = () => {
         onConfirm={handleActivate}
         isLoading={activating}
         isReferendum={Boolean(ballotPreview?.isReferendum)}
+        unregisteredCount={publicationMissingIdentityCount}
       />
 
       {/* Modal de éxito */}
@@ -827,8 +868,8 @@ const ElectionConfigReview: React.FC = () => {
         showClose
         closeOnEscape
       >
-        Operación fallida. No se ha publicado la votación. Intenta nuevamente o
-        contacta al soporte si el problema persiste.
+        {publishErrorMessage ??
+          "Operación fallida. No se ha publicado la votación. Intenta nuevamente o contacta al soporte si el problema persiste."}
       </Modal2>
 
       <Modal2

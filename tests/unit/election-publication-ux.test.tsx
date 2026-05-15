@@ -5,6 +5,7 @@ import { vi } from "vitest";
 import { renderWithAuthStore } from "../utils/renderWithStore";
 import ElectionsPage from "@/features/elections/ElectionsPage";
 import ElectionConfigReview from "@/features/electionConfig/ElectionConfigReview";
+import ActiveElectionStatusPage from "@/features/electionConfig/ActiveElectionStatusPage";
 import ConfirmActivateModal from "@/features/electionConfig/components/ConfirmActivateModal";
 import type { UseElectionPublishReturn } from "@/features/electionConfig/data/useElectionPublish";
 import type { VotingEvent, ReviewReadinessResponse } from "@/store/votingEvents/types";
@@ -36,7 +37,16 @@ vi.mock("@/features/electionConfig/data/useElectionPublish", () => ({
 
 vi.mock("@/store/votingEvents", () => ({
   useGetVotingEventsQuery: vi.fn(),
+  useGetVotingEventQuery: vi.fn(),
+  useGetEventRolesQuery: vi.fn(),
+  useGetEventOptionsQuery: vi.fn(),
+  useGetPadronWorkflowSummaryQuery: vi.fn(),
+  useGetPadronVotersQuery: vi.fn(),
+  useGetPadronStagingQuery: vi.fn(),
+  useGetEventResultsQuery: vi.fn(),
+  useLazyDownloadPadronPdfQuery: vi.fn(),
   useDeleteVotingEventMutation: vi.fn(),
+  useEnableCurrentPadronVoterMutation: vi.fn(),
   useUpdateEventScheduleMutation: vi.fn(),
   useUpdateVotingEventMutation: vi.fn(),
   useCreatePresentialSessionMutation: vi.fn(),
@@ -157,6 +167,54 @@ describe("publication deadlines UX", () => {
     refetchMock.mockReset();
 
     vi.mocked(votingEvents.useDeleteVotingEventMutation).mockReturnValue(deleteMutation as any);
+    vi.mocked(votingEvents.useGetVotingEventsQuery).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    } as any);
+    vi.mocked(votingEvents.useGetVotingEventQuery).mockReturnValue({
+      data: makeVotingEvent(),
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as any);
+    vi.mocked(votingEvents.useGetEventRolesQuery).mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+    } as any);
+    vi.mocked(votingEvents.useGetEventOptionsQuery).mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+    } as any);
+    vi.mocked(votingEvents.useGetPadronWorkflowSummaryQuery).mockReturnValue({
+      data: {
+        eventId: "evt-1",
+        eventState: "OFFICIALLY_PUBLISHED",
+        currentVersion: null,
+        activeDraft: null,
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as any);
+    vi.mocked(votingEvents.useGetPadronVotersQuery).mockReturnValue({
+      data: { voters: [], total: 0, totalPages: 1 },
+      isLoading: false,
+      refetch: vi.fn(),
+    } as any);
+    vi.mocked(votingEvents.useGetPadronStagingQuery).mockReturnValue({
+      data: { data: [], total: 0, totalPages: 1 },
+      isLoading: false,
+    } as any);
+    vi.mocked(votingEvents.useGetEventResultsQuery).mockReturnValue({
+      data: null,
+      isLoading: false,
+    } as any);
+    vi.mocked(votingEvents.useLazyDownloadPadronPdfQuery).mockReturnValue([vi.fn()] as any);
+    vi.mocked(votingEvents.useEnableCurrentPadronVoterMutation).mockReturnValue(noopMutation as any);
     vi.mocked(votingEvents.useUpdateEventScheduleMutation).mockReturnValue(noopMutation as any);
     vi.mocked(votingEvents.useUpdateVotingEventMutation).mockReturnValue(noopMutation as any);
     vi.mocked(votingEvents.useCreatePresentialSessionMutation).mockReturnValue(noopMutation as any);
@@ -249,6 +307,8 @@ describe("publication deadlines UX", () => {
       votingEvent: makeVotingEvent(),
       ballotPreview: null,
       configSummary: makeConfigSummary(),
+      publicationMissingIdentityCount: 0,
+      publicationPadronCount: 0,
       reviewReadiness: makeReviewReadiness(),
       loading: false,
       error: null,
@@ -285,6 +345,8 @@ describe("publication deadlines UX", () => {
       }),
       ballotPreview: null,
       configSummary: makeConfigSummary(),
+      publicationMissingIdentityCount: 0,
+      publicationPadronCount: 0,
       reviewReadiness: makeReviewReadiness({
         state: "PUBLICATION_EXPIRED",
         isReady: false,
@@ -340,6 +402,8 @@ describe("publication deadlines UX", () => {
       }),
       ballotPreview: null,
       configSummary: makeConfigSummary(),
+      publicationMissingIdentityCount: 0,
+      publicationPadronCount: 0,
       reviewReadiness: makeReviewReadiness(),
       loading: false,
       error: null,
@@ -388,6 +452,8 @@ describe("publication deadlines UX", () => {
       }),
       ballotPreview: null,
       configSummary: makeConfigSummary(),
+      publicationMissingIdentityCount: 0,
+      publicationPadronCount: 0,
       reviewReadiness: makeReviewReadiness({ state: "DRAFT" }),
       loading: false,
       error: null,
@@ -416,6 +482,166 @@ describe("publication deadlines UX", () => {
     expect(screen.getByRole("button", { name: "Copiar enlace" })).toBeInTheDocument();
   });
 
+  it("allows notifying voters when the only pending item is disabled unregistered records", async () => {
+    const user = userEvent.setup();
+    const openReviewMock = vi.fn(() => Promise.resolve(makeReviewReadiness()));
+
+    useElectionPublishMock.mockReturnValue({
+      votingEvent: makeVotingEvent({
+        state: "DRAFT",
+        status: "DRAFT",
+        publicEligibilityEnabled: false,
+        publicEligibility: false,
+      }),
+      ballotPreview: null,
+      configSummary: makeConfigSummary(),
+      publicationMissingIdentityCount: 1,
+      publicationPadronCount: 3,
+      reviewReadiness: makeReviewReadiness({
+        state: "DRAFT",
+        isReady: false,
+        pending: ["padron_validation"],
+      }),
+      loading: false,
+      error: null,
+      electionStatus: "DRAFT",
+      openReview: openReviewMock,
+      openingReview: false,
+      activateElection: vi.fn(),
+      activating: false,
+      activationResult: null,
+      copyToClipboard: vi.fn(),
+      getShareUrl: vi.fn(),
+      refetch: refetchMock,
+    } satisfies UseElectionPublishReturn);
+
+    render(<ElectionConfigReview />);
+
+    expect(
+      screen.getByText(
+        "Existen 1 registros no registrados. No recibirán notificación ni podrán votar hasta que se registren y sean habilitados.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Padrón listo para revisión")).not.toBeInTheDocument();
+
+    const notifyButton = screen.getByRole("button", { name: "Notificar a los votantes" });
+    expect(notifyButton).toBeEnabled();
+
+    await user.click(notifyButton);
+
+    expect(openReviewMock).toHaveBeenCalled();
+  });
+
+  it("blocks notifying voters when there are no registered enabled voters", () => {
+    useElectionPublishMock.mockReturnValue({
+      votingEvent: makeVotingEvent({
+        state: "DRAFT",
+        status: "DRAFT",
+      }),
+      ballotPreview: null,
+      configSummary: makeConfigSummary(),
+      publicationMissingIdentityCount: 2,
+      publicationPadronCount: 2,
+      reviewReadiness: makeReviewReadiness({
+        state: "DRAFT",
+        isReady: false,
+        pending: ["padron_registered_enabled"],
+      }),
+      loading: false,
+      error: null,
+      electionStatus: "DRAFT",
+      openReview: vi.fn(),
+      openingReview: false,
+      activateElection: vi.fn(),
+      activating: false,
+      activationResult: null,
+      copyToClipboard: vi.fn(),
+      getShareUrl: vi.fn(),
+      refetch: refetchMock,
+    } satisfies UseElectionPublishReturn);
+
+    render(<ElectionConfigReview />);
+
+    expect(
+      screen.getByText("No hay votantes registrados y habilitados para notificar."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Notificar a los votantes" })).toBeDisabled();
+  });
+
+  it("opens the official publication modal when the only pending item is unregistered padron records", async () => {
+    const user = userEvent.setup();
+    const activateElectionMock = vi.fn();
+
+    useElectionPublishMock.mockReturnValue({
+      votingEvent: makeVotingEvent(),
+      ballotPreview: null,
+      configSummary: makeConfigSummary({ padronOk: false }),
+      publicationMissingIdentityCount: 2,
+      publicationPadronCount: 5,
+      reviewReadiness: makeReviewReadiness({
+        isReady: false,
+        pending: ["padron_validation"],
+      }),
+      loading: false,
+      error: null,
+      electionStatus: "DRAFT",
+      openReview: vi.fn(),
+      openingReview: false,
+      activateElection: activateElectionMock,
+      activating: false,
+      activationResult: null,
+      copyToClipboard: vi.fn(),
+      getShareUrl: vi.fn(),
+      refetch: refetchMock,
+    } satisfies UseElectionPublishReturn);
+
+    render(<ElectionConfigReview />);
+
+    const publishButton = screen.getByRole("button", {
+      name: /confirmar publicación oficial/i,
+    });
+    expect(publishButton).toBeEnabled();
+
+    await user.click(publishButton);
+
+    expect(
+      screen.getByText(
+        /Existen 2 registros no registrados. Al confirmar la publicación oficial, estos registros se eliminarán del padrón./i,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps official publication blocked by critical pending items", () => {
+    useElectionPublishMock.mockReturnValue({
+      votingEvent: makeVotingEvent(),
+      ballotPreview: null,
+      configSummary: makeConfigSummary({ padronOk: false }),
+      publicationMissingIdentityCount: 0,
+      publicationPadronCount: 0,
+      reviewReadiness: makeReviewReadiness({
+        isReady: false,
+        pending: ["padron"],
+      }),
+      loading: false,
+      error: null,
+      electionStatus: "DRAFT",
+      openReview: vi.fn(),
+      openingReview: false,
+      activateElection: vi.fn(),
+      activating: false,
+      activationResult: null,
+      copyToClipboard: vi.fn(),
+      getShareUrl: vi.fn(),
+      refetch: refetchMock,
+    } satisfies UseElectionPublishReturn);
+
+    render(<ElectionConfigReview />);
+
+    expect(
+      screen.getByRole("button", { name: /confirmar publicación oficial/i }),
+    ).toBeDisabled();
+  });
+
   it("does not show the share modal after notifying voters when public padron review is disabled", async () => {
     const user = userEvent.setup();
     const openReviewMock = vi.fn(() => Promise.resolve(makeReviewReadiness()));
@@ -430,6 +656,8 @@ describe("publication deadlines UX", () => {
       }),
       ballotPreview: null,
       configSummary: makeConfigSummary(),
+      publicationMissingIdentityCount: 0,
+      publicationPadronCount: 0,
       reviewReadiness: makeReviewReadiness({ state: "DRAFT" }),
       loading: false,
       error: null,
@@ -453,6 +681,119 @@ describe("publication deadlines UX", () => {
     expect(screen.queryByText("Votantes notificados")).not.toBeInTheDocument();
   });
 
+  it("shows and copies the public election link after official publication", async () => {
+    const user = userEvent.setup();
+    const writeTextMock = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: writeTextMock },
+    });
+
+    vi.mocked(votingEvents.useGetVotingEventQuery).mockReturnValue({
+      data: makeVotingEvent({
+        state: "OFFICIALLY_PUBLISHED",
+        status: "OFFICIALLY_PUBLISHED",
+        publicUrl: "https://app.test/votacion/elecciones/evt-1/publica",
+      }),
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as any);
+
+    renderWithAuthStore(<ActiveElectionStatusPage />, {
+      tenantId: "tenant-1",
+      active: true,
+      role: "ADMIN",
+    });
+
+    expect(screen.getByText("Enlace de elección para el público")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Copiar enlace" }));
+
+    expect(writeTextMock).toHaveBeenCalledWith(
+      "https://app.test/votacion/elecciones/evt-1/publica",
+    );
+    expect(screen.getByText("Enlace copiado.")).toBeInTheDocument();
+  });
+
+  it("keeps the public link hidden before publication and preserves the QR card condition", () => {
+    vi.mocked(votingEvents.useGetVotingEventQuery).mockReturnValue({
+      data: makeVotingEvent({
+        state: "DRAFT",
+        status: "DRAFT",
+        presentialKioskEnabled: true,
+      }),
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as any);
+
+    renderWithAuthStore(<ActiveElectionStatusPage />, {
+      tenantId: "tenant-1",
+      active: true,
+      role: "ADMIN",
+    });
+
+    expect(screen.queryByText("Enlace de elección para el público")).not.toBeInTheDocument();
+    expect(screen.getByText("Punto presencial")).toBeInTheDocument();
+  });
+
+  it("shows the public link together with the QR card when both correspond", () => {
+    vi.mocked(votingEvents.useGetVotingEventQuery).mockReturnValue({
+      data: makeVotingEvent({
+        state: "OFFICIALLY_PUBLISHED",
+        status: "OFFICIALLY_PUBLISHED",
+        presentialKioskEnabled: true,
+      }),
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as any);
+
+    renderWithAuthStore(<ActiveElectionStatusPage />, {
+      tenantId: "tenant-1",
+      active: true,
+      role: "ADMIN",
+    });
+
+    expect(screen.getByText("Enlace de elección para el público")).toBeInTheDocument();
+    expect(screen.getByText("Punto presencial")).toBeInTheDocument();
+  });
+
+  it("shows other elections in pages of three", async () => {
+    const user = userEvent.setup();
+    vi.mocked(votingEvents.useGetVotingEventsQuery).mockReturnValue({
+      data: [
+        makeVotingEvent({ id: "evt-1", name: "Actual" }),
+        makeVotingEvent({ id: "evt-2", name: "Votación 2" }),
+        makeVotingEvent({ id: "evt-3", name: "Votación 3" }),
+        makeVotingEvent({ id: "evt-4", name: "Votación 4" }),
+        makeVotingEvent({ id: "evt-5", name: "Votación 5" }),
+        makeVotingEvent({ id: "evt-6", name: "Votación 6" }),
+      ],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    } as any);
+
+    renderWithAuthStore(<ActiveElectionStatusPage />, {
+      tenantId: "tenant-1",
+      active: true,
+      role: "ADMIN",
+    });
+
+    expect(screen.getByRole("button", { name: /Votación 2/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Votación 3/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Votación 4/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Votación 5/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Siguiente" }));
+
+    expect(screen.queryByRole("button", { name: /Votación 2/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Votación 5/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Votación 6/i })).toBeInTheDocument();
+  });
+
   it("uses a clear confirmation modal before official publication", () => {
     render(
       <ConfirmActivateModal
@@ -469,9 +810,27 @@ describe("publication deadlines UX", () => {
         /esta acción publica oficialmente la elección y no podrás realizar más cambios/i,
       ),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Volver" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Confirmar publicación" }),
+      screen.getByRole("button", { name: "Publicar oficialmente" }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows a visible warning in the official publication modal when there are unregistered records", () => {
+    render(
+      <ConfirmActivateModal
+        isOpen
+        onClose={vi.fn()}
+        onConfirm={vi.fn()}
+        isLoading={false}
+        unregisteredCount={3}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        /Existen 3 registros no registrados. Al confirmar la publicación oficial, estos registros se eliminarán del padrón./i,
+      ),
     ).toBeInTheDocument();
   });
 });
