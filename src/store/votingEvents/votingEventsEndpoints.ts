@@ -19,6 +19,7 @@ import type {
   EventNews,
   EventResults,
   EventRole,
+  GeminiPadronDraft,
   PadronCsvDownload,
   PadronPdfDownload,
   PadronImportJob,
@@ -561,6 +562,22 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
       ],
     }),
 
+    analyzePadronWithGemini: builder.mutation<
+      GeminiPadronDraft,
+      { eventId: string; file: File }
+    >({
+      query: ({ eventId, file }) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        return {
+          url: `/voting/events/${eventId}/padron/gemini-import`,
+          method: "POST",
+          body: formData,
+        };
+      },
+      transformResponse: (response: any) => unwrapApiData(response) as GeminiPadronDraft,
+    }),
+
     getPadronImportStatus: builder.query<
       PadronImportJob,
       { eventId: string; importJobId: string }
@@ -1056,6 +1073,7 @@ export const {
   useDeleteVotingOptionMutation,
   useImportPadronMutation,
   useUploadPadronSourceMutation,
+  useAnalyzePadronWithGeminiMutation,
   useGetPadronImportStatusQuery,
   useLazyGetPadronImportStatusQuery,
   useGetPadronWorkflowSummaryQuery,

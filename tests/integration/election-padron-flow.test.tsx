@@ -3,8 +3,7 @@ import { vi } from "vitest";
 import { renderWithAuthStore } from "../utils/renderWithStore";
 
 const navigateMock = vi.fn();
-const analyzePadronDocumentWithGeminiMock = vi.fn();
-const hasGeminiPadronConfigMock = vi.fn(() => true);
+const analyzePadronWithGeminiMock = vi.fn();
 
 vi.mock("@/domains/votacion/navigation/compat-private", () => ({
   useNavigate: () => navigateMock,
@@ -20,21 +19,10 @@ vi.mock("@/features/electionConfig/renderUtils", async () => {
     useClientNow: () => new Date("2026-04-17T12:00:00.000Z").getTime(),
   };
 });
-vi.mock("@/features/electionConfig/data/padronGeminiClient", async () => {
-  const actual = await vi.importActual<typeof import("@/features/electionConfig/data/padronGeminiClient")>(
-    "@/features/electionConfig/data/padronGeminiClient",
-  );
-  return {
-    ...actual,
-    analyzePadronDocumentWithGemini: (...args: any[]) =>
-      analyzePadronDocumentWithGeminiMock(...args),
-    hasGeminiPadronConfig: () => hasGeminiPadronConfigMock(),
-  };
-});
-
 vi.mock("@/store/votingEvents", () => ({
   useAddCurrentPadronVoterMutation: vi.fn(),
   useAddPadronStagingEntryMutation: vi.fn(),
+  useAnalyzePadronWithGeminiMutation: vi.fn(),
   useBulkDeletePadronStagingEntriesMutation: vi.fn(),
   useConfirmPadronStagingMutation: vi.fn(),
   useDeletePadronStagingEntryMutation: vi.fn(),
@@ -158,12 +146,26 @@ const addPadronStagingEntryMock = vi.fn();
 const fetchPadronStagingPageMock = vi.fn();
 const downloadPadronPdfMock = vi.fn();
 
+const mockAnalyzePadronWithGemini = (draft: any) => {
+  analyzePadronWithGeminiMock.mockReturnValue({
+    unwrap: vi.fn().mockResolvedValue(draft),
+  });
+};
+
 describe("padron flow integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     navigateMock.mockReset();
-    analyzePadronDocumentWithGeminiMock.mockReset();
-    hasGeminiPadronConfigMock.mockReturnValue(true);
+    analyzePadronWithGeminiMock.mockReset();
+    mockAnalyzePadronWithGemini({
+      fileName: "padron.pdf",
+      uploadedAt: "2026-04-16T12:00:00.000Z",
+      sourceType: "PDF_GEMINI",
+      analysisProvider: "GEMINI_CLIENT",
+      model: "gemini-test",
+      records: [],
+      observations: [],
+    });
     uploadPadronSourceMock.mockReset();
     addPadronStagingEntryMock.mockReset();
     downloadPadronPdfMock.mockReset();
@@ -292,6 +294,10 @@ describe("padron flow integration", () => {
       uploadPadronSourceMock,
       { isLoading: false },
     ] as any);
+    vi.mocked(votingEvents.useAnalyzePadronWithGeminiMutation).mockReturnValue([
+      analyzePadronWithGeminiMock,
+      { isLoading: false },
+    ] as any);
     vi.mocked(votingEvents.useAddPadronStagingEntryMutation).mockReturnValue([
       addPadronStagingEntryMock,
       { isLoading: false },
@@ -365,7 +371,7 @@ describe("padron flow integration", () => {
   });
 
   it("keeps Gemini in the main upload flow and allows informative observations", async () => {
-    analyzePadronDocumentWithGeminiMock.mockResolvedValue({
+    mockAnalyzePadronWithGemini({
       fileName: "padron.pdf",
       uploadedAt: "2026-04-16T12:00:00.000Z",
       sourceType: "PDF_GEMINI",
@@ -420,13 +426,13 @@ describe("padron flow integration", () => {
         /Se cargaron los registros detectados correctamente en el documento/i,
       ),
     ).toBeInTheDocument();
-    expect(analyzePadronDocumentWithGeminiMock).toHaveBeenCalledTimes(1);
+    expect(analyzePadronWithGeminiMock).toHaveBeenCalledTimes(1);
     expect(uploadPadronSourceMock).toHaveBeenCalledTimes(1);
     expect(addPadronStagingEntryMock).toHaveBeenCalledTimes(1);
   });
 
   it("stops before staging when Gemini finds actionable observations", async () => {
-    analyzePadronDocumentWithGeminiMock.mockResolvedValue({
+    mockAnalyzePadronWithGemini({
       fileName: "padron.pdf",
       uploadedAt: "2026-04-16T12:00:00.000Z",
       sourceType: "PDF_GEMINI",
@@ -475,7 +481,7 @@ describe("padron flow integration", () => {
   });
 
   it("persists Gemini records into staging when the backend import returns an empty draft", async () => {
-    analyzePadronDocumentWithGeminiMock.mockResolvedValue({
+    mockAnalyzePadronWithGemini({
       fileName: "padron.pdf",
       uploadedAt: "2026-04-16T12:00:00.000Z",
       sourceType: "PDF_GEMINI",

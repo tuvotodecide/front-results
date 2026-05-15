@@ -206,6 +206,27 @@ export interface PadronImportError {
   rawValue?: string | null;
 }
 
+export type GeminiDraftSourceType = "PDF_GEMINI" | "IMAGE_GEMINI" | "MANUAL_CLIENT";
+
+export interface GeminiPadronDraftRecord {
+  id: string;
+  carnet: string;
+  enabled: boolean;
+  sourceKind: "PARSED" | "MANUAL";
+  sourceRow: number | null;
+  updatedAt: string | null;
+}
+
+export interface GeminiPadronDraft {
+  fileName: string;
+  uploadedAt: string;
+  sourceType: GeminiDraftSourceType;
+  analysisProvider: "GEMINI_CLIENT" | "MANUAL_CLIENT";
+  model: string | null;
+  records: GeminiPadronDraftRecord[];
+  observations: PadronImportError[];
+}
+
 export interface PadronImportJobSummary {
   parsedCount: number;
   validCount: number;

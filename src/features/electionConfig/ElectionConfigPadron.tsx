@@ -11,9 +11,7 @@ import PadronStagingView from "./components/PadronStagingView";
 import UploadProgressModal from "./components/UploadProgressModal";
 import UploadSummaryModal from "./components/UploadSummaryModal";
 import {
-  analyzePadronDocumentWithGemini,
   getGeminiDraftSummary,
-  hasGeminiPadronConfig,
   isBlockingGeminiObservation,
   normalizePadronCarnet,
 } from "./data/padronGeminiClient";
@@ -32,6 +30,7 @@ import {
 import type { ConfigStep, PadronFile, Voter } from "./types";
 import {
   useAddPadronStagingEntryMutation,
+  useAnalyzePadronWithGeminiMutation,
   useBulkDeletePadronStagingEntriesMutation,
   useConfirmPadronStagingMutation,
   useDeletePadronStagingEntryMutation,
@@ -217,6 +216,7 @@ const ElectionConfigPadron: React.FC = () => {
   const [fetchImportStatus] = useLazyGetPadronImportStatusQuery();
   const [fetchStagingPage] = useLazyGetPadronStagingQuery();
   const [uploadPadronSource, { isLoading: uploadingPadronSource }] = useUploadPadronSourceMutation();
+  const [analyzePadronWithGemini] = useAnalyzePadronWithGeminiMutation();
   const [addPadronStagingEntry, { isLoading: addingEntry }] = useAddPadronStagingEntryMutation();
   const [updatePadronStagingEntry, { isLoading: updatingEntry }] = useUpdatePadronStagingEntryMutation();
   const [deletePadronStagingEntry, { isLoading: deletingEntry }] = useDeletePadronStagingEntryMutation();
@@ -586,13 +586,6 @@ const ElectionConfigPadron: React.FC = () => {
         return;
       }
 
-      if (!hasGeminiPadronConfig()) {
-        setError(
-          "No se pudo iniciar el análisis del padrón porque la IA no está configurado en el frontend.",
-        );
-        return;
-      }
-
       setError(null);
       setSuccess(null);
       setUploadSummaryJobId(null);
@@ -605,7 +598,10 @@ const ElectionConfigPadron: React.FC = () => {
       let progressInterval: number | null = null;
 
       try {
-        const geminiDraft = await analyzePadronDocumentWithGemini(selectedFile);
+        const geminiDraft = await analyzePadronWithGemini({
+          eventId: actualElectionId,
+          file: selectedFile,
+        }).unwrap();
         const geminiSummary = getGeminiDraftSummary(geminiDraft);
         const blockingObservations = geminiDraft.observations.filter(isBlockingGeminiObservation);
 
@@ -676,17 +672,16 @@ const ElectionConfigPadron: React.FC = () => {
         setSummaryModalState("none");
         setUploadProgress(0);
         setError(
-          uploadError?.message === "GEMINI_API_KEY_MISSING"
-            ? "No se pudo iniciar el análisis del padrón."
-            : getRequestErrorMessage(
-                uploadError,
-                "No se pudo analizar y cargar el archivo del padrón.",
-              ),
+          getRequestErrorMessage(
+            uploadError,
+            "No se pudo analizar y cargar el archivo del padrón.",
+          ),
         );
       }
     },
     [
       actualElectionId,
+      analyzePadronWithGemini,
       confirmPadronStaging,
       pollImportJobUntilReady,
       refetchReviewReadiness,
