@@ -46,6 +46,7 @@ vi.mock("@/store/votingEvents", () => ({
   useGetEventResultsQuery: vi.fn(),
   useLazyDownloadPadronPdfQuery: vi.fn(),
   useDeleteVotingEventMutation: vi.fn(),
+  useDisableVotingEventMutation: vi.fn(),
   useEnableCurrentPadronVoterMutation: vi.fn(),
   useUpdateEventScheduleMutation: vi.fn(),
   useUpdateVotingEventMutation: vi.fn(),
@@ -107,6 +108,7 @@ vi.mock("@/components/Modal2", () => ({
 import * as votingEvents from "@/store/votingEvents";
 
 const deleteMutation = [vi.fn(), { isLoading: false }] as const;
+const disableMutation = [vi.fn(), { isLoading: false }] as const;
 const noopMutation = [vi.fn(), { isLoading: false }] as const;
 
 const makeVotingEvent = (
@@ -167,6 +169,7 @@ describe("publication deadlines UX", () => {
     refetchMock.mockReset();
 
     vi.mocked(votingEvents.useDeleteVotingEventMutation).mockReturnValue(deleteMutation as any);
+    vi.mocked(votingEvents.useDisableVotingEventMutation).mockReturnValue(disableMutation as any);
     vi.mocked(votingEvents.useGetVotingEventsQuery).mockReturnValue({
       data: [],
       isLoading: false,
