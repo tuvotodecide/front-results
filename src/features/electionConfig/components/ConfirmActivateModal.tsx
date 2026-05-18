@@ -61,16 +61,16 @@ const ConfirmActivateModal: React.FC<ConfirmActivateModalProps> = ({
         <p className="mb-3 px-4 text-base font-semibold text-gray-700">
           ¿Deseas publicar oficialmente esta elección?
         </p>
-        <p className="text-gray-600 mb-8 px-4">
+        <p className="text-green-600 mb-8 px-4">
           {isReferendum
-            ? 'Esta acción publica oficialmente el referéndum y no podrás realizar más cambios.'
-            : 'Esta acción publica oficialmente la elección y no podrás realizar más cambios.'}
+            ? 'Esta decisión publica oficialmente el referéndum y no podrás realizar más cambios.'
+            : 'Esta decisión publica oficialmente la elección y no podrás realizar más cambios.'}
         </p>
 
         {hasUnregistered ? (
           <div className="mb-6 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-left text-sm font-semibold text-red-700">
-            Existen {unregisteredCount} registros no registrados. Al confirmar
-            la publicación oficial, estos registros se eliminarán del padrón.
+            Existen {unregisteredCount} votantes no registrados. Al confirmar
+            la publicación oficial, estos se eliminarán del padrón.
           </div>
         ) : null}
 

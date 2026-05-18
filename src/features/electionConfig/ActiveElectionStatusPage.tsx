@@ -126,6 +126,35 @@ const getPadronDisplayName = (sourceType?: string | null) => {
   return "Padrón";
 };
 
+const copyTextToClipboard = async (text: string) => {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // Fall through to the textarea fallback below.
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  textarea.style.top = "0";
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+
+  try {
+    return document.execCommand("copy");
+  } catch {
+    return false;
+  } finally {
+    textarea.remove();
+  }
+};
+
 const deriveLifecycle = (event?: {
   status?: string | null;
   state?: string | null;
@@ -562,7 +591,10 @@ const ActiveElectionStatusPage: React.FC = () => {
     setPublicLinkError(null);
 
     try {
-      await navigator.clipboard.writeText(publicElectionUrl);
+      const copied = await copyTextToClipboard(publicElectionUrl);
+      if (!copied) {
+        throw new Error("Clipboard unavailable");
+      }
       setPublicLinkMessage("Enlace copiado.");
     } catch {
       setPublicLinkError("No se pudo copiar el enlace.");
@@ -602,7 +634,10 @@ const ActiveElectionStatusPage: React.FC = () => {
       });
       const absoluteUrl = `${window.location.origin}${path}`;
 
-      await navigator.clipboard.writeText(absoluteUrl);
+      const copied = await copyTextToClipboard(absoluteUrl);
+      if (!copied) {
+        throw new Error("Clipboard unavailable");
+      }
       setKioskMessage("Enlace del punto presencial copiado.");
     } catch (error: any) {
       setKioskError(

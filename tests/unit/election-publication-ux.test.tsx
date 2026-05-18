@@ -522,7 +522,7 @@ describe("publication deadlines UX", () => {
 
     expect(
       screen.getByText(
-        "Existen 1 registros no registrados. No recibirán notificación ni podrán votar hasta que se registren y sean habilitados.",
+        "Existen 1 votantes no registrados. No recibirán notificación ni podrán votar hasta que se registren y sean habilitados.",
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText("Padrón listo para revisión")).not.toBeInTheDocument();
@@ -609,7 +609,7 @@ describe("publication deadlines UX", () => {
 
     expect(
       screen.getByText(
-        /Existen 2 registros no registrados. Al confirmar la publicación oficial, estos registros se eliminarán del padrón./i,
+        /Existen 2 votantes no registrados. Al confirmar la publicación oficial, estos se eliminarán del padrón./i,
       ),
     ).toBeInTheDocument();
   });
@@ -810,7 +810,7 @@ describe("publication deadlines UX", () => {
     expect(screen.getByText("Confirmar publicación oficial")).toBeInTheDocument();
     expect(
       screen.getByText(
-        /esta acción publica oficialmente la elección y no podrás realizar más cambios/i,
+        /esta decisión publica oficialmente la elección y no podrás realizar más cambios/i,
       ),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
@@ -832,7 +832,7 @@ describe("publication deadlines UX", () => {
 
     expect(
       screen.getByText(
-        /Existen 3 registros no registrados. Al confirmar la publicación oficial, estos registros se eliminarán del padrón./i,
+        /Existen 3 votantes no registrados. Al confirmar la publicación oficial, estos se eliminarán del padrón./i,
       ),
     ).toBeInTheDocument();
   });

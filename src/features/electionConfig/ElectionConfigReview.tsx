@@ -510,7 +510,7 @@ const ElectionConfigReview: React.FC = () => {
             <div className="w-full lg:w-80 order-first lg:order-last space-y-4">
               {hasUnregisteredForPublication ? (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm">
-                  Existen {publicationMissingIdentityCount} registros no registrados. No recibirán notificación ni podrán votar hasta que se registren y sean habilitados.
+                  Existen {publicationMissingIdentityCount} votantes no registrados. No recibirán notificación ni podrán votar hasta que se registren y sean habilitados.
                 </div>
               ) : null}
               {reviewReadiness && notificationBlockingPending.length > 0 ? (
