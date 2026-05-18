@@ -5,8 +5,8 @@ Frontend web de Tu Voto Decide. La aplicación productiva actual corre sobre **N
 ## Artefacto productivo
 
 - Runtime principal: **Next.js**
-- Build productivo: `npm run build`
-- Start productivo: `npm start`
+- Build productivo: `pnpm build`
+- Start productivo: `pnpm start`
 - Artefacto de despliegue: **`.next`** y, para contenedores, **`.next/standalone`**
 
 Los scripts y entrypoints de Vite/React Router se conservan solo como **legacy/compat**, no como la app principal de producción.
@@ -118,25 +118,25 @@ Estas rutas existen por compatibilidad externa, bookmarks o enlaces históricos.
 ### Requisitos
 
 - Node.js 20+
-- npm
+- pnpm
 
 ### Comandos principales
 
 ```bash
-npm install
-npm run dev
-npm run build
-npm start
-npm run lint
-npm run typecheck
+pnpm install
+pnpm dev
+pnpm build
+pnpm start
+pnpm lint
+pnpm typecheck
 ```
 
 ### Scripts legacy
 
 ```bash
-npm run dev:legacy
-npm run build:legacy
-npm run preview:legacy
+pnpm dev:legacy
+pnpm build:legacy
+pnpm preview:legacy
 ```
 
 Úsalos solo para compatibilidad interna o tareas de migración histórica. No son el flujo recomendado de entrega.

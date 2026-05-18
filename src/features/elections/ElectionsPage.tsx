@@ -5,7 +5,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from '@/domains/votacion/navigation/compat-private';
 import { useSelector } from 'react-redux';
-import { useDeleteVotingEventMutation, useGetVotingEventsQuery } from '../../store/votingEvents';
+import { useDeleteVotingEventMutation, useDisableVotingEventMutation, useGetVotingEventsQuery } from '../../store/votingEvents';
 import { selectTenantId, selectIsLoggedIn } from '../../store/auth/authSlice';
 import Modal2 from '../../components/Modal2';
 import EmptyState from './components/EmptyState';
@@ -25,6 +25,7 @@ const statusLabels: Record<string, string> = {
   ACTIVE: 'Activa',
   CLOSED: 'Finalizada',
   RESULTS_PUBLISHED: 'Resultados publicados',
+  DISABLED: 'Deshabilitada',
 };
 
 const statusColors: Record<string, string> = {
@@ -36,10 +37,13 @@ const statusColors: Record<string, string> = {
   ACTIVE: 'bg-green-100 text-green-700',
   CLOSED: 'bg-amber-100 text-amber-700',
   RESULTS_PUBLISHED: 'bg-violet-100 text-violet-700',
+  DISABLED: 'bg-gray-200 text-gray-500',
 };
 
 const canDeleteEvent = (event: VotingEvent) =>
   ['DRAFT', 'READY_FOR_REVIEW', 'PUBLICATION_EXPIRED'].includes(event.status);
+const canDisableEvent = (event: VotingEvent) =>
+  event.status === 'OFFICIALLY_PUBLISHED';
 
 const isInOfficialPublicationReminderWindow = (
   event: VotingEvent,
@@ -73,7 +77,9 @@ const ElectionsPage: React.FC = () => {
   const tenantId = useSelector(selectTenantId);
   const nowMs = useClientNow();
   const [deleteVotingEvent, { isLoading: deleting }] = useDeleteVotingEventMutation();
+  const [disableVotingEvent, { isLoading: disabling }] = useDisableVotingEventMutation();
   const [deleteConfirm, setDeleteConfirm] = useState<VotingEvent | null>(null);
+  const [disableConfirm, setDisableConfirm] = useState<VotingEvent | null>(null);
 
   // Query de eventos - skip si no hay tenantId
   const { data: events = [], isLoading, error, refetch } = useGetVotingEventsQuery(
@@ -120,6 +126,16 @@ const ElectionsPage: React.FC = () => {
       console.error('Error eliminando votación:', error);
     }
   };
+
+  const handleDisableElection = async () => {
+    if (!disableConfirm) return;
+    try {
+      await disableVotingEvent(disableConfirm.id).unwrap();
+      setDisableConfirm(null);
+    } catch (error) {
+      console.error('Error deshabilitando votación:', error);
+    }
+  }
 
   // Si no está logueado, redirigir a login
   if (!isLoggedIn) {
@@ -284,6 +300,19 @@ const ElectionsPage: React.FC = () => {
                       Eliminar
                     </button>
                   )}
+                  {canDisableEvent(event) && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDisableConfirm(event);
+                      }}
+                      disabled={deleting}
+                      className="inline-flex items-center rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50"
+                    >
+                      Deshabilitar
+                    </button>
+                  )}
                 </div>
               </div>
               {startAlreadyExpired && (
@@ -308,9 +337,12 @@ const ElectionsPage: React.FC = () => {
       </div>
 
       <Modal2
-        isOpen={!!deleteConfirm}
-        onClose={() => setDeleteConfirm(null)}
-        title="Eliminar votación"
+        isOpen={!!deleteConfirm || !!disableConfirm}
+        onClose={() => {
+          setDeleteConfirm(null);
+          setDisableConfirm(null);
+        }}
+        title={disableConfirm ? "Deshabilitar votación" : "Eliminar votación"}
         size="sm"
         type="plain"
       >
@@ -324,10 +356,14 @@ const ElectionsPage: React.FC = () => {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-slate-900">
-                  ¿Estás seguro de eliminar la votación "{deleteConfirm?.name}"?
+                  {disableConfirm
+                    ? `¿Estás seguro de deshabilitar la votación "${disableConfirm.name}"?`
+                    : `¿Estás seguro de eliminar la votación "${deleteConfirm?.name}"?`}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Esta acción eliminará la votación y no se puede deshacer.
+                  {disableConfirm
+                    ? "Los votantes ya no verán esta votación ni podrán votar, pero la configuración y resultados se mantendrán accesibles para el organizador."
+                    : "Esta acción eliminará la votación y no se puede deshacer."}
                 </p>
               </div>
             </div>
@@ -336,7 +372,10 @@ const ElectionsPage: React.FC = () => {
           <div className="flex flex-col-reverse gap-3 pt-1 sm:flex-row sm:justify-end">
             <button
               type="button"
-              onClick={() => setDeleteConfirm(null)}
+              onClick={() => {
+                setDeleteConfirm(null);
+                setDisableConfirm(null);
+              }}
               disabled={deleting}
               className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50"
             >
@@ -344,11 +383,17 @@ const ElectionsPage: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => void handleDeleteElection()}
-              disabled={deleting}
+              onClick={() => {
+                if (disableConfirm) {
+                  handleDisableElection();
+                } else {
+                  handleDeleteElection();
+                }
+              }}
+              disabled={deleting || disabling}
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 disabled:opacity-50"
             >
-              {deleting ? (
+              {deleting || disabling ? (
                 <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
@@ -358,7 +403,7 @@ const ElectionsPage: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               )}
-              <span>{deleting ? 'Eliminando...' : 'Eliminar'}</span>
+              <span>{deleting ? 'Eliminando...' : disabling ? 'Deshabilitando...' : disableConfirm ? 'Deshabilitar' : 'Eliminar'}</span>
             </button>
           </div>
         </div>

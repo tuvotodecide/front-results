@@ -109,7 +109,8 @@ export type VotingEventStatus =
   | "PUBLICATION_EXPIRED"
   | "ACTIVE"
   | "CLOSED"
-  | "RESULTS_PUBLISHED";
+  | "RESULTS_PUBLISHED"
+  | "DISABLED";
 
 export interface VotingEvent {
   id: string;
