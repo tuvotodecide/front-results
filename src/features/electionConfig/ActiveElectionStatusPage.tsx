@@ -3,7 +3,7 @@ import {
   useNavigate,
   useParams,
 } from "@/domains/votacion/navigation/compat-private";
-import { PencilSquareIcon } from "@heroicons/react/24/outline";
+import { ClipboardDocumentIcon, PencilSquareIcon } from "@heroicons/react/24/outline";
 import ConfigStepsTabs from "./components/ConfigStepsTabs";
 import PositionsTable from "./components/PositionsTable";
 import PartiesTable from "./components/PartiesTable";
@@ -59,6 +59,10 @@ import {
   buildPresentialKioskPath,
   DEFAULT_KIOSK_STATION_ID,
 } from "@/domains/votacion/kiosk/constants";
+import { getRuntimeEnv } from "@/shared/system/runtimeEnv";
+
+const SMART_CONTRACT_URL =
+  getRuntimeEnv('VITE_PUBLIC_SMART_CONTRACT_URL', 'NEXT_PUBLIC_SMART_CONTRACT_URL');
 
 const roleToPosition = (role: EventRole): Position => ({
   id: role.id,
@@ -253,6 +257,7 @@ const ActiveElectionStatusPage: React.FC = () => {
   const [kioskError, setKioskError] = useState<string | null>(null);
   const [publicLinkMessage, setPublicLinkMessage] = useState<string | null>(null);
   const [publicLinkError, setPublicLinkError] = useState<string | null>(null);
+  const [electionIdCopyMessage, setElectionIdCopyMessage] = useState<string | null>(null);
   const [newsMessage, setNewsMessage] = useState<string | null>(null);
   const [newsError, setNewsError] = useState<string | null>(null);
   const [isNewsModalOpen, setIsNewsModalOpen] = useState(false);
@@ -601,6 +606,17 @@ const ActiveElectionStatusPage: React.FC = () => {
     }
   };
 
+  const handleCopyElectionId = async () => {
+    if (!actualElectionId) return;
+
+    const copied = await copyTextToClipboard(actualElectionId);
+    setElectionIdCopyMessage(copied ? "ID copiado." : "No se pudo copiar el ID.");
+
+    window.setTimeout(() => {
+      setElectionIdCopyMessage(null);
+    }, 2000);
+  };
+
   const handleCopyKioskLink = async () => {
     if (!actualElectionId) return;
     if (!presentialKioskEnabled) {
@@ -885,6 +901,49 @@ const ActiveElectionStatusPage: React.FC = () => {
               </div>
             </div>
           ) : null}
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-white px-7 py-7 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Integridad verificable</p>
+              <h3 className="mt-1 text-xl font-semibold text-slate-900">Contrato inteligente público</h3>
+              <p className="mt-2 text-sm text-slate-600 sm:text-base">
+                Revisa el código del contrato en el explorador blockchain para validar la transparencia del proceso.
+              </p>
+              <div className="mt-3 rounded-lg border border-emerald-100 bg-emerald-50/60 px-3 py-3 text-xs text-slate-700 sm:text-sm">
+                <p className="font-semibold text-emerald-800">Manual rápido en BaseScan</p>
+                <ol className="mt-2 list-decimal space-y-1 pl-5">
+                  <li>
+                    Copia el ID: <span className="inline-flex items-center gap-1">
+                      {actualElectionId}
+                      <button type="button" onClick={() => void handleCopyElectionId()} title="Copiar ID de votación" aria-label="Copiar ID de votación" className="rounded p-0.5 text-emerald-700 transition hover:bg-emerald-100 hover:text-emerald-800">
+                        <ClipboardDocumentIcon className="h-3.5 w-3.5" />
+                      </button>
+                    </span> 
+                    {electionIdCopyMessage ? (
+                      <span className="mt-2 text-xs font-medium text-emerald-700">{electionIdCopyMessage}</span>
+                    ) : null}
+                  </li>
+                  <li>
+                    Llama a <a href={`${SMART_CONTRACT_URL}#readProxyContract#F4`} target="_blank" rel="noopener noreferrer" className="font-semibold text-emerald-700 underline-offset-2 hover:underline">getVoteInfo</a> con el ID para consultar la información de la votación.
+                  </li>
+                  <li>
+                    Llama a <a href={`${SMART_CONTRACT_URL}#readProxyContract#F5`} target="_blank" rel="noopener noreferrer" className="font-semibold text-emerald-700 underline-offset-2 hover:underline">getVoteResults</a> con el ID para obtener resultados si ya están disponibles.
+                  </li>
+                </ol>
+                
+              </div>
+            </div>
+            <a
+              href={SMART_CONTRACT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+            >
+              Ver contrato inteligente
+            </a>
+          </div>
         </div>
 
         {canCreateNews ? (
