@@ -30,6 +30,8 @@ const getStaticNextPublicEnv = (key: string): string | undefined => {
       return process.env.NEXT_PUBLIC_VOTE_CHAIN_CURRENCY_SYMBOL;
     case "NEXT_PUBLIC_VOTE_CONTRACT_ADDRESS":
       return process.env.NEXT_PUBLIC_VOTE_CONTRACT_ADDRESS;
+    case "NEXT_PUBLIC_SMART_CONTRACT_URL":
+      return process.env.NEXT_PUBLIC_SMART_CONTRACT_URL;
     default:
       return undefined;
   }

@@ -1,5 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import type { BenefitCard, BenefitsSectionData } from '../types';
+import { getRuntimeEnv } from '@/shared/system/runtimeEnv';
+
+const SMART_CONTRACT_URL =
+  getRuntimeEnv('VITE_PUBLIC_SMART_CONTRACT_URL', 'NEXT_PUBLIC_SMART_CONTRACT_URL');
 
 const BenefitIcon: React.FC<{ type: BenefitCard['icon'] }> = ({ type }) => {
   const className = 'w-8 h-8';
@@ -103,7 +107,7 @@ const BenefitsSection: React.FC<BenefitsSectionProps> = ({ benefits }) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 md:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 md:gap-8 mb-10 md:mb-14">
           {activeCards.map((card) => (
             <article
               key={card.id}
@@ -120,6 +124,26 @@ const BenefitsSection: React.FC<BenefitsSectionProps> = ({ benefits }) => {
               </p>
             </article>
           ))}
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-sm sm:p-8">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Integridad verificable</p>
+              <h3 className="mt-1 text-xl font-semibold text-slate-900">Contrato inteligente público</h3>
+              <p className="mt-2 text-sm text-slate-600 sm:text-base">
+                Revisa el código del contrato en el explorador blockchain para validar la transparencia del proceso.
+              </p>
+            </div>
+            <a
+              href={SMART_CONTRACT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+            >
+              Ver contrato inteligente
+            </a>
+          </div>
         </div>
       </div>
     </section>
