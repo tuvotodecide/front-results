@@ -24,7 +24,9 @@
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:coverage": "vitest run --coverage",
-    "quality:ci": "pnpm lint && pnpm typecheck && pnpm test:unit && pnpm test:integration && pnpm build",
+    "check:dependencies": "vitest run tests/integration/dependency-checks.test.ts",
+    "validate:frontend": "pnpm lint && pnpm typecheck && pnpm test:unit && pnpm test:integration && pnpm test:coverage && pnpm build && pnpm check:dependencies",
+    "quality:ci": "pnpm validate:frontend",
     "cy:open": "cypress open",
     "cy:run": "cypress run",
     "test:e2e": "cypress run"

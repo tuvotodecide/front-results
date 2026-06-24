@@ -670,7 +670,7 @@ describe("publication deadlines UX", () => {
       Promise.resolve({
         publicUrl: "https://app.test/votacion/elecciones/evt-1/publica",
         shareText: "Participa en la votación",
-        electionStatus: "ACTIVE",
+        electionStatus: "ACTIVE" as const,
         startsAt: "2026-04-18T18:00:00.000Z",
         nullifiers: [],
       }),

@@ -76,11 +76,49 @@ jobs:
       - name: Integration tests
         run: pnpm test:integration
 
+      - name: Coverage
+        run: pnpm test:coverage
+
       - name: Build
         run: pnpm build
 
+      - name: Dependency checks
+        run: pnpm check:dependencies
+
+      - name: Publish validation summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "# Frontend admin integration validations"
+            echo ""
+            echo "| Validation | Command |"
+            echo "|---|---|"
+            echo "| Lint | \`pnpm lint\` |"
+            echo "| Typecheck | \`pnpm typecheck\` |"
+            echo "| Unit tests | \`pnpm test:unit\` |"
+            echo "| Integration tests | \`pnpm test:integration\` |"
+            echo "| Coverage | \`pnpm test:coverage\` |"
+            echo "| Build | \`pnpm build\` |"
+            echo "| Dependency checks | \`pnpm check:dependencies\` |"
+            echo ""
+            echo "Coverage HTML report path: \`coverage/index.html\`"
+            echo ""
+            echo "Cypress and real E2E are intentionally excluded from this quality job."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-admin-coverage
+          path: coverage/
+          if-no-files-found: warn
+
   build:
     name: Build & Push Docker image
+    needs: quality
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: devops_aws
     outputs:
@@ -146,7 +184,7 @@ jobs:
   deploy-dev:
     name: Deploy to Hetzner (dev) via SSH
     needs: build
-    if: github.ref_type != 'tag'
+    if: github.event_name == 'push' && github.ref_type != 'tag'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: devops_aws
@@ -218,7 +256,7 @@ jobs:
   deploy-prod:
     name: Deploy to Hetzner (prod) via SSH
     needs: build
-    if: github.ref_type == 'tag'
+    if: github.event_name == 'push' && github.ref_type == 'tag'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: devops_aws
