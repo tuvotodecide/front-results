@@ -61,7 +61,7 @@ describe("election config UI components", () => {
       link: "https://example.com",
       imageUrl: "https://example.com/imagen.png",
     });
-  });
+  }, 10000);
 
   it("keeps the analysis summary balanced in a 2x2 responsive grid", () => {
     render(

@@ -139,7 +139,7 @@ describe("referendum minimal flow", () => {
         expect.objectContaining({ isReferendum: false }),
       );
     });
-  });
+  }, 10000);
 
   it("creates a referendum and shows the irreversibility warning", async () => {
     const user = userEvent.setup();

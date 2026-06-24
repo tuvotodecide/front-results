@@ -10,6 +10,7 @@ import ConfirmActivateModal from "@/features/electionConfig/components/ConfirmAc
 import type { UseElectionPublishReturn } from "@/features/electionConfig/data/useElectionPublish";
 import type { VotingEvent, ReviewReadinessResponse } from "@/store/votingEvents/types";
 import type { ConfigSummary } from "@/features/electionConfig/data/ElectionPublishRepository.mock";
+import { completeReadiness, readyForReviewEvent } from "../fixtures/admin/padronPublication";
 
 const navigateMock = vi.fn();
 const refetchMock = vi.fn();
@@ -90,7 +91,25 @@ vi.mock("@/features/electionConfig/components/ActivatedSuccessModal", () => ({
     ) : null,
 }));
 vi.mock("@/features/electionConfig/components/CreateNewsModal", () => ({
-  default: () => null,
+  default: ({ isOpen, onSubmit }: any) =>
+    isOpen ? (
+      <div>
+        <h2>Crear noticia</h2>
+        <button
+          type="button"
+          onClick={() =>
+            void onSubmit({
+              title: "Aviso operativo",
+              body: "Mensaje para votantes",
+              link: "https://example.com/aviso",
+              imageUrl: "https://example.com/aviso.png",
+            }).catch(() => undefined)
+          }
+        >
+          Enviar noticia de prueba
+        </button>
+      </div>
+    ) : null,
 }));
 vi.mock("@/features/electionConfig/components/ConfigPageFallback", () => ({
   default: ({ title }: { title: string }) => <div>{title}</div>,
@@ -643,6 +662,227 @@ describe("publication deadlines UX", () => {
     expect(
       screen.getByRole("button", { name: /confirmar publicación oficial/i }),
     ).toBeDisabled();
+  });
+
+  it("confirms official publication from the review modal", async () => {
+    const user = userEvent.setup();
+    const activateElectionMock = vi.fn(() =>
+      Promise.resolve({
+        publicUrl: "https://app.test/votacion/elecciones/evt-1/publica",
+        shareText: "Participa en la votación",
+        electionStatus: "ACTIVE",
+        startsAt: "2026-04-18T18:00:00.000Z",
+        nullifiers: [],
+      }),
+    );
+
+    useElectionPublishMock.mockReturnValue({
+      votingEvent: readyForReviewEvent,
+      ballotPreview: null,
+      configSummary: makeConfigSummary(),
+      publicationMissingIdentityCount: 0,
+      publicationPadronCount: 10,
+      reviewReadiness: completeReadiness,
+      loading: false,
+      error: null,
+      electionStatus: "DRAFT",
+      openReview: vi.fn(),
+      openingReview: false,
+      activateElection: activateElectionMock,
+      activating: false,
+      activationResult: null,
+      copyToClipboard: vi.fn(),
+      getShareUrl: vi.fn(),
+      refetch: refetchMock,
+    } satisfies UseElectionPublishReturn);
+
+    render(<ElectionConfigReview />);
+
+    await user.click(
+      screen.getByRole("button", { name: /confirmar publicación oficial/i }),
+    );
+    await user.click(screen.getByRole("button", { name: "Publicar oficialmente" }));
+
+    expect(activateElectionMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the API error when official publication fails", async () => {
+    const user = userEvent.setup();
+    const consoleErrorMock = vi.spyOn(console, "error").mockImplementation(() => {});
+    const activateElectionMock = vi.fn(() =>
+      Promise.reject({ data: { message: "La elección ya fue publicada" } }),
+    );
+
+    useElectionPublishMock.mockReturnValue({
+      votingEvent: readyForReviewEvent,
+      ballotPreview: null,
+      configSummary: makeConfigSummary(),
+      publicationMissingIdentityCount: 0,
+      publicationPadronCount: 10,
+      reviewReadiness: completeReadiness,
+      loading: false,
+      error: null,
+      electionStatus: "DRAFT",
+      openReview: vi.fn(),
+      openingReview: false,
+      activateElection: activateElectionMock,
+      activating: false,
+      activationResult: null,
+      copyToClipboard: vi.fn(),
+      getShareUrl: vi.fn(),
+      refetch: refetchMock,
+    } satisfies UseElectionPublishReturn);
+
+    render(<ElectionConfigReview />);
+
+    await user.click(
+      screen.getByRole("button", { name: /confirmar publicación oficial/i }),
+    );
+    await user.click(screen.getByRole("button", { name: "Publicar oficialmente" }));
+
+    expect(await screen.findByText("La elección ya fue publicada")).toBeInTheDocument();
+    consoleErrorMock.mockRestore();
+  });
+
+  it("prevents a second official publication once the event is already published", () => {
+    useElectionPublishMock.mockReturnValue({
+      votingEvent: makeVotingEvent({
+        state: "OFFICIALLY_PUBLISHED",
+        status: "OFFICIALLY_PUBLISHED",
+      }),
+      ballotPreview: null,
+      configSummary: makeConfigSummary(),
+      publicationMissingIdentityCount: 0,
+      publicationPadronCount: 0,
+      reviewReadiness: makeReviewReadiness({
+        state: "OFFICIALLY_PUBLISHED",
+        publicationWindow: {
+          deadline: "2026-04-18T06:00:00.000Z",
+          expired: false,
+          canConfirmOfficialPublication: false,
+          hoursUntilDeadline: 0,
+        },
+      }),
+      loading: false,
+      error: null,
+      electionStatus: "ACTIVE",
+      openReview: vi.fn(),
+      openingReview: false,
+      activateElection: vi.fn(),
+      activating: false,
+      activationResult: null,
+      copyToClipboard: vi.fn(),
+      getShareUrl: vi.fn(),
+      refetch: refetchMock,
+    } satisfies UseElectionPublishReturn);
+
+    render(<ElectionConfigReview />);
+
+    expect(
+      screen.getByRole("button", { name: "Publicación oficial confirmada" }),
+    ).toBeDisabled();
+    expect(
+      screen.queryByRole("button", { name: /confirmar publicación oficial/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("creates a news item from published review status with the expected payload", async () => {
+    const user = userEvent.setup();
+    const createEventNewsMock = vi.fn(() => ({
+      unwrap: () => Promise.resolve({ imageUrl: "https://example.com/aviso.png" }),
+    }));
+    vi.mocked(votingEvents.useCreateEventNewsMutation).mockReturnValue([
+      createEventNewsMock,
+      { isLoading: false },
+    ] as any);
+
+    useElectionPublishMock.mockReturnValue({
+      votingEvent: makeVotingEvent({
+        state: "OFFICIALLY_PUBLISHED",
+        status: "OFFICIALLY_PUBLISHED",
+      }),
+      ballotPreview: null,
+      configSummary: makeConfigSummary(),
+      publicationMissingIdentityCount: 0,
+      publicationPadronCount: 0,
+      reviewReadiness: makeReviewReadiness({
+        state: "OFFICIALLY_PUBLISHED",
+      }),
+      loading: false,
+      error: null,
+      electionStatus: "ACTIVE",
+      openReview: vi.fn(),
+      openingReview: false,
+      activateElection: vi.fn(),
+      activating: false,
+      activationResult: null,
+      copyToClipboard: vi.fn(),
+      getShareUrl: vi.fn(),
+      refetch: refetchMock,
+    } satisfies UseElectionPublishReturn);
+
+    render(<ElectionConfigReview />);
+
+    await user.click(screen.getByRole("button", { name: "Crear noticia" }));
+    await user.click(screen.getByRole("button", { name: "Enviar noticia de prueba" }));
+
+    expect(createEventNewsMock).toHaveBeenCalledWith({
+      eventId: "evt-1",
+      data: {
+        title: "Aviso operativo",
+        body: "Mensaje para votantes",
+        link: "https://example.com/aviso",
+        imageUrl: "https://example.com/aviso.png",
+      },
+    });
+    expect(
+      await screen.findByText("Noticia publicada correctamente con imagen."),
+    ).toBeInTheDocument();
+  });
+
+  it("shows API errors when creating news from status fails", async () => {
+    const user = userEvent.setup();
+    const createEventNewsMock = vi.fn(() => ({
+      unwrap: () => Promise.reject({ data: { message: "No se pudo guardar noticia" } }),
+    }));
+    vi.mocked(votingEvents.useCreateEventNewsMutation).mockReturnValue([
+      createEventNewsMock,
+      { isLoading: false },
+    ] as any);
+
+    useElectionPublishMock.mockReturnValue({
+      votingEvent: makeVotingEvent({
+        state: "OFFICIALLY_PUBLISHED",
+        status: "OFFICIALLY_PUBLISHED",
+      }),
+      ballotPreview: null,
+      configSummary: makeConfigSummary(),
+      publicationMissingIdentityCount: 0,
+      publicationPadronCount: 0,
+      reviewReadiness: makeReviewReadiness({
+        state: "OFFICIALLY_PUBLISHED",
+      }),
+      loading: false,
+      error: null,
+      electionStatus: "ACTIVE",
+      openReview: vi.fn(),
+      openingReview: false,
+      activateElection: vi.fn(),
+      activating: false,
+      activationResult: null,
+      copyToClipboard: vi.fn(),
+      getShareUrl: vi.fn(),
+      refetch: refetchMock,
+    } satisfies UseElectionPublishReturn);
+
+    render(<ElectionConfigReview />);
+
+    await user.click(screen.getByRole("button", { name: "Crear noticia" }));
+    await expect(
+      user.click(screen.getByRole("button", { name: "Enviar noticia de prueba" })),
+    ).resolves.toBeUndefined();
+
+    expect(await screen.findByText("No se pudo guardar noticia")).toBeInTheDocument();
   });
 
   it("does not show the share modal after notifying voters when public padron review is disabled", async () => {

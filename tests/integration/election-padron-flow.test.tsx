@@ -105,7 +105,31 @@ vi.mock("@/features/electionConfig/components/PadronRecordModal", () => ({
   default: () => null,
 }));
 vi.mock("@/features/electionConfig/components/PadronStagingView", () => ({
-  default: ({ observationsLabel }: any) => <div>{observationsLabel}</div>,
+  default: ({
+    observationsLabel,
+    voters = [],
+    selectedVoterIds = [],
+    onToggleRecordSelection,
+    onBulkDeleteSelected,
+  }: any) => (
+    <div>
+      {observationsLabel ? <p>{observationsLabel}</p> : null}
+      {voters.map((voter: any) => (
+        <label key={voter.id}>
+          <input
+            aria-label={`Seleccionar ${voter.carnet}`}
+            type="checkbox"
+            checked={selectedVoterIds.includes(voter.id)}
+            onChange={() => onToggleRecordSelection?.(voter.id)}
+          />
+          {voter.carnet}
+        </label>
+      ))}
+      <button type="button" onClick={() => onBulkDeleteSelected?.()}>
+        Solicitar eliminación masiva
+      </button>
+    </div>
+  ),
 }));
 vi.mock("@/features/electionConfig/components/UploadProgressModal", () => ({
   default: () => null,
@@ -126,6 +150,7 @@ vi.mock("@/features/electionConfig/components/CreateNewsModal", () => ({
 import * as votingEvents from "@/store/votingEvents";
 import ElectionConfigPadron from "@/features/electionConfig/ElectionConfigPadron";
 import ActiveElectionStatusPage from "@/features/electionConfig/ActiveElectionStatusPage";
+import { padronActiveDraft, padronStagingEntries } from "../fixtures/admin/padronPublication";
 
 const baseEvent = {
   id: "evt-1",
@@ -145,6 +170,7 @@ const uploadPadronSourceMock = vi.fn();
 const addPadronStagingEntryMock = vi.fn();
 const fetchPadronStagingPageMock = vi.fn();
 const downloadPadronPdfMock = vi.fn();
+const bulkDeletePadronStagingEntriesMock = vi.fn();
 
 const mockAnalyzePadronWithGemini = (draft: any) => {
   analyzePadronWithGeminiMock.mockReturnValue({
@@ -156,6 +182,10 @@ describe("padron flow integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     navigateMock.mockReset();
+    Object.defineProperty(window, "scrollTo", {
+      configurable: true,
+      value: vi.fn(),
+    });
     analyzePadronWithGeminiMock.mockReset();
     mockAnalyzePadronWithGemini({
       fileName: "padron.pdf",
@@ -169,6 +199,7 @@ describe("padron flow integration", () => {
     uploadPadronSourceMock.mockReset();
     addPadronStagingEntryMock.mockReset();
     downloadPadronPdfMock.mockReset();
+    bulkDeletePadronStagingEntriesMock.mockReset();
     uploadPadronSourceMock.mockReturnValue({
       unwrap: vi.fn().mockResolvedValue({ importJobId: "job-upload", status: "PARSED" }),
     });
@@ -191,6 +222,9 @@ describe("padron flow integration", () => {
         blob: new Blob(["pdf"], { type: "application/pdf" }),
         fileName: "padron-1.pdf",
       }),
+    });
+    bulkDeletePadronStagingEntriesMock.mockReturnValue({
+      unwrap: vi.fn().mockResolvedValue({ deletedCount: 1 }),
     });
 
     vi.mocked(votingEvents.useGetVotingEventQuery).mockReturnValue({
@@ -304,7 +338,10 @@ describe("padron flow integration", () => {
     ] as any);
     vi.mocked(votingEvents.useUpdatePadronStagingEntryMutation).mockReturnValue(noopMutation as any);
     vi.mocked(votingEvents.useDeletePadronStagingEntryMutation).mockReturnValue(noopMutation as any);
-    vi.mocked(votingEvents.useBulkDeletePadronStagingEntriesMutation).mockReturnValue(noopMutation as any);
+    vi.mocked(votingEvents.useBulkDeletePadronStagingEntriesMutation).mockReturnValue([
+      bulkDeletePadronStagingEntriesMock,
+      { isLoading: false },
+    ] as any);
     vi.mocked(votingEvents.useConfirmPadronStagingMutation).mockReturnValue(noopMutation as any);
     vi.mocked(votingEvents.useAddCurrentPadronVoterMutation).mockReturnValue(noopMutation as any);
     vi.mocked(votingEvents.useEnableCurrentPadronVoterMutation).mockReturnValue([vi.fn()] as any);
@@ -370,6 +407,93 @@ describe("padron flow integration", () => {
     ).toBeInTheDocument();
   });
 
+  it("downloads the official padron PDF with the expected event and version payload", async () => {
+    const createObjectUrlMock = vi.fn(() => "blob:padron-pdf");
+    const revokeObjectUrlMock = vi.fn();
+    const clickMock = vi.fn();
+    Object.defineProperty(window.URL, "createObjectURL", {
+      configurable: true,
+      value: createObjectUrlMock,
+    });
+    Object.defineProperty(window.URL, "revokeObjectURL", {
+      configurable: true,
+      value: revokeObjectUrlMock,
+    });
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(clickMock);
+    vi.mocked(votingEvents.useGetVotingEventQuery).mockReturnValue({
+      data: { ...baseEvent, state: "OFFICIALLY_PUBLISHED", status: "OFFICIALLY_PUBLISHED" },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as any);
+    vi.mocked(votingEvents.useGetPadronWorkflowSummaryQuery).mockReturnValue({
+      data: {
+        eventId: "evt-1",
+        eventState: "OFFICIALLY_PUBLISHED",
+        currentVersion: {
+          padronVersionId: "ver-1",
+          createdAt: "2026-04-16T12:00:00.000Z",
+          createdBy: "admin-1",
+          totals: { validCount: 2, invalidCount: 0, duplicateCount: 0 },
+          sourceType: "PDF_IMPORT",
+        },
+        activeDraft: null,
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as any);
+
+    render(<ElectionConfigPadron />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Descargar padrón en PDF" }));
+
+    await waitFor(() => {
+      expect(downloadPadronPdfMock).toHaveBeenCalledWith({
+        eventId: "evt-1",
+        padronVersionId: "ver-1",
+      });
+    });
+    expect(createObjectUrlMock).toHaveBeenCalled();
+    expect(clickMock).toHaveBeenCalled();
+    expect(revokeObjectUrlMock).toHaveBeenCalledWith("blob:padron-pdf");
+  });
+
+  it("shows a visible error when the official padron PDF download fails", async () => {
+    downloadPadronPdfMock.mockReturnValue({
+      unwrap: vi.fn().mockRejectedValue({ data: { message: "PDF no disponible" } }),
+    });
+    vi.mocked(votingEvents.useGetVotingEventQuery).mockReturnValue({
+      data: { ...baseEvent, state: "OFFICIALLY_PUBLISHED", status: "OFFICIALLY_PUBLISHED" },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as any);
+    vi.mocked(votingEvents.useGetPadronWorkflowSummaryQuery).mockReturnValue({
+      data: {
+        eventId: "evt-1",
+        eventState: "OFFICIALLY_PUBLISHED",
+        currentVersion: {
+          padronVersionId: "ver-1",
+          createdAt: "2026-04-16T12:00:00.000Z",
+          createdBy: "admin-1",
+          totals: { validCount: 2, invalidCount: 0, duplicateCount: 0 },
+          sourceType: "PDF_IMPORT",
+        },
+        activeDraft: null,
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as any);
+
+    render(<ElectionConfigPadron />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Descargar padrón en PDF" }));
+
+    expect(await screen.findByText("PDF no disponible")).toBeInTheDocument();
+  });
+
   it("keeps Gemini in the main upload flow and allows informative observations", async () => {
     mockAnalyzePadronWithGemini({
       fileName: "padron.pdf",
@@ -429,6 +553,48 @@ describe("padron flow integration", () => {
     expect(analyzePadronWithGeminiMock).toHaveBeenCalledTimes(1);
     expect(uploadPadronSourceMock).toHaveBeenCalledTimes(1);
     expect(addPadronStagingEntryMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the API error when Gemini succeeds but backend import fails", async () => {
+    mockAnalyzePadronWithGemini({
+      fileName: "padron.pdf",
+      uploadedAt: "2026-04-16T12:00:00.000Z",
+      sourceType: "PDF_GEMINI",
+      analysisProvider: "GEMINI_CLIENT",
+      model: "gemini-test",
+      records: [
+        {
+          id: "record-1",
+          carnet: "12345678",
+          enabled: true,
+          sourceKind: "PARSED",
+          sourceRow: 1,
+          updatedAt: null,
+        },
+      ],
+      observations: [],
+    });
+    uploadPadronSourceMock.mockReturnValue({
+      unwrap: vi.fn().mockRejectedValue({ data: { message: "OCR temporalmente no disponible" } }),
+    });
+    vi.mocked(votingEvents.useGetPadronWorkflowSummaryQuery).mockReturnValue({
+      data: {
+        eventId: "evt-1",
+        eventState: "DRAFT",
+        currentVersion: null,
+        activeDraft: null,
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as any);
+
+    render(<ElectionConfigPadron />);
+
+    fireEvent.click(screen.getByRole("button", { name: /cargar padrón/i }));
+
+    expect(await screen.findByText("OCR temporalmente no disponible")).toBeInTheDocument();
+    expect(addPadronStagingEntryMock).not.toHaveBeenCalled();
   });
 
   it("stops before staging when Gemini finds actionable observations", async () => {
@@ -547,5 +713,47 @@ describe("padron flow integration", () => {
       enabled: false,
       deferMaterialization: true,
     });
+  });
+
+  it("bulk deletes selected staging rows with the expected payload", async () => {
+    vi.mocked(votingEvents.useGetPadronWorkflowSummaryQuery).mockReturnValue({
+      data: {
+        eventId: "evt-1",
+        eventState: "DRAFT",
+        currentVersion: null,
+        activeDraft: padronActiveDraft,
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as any);
+    vi.mocked(votingEvents.useGetPadronStagingQuery).mockReturnValue({
+      data: {
+        importJob: null,
+        data: padronStagingEntries,
+        page: 1,
+        limit: 50,
+        total: 3,
+        totalPages: 1,
+      },
+      isFetching: false,
+      isError: false,
+      isUninitialized: false,
+      refetch: vi.fn(),
+    } as any);
+
+    render(<ElectionConfigPadron />);
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Seleccionar 1234567" }));
+    fireEvent.click(screen.getByRole("button", { name: "Solicitar eliminación masiva" }));
+    fireEvent.click(screen.getByRole("button", { name: "Eliminar seleccionados" }));
+
+    await waitFor(() => {
+      expect(bulkDeletePadronStagingEntriesMock).toHaveBeenCalledWith({
+        eventId: "evt-1",
+        entryIds: ["entry-1"],
+      });
+    });
+    expect(await screen.findByText("Se eliminaron 1 registros del padrón.")).toBeInTheDocument();
   });
 });

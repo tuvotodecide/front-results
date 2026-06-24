@@ -18,6 +18,21 @@ vi.mock("@/components/Modal2", () => ({
 }));
 
 describe("CreateNewsModal", () => {
+  it("requiere título y descripción antes de habilitar la publicación", () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <CreateNewsModal
+        isOpen
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Publicar noticia" })).toBeDisabled();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it("rechaza links de imagen que no parecen imagen real", async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
 
@@ -81,6 +96,80 @@ describe("CreateNewsModal", () => {
         }),
       );
     });
+  });
+
+  it("rechaza enlaces opcionales con protocolos no permitidos", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <CreateNewsModal
+        isOpen
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Título"), {
+      target: { value: "Nueva noticia" },
+    });
+    fireEvent.change(screen.getByLabelText("Descripción"), {
+      target: { value: "Contenido importante" },
+    });
+    fireEvent.change(screen.getByLabelText("Enlace opcional"), {
+      target: { value: "ftp://example.com/noticia" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Publicar noticia" }));
+
+    expect(
+      screen.getByText("Ingresa un enlace válido que comience con http:// o https://."),
+    ).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("muestra errores de API sin cerrar el modal", async () => {
+    const onClose = vi.fn();
+    const onSubmit = vi.fn().mockRejectedValue(new Error("No se pudo publicar"));
+
+    render(
+      <CreateNewsModal
+        isOpen
+        onClose={onClose}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Título"), {
+      target: { value: "Nueva noticia" },
+    });
+    fireEvent.change(screen.getByLabelText("Descripción"), {
+      target: { value: "Contenido importante" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Publicar noticia" }));
+
+    expect(await screen.findByText("No se pudo publicar")).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("bloquea cierre y envío mientras está publicando", () => {
+    const onClose = vi.fn();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <CreateNewsModal
+        isOpen
+        onClose={onClose}
+        onSubmit={onSubmit}
+        isLoading
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Publicando..." })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 
   it("valida protocolo seguro y extensión conocida para imagen de noticia", () => {
