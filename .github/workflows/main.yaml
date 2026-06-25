@@ -19,6 +19,7 @@ on:
       - "tsconfig*.json"
       - "vite.config.ts"
       - "vitest.config.ts"
+      - "tools/**"
       - ".github/workflows/**"
   pull_request:
     branches: [main]
@@ -37,6 +38,7 @@ on:
       - "tsconfig*.json"
       - "vite.config.ts"
       - "vitest.config.ts"
+      - "tools/**"
       - ".github/workflows/**"
 
 env:
@@ -324,3 +326,39 @@ jobs:
           ssh "${{ vars.HETZNER_USER }}@${{ vars.HETZNER_HOST }}" \
             "docker logs --tail 200 ${{ env.CONTAINER_NAME }}"
           exit 1
+
+  frontend-metrics:
+    name: Frontend metrics
+    needs: [quality, build, deploy-dev, deploy-prod]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Generate frontend metrics
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm metrics:frontend
+
+      - name: Upload frontend metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-admin-metrics
+          path: frontend-admin-metrics.json
+          if-no-files-found: warn

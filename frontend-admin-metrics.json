@@ -1,0 +1,51 @@
+{
+  "generatedAt": "2026-06-24T22:16:13.679Z",
+  "repository": "unknown",
+  "branch": "unknown",
+  "eventName": "local",
+  "runId": null,
+  "sha": "unknown",
+  "windowDays": 30,
+  "windowStart": "2026-05-25T22:16:13.679Z",
+  "mode": "local-limited",
+  "integrationTime": {
+    "status": "sin datos suficientes",
+    "currentRunDurationSeconds": null,
+    "currentRunDurationMinutes": null,
+    "jobs": []
+  },
+  "integrationFrequency": {
+    "status": "sin datos suficientes",
+    "successfulMainIntegrations": 0,
+    "averagePerWeek": 0,
+    "averagePerDay": 0
+  },
+  "prMergeTime": {
+    "status": "sin datos suficientes",
+    "pullRequestsConsidered": 0,
+    "averageSeconds": null,
+    "averageMinutes": null,
+    "minSeconds": null,
+    "maxSeconds": null
+  },
+  "failureRateAfterChanges": {
+    "status": "sin datos suficientes",
+    "totalRuns": 0,
+    "successfulRuns": 0,
+    "failedRuns": 0,
+    "failureRate": 0,
+    "failuresPerIntegration": 0
+  },
+  "recoveryTime": {
+    "status": "sin datos suficientes",
+    "incidentsConsidered": 0,
+    "averageSeconds": null,
+    "averageMinutes": null,
+    "lastRecoverySeconds": null,
+    "lastRecoveryMinutes": null
+  },
+  "blockingCauses": [],
+  "warnings": [
+    "GITHUB_TOKEN o GITHUB_REPOSITORY no disponible; se genero reporte local limitado."
+  ]
+}
