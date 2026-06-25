@@ -1,5 +1,7 @@
 "use client";
 
+import NextErrorReporter from "@/shared/error-reporting/NextErrorReporter";
+
 type VotacionPublicErrorProps = {
   error: Error & { digest?: string };
   reset: () => void;
@@ -11,6 +13,7 @@ export default function VotacionPublicError({
 }: VotacionPublicErrorProps) {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
+      <NextErrorReporter error={error} />
       <h1 className="text-xl font-semibold text-gray-900">
         No se pudo cargar la vista pública de votación.
       </h1>

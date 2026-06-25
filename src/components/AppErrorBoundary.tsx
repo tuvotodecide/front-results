@@ -1,4 +1,5 @@
 import React from "react";
+import { reportRuntimeError } from "@/shared/error-reporting";
 
 interface AppErrorBoundaryProps {
   children: React.ReactNode;
@@ -22,6 +23,12 @@ class AppErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("Unhandled render error", error, errorInfo);
+    reportRuntimeError({
+      source: "render",
+      error,
+      componentStack: errorInfo.componentStack || undefined,
+      logs: ["Unhandled render error"],
+    });
   }
 
   handleReload = () => {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Provider } from "react-redux";
+import RuntimeErrorReporter from "@/shared/error-reporting/RuntimeErrorReporter";
 import store from "../store";
 
 interface ProvidersProps {
@@ -26,5 +27,10 @@ export default function Providers({ children }: ProvidersProps) {
     );
   }
 
-  return <Provider store={store}>{children}</Provider>;
+  return (
+    <Provider store={store}>
+      <RuntimeErrorReporter />
+      {children}
+    </Provider>
+  );
 }
