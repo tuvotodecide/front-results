@@ -6,6 +6,15 @@ import type { IPadronCheckService, PadronCheckResult } from './types';
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export class PadronCheckServiceMock implements IPadronCheckService {
+  async checkParticipation(carnet: string): Promise<PadronCheckResult> {
+    await delay(300 + Math.random() * 500);
+
+    return {
+      kind: 'participation',
+      participated: carnet.trim() !== '0000000',
+    };
+  }
+
   async checkStatus(carnet: string): Promise<PadronCheckResult> {
     // Simular latencia de red (300-800ms)
     await delay(300 + Math.random() * 500);

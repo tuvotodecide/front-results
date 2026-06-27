@@ -33,6 +33,7 @@ import type {
 import { selectTenantId } from "../../store/auth/authSlice";
 import { useSelector } from "react-redux";
 import Modal2 from "../../components/Modal2";
+import { PadronCheckModal } from "@/features/padronCheck";
 import { getRequestErrorMessage } from "./requestErrorMessage";
 import {
   addMinutesToLocalDateTime,
@@ -261,6 +262,7 @@ const ActiveElectionStatusPage: React.FC = () => {
   const [newsMessage, setNewsMessage] = useState<string | null>(null);
   const [newsError, setNewsError] = useState<string | null>(null);
   const [isNewsModalOpen, setIsNewsModalOpen] = useState(false);
+  const [isParticipationCheckModalOpen, setIsParticipationCheckModalOpen] = useState(false);
   const [padronMessage, setPadronMessage] = useState<string | null>(null);
   const [padronError, setPadronError] = useState<string | null>(null);
   const [currentPadronActionVoterId, setCurrentPadronActionVoterId] = useState<string | null>(null);
@@ -807,7 +809,7 @@ const ActiveElectionStatusPage: React.FC = () => {
 
         <div
           className={`grid gap-4 md:grid-cols-2 ${
-            presentialKioskEnabled ? "xl:grid-cols-4" : "xl:grid-cols-3"
+            presentialKioskEnabled ? "xl:grid-cols-5" : "xl:grid-cols-4"
           }`}
         >
           <TopInfoCard
@@ -852,6 +854,20 @@ const ActiveElectionStatusPage: React.FC = () => {
               <StatusBadge state={lifecycle} />
             </div>
           </div>
+          <TopInfoCard
+            title="Verificar participación"
+            note="Consulta si un CI ya votó en esta elección."
+            action={
+              <button
+                type="button"
+                onClick={() => setIsParticipationCheckModalOpen(true)}
+                className="inline-flex items-center justify-center rounded-lg bg-[#459151] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3a7a44]"
+              >
+                Verificar CI
+              </button>
+            }
+            lines={[]}
+          />
           {showPublicElectionLink ? (
             <div className="bg-white border border-gray-200 rounded-xl p-5 text-center shadow-sm">
               <div className="mb-4">
@@ -882,7 +898,7 @@ const ActiveElectionStatusPage: React.FC = () => {
               <div className="mb-4">
                 <h3 className="font-semibold text-gray-800">Punto presencial</h3>
               </div>
-              <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="flex flex-col gap-3 sm:flex-row xl:flex-col">
                 <button
                   type="button"
                   onClick={handleOpenKiosk}
@@ -1439,6 +1455,13 @@ const ActiveElectionStatusPage: React.FC = () => {
           </div>
         </div>
       </Modal2>
+
+      <PadronCheckModal
+        isOpen={isParticipationCheckModalOpen}
+        onClose={() => setIsParticipationCheckModalOpen(false)}
+        eventId={actualElectionId}
+        mode="participation"
+      />
       <CreateNewsModal
         isOpen={isNewsModalOpen}
         onClose={() => setIsNewsModalOpen(false)}

@@ -134,6 +134,27 @@ const StatusCard: React.FC<{ status: PublicElectionDetail["status"] }> = ({ stat
   </div>
 );
 
+const ParticipationCheckCard: React.FC<{ onOpenModal: () => void }> = ({ onOpenModal }) => (
+  <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+    <div className="flex h-full flex-col justify-between gap-4">
+      <div>
+        <h3 className="font-semibold text-slate-800">Verificar participación</h3>
+        <p className="mt-2 text-sm text-slate-500">
+          Consulta si un CI ya votó en esta elección.
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onOpenModal}
+        className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
+      >
+        <SearchIcon className="w-5 h-5" />
+        Verificar CI
+      </button>
+    </div>
+  </div>
+);
+
 const WinnerCard: React.FC<{ candidate: Candidate; isReferendum?: boolean }> = ({
   candidate,
   isReferendum = false,
@@ -392,6 +413,7 @@ const PublicElectionDetailPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showPadronModal, setShowPadronModal] = useState(false);
+  const [showParticipationModal, setShowParticipationModal] = useState(false);
 
   useEffect(() => {
     const loadElection = async () => {
@@ -490,9 +512,10 @@ const PublicElectionDetailPage: React.FC = () => {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <ScheduleCard schedule={election.schedule} />
           <StatusCard status={election.status} />
+          <ParticipationCheckCard onOpenModal={() => setShowParticipationModal(true)} />
         </div>
 
         {election.status === "FINISHED" && hasResults && (
@@ -661,6 +684,12 @@ const PublicElectionDetailPage: React.FC = () => {
         isOpen={showPadronModal}
         onClose={() => setShowPadronModal(false)}
         eventId={electionId}
+      />
+      <PadronCheckModal
+        isOpen={showParticipationModal}
+        onClose={() => setShowParticipationModal(false)}
+        eventId={electionId}
+        mode="participation"
       />
     </div>
   );

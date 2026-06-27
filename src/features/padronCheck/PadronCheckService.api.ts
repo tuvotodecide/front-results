@@ -10,6 +10,29 @@ const API_BASE_URL =
   'http://localhost:3000/api/v1';
 
 export class PadronCheckServiceApi implements IPadronCheckService {
+  async checkParticipation(carnet: string, eventId: string): Promise<PadronCheckResult> {
+    const trimmed = carnet.trim();
+    const url = `${API_BASE_URL}/voting/events/${eventId}/participation/check-public?carnet=${encodeURIComponent(
+      trimmed,
+    )}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al verificar participación');
+    }
+
+    const data = await response.json();
+    return {
+      kind: 'participation',
+      participated: data?.participated === true,
+    };
+  }
+
   async checkStatus(carnet: string, eventId?: string): Promise<PadronCheckResult> {
     const trimmed = carnet.trim();
 

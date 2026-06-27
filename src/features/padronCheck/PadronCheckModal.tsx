@@ -10,6 +10,7 @@ interface PadronCheckModalProps {
   isOpen: boolean;
   onClose: () => void;
   eventId?: string;
+  mode?: 'padron' | 'participation';
 }
 
 // Icono de búsqueda
@@ -238,11 +239,33 @@ const ResultCard: React.FC<{ result: Extract<PadronCheckResult, { kind: 'single'
   );
 };
 
-const PadronCheckModal: React.FC<PadronCheckModalProps> = ({ isOpen, onClose, eventId }) => {
+const ParticipationResultCard: React.FC<{
+  result: Extract<PadronCheckResult, { kind: 'participation' }>;
+}> = ({ result }) => (
+  <div
+    className={`mt-6 rounded-xl border p-5 text-center ${
+      result.participated
+        ? 'border-green-200 bg-green-50 text-green-800'
+        : 'border-slate-200 bg-slate-50 text-slate-800'
+    }`}
+  >
+    <h4 className="text-xl font-bold">
+      {result.participated ? 'Ya votó' : 'No votó'}
+    </h4>
+  </div>
+);
+
+const PadronCheckModal: React.FC<PadronCheckModalProps> = ({
+  isOpen,
+  onClose,
+  eventId,
+  mode = 'padron',
+}) => {
   const [carnet, setCarnet] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<PadronCheckResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const isParticipationMode = mode === 'participation';
 
   // Validación: carnet boliviano con números y opcionalmente letras al final
   const isValidCarnet = (value: string): boolean => {
@@ -261,20 +284,30 @@ const PadronCheckModal: React.FC<PadronCheckModalProps> = ({ isOpen, onClose, ev
       setError('El carnet debe contener al menos 7 dígitos numéricos.');
       return;
     }
+    if (isParticipationMode && !eventId) {
+      setError('No se pudo verificar el CI. Intenta nuevamente.');
+      return;
+    }
 
     setError(null);
     setIsLoading(true);
     setResult(null);
 
     try {
-      const checkResult = await padronCheckService.checkStatus(carnet, eventId);
+      const checkResult = isParticipationMode && eventId
+        ? await padronCheckService.checkParticipation(carnet, eventId)
+        : await padronCheckService.checkStatus(carnet, eventId);
       setResult(checkResult);
     } catch (_err) {
-      setError('Error al verificar. Por favor intenta nuevamente.');
+      setError(
+        isParticipationMode
+          ? 'No se pudo verificar el CI. Intenta nuevamente.'
+          : 'Error al verificar. Por favor intenta nuevamente.',
+      );
     } finally {
       setIsLoading(false);
     }
-  }, [carnet]);
+  }, [carnet, eventId, isParticipationMode]);
 
   const handleClose = () => {
     // Reset state on close
@@ -304,7 +337,7 @@ const PadronCheckModal: React.FC<PadronCheckModalProps> = ({ isOpen, onClose, ev
     <Modal2
       isOpen={isOpen}
       onClose={handleClose}
-      title="Consulta tu estado en el Padrón"
+      title={isParticipationMode ? 'Verificar participación' : 'Consulta tu estado en el Padrón'}
       size="lg"
       type="plain"
       className="max-h-[min(88vh,42rem)]"
@@ -312,14 +345,15 @@ const PadronCheckModal: React.FC<PadronCheckModalProps> = ({ isOpen, onClose, ev
       <div className="space-y-4 sm:space-y-5">
         {/* Texto guía */}
         <p className="mx-auto max-w-2xl text-center text-sm leading-6 text-gray-600 sm:text-[15px]">
-          Ingresa tu número de Carnet de Identidad para verificar si estás habilitado
-          para votar.
+          {isParticipationMode
+            ? 'Ingresa el CI para consultar si ya votó en esta elección.'
+            : 'Ingresa tu número de Carnet de Identidad para verificar si estás habilitado para votar.'}
         </p>
 
         {/* Campo de entrada */}
         <div>
           <label htmlFor="carnet-input" className="mb-2 block text-sm font-medium text-gray-700">
-            Carnet de Identidad
+            {isParticipationMode ? 'CI' : 'Carnet de Identidad'}
           </label>
           <div className="relative">
             <input
@@ -380,6 +414,7 @@ const PadronCheckModal: React.FC<PadronCheckModalProps> = ({ isOpen, onClose, ev
         )}
 
         {/* Resultado */}
+        {result?.kind === 'participation' && <ParticipationResultCard result={result} />}
         {result?.kind === 'single' && <ResultCard result={result} />}
         {result?.kind === 'multi' && (
           <div className="space-y-3 pt-1">
@@ -411,7 +446,7 @@ const PadronCheckModal: React.FC<PadronCheckModalProps> = ({ isOpen, onClose, ev
         )}
 
         {/* Nota importante - solo mostrar si no hay resultado */}
-        {!result && (
+        {!result && !isParticipationMode && (
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
             <div className="flex items-start gap-3">
               <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-100">

@@ -1003,6 +1003,42 @@ describe("publication deadlines UX", () => {
     expect(screen.getByText("Punto presencial")).toBeInTheDocument();
   });
 
+  it("shows the participation verification card in the protected status view and opens its modal", async () => {
+    const user = userEvent.setup();
+    vi.mocked(votingEvents.useGetVotingEventQuery).mockReturnValue({
+      data: makeVotingEvent({
+        state: "OFFICIALLY_PUBLISHED",
+        status: "OFFICIALLY_PUBLISHED",
+        presentialKioskEnabled: true,
+      }),
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as any);
+
+    renderWithAuthStore(<ActiveElectionStatusPage />, {
+      tenantId: "tenant-1",
+      active: true,
+      role: "ADMIN",
+    });
+
+    expect(screen.getByText("Horario de Votación")).toBeInTheDocument();
+    expect(screen.getByText("Estado actual")).toBeInTheDocument();
+    expect(screen.getByText("Enlace de elección para el público")).toBeInTheDocument();
+    expect(screen.getByText("Punto presencial")).toBeInTheDocument();
+    expect(screen.getByText("Verificar participación")).toBeInTheDocument();
+    expect(
+      screen.getByText("Consulta si un CI ya votó en esta elección."),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Verificar CI" }));
+
+    expect(
+      screen.getByText("Ingresa el CI para consultar si ya votó en esta elección."),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("CI")).toBeInTheDocument();
+  });
+
   it("shows other elections in pages of three", async () => {
     const user = userEvent.setup();
     vi.mocked(votingEvents.useGetVotingEventsQuery).mockReturnValue({

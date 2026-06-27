@@ -36,8 +36,13 @@ export type PadronCheckResult =
       kind: 'multi';
       carnet: string;
       events: PadronCheckEventResult[];
+    }
+  | {
+      kind: 'participation';
+      participated: boolean;
     };
 
 export interface IPadronCheckService {
   checkStatus(carnet: string, eventId?: string): Promise<PadronCheckResult>;
+  checkParticipation(carnet: string, eventId: string): Promise<PadronCheckResult>;
 }
