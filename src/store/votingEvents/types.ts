@@ -388,6 +388,34 @@ export interface PadronPdfDownload {
   fileName: string;
 }
 
+export type ParticipationAnalyticsStatus =
+  | "IN_PROGRESS"
+  | "FINISHED"
+  | "RESULTS_PUBLISHED"
+  | "RESULTS_NOT_PUBLISHED";
+
+export interface ParticipationAnalytics {
+  votingId: string;
+  votingName: string;
+  institutionName?: string;
+  status: ParticipationAnalyticsStatus;
+  publishedAt: string | null;
+  totalEnabled: number;
+  totalParticipated: number;
+  totalPending: number;
+  participationPercentage: number;
+}
+
+export interface ParticipationReportRequest {
+  eventId: string;
+  modalScreenshot: string;
+}
+
+export interface ParticipationReportDownload {
+  ok: boolean;
+  fileName: string;
+}
+
 export interface EligibilityResult {
   status: string;
   eligible: boolean;

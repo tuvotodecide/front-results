@@ -41,6 +41,8 @@ vi.mock("@/store/votingEvents", () => ({
   useUpdatePadronStagingEntryMutation: vi.fn(),
   useGetVotingEventsQuery: vi.fn(),
   useGetEventResultsQuery: vi.fn(),
+  useGetParticipationAnalyticsQuery: vi.fn(),
+  useDownloadParticipationReportWithScreenshotMutation: vi.fn(),
   useCreatePresentialSessionMutation: vi.fn(),
   useUpdateEventScheduleMutation: vi.fn(),
   useCreateEventNewsMutation: vi.fn(),
@@ -318,6 +320,15 @@ describe("padron flow integration", () => {
       refetch: vi.fn(),
     } as any);
     vi.mocked(votingEvents.useLazyGetPadronImportStatusQuery).mockReturnValue([vi.fn()] as any);
+    vi.mocked(votingEvents.useGetParticipationAnalyticsQuery).mockReturnValue({
+      data: undefined,
+      isFetching: false,
+      isError: false,
+    } as any);
+    vi.mocked(votingEvents.useDownloadParticipationReportWithScreenshotMutation).mockReturnValue([
+      vi.fn(),
+      { isLoading: false },
+    ] as any);
     vi.mocked(votingEvents.useLazyDownloadPadronPdfQuery).mockReturnValue([
       downloadPadronPdfMock,
     ] as any);

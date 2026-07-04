@@ -9,6 +9,7 @@ import PositionsTable from "./components/PositionsTable";
 import PartiesTable from "./components/PartiesTable";
 import LoadedPadronView from "./components/LoadedPadronView";
 import CreateNewsModal from "./components/CreateNewsModal";
+import ParticipationAnalyticsModal from "./components/ParticipationAnalyticsModal";
 import {
   useCreateEventNewsMutation,
   useEnableCurrentPadronVoterMutation,
@@ -30,7 +31,11 @@ import type {
   VotingOption,
   OptionCandidate,
 } from "../../store/votingEvents/types";
-import { selectTenantId } from "../../store/auth/authSlice";
+import {
+  selectActiveContext,
+  selectTenantId,
+  selectUserRole,
+} from "../../store/auth/authSlice";
 import { useSelector } from "react-redux";
 import Modal2 from "../../components/Modal2";
 import { PadronCheckModal } from "@/features/padronCheck";
@@ -246,6 +251,8 @@ const ActiveElectionStatusPage: React.FC = () => {
   const navigate = useNavigate();
   const { electionId } = useParams<{ electionId: string }>();
   const tenantId = useSelector(selectTenantId);
+  const activeContext = useSelector(selectActiveContext);
+  const userRole = useSelector(selectUserRole);
   const actualElectionId = electionId || "";
   const nowMs = useClientNow();
   const [activeTab, setActiveTab] = useState<ConfigStep>(1);
@@ -263,6 +270,7 @@ const ActiveElectionStatusPage: React.FC = () => {
   const [newsError, setNewsError] = useState<string | null>(null);
   const [isNewsModalOpen, setIsNewsModalOpen] = useState(false);
   const [isParticipationCheckModalOpen, setIsParticipationCheckModalOpen] = useState(false);
+  const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
   const [padronMessage, setPadronMessage] = useState<string | null>(null);
   const [padronError, setPadronError] = useState<string | null>(null);
   const [currentPadronActionVoterId, setCurrentPadronActionVoterId] = useState<string | null>(null);
@@ -284,6 +292,19 @@ const ActiveElectionStatusPage: React.FC = () => {
     },
   );
   const limitedModeByEvent = canEditPadronInLimitedMode(event, nowMs);
+  const normalizedUserRole = String(userRole ?? "").toUpperCase();
+  const isGlobalAdminRole =
+    normalizedUserRole === "ADMIN" || normalizedUserRole === "SUPERADMIN";
+  const isTenantContextForEvent =
+    activeContext?.type === "TENANT" &&
+    Boolean(tenantId) &&
+    (!event?.tenantId || String(event.tenantId) === String(tenantId));
+  const canViewParticipationAnalytics =
+    isGlobalAdminRole ||
+    isTenantContextForEvent ||
+    (normalizedUserRole === "TENANT_ADMIN" &&
+      Boolean(event?.tenantId) &&
+      String(event?.tenantId) === String(tenantId ?? ""));
   const { data: events = [] } = useGetVotingEventsQuery(
     tenantId ? { tenantId } : undefined,
     {
@@ -809,7 +830,7 @@ const ActiveElectionStatusPage: React.FC = () => {
 
         <div
           className={`grid gap-4 md:grid-cols-2 ${
-            presentialKioskEnabled ? "xl:grid-cols-5" : "xl:grid-cols-4"
+            presentialKioskEnabled ? "xl:grid-cols-6" : "xl:grid-cols-5"
           }`}
         >
           <TopInfoCard
@@ -868,6 +889,22 @@ const ActiveElectionStatusPage: React.FC = () => {
             }
             lines={[]}
           />
+          {canViewParticipationAnalytics ? (
+            <TopInfoCard
+              title="Analíticas"
+              note="Consulta estadísticas de participación."
+              action={
+                <button
+                  type="button"
+                  onClick={() => setIsAnalyticsModalOpen(true)}
+                  className="inline-flex items-center justify-center rounded-lg bg-[#459151] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3a7a44]"
+                >
+                  Analíticas
+                </button>
+              }
+              lines={[]}
+            />
+          ) : null}
           {showPublicElectionLink ? (
             <div className="bg-white border border-gray-200 rounded-xl p-5 text-center shadow-sm">
               <div className="mb-4">
@@ -1462,6 +1499,14 @@ const ActiveElectionStatusPage: React.FC = () => {
         eventId={actualElectionId}
         mode="participation"
       />
+      {canViewParticipationAnalytics ? (
+        <ParticipationAnalyticsModal
+          isOpen={isAnalyticsModalOpen}
+          onClose={() => setIsAnalyticsModalOpen(false)}
+          eventId={actualElectionId}
+          canDownloadReport={canViewParticipationAnalytics}
+        />
+      ) : null}
       <CreateNewsModal
         isOpen={isNewsModalOpen}
         onClose={() => setIsNewsModalOpen(false)}

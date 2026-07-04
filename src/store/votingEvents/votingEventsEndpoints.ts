@@ -30,6 +30,9 @@ import type {
   PadronVersion,
   PadronVoter,
   PadronWorkflowSummary,
+  ParticipationAnalytics,
+  ParticipationReportDownload,
+  ParticipationReportRequest,
   ParticipationStatus,
   PresentialCurrentState,
   ReviewReadinessResponse,
@@ -46,6 +49,36 @@ import type {
 } from "./types";
 
 const unwrapApiData = (raw: any) => raw?.data ?? raw;
+
+const getFileNameFromContentDisposition = (
+  contentDisposition: string | null | undefined,
+  fallback: string,
+) => {
+  const header = String(contentDisposition ?? "");
+  const encodedMatch = header.match(/filename\*=UTF-8''([^;]+)/i);
+  if (encodedMatch?.[1]) {
+    try {
+      return decodeURIComponent(encodedMatch[1].replace(/^"|"$/g, ""));
+    } catch {
+      return encodedMatch[1].replace(/^"|"$/g, "");
+    }
+  }
+  const quotedMatch = header.match(/filename="([^"]+)"/i);
+  if (quotedMatch?.[1]) return quotedMatch[1];
+  const plainMatch = header.match(/filename=([^;]+)/i);
+  return plainMatch?.[1]?.trim().replace(/^"|"$/g, "") || fallback;
+};
+
+const downloadBrowserBlob = (blob: Blob, fileName: string) => {
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+};
 
 const toPublicationWindow = (source: any) => ({
   deadline: source?.deadline ?? null,
@@ -328,6 +361,24 @@ const toCreatePresentialSessionResult = (
 
 const toPresentialCurrentState = (raw: any): PresentialCurrentState =>
   normalizePresentialCurrentState(raw);
+
+const toParticipationAnalytics = (raw: any): ParticipationAnalytics => {
+  const source = unwrapApiData(raw);
+  return {
+    votingId: String(source?.votingId ?? ""),
+    votingName: String(source?.votingName ?? ""),
+    institutionName:
+      source?.institutionName === null || source?.institutionName === undefined
+        ? undefined
+        : String(source.institutionName),
+    status: (source?.status ?? "RESULTS_NOT_PUBLISHED") as ParticipationAnalytics["status"],
+    publishedAt: source?.publishedAt ?? null,
+    totalEnabled: Number(source?.totalEnabled ?? 0),
+    totalParticipated: Number(source?.totalParticipated ?? 0),
+    totalPending: Number(source?.totalPending ?? 0),
+    participationPercentage: Number(source?.participationPercentage ?? 0),
+  };
+};
 
 export const votingEventsEndpoints = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -895,6 +946,47 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
       },
     }),
 
+    getParticipationAnalytics: builder.query<ParticipationAnalytics, string>({
+      query: (eventId) => `/voting/events/${eventId}/participation-analytics`,
+      transformResponse: (response: any) => toParticipationAnalytics(response),
+      providesTags: (_result, _error, eventId) => [
+        { type: "VotingEvents", id: eventId },
+      ],
+    }),
+
+    downloadParticipationReportWithScreenshot: builder.mutation<
+      ParticipationReportDownload,
+      ParticipationReportRequest
+    >({
+      async queryFn({ eventId, modalScreenshot }, _queryApi, _extraOptions, fetchWithBQ) {
+        const response = await fetchWithBQ({
+          url: `/voting/events/${eventId}/participation-report`,
+          method: "POST",
+          body: { modalScreenshot },
+          responseHandler: async (res) => res.blob(),
+        });
+
+        if (response.error) {
+          return { error: response.error as any };
+        }
+
+        const blob = response.data as Blob;
+        const contentDisposition = response.meta?.response?.headers?.get("content-disposition");
+        const fileName = getFileNameFromContentDisposition(
+          contentDisposition,
+          `participation-report-${eventId}.pdf`,
+        );
+        downloadBrowserBlob(blob, fileName);
+
+        return {
+          data: {
+            ok: true,
+            fileName,
+          },
+        };
+      },
+    }),
+
     updateEventSchedule: builder.mutation<void, { eventId: string; data: UpdateScheduleDto }>({
       query: ({ eventId, data }) => ({
         url: `/voting/events/${eventId}/schedule`,
@@ -1103,6 +1195,8 @@ export const {
   useLazyGetPadronVotersQuery,
   useLazyDownloadPadronCsvQuery,
   useLazyDownloadPadronPdfQuery,
+  useGetParticipationAnalyticsQuery,
+  useDownloadParticipationReportWithScreenshotMutation,
   useUpdateEventScheduleMutation,
   useUpdatePublicEligibilityMutation,
   useGetEventResultsQuery,

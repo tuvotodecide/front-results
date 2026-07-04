@@ -45,6 +45,8 @@ vi.mock("@/store/votingEvents", () => ({
   useGetPadronVotersQuery: vi.fn(),
   useGetPadronStagingQuery: vi.fn(),
   useGetEventResultsQuery: vi.fn(),
+  useGetParticipationAnalyticsQuery: vi.fn(),
+  useDownloadParticipationReportWithScreenshotMutation: vi.fn(),
   useLazyDownloadPadronPdfQuery: vi.fn(),
   useDeleteVotingEventMutation: vi.fn(),
   useDisableVotingEventMutation: vi.fn(),
@@ -235,6 +237,15 @@ describe("publication deadlines UX", () => {
       data: null,
       isLoading: false,
     } as any);
+    vi.mocked(votingEvents.useGetParticipationAnalyticsQuery).mockReturnValue({
+      data: undefined,
+      isFetching: false,
+      isError: false,
+    } as any);
+    vi.mocked(votingEvents.useDownloadParticipationReportWithScreenshotMutation).mockReturnValue([
+      vi.fn(),
+      { isLoading: false },
+    ] as any);
     vi.mocked(votingEvents.useLazyDownloadPadronPdfQuery).mockReturnValue([vi.fn()] as any);
     vi.mocked(votingEvents.useEnableCurrentPadronVoterMutation).mockReturnValue(noopMutation as any);
     vi.mocked(votingEvents.useUpdateEventScheduleMutation).mockReturnValue(noopMutation as any);
