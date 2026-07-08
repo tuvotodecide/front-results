@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiSlice } from "@/store/apiSlice";
 import { votingEventsEndpoints } from "@/store/votingEvents/votingEventsEndpoints";
 
+const NativeRequest = globalThis.Request;
+
 const createApiStore = () =>
   configureStore({
     reducer: {
@@ -20,6 +22,14 @@ const getFetchCall = () => {
 
 describe("participation analytics votingEvents API", () => {
   beforeEach(() => {
+    vi.stubGlobal(
+      "Request",
+      class RequestWithoutSignalMismatch extends NativeRequest {
+        constructor(input: RequestInfo | URL, init?: RequestInit) {
+          super(input, init ? { ...init, signal: undefined } : init);
+        }
+      },
+    );
     vi.stubGlobal("fetch", vi.fn());
     Object.defineProperty(window.URL, "createObjectURL", {
       configurable: true,
