@@ -1,7 +1,13 @@
 import { NextRequest } from "next/server";
+import { vi } from "vitest";
+import {
+  DEV_AUTH_COOKIE,
+  DEV_AUTH_COOKIE_VALUE,
+} from "@/domains/dev-auth/devAuth";
 import {
   AUTH_COOKIE_KEYS,
   handleResultadosAccess,
+  handleSuperadminAccess,
   handleVotacionAccess,
   isExpired,
   middleware,
@@ -31,6 +37,10 @@ const createRequest = (
 };
 
 describe("middleware access rules", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("normalizes roles and statuses", () => {
     expect(normalizeRole("ALCALDE")).toBe("MAYOR");
     expect(normalizeRole("tenantadmin")).toBe("TENANT_ADMIN");
@@ -117,6 +127,85 @@ describe("middleware access rules", () => {
     );
 
     expect(response.headers.get("x-middleware-next")).toBe("1");
+  });
+
+  it("allows superadmin users into superadmin routes", () => {
+    const token = createToken({
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      role: "SUPERADMIN",
+      active: true,
+    });
+
+    const response = handleSuperadminAccess(
+      createRequest("/superadmin/tvd/contrato", {
+        [AUTH_COOKIE_KEYS.token]: token,
+        [AUTH_COOKIE_KEYS.role]: "SUPERADMIN",
+        [AUTH_COOKIE_KEYS.status]: "ACTIVE",
+        [AUTH_COOKIE_KEYS.active]: "true",
+      }),
+    );
+
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+  });
+
+  it("allows GLOBAL_ADMIN context into superadmin routes", () => {
+    const token = createToken({
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      role: "TENANT_ADMIN",
+      active: true,
+    });
+
+    const response = handleSuperadminAccess(
+      createRequest("/superadmin", {
+        [AUTH_COOKIE_KEYS.token]: token,
+        [AUTH_COOKIE_KEYS.role]: "TENANT_ADMIN",
+        [AUTH_COOKIE_KEYS.status]: "ACTIVE",
+        [AUTH_COOKIE_KEYS.active]: "true",
+        [AUTH_COOKIE_KEYS.context]: "GLOBAL_ADMIN",
+      }),
+    );
+
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+  });
+
+  it("allows dev superadmin cookie into superadmin routes only when dev auth is enabled", () => {
+    vi.stubEnv("ENABLE_DEV_AUTH", "true");
+
+    const response = handleSuperadminAccess(
+      createRequest("/superadmin", {
+        [DEV_AUTH_COOKIE]: DEV_AUTH_COOKIE_VALUE,
+      }),
+    );
+
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+  });
+
+  it("blocks non-superadmin users from superadmin routes", () => {
+    const token = createToken({
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      role: "ACCESS_APPROVER",
+      active: true,
+    });
+
+    const response = handleSuperadminAccess(
+      createRequest("/superadmin/gestion/registros", {
+        [AUTH_COOKIE_KEYS.token]: token,
+        [AUTH_COOKIE_KEYS.role]: "ACCESS_APPROVER",
+        [AUTH_COOKIE_KEYS.status]: "ACTIVE",
+        [AUTH_COOKIE_KEYS.active]: "true",
+        [AUTH_COOKIE_KEYS.context]: "ACCESS_APPROVALS",
+      }),
+    );
+
+    expect(response.headers.get("location")).toBe("http://localhost/resultados");
+  });
+
+  it("redirects anonymous superadmin access to resultados login", () => {
+    const response = middleware(createRequest("/superadmin/tvd/asignacion"));
+
+    expect(response.headers.get("location")).toBe(
+      "http://localhost/resultados/login?from=%2Fsuperadmin%2Ftvd%2Fasignacion",
+    );
   });
 
   it("lets non-tenant voting users reach the client guard for the domain notice", () => {

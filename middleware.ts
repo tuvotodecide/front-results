@@ -1,5 +1,10 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import {
+  DEV_AUTH_COOKIE,
+  DEV_AUTH_COOKIE_VALUE,
+  isDevAuthEnabled,
+} from "./src/domains/dev-auth/devAuth";
 
 export const AUTH_COOKIE_KEYS = {
   token: "tvd_auth_token",
@@ -144,6 +149,17 @@ const redirectResultadosLogin = (request: NextRequest) => {
 };
 
 export const getSession = (request: NextRequest) => {
+  const devSession = request.cookies.get(DEV_AUTH_COOKIE)?.value ?? null;
+
+  if (isDevAuthEnabled() && devSession === DEV_AUTH_COOKIE_VALUE) {
+    return {
+      token: "dev-superadmin-session",
+      role: "SUPERADMIN" as SessionRole,
+      status: "ACTIVE" as SessionStatus,
+      context: "GLOBAL_ADMIN" as SessionContext,
+    };
+  }
+
   const token = request.cookies.get(AUTH_COOKIE_KEYS.token)?.value ?? null;
 
   if (!token || isExpired(token)) {
@@ -239,8 +255,37 @@ export const handleApprovalsAccess = (request: NextRequest) => {
   return NextResponse.next();
 };
 
+export const handleSuperadminAccess = (request: NextRequest) => {
+  const session = getSession(request);
+
+  if (!session) {
+    return redirectResultadosLogin(request);
+  }
+
+  if (session.status === "PENDING") {
+    return redirectTo(request, "/resultados/pendiente");
+  }
+
+  if (
+    session.status === "REJECTED" ||
+    session.status === "INACTIVE"
+  ) {
+    return redirectTo(request, "/resultados/rechazado");
+  }
+
+  if (session.role === "SUPERADMIN" || session.context === "GLOBAL_ADMIN") {
+    return NextResponse.next();
+  }
+
+  return redirectTo(request, "/resultados");
+};
+
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+
+  if (hasPathPrefix(pathname, "/superadmin")) {
+    return handleSuperadminAccess(request);
+  }
 
   if (pathname.startsWith("/resultados/")) {
     return handleResultadosAccess(request);
@@ -272,5 +317,6 @@ export const config = {
     "/votacion/elecciones/:electionId/config/:path*",
     "/votacion/elecciones/:electionId/status",
     "/aprobaciones/:path*",
+    "/superadmin/:path*",
   ],
 };

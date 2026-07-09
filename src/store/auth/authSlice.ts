@@ -88,6 +88,7 @@ export interface AccessStatus {
 export interface AuthState {
   token: string | null;
   accessToken: string | null;
+  isDevSession?: boolean;
   role: AuthRole | string | null;
   active: boolean;
   tenantId?: string | null;
@@ -348,6 +349,7 @@ if (!initialToken) {
 const initialState: AuthState = {
   token: initialToken,
   accessToken: initialToken,
+  isDevSession: false,
   role: initialToken ? rawSession.role ?? rawUser?.role ?? null : null,
   active: initialToken ? Boolean(rawSession.active ?? rawUser?.active) : false,
   tenantId: initialToken ? rawSession.tenantId ?? rawUser?.tenantId ?? null : null,
@@ -461,6 +463,7 @@ export const authSlice = createSlice({
 
       state.token = validToken;
       state.accessToken = validToken;
+      state.isDevSession = false;
       state.role = role;
       state.active = active;
       state.tenantId = tenantId;
@@ -520,18 +523,47 @@ export const authSlice = createSlice({
         }
       }
 
-      persistAuthSession(state);
-      syncAuthSessionCookies(
-        state.token,
-        state.user,
-        state.activeContext,
-        state.role,
-        state.active,
+      if (!state.isDevSession) {
+        persistAuthSession(state);
+        syncAuthSessionCookies(
+          state.token,
+          state.user,
+          state.activeContext,
+          state.role,
+          state.active,
+        );
+      }
+    },
+    setDevAuthSession: (state, action) => {
+      const user = normalizeUser(action.payload?.user);
+      const availableContexts = normalizeContexts(
+        action.payload?.availableContexts,
       );
+      const defaultContext = normalizeContext(action.payload?.defaultContext);
+      const activeContext = normalizeContext(action.payload?.activeContext);
+
+      state.token = null;
+      state.accessToken = null;
+      state.isDevSession = true;
+      state.role = action.payload?.role ?? user?.role ?? "SUPERADMIN";
+      state.active = true;
+      state.tenantId = null;
+      state.availableContexts = availableContexts;
+      state.requiresContextSelection = false;
+      state.defaultContext = defaultContext;
+      state.activeContext = activeContext ?? defaultContext;
+      state.accessStatus = null;
+      state.user = user;
+
+      removeStorage("token");
+      removeStorage("user");
+      clearAuthSession();
+      syncAuthSessionCookies(null, null);
     },
     logOut: (state) => {
       state.token = null;
       state.accessToken = null;
+      state.isDevSession = false;
       state.role = null;
       state.active = false;
       state.tenantId = null;
@@ -552,12 +584,13 @@ export const authSlice = createSlice({
   },
 });
 
-export const { setAuth, setActiveContext, logOut } = authSlice.actions;
+export const { setAuth, setActiveContext, setDevAuthSession, logOut } =
+  authSlice.actions;
 export const selectAuth = (state: RootState) => state.auth;
 
 // Selector to check if user is logged in
 export const selectIsLoggedIn = (state: RootState) => {
-  return Boolean(state.auth.token && state.auth.user);
+  return Boolean((state.auth.token || state.auth.isDevSession) && state.auth.user);
 };
 
 // Selector for tenantId (institutional voting)
