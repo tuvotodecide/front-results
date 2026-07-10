@@ -1,5 +1,6 @@
 import {
   institutionalRecoveryRequestsMock,
+  publicRecoveryReceiptMock,
   tvdContractStatusMock,
   tvdEconomicParametersMock,
   tvdInstitutionsMock,
@@ -8,6 +9,8 @@ import {
 } from "../data/superadminTvd.mock";
 import type {
   InstitutionalRecoveryRequest,
+  PublicInstitutionalRecoveryDraft,
+  PublicInstitutionalRecoveryReceipt,
   TvdAssignmentDraft,
   TvdAssignmentReceipt,
   TvdContractStatus,
@@ -40,3 +43,38 @@ export const getWalletTvdBalance = async (): Promise<WalletTvdBalance> =>
 export const getInstitutionalRecoveryRequests = async (): Promise<
   InstitutionalRecoveryRequest[]
 > => institutionalRecoveryRequestsMock;
+
+export const approveInstitutionalRecoveryRequest = async (
+  requestId: string,
+  reviewerNote: string,
+): Promise<InstitutionalRecoveryRequest> => {
+  const request = institutionalRecoveryRequestsMock.find(
+    (item) => item.id === requestId,
+  );
+
+  return {
+    ...(request ?? institutionalRecoveryRequestsMock[0]),
+    status: "Aprobada",
+    reviewerNote,
+  };
+};
+
+export const rejectInstitutionalRecoveryRequest = async (
+  requestId: string,
+  reviewerNote: string,
+): Promise<InstitutionalRecoveryRequest> => {
+  const request = institutionalRecoveryRequestsMock.find(
+    (item) => item.id === requestId,
+  );
+
+  return {
+    ...(request ?? institutionalRecoveryRequestsMock[0]),
+    status: "Rechazada",
+    reviewerNote,
+  };
+};
+
+export const createInstitutionalRecoveryRequest = async (
+  draft: PublicInstitutionalRecoveryDraft,
+): Promise<PublicInstitutionalRecoveryReceipt> =>
+  publicRecoveryReceiptMock(draft.institutionName, draft.newEmail);

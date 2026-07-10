@@ -180,6 +180,18 @@ describe("middleware access rules", () => {
     expect(response.headers.get("x-middleware-next")).toBe("1");
   });
 
+  it("does not allow dev superadmin cookie when dev auth is disabled", () => {
+    const response = handleSuperadminAccess(
+      createRequest("/superadmin", {
+        [DEV_AUTH_COOKIE]: DEV_AUTH_COOKIE_VALUE,
+      }),
+    );
+
+    expect(response.headers.get("location")).toBe(
+      "http://localhost/resultados/login?from=%2Fsuperadmin",
+    );
+  });
+
   it("blocks non-superadmin users from superadmin routes", () => {
     const token = createToken({
       exp: Math.floor(Date.now() / 1000) + 3600,

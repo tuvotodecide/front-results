@@ -68,6 +68,25 @@ describe("dev auth route handlers", () => {
     expect(JSON.stringify(body)).not.toContain("refreshToken");
   });
 
+  it("dev session responde no autenticado sin cookie dev", async () => {
+    vi.stubEnv("ENABLE_DEV_AUTH", "true");
+
+    const response = await getDevSession(createRequest());
+    const body = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(body.authenticated).toBe(false);
+    expect(JSON.stringify(body)).not.toContain("SUPERADMIN");
+  });
+
+  it("dev session queda bloqueada si dev auth está deshabilitado", async () => {
+    const response = await getDevSession(
+      createRequest({ [DEV_AUTH_COOKIE]: DEV_AUTH_COOKIE_VALUE }),
+    );
+
+    expect(response.status).toBe(404);
+  });
+
   it("logout dev limpia la cookie dev", async () => {
     vi.stubEnv("ENABLE_DEV_AUTH", "true");
 

@@ -81,24 +81,59 @@ export type TvdAssignmentReceipt = TvdAssignmentDraft & {
 
 export type TvdOperation = {
   id: string;
-  createdAt: string;
-  type: string;
-  target: string;
+  type: "Asignación manual" | "Consumo por voto" | "Quema" | "Recompensa votante" | "Recarga";
+  institution: string;
   amount: string;
-  status: string;
+  date: string;
   txHash: string;
+  explorerUrl: string;
+};
+
+export type TvdOperationsSummary = {
+  totalOperations: number;
+  totalAssigned: string;
+  totalConsumed: string;
 };
 
 export type WalletTvdBalance = {
   wallet: string;
+  shortWallet: string;
   balance: string;
   network: string;
+  belongsToEcosystem: boolean;
+  explorerUrl: string;
   updatedAt: string;
 };
+
+export type InstitutionalRecoveryStatus =
+  | "Pendiente"
+  | "Aprobada"
+  | "Rechazada";
 
 export type InstitutionalRecoveryRequest = {
   id: string;
   institutionName: string;
-  status: string;
+  reason: string;
+  previousAdminEmail: string;
+  newAdminEmail: string;
   requestedAt: string;
+  contactPhone: string;
+  status: InstitutionalRecoveryStatus;
+  reviewerNote?: string;
+};
+
+export type PublicInstitutionalRecoveryDraft = {
+  institutionName: string;
+  fullName: string;
+  phone: string;
+  newEmail: string;
+  supervisorContact: string;
+};
+
+export type PublicInstitutionalRecoveryReceipt = {
+  id: string;
+  institutionName: string;
+  contactEmail: string;
+  status: string;
+  createdAt: string;
 };

@@ -17,10 +17,9 @@ describe("SuperadminTopNav", () => {
       "href",
       "/superadmin",
     );
-    expect(screen.getByRole("link", { name: /Votaciones/i })).toHaveAttribute(
-      "href",
-      "/votacion/elecciones",
-    );
+    expect(screen.queryByRole("link", { name: /Votaciones/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /\$TVD/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Gestión/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /\$TVD/i }));
 

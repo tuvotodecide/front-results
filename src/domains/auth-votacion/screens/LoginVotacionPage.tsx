@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ErrorMessage, Field, Form, Formik } from "formik";
+import { Landmark } from "lucide-react";
 import * as Yup from "yup";
 import { useDispatch, useSelector } from "react-redux";
 import tuvotoDecideImage from "../../../assets/tuvotodecide.webp";
@@ -470,6 +471,20 @@ const LoginVotacionPage = () => {
                 >
                   Iniciar Sesión
                 </LoadingButton>
+              </div>
+
+              <div className="space-y-1 text-center">
+                <Link
+                  to="/votacion/recuperacion-institucional"
+                  style={{ borderColor: "#459151", color: "#459151" }}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 py-2.5 text-sm font-bold transition-all hover:bg-[#459151]/5 active:scale-[0.98]"
+                >
+                  <Landmark className="h-4 w-4" />
+                  Recuperar cuenta institucional
+                </Link>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                  Si perdiste acceso a tu institución
+                </p>
               </div>
 
               <div className="relative flex items-center py-2">
