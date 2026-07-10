@@ -314,6 +314,8 @@ export const config = {
     "/resultados/partidos-politicos/:path*",
     "/votacion/elecciones",
     "/votacion/elecciones/new",
+    "/votacion/recarga-operativa",
+    "/votacion/cuenta-institucional",
     "/votacion/elecciones/:electionId/config/:path*",
     "/votacion/elecciones/:electionId/status",
     "/aprobaciones/:path*",

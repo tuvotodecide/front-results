@@ -3,12 +3,21 @@ import {
   useNavigate,
   useParams,
 } from "@/domains/votacion/navigation/compat-private";
-import { ClipboardDocumentIcon, PencilSquareIcon } from "@heroicons/react/24/outline";
-import ConfigStepsTabs from "./components/ConfigStepsTabs";
+import {
+  ArrowTopRightOnSquareIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  ClipboardDocumentIcon,
+  EllipsisHorizontalIcon,
+  PencilSquareIcon,
+} from "@heroicons/react/24/outline";
+import BallotPreview from "./components/BallotPreview";
 import PositionsTable from "./components/PositionsTable";
 import PartiesTable from "./components/PartiesTable";
-import LoadedPadronView from "./components/LoadedPadronView";
+import PhoneMockup from "./components/PhoneMockup";
 import CreateNewsModal from "./components/CreateNewsModal";
+import CreateNewsForm from "./components/CreateNewsForm";
+import ElectionOfficialResultsView from "./components/ElectionOfficialResultsView";
 import ParticipationAnalyticsModal from "./components/ParticipationAnalyticsModal";
 import {
   useCreateEventNewsMutation,
@@ -24,8 +33,9 @@ import {
   useLazyDownloadPadronPdfQuery,
   useCreatePresentialSessionMutation,
   useUpdateEventScheduleMutation,
+  useGetParticipationAnalyticsQuery,
 } from "../../store/votingEvents";
-import type { ConfigStep, PartyWithCandidates, Position, Voter } from "./types";
+import type { PartyWithCandidates, Position, Voter } from "./types";
 import type {
   EventRole,
   VotingOption,
@@ -66,6 +76,12 @@ import {
   DEFAULT_KIOSK_STATION_ID,
 } from "@/domains/votacion/kiosk/constants";
 import { getRuntimeEnv } from "@/shared/system/runtimeEnv";
+import { useElectionTvdUsage } from "./data/useElectionTvdUsage";
+import { publicElectionRepository } from "@/features/publicElectionDetail/data/PublicElectionRepository.api";
+import type {
+  Candidate,
+  PublicElectionDetail,
+} from "@/features/publicElectionDetail/types";
 
 const SMART_CONTRACT_URL =
   getRuntimeEnv('VITE_PUBLIC_SMART_CONTRACT_URL', 'NEXT_PUBLIC_SMART_CONTRACT_URL');
@@ -109,12 +125,6 @@ const canEditSchedule = (event?: {
 }, nowMs?: number | null) => {
   return canEditElectionBeforeCutoff(event, nowMs);
 };
-
-const getInitial = (value?: string | null) =>
-  String(value ?? "")
-    .trim()
-    .charAt(0)
-    .toUpperCase() || "?";
 
 const getBallotDescription = (lifecycle: string, isReferendum: boolean) =>
   isReferendum
@@ -195,8 +205,8 @@ const StatusBadge: React.FC<{ state?: string }> = ({ state }) => {
     PUBLICATION_EXPIRED: "bg-red-100 text-red-700 border-red-200",
     ACTIVE: "bg-amber-100 text-amber-700 border-amber-200",
     CLOSED: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    RESULTS: "bg-violet-100 text-violet-700 border-violet-200",
-    RESULTS_PUBLISHED: "bg-violet-100 text-violet-700 border-violet-200",
+    RESULTS: "bg-green-100 text-green-700 border-green-200",
+    RESULTS_PUBLISHED: "bg-green-100 text-green-700 border-green-200",
   };
 
   const labels: Record<string, string> = {
@@ -207,13 +217,13 @@ const StatusBadge: React.FC<{ state?: string }> = ({ state }) => {
     PUBLICATION_EXPIRED: "Caducada",
     ACTIVE: "En votación",
     CLOSED: "Finalizada",
-    RESULTS: "Resultados disponibles",
-    RESULTS_PUBLISHED: "Resultados publicados",
+    RESULTS: "Resultados oficiales publicados",
+    RESULTS_PUBLISHED: "Resultados oficiales publicados",
   };
 
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-4 py-2 text-sm font-semibold ${
+      className={`inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-semibold ${
         styles[state || "DRAFT"] || styles.DRAFT
       }`}
     >
@@ -222,30 +232,266 @@ const StatusBadge: React.FC<{ state?: string }> = ({ state }) => {
   );
 };
 
-const TopInfoCard: React.FC<{
+type StatusMainTab = "dates" | "results" | "ballot" | "more";
+
+type StatusMoreView =
+  | "menu"
+  | "padron"
+  | "tvd"
+  | "analytics"
+  | "public-link"
+  | "blockchain"
+  | "kiosk"
+  | "news";
+
+const STATUS_TABS: Array<{ id: StatusMainTab; label: string }> = [
+  { id: "dates", label: "Fechas" },
+  { id: "results", label: "Resultados" },
+  { id: "ballot", label: "Papeleta" },
+  { id: "more", label: "Más" },
+];
+
+const MORE_OPTIONS: Array<{ id: StatusMoreView; label: string; description: string }> = [
+  {
+    id: "padron",
+    label: "Padrón y participación",
+    description: "Consulta habilitación y participación por carnet.",
+  },
+  {
+    id: "tvd",
+    label: "Uso $TVD",
+    description: "Resumen económico mock de la votación.",
+  },
+  {
+    id: "analytics",
+    label: "Analíticas",
+    description: "Participación, ausentismo y reporte.",
+  },
+  {
+    id: "public-link",
+    label: "Enlace público",
+    description: "Copiar o abrir la votación pública.",
+  },
+  {
+    id: "blockchain",
+    label: "Verificación blockchain",
+    description: "Contrato inteligente y guía de consulta.",
+  },
+  {
+    id: "news",
+    label: "Noticias",
+    description: "Crear noticia o comunicado para votantes.",
+  },
+];
+
+const getLifecycleDescription = (lifecycle: string, isReferendum: boolean) => {
+  const subject = isReferendum ? "referéndum" : "elección";
+  const descriptions: Record<string, string> = {
+    ACTIVE: `La ${subject} está activa. Puedes consultar padrón, participación y enlace público.`,
+    CLOSED: `La ${subject} finalizó. Revisa fechas, participación y resultados cuando estén disponibles.`,
+    RESULTS: "Resultados oficiales publicados. Consulta la información pública y la trazabilidad del proceso.",
+    RESULTS_PUBLISHED: "Resultados oficiales publicados. Consulta la información pública y la trazabilidad del proceso.",
+    OFFICIALLY_PUBLISHED: `La ${subject} fue publicada oficialmente y espera el inicio de votación.`,
+    PUBLISHED: `La ${subject} fue notificada y espera confirmación/publicación oficial.`,
+    READY_FOR_REVIEW: `La ${subject} está en revisión previa.`,
+    PUBLICATION_EXPIRED: `La ventana de publicación de la ${subject} venció.`,
+  };
+
+  return descriptions[lifecycle] ?? `Consulta el estado y la configuración de esta ${subject}.`;
+};
+
+const STATUS_TABS_UI: Array<{ id: StatusMainTab; label: string }> = [
+  { id: "dates", label: "Fechas" },
+  { id: "results", label: "Resultados" },
+  { id: "ballot", label: "Papeleta" },
+  { id: "more", label: "Mas" },
+];
+
+const MORE_OPTIONS_UI: Array<{
+  id: Exclude<StatusMoreView, "menu">;
+  label: string;
+  description: string;
+  icon: string;
+}> = [
+  {
+    id: "padron",
+    label: "Padron y consulta",
+    description: "Consulta si un CI ya voto.",
+    icon: "CI",
+  },
+  {
+    id: "tvd",
+    label: "Uso $TVD",
+    description: "Costo de esta votacion.",
+    icon: "$",
+  },
+  {
+    id: "analytics",
+    label: "Analiticas",
+    description: "Resultados y estadisticas.",
+    icon: "%",
+  },
+  {
+    id: "public-link",
+    label: "Enlace publico",
+    description: "Copiar enlace publico.",
+    icon: "L",
+  },
+  {
+    id: "blockchain",
+    label: "Verificacion blockchain",
+    description: "Integridad verificable.",
+    icon: "B",
+  },
+  {
+    id: "kiosk",
+    label: "Punto presencial QR",
+    description: "Acceso operativo para mesa presencial.",
+    icon: "QR",
+  },
+  {
+    id: "news",
+    label: "Noticias",
+    description: "Informacion relacionada.",
+    icon: "N",
+  },
+];
+
+const getLifecycleDescriptionUi = (
+  lifecycle: string,
+  isReferendum: boolean,
+) => {
+  const subject = isReferendum ? "referendum" : "eleccion";
+  const descriptions: Record<string, string> = {
+    ACTIVE: `La ${subject} esta activa. Consulta la informacion publica de esta votacion.`,
+    CLOSED: "La votacion finalizo. Consulta la informacion publica de esta eleccion.",
+    RESULTS: "La votacion finalizo. Consulta la informacion publica de esta eleccion.",
+    RESULTS_PUBLISHED:
+      "La votacion finalizo. Consulta la informacion publica de esta eleccion.",
+    OFFICIALLY_PUBLISHED: `La ${subject} fue publicada oficialmente y espera el inicio de votacion.`,
+    PUBLISHED: `La ${subject} fue notificada y espera confirmacion oficial.`,
+    READY_FOR_REVIEW: `La ${subject} esta en revision previa.`,
+    PUBLICATION_EXPIRED: `La ventana de publicacion de la ${subject} vencio.`,
+  };
+
+  return descriptions[lifecycle] ?? `Consulta el estado y la configuracion de esta ${subject}.`;
+};
+
+const CardShell: React.FC<{
   title: string;
-  lines: Array<{ label: string; value: string }>;
+  children: React.ReactNode;
   action?: React.ReactNode;
-  note?: string;
-}> = ({ title, lines, action, note }) => (
-  <div className="bg-white border border-gray-200 rounded-xl p-5 text-center shadow-sm">
-    <div className="mb-3 flex flex-col items-center justify-center gap-3">
-      <div>
-        <h3 className="font-semibold text-gray-800">{title}</h3>
-        {note ? <p className="mt-1 text-xs text-gray-500">{note}</p> : null}
-      </div>
+}> = ({ title, children, action }) => (
+  <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
       {action}
     </div>
-    <div className="space-y-2 text-sm text-gray-600">
-      {lines.map((line) => (
-        <p key={`${line.label}-${line.value}`}>
-          <span className="font-semibold text-gray-800">{line.label}:</span>{" "}
-          <span>{line.value}</span>
-        </p>
-      ))}
+    {children}
+  </section>
+);
+
+const FieldRow: React.FC<{ label: string; value: React.ReactNode }> = ({
+  label,
+  value,
+}) => (
+  <div className="flex items-start justify-between gap-4 border-b border-gray-100 py-3 last:border-b-0">
+    <span className="text-sm text-gray-500">{label}</span>
+    <span className="max-w-[65%] text-right text-sm font-medium text-gray-900">
+      {value}
+    </span>
+  </div>
+);
+
+const StatusDateCard: React.FC<{
+  label: string;
+  value: React.ReactNode;
+  icon: string;
+  action?: React.ReactNode;
+}> = ({ label, value, icon, action }) => (
+  <article className="flex items-start gap-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-green-50 text-sm font-bold text-[#2E7D32]">
+      {icon}
+    </span>
+    <div className="min-w-0 flex-1">
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+        {label}
+      </p>
+      <div className="mt-2 text-base font-bold text-gray-900">{value}</div>
+      {action ? <div className="mt-3">{action}</div> : null}
+    </div>
+  </article>
+);
+
+const MoreOptionButton: React.FC<{
+  option: (typeof MORE_OPTIONS_UI)[number];
+  onClick: () => void;
+}> = ({ option, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="flex w-full items-center gap-4 rounded-2xl px-4 py-3 text-left transition hover:bg-gray-50"
+  >
+    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-50 text-xs font-bold text-gray-500">
+      {option.icon}
+    </span>
+    <span className="min-w-0 flex-1">
+      <span className="block text-sm font-semibold text-gray-900">{option.label}</span>
+      <span className="mt-0.5 block text-xs text-gray-500">{option.description}</span>
+    </span>
+    <ChevronRightIcon className="h-4 w-4 text-gray-300" aria-hidden="true" />
+  </button>
+);
+
+const TvdAmountCard: React.FC<{
+  label: string;
+  amount: { tvd: string; bs: string };
+}> = ({ label, amount }) => (
+  <div className="flex items-start justify-between gap-4 border-b border-gray-100 py-4 last:border-b-0">
+    <p className="text-sm font-semibold text-gray-600">
+      {label}
+    </p>
+    <div className="text-right">
+      <p className="text-base font-bold text-gray-900">{amount.tvd}</p>
+      <p className="mt-1 text-sm font-medium text-gray-500">{amount.bs}</p>
     </div>
   </div>
 );
+
+const abbreviateHash = (value: string) =>
+  value.length > 14 ? `${value.slice(0, 8)}...${value.slice(-6)}` : value;
+
+const formatAnalyticsStatus = (value?: string | null) => {
+  const normalized = String(value ?? "").toUpperCase();
+  const labels: Record<string, string> = {
+    RESULTS_PUBLISHED: "Resultados publicados",
+    RESULTS: "Resultados publicados",
+    FINAL: "Resultados finales",
+    CLOSED: "Votacion finalizada",
+    ACTIVE: "Votacion activa",
+    PUBLISHED: "Publicada",
+  };
+
+  return labels[normalized] ?? value ?? "-";
+};
+
+const colorPalette = [
+  "#1e40af",
+  "#059669",
+  "#dc2626",
+  "#7c3aed",
+  "#0ea5e9",
+  "#f59e0b",
+  "#16a34a",
+  "#f97316",
+];
+
+void PositionsTable;
+void PartiesTable;
+void getBallotDescription;
+void STATUS_TABS;
+void MORE_OPTIONS;
+void getLifecycleDescription;
 
 const ActiveElectionStatusPage: React.FC = () => {
   const navigate = useNavigate();
@@ -255,7 +501,11 @@ const ActiveElectionStatusPage: React.FC = () => {
   const userRole = useSelector(selectUserRole);
   const actualElectionId = electionId || "";
   const nowMs = useClientNow();
-  const [activeTab, setActiveTab] = useState<ConfigStep>(1);
+  const [activeStatusTab, setActiveStatusTab] = useState<StatusMainTab>("dates");
+  const [activeMoreView, setActiveMoreView] = useState<StatusMoreView>("menu");
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const [tvdOperationsOpen, setTvdOperationsOpen] = useState(false);
+  const [tvdCopyMessage, setTvdCopyMessage] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
@@ -274,6 +524,11 @@ const ActiveElectionStatusPage: React.FC = () => {
   const [padronMessage, setPadronMessage] = useState<string | null>(null);
   const [padronError, setPadronError] = useState<string | null>(null);
   const [currentPadronActionVoterId, setCurrentPadronActionVoterId] = useState<string | null>(null);
+  void currentPadronActionVoterId;
+  const [publicElectionDetail, setPublicElectionDetail] =
+    useState<PublicElectionDetail | null>(null);
+  const [loadingPublicElectionDetail, setLoadingPublicElectionDetail] =
+    useState(false);
   const [otherElectionsPage, setOtherElectionsPage] = useState(0);
   const [scheduleForm, setScheduleForm] = useState({
     votingStart: "",
@@ -355,12 +610,23 @@ const ActiveElectionStatusPage: React.FC = () => {
     );
   const lifecycle = deriveLifecycle(event, nowMs);
   const isReferendum = Boolean(event?.isReferendum);
-  const referendumQuestion = isReferendum
-    ? String(event?.objective || event?.name || "").trim()
-    : "";
-  const shouldShowResults = lifecycle === "RESULTS";
+  const shouldShowResults =
+    lifecycle === "RESULTS" ||
+    lifecycle === "RESULTS_PUBLISHED" ||
+    lifecycle === "CLOSED";
   const { data: resultsData } = useGetEventResultsQuery(actualElectionId, {
     skip: !actualElectionId || !shouldShowResults,
+  });
+  const shouldLoadAnalytics =
+    activeStatusTab === "more" &&
+    activeMoreView === "analytics" &&
+    canViewParticipationAnalytics;
+  const {
+    data: participationAnalytics,
+    isFetching: loadingParticipationAnalytics,
+    isError: participationAnalyticsError,
+  } = useGetParticipationAnalyticsQuery(actualElectionId, {
+    skip: !actualElectionId || !shouldLoadAnalytics,
   });
   const [updateEventSchedule, { isLoading: updatingSchedule }] =
     useUpdateEventScheduleMutation();
@@ -373,6 +639,7 @@ const ActiveElectionStatusPage: React.FC = () => {
   const [downloadingPadronPdf, setDownloadingPadronPdf] = useState(false);
 
   const positions = useMemo(() => roles.map(roleToPosition), [roles]);
+  void positions;
   const parties = useMemo(
     () => options.map((option) => optionToParty(option, isReferendum)),
     [isReferendum, options],
@@ -430,16 +697,15 @@ const ActiveElectionStatusPage: React.FC = () => {
     }
     return pages;
   }, [otherElections]);
+  void otherElectionsPage;
+  void otherElectionPages;
   const scheduleEditable = canEditSchedule(event, nowMs);
-  const fullElectionEditingEnabled = canEditElectionBeforeCutoff(event, nowMs);
-  const officialPublicationLocked = isOfficiallyPublished(event);
   const canCreateNews =
     lifecycle === "OFFICIALLY_PUBLISHED" ||
     lifecycle === "ACTIVE" ||
     lifecycle === "CLOSED" ||
     lifecycle === "RESULTS" ||
     lifecycle === "RESULTS_PUBLISHED";
-  const showPublicElectionLink = canCreateNews;
   const votingPadronLimitedMode = limitedModeByEvent;
   const allowPostPublicationPadronEnable =
     event?.allowPostPublicationPadronEnable !== false;
@@ -468,6 +734,45 @@ const ActiveElectionStatusPage: React.FC = () => {
     const normalizedPath = source.startsWith("/") ? source : `/${source}`;
     return `${window.location.origin}${normalizedPath}`;
   }, [actualElectionId, event?.publicPath, event?.publicUrl]);
+  const tvdUsage = useElectionTvdUsage(actualElectionId);
+  const adminResultsRole = useMemo(
+    () =>
+      resultsData?.roles.find((role) => role.ranking.length > 0) ??
+      null,
+    [resultsData?.roles],
+  );
+  const optionColorByName = useMemo(() => {
+    const colorMap = new Map<string, string>();
+    options.forEach((option, index) => {
+      colorMap.set(
+        option.name,
+        option.color || colorPalette[index % colorPalette.length] || "#2E7D32",
+      );
+    });
+    return colorMap;
+  }, [options]);
+  const adminResultCandidates = useMemo<Candidate[]>(() => {
+    if (!adminResultsRole) return [];
+
+    const candidates = adminResultsRole.ranking.map((item, index) => ({
+      id: item.optionId || `${item.optionName}-${index}`,
+      name: item.optionName,
+      party: item.optionName,
+      colorHex:
+        optionColorByName.get(item.optionName) ??
+        colorPalette[index % colorPalette.length] ??
+        "#2E7D32",
+      votes: item.votes,
+      percent: item.percentage,
+    }));
+
+    return candidates;
+  }, [adminResultsRole, optionColorByName]);
+  const publicResultCandidates = publicElectionDetail?.results?.candidates ?? [];
+  const hasAdminResults = adminResultCandidates.length > 0;
+  const hasPublicResults = publicResultCandidates.some(
+    (candidate) => candidate.id !== "blank" && candidate.votes > 0,
+  );
   const displayPadronFile = activeWorkflowDraft
     ? {
         fileName:
@@ -507,12 +812,10 @@ const ActiveElectionStatusPage: React.FC = () => {
     ? Number(activeWorkflowDraft.summary.invalidCount ?? 0) +
       Number(activeWorkflowDraft.summary.duplicateCount ?? 0)
     : Number(currentPadron?.totals.invalidCount ?? 0);
-
-  useEffect(() => {
-    if (isReferendum && activeTab === 1) {
-      setActiveTab(2);
-    }
-  }, [activeTab, isReferendum]);
+  void displayPadronFile;
+  void displayPadronTotal;
+  void displayPadronValidCount;
+  void displayPadronInvalidCount;
 
   useEffect(() => {
     setOtherElectionsPage((current) =>
@@ -529,6 +832,40 @@ const ActiveElectionStatusPage: React.FC = () => {
         : "",
     });
   }, [event?.resultsPublishAt, event?.votingEnd, event?.votingStart]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadPublicElectionDetail = async () => {
+      if (!actualElectionId || !shouldShowResults || activeStatusTab !== "results") {
+        setPublicElectionDetail(null);
+        return;
+      }
+
+      setLoadingPublicElectionDetail(true);
+      try {
+        const detail =
+          await publicElectionRepository.getPublicElectionDetail(actualElectionId);
+        if (!cancelled) {
+          setPublicElectionDetail(detail);
+        }
+      } catch {
+        if (!cancelled) {
+          setPublicElectionDetail(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingPublicElectionDetail(false);
+        }
+      }
+    };
+
+    void loadPublicElectionDetail();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeStatusTab, actualElectionId, shouldShowResults]);
 
   const loading =
     loadingEvent ||
@@ -554,7 +891,7 @@ const ActiveElectionStatusPage: React.FC = () => {
         eventId: actualElectionId,
         voterId: voter.id,
       }).unwrap();
-      setPadronMessage("Votante habilitado en el padrón vigente.");
+      setPadronMessage("votante habilitado en el padrón vigente.");
       await Promise.all([refetchPadronVoters(), refetchPadronWorkflowSummary()]);
     } catch (error: any) {
       setPadronError(
@@ -591,6 +928,7 @@ const ActiveElectionStatusPage: React.FC = () => {
       setDownloadingPadronPdf(false);
     }
   };
+  void handleEnableLimitedPadronVoter;
 
   const handleOpenKiosk = () => {
     if (!actualElectionId) return;
@@ -796,6 +1134,7 @@ const ActiveElectionStatusPage: React.FC = () => {
 
     navigate(`/votacion/elecciones/${targetEvent.id}/status`);
   };
+  void navigateToElection;
 
   if (!actualElectionId) {
     return (
@@ -819,248 +1158,35 @@ const ActiveElectionStatusPage: React.FC = () => {
   }
 
   return (
-    <div className="bg-gray-50 min-h-[calc(100vh-64px)]">
-      <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{event?.name}</h1>
-            <p className="mt-2 max-w-3xl text-gray-600">{event?.objective}</p>
-          </div>
-        </div>
+    <div className="min-h-[calc(100vh-64px)] bg-gray-50">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+        <header className="space-y-3">
+          <h1 className="text-2xl font-bold text-gray-950 sm:text-3xl">
+            {event?.name ?? "Detalle de votacion"}
+          </h1>
+          <StatusBadge state={lifecycle} />
+          <p className="max-w-3xl text-sm leading-6 text-gray-500 sm:text-base">
+            {getLifecycleDescriptionUi(lifecycle, isReferendum)}
+          </p>
+          <button
+            type="button"
+            onClick={handleCopyPublicElectionLink}
+            className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 transition hover:text-[#2E7D32]"
+          >
+            <ClipboardDocumentIcon className="h-4 w-4" aria-hidden="true" />
+            Copiar enlace publico
+          </button>
+        </header>
 
-        <div
-          className={`grid gap-4 md:grid-cols-2 ${
-            presentialKioskEnabled ? "xl:grid-cols-6" : "xl:grid-cols-5"
-          }`}
-        >
-          <TopInfoCard
-            title="Horario de Votación"
-            note={
-              officialPublicationLocked
-                ? "La publicación oficial ya fue confirmada."
-                : scheduleEditable
-                ? "Puedes modificar el cronograma hasta el límite de publicación oficial. "
-                : "Ya no puede modificarse porque el límite de publicación oficial ya pasó o la votación ya comenzó."
-            }
-            action={
-              scheduleEditable ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setScheduleError(null);
-                    setScheduleSuccess(null);
-                    setIsScheduleModalOpen(true);
-                  }}
-                  className="inline-flex items-center gap-2 rounded-lg border border-[#459151]/20 bg-[#EFF7F0] px-3 py-2 text-sm font-medium text-[#2E6A38] transition-colors hover:bg-[#E4F3E7]"
-                >
-                  <PencilSquareIcon className="h-4 w-4" />
-                  Modificar horarios
-                </button>
-              ) : null
-            }
-            lines={[
-              { label: "Desde", value: formatDateTimeForUi(event?.votingStart) },
-              { label: "Hasta", value: formatDateTimeForUi(event?.votingEnd) },
-              {
-                label: "Resultados",
-                value: formatDateTimeForUi(event?.resultsPublishAt),
-              },
-            ]}
-          />
-          <div className="bg-white border border-gray-200 rounded-xl p-5 text-center shadow-sm">
-            <div className="mb-3">
-              <h3 className="font-semibold text-gray-800">Estado actual</h3>
-            </div>
-            <div className="flex justify-center">
-              <StatusBadge state={lifecycle} />
-            </div>
-          </div>
-          <TopInfoCard
-            title="Verificar participación"
-            note="Consulta si un CI ya votó en esta elección."
-            action={
-              <button
-                type="button"
-                onClick={() => setIsParticipationCheckModalOpen(true)}
-                className="inline-flex items-center justify-center rounded-lg bg-[#459151] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3a7a44]"
-              >
-                Verificar CI
-              </button>
-            }
-            lines={[]}
-          />
-          {canViewParticipationAnalytics ? (
-            <TopInfoCard
-              title="Analíticas"
-              note="Consulta estadísticas de participación."
-              action={
-                <button
-                  type="button"
-                  onClick={() => setIsAnalyticsModalOpen(true)}
-                  className="inline-flex items-center justify-center rounded-lg bg-[#459151] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3a7a44]"
-                >
-                  Analíticas
-                </button>
-              }
-              lines={[]}
-            />
-          ) : null}
-          {showPublicElectionLink ? (
-            <div className="bg-white border border-gray-200 rounded-xl p-5 text-center shadow-sm">
-              <div className="mb-4">
-                <h3 className="font-semibold text-gray-800">
-                  Enlace de elección para el público
-                </h3>
-              </div>
-              <div className="flex flex-col gap-3 sm:flex-row xl:flex-col">
-                <button
-                  type="button"
-                  onClick={() => void handleCopyPublicElectionLink()}
-                  className="inline-flex items-center justify-center rounded-lg bg-[#459151] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3a7a44]"
-                >
-                  Copiar enlace
-                </button>
-                <button
-                  type="button"
-                  onClick={handleOpenPublicElection}
-                  className="inline-flex items-center justify-center rounded-lg border border-[#459151]/25 bg-white px-4 py-2.5 text-sm font-semibold text-[#2E6A38] transition hover:bg-[#EFF7F0]"
-                >
-                  Abrir enlace
-                </button>
-              </div>
-            </div>
-          ) : null}
-          {presentialKioskEnabled ? (
-            <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-              <div className="mb-4">
-                <h3 className="font-semibold text-gray-800">Punto presencial</h3>
-              </div>
-              <div className="flex flex-col gap-3 sm:flex-row xl:flex-col">
-                <button
-                  type="button"
-                  onClick={handleOpenKiosk}
-                  className="inline-flex items-center justify-center rounded-lg bg-[#459151] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3a7a44]"
-                >
-                  Abrir página QR
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleCopyKioskLink()}
-                  disabled={creatingKioskLink}
-                  className="inline-flex items-center justify-center rounded-lg border border-[#459151]/25 bg-white px-4 py-2.5 text-sm font-semibold text-[#2E6A38] transition hover:bg-[#EFF7F0] disabled:opacity-60"
-                >
-                  {creatingKioskLink ? "Preparando enlace..." : "Copiar enlace"}
-                </button>
-              </div>
-            </div>
-          ) : null}
-        </div>
-
-        <div className="rounded-xl border border-gray-200 bg-white px-7 py-7 shadow-sm">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Integridad verificable</p>
-              <h3 className="mt-1 text-xl font-semibold text-slate-900">Contrato inteligente público</h3>
-              <p className="mt-2 text-sm text-slate-600 sm:text-base">
-                Revisa el código del contrato en el explorador blockchain para validar la transparencia del proceso.
-              </p>
-              <div className="mt-3 rounded-lg border border-emerald-100 bg-emerald-50/60 px-3 py-3 text-xs text-slate-700 sm:text-sm">
-                <p className="font-semibold text-emerald-800">Manual rápido en BaseScan</p>
-                <ol className="mt-2 list-decimal space-y-1 pl-5">
-                  <li>
-                    Copia el ID: <span className="inline-flex items-center gap-1">
-                      {actualElectionId}
-                      <button type="button" onClick={() => void handleCopyElectionId()} title="Copiar ID de votación" aria-label="Copiar ID de votación" className="rounded p-0.5 text-emerald-700 transition hover:bg-emerald-100 hover:text-emerald-800">
-                        <ClipboardDocumentIcon className="h-3.5 w-3.5" />
-                      </button>
-                    </span> 
-                    {electionIdCopyMessage ? (
-                      <span className="mt-2 text-xs font-medium text-emerald-700">{electionIdCopyMessage}</span>
-                    ) : null}
-                  </li>
-                  <li>
-                    Llama a <a href={`${SMART_CONTRACT_URL}#readProxyContract#F4`} target="_blank" rel="noopener noreferrer" className="font-semibold text-emerald-700 underline-offset-2 hover:underline">getVoteInfo</a> con el ID para consultar la información de la votación.
-                  </li>
-                  <li>
-                    Llama a <a href={`${SMART_CONTRACT_URL}#readProxyContract#F5`} target="_blank" rel="noopener noreferrer" className="font-semibold text-emerald-700 underline-offset-2 hover:underline">getVoteResults</a> con el ID para obtener resultados si ya están disponibles.
-                  </li>
-                </ol>
-                
-              </div>
-            </div>
-            <a
-              href={SMART_CONTRACT_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
-            >
-              Ver contrato inteligente
-            </a>
-          </div>
-        </div>
-
-        {canCreateNews ? (
-          <div className="rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-base font-semibold text-gray-900">¿Quieres informar algo?</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setNewsError(null);
-                  setNewsMessage(null);
-                  setIsNewsModalOpen(true);
-                }}
-                className="inline-flex items-center justify-center rounded-lg bg-[#459151] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3a7a44]"
-              >
-                Crear noticia
-              </button>
-            </div>
-          </div>
-        ) : null}
-
-        {kioskMessage ? (
+        {kioskMessage || publicLinkMessage || newsMessage || scheduleSuccess || padronMessage ? (
           <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-            {kioskMessage}
+            {kioskMessage || publicLinkMessage || newsMessage || scheduleSuccess || padronMessage}
           </div>
         ) : null}
 
-        {publicLinkMessage ? (
-          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-            {publicLinkMessage}
-          </div>
-        ) : null}
-
-        {kioskError ? (
+        {kioskError || publicLinkError || newsError || padronError ? (
           <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {kioskError}
-          </div>
-        ) : null}
-
-        {publicLinkError ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {publicLinkError}
-          </div>
-        ) : null}
-
-        {newsMessage ? (
-          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-            {newsMessage}
-          </div>
-        ) : null}
-
-        {newsError ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {newsError}
-          </div>
-        ) : null}
-
-        {fullElectionEditingEnabled ? (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
-            {isReferendum
-              ? "Mientras siga abierta esta etapa, puedes ajustar la configuración, el cronograma, las opciones y el padrón."
-              : "Mientras siga abierta esta etapa, puedes ajustar la configuración, el cronograma, las planchas, los candidatos y el padrón."}
+            {kioskError || publicLinkError || newsError || padronError}
           </div>
         ) : null}
 
@@ -1076,293 +1202,573 @@ const ActiveElectionStatusPage: React.FC = () => {
           </div>
         ) : null}
 
-        {scheduleSuccess ? (
-          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-            {scheduleSuccess}
+        <nav
+          aria-label="Secciones del estado de la votación"
+          className="relative border-b border-gray-200 bg-white"
+        >
+          <div className="flex w-full overflow-x-auto px-1" role="tablist">
+            {STATUS_TABS_UI.map((tab) => {
+              const isSelected =
+                tab.id === "more"
+                  ? activeStatusTab === "more" || isMoreMenuOpen
+                  : activeStatusTab === tab.id;
+
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={isSelected}
+                  onClick={() => {
+                    if (tab.id === "more") {
+                      setIsMoreMenuOpen((current) => !current);
+                      return;
+                    }
+
+                    setActiveStatusTab(tab.id);
+                    setIsMoreMenuOpen(false);
+                  }}
+                  className={
+                    isSelected
+                      ? "min-w-[88px] flex-1 border-b-2 border-[#2E7D32] px-2 py-3 text-center text-sm font-semibold text-[#2E7D32]"
+                      : "min-w-[88px] flex-1 border-b-2 border-transparent px-2 py-3 text-center text-sm font-semibold text-gray-500 transition hover:text-gray-900"
+                  }
+                >
+                  {tab.id === "more" ? (
+                    <span className="inline-flex items-center justify-center gap-1.5">
+                      <EllipsisHorizontalIcon
+                        className="h-4 w-4"
+                        aria-hidden="true"
+                        data-testid="more-tab-indicator"
+                      />
+                      {tab.label}
+                    </span>
+                  ) : (
+                    tab.label
+                  )}
+                </button>
+              );
+            })}
           </div>
-        ) : null}
+        </nav>
 
-        {padronMessage ? (
-          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-            {padronMessage}
-          </div>
-        ) : null}
-
-        {padronError ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {padronError}
-          </div>
-        ) : null}
-
-        {shouldShowResults && resultsData && (
-          <div className="rounded-2xl border border-violet-200 bg-violet-50 p-5 shadow-sm">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-bold text-violet-900">
-                  Resultados disponibles
-                </h2>
-                <p className="mt-1 text-sm text-violet-700">
-                  {isReferendum
-                    ? "Ya se publicaron los resultados de este referéndum."
-                    : "Ya se publicaron los resultados de esta votación."}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() =>
-                  navigate(`/votacion/elecciones/${actualElectionId}/publica`)
-                }
-                className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700"
-              >
-                Ver resultados
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-6">
-          <ConfigStepsTabs
-            currentStep={activeTab}
-            completedSteps={[1, 2, 3]}
-            isReferendum={isReferendum}
-            onStepChange={setActiveTab}
-          />
-
-          {activeTab === 1 &&
-            (isReferendum ? (
-              <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-                <p className="text-sm font-semibold text-gray-800">
-                  El referéndum ya tiene su estructura lista.
-                </p>
-              </div>
-            ) : (
-              <PositionsTable positions={positions} readOnly />
-            ))}
-          {activeTab === 2 && <PartiesTable parties={parties} readOnly isReferendum={isReferendum} />}
-          {activeTab === 3 && displayPadronFile && (
-            <LoadedPadronView
-              file={displayPadronFile}
-              voters={filteredVoters}
-              totalVoters={displayPadronTotal}
-              validCount={displayPadronValidCount}
-              invalidCount={displayPadronInvalidCount}
-              page={page}
-              totalPages={displayPadronTotalPages}
-              pageSize={20}
-              searchValue={searchTerm}
-              onPageChange={setPage}
-              onSearchChange={setSearchTerm}
-              onEnableVoter={
-                canEnableExistingLimitedPadronVoters
-                  ? (voter) => void handleEnableLimitedPadronVoter(voter)
-                  : undefined
-              }
-              onDownloadPdf={currentPadron ? () => void handleDownloadPadronPdf() : undefined}
-              downloadingPdf={downloadingPadronPdf}
-              enablingVoterId={currentPadronActionVoterId}
-              loading={activeWorkflowDraft ? loadingPadronStaging : loadingPadronVoters}
-              readOnly
+        {isMoreMenuOpen ? (
+          <>
+            <button
+              type="button"
+              aria-label="Cerrar opciones adicionales"
+              className="fixed inset-0 z-40 bg-black/35 md:hidden"
+              onClick={() => setIsMoreMenuOpen(false)}
             />
-          )}
-        </div>
-
-        <div className="flex flex-col lg:flex-row gap-8 items-start">
-          <div className="w-full space-y-5">
-            <div>
-              {isReferendum ? (
-                <>
-                  <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-                    Referéndum
-                  </p>
-                  <h2 className="mt-1 text-2xl font-bold text-gray-900">
-                    {referendumQuestion || "Referéndum"}
-                  </h2>
-                </>
-              ) : (
-                <h2 className="text-2xl font-bold text-gray-900">
-                  Papeleta Electoral
+            <div
+              role="dialog"
+              aria-label="Opciones adicionales"
+              className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl bg-white p-4 shadow-2xl md:absolute md:bottom-auto md:left-auto md:right-[max(1rem,calc((100vw-72rem)/2+1rem))] md:top-[13rem] md:w-[340px] md:rounded-3xl md:border md:border-gray-100 md:p-4"
+            >
+              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-gray-300 md:hidden" />
+              <div className="mb-3 flex items-center justify-between px-1">
+                <h2 className="text-xs font-bold uppercase tracking-[0.16em] text-gray-400">
+                  Opciones adicionales
                 </h2>
-              )}
-              <p className="mt-1 text-gray-600">
-                {getBallotDescription(lifecycle, isReferendum)}
-              </p>
-            </div>
-
-            {parties.length === 0 ? (
-              <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-500 shadow-sm">
-                {isReferendum
-                  ? "No hay opciones configuradas todavía."
-                  : "No hay planchas configuradas todavía."}
-              </div>
-            ) : (
-              <div className="grid gap-6 xl:grid-cols-2">
-                {parties.map((party, index) => (
-                  <div
-                    key={party.id}
-                    className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
-                  >
-                    <div
-                      className="grid h-2"
-                      style={{ gridTemplateColumns: `repeat(${getOptionColors(party).length}, minmax(0, 1fr))` }}
-                    >
-                      {getOptionColors(party).map((color, index) => (
-                        <span key={`${party.id}-${color}-${index}`} style={{ backgroundColor: color }} />
-                      ))}
-                    </div>
-                    <div className="p-6">
-                      {isReferendum ? (
-                        <div className="flex items-center justify-between gap-4">
-                          <div>
-                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                              Opción {index + 1}
-                            </p>
-                            <h3 className="mt-1 text-xl font-semibold text-gray-800">
-                              {party.name}
-                            </h3>
-                          </div>
-                          <div className="h-6 w-6 rounded-full border-2 border-gray-300" />
-                        </div>
-                      ) : (
-                        <>
-                          <div className="flex items-center gap-4 pb-5 border-b border-gray-200">
-                            {party.logoUrl ? (
-                              <img
-                                src={party.logoUrl}
-                                alt={party.name}
-                                className="h-16 w-16 rounded-xl object-cover border border-gray-200"
-                              />
-                            ) : (
-                              <div className="h-16 w-16 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 font-bold">
-                                {getInitial(party.name)}
-                              </div>
-                            )}
-                            <h3 className="text-xl font-semibold text-gray-800">
-                              {party.name}
-                            </h3>
-                          </div>
-
-                          <div className="space-y-5 pt-5">
-                            {party.candidates.map((candidate) => (
-                              <div
-                                key={candidate.id}
-                                className="flex items-center gap-4"
-                              >
-                                {candidate.photoUrl ? (
-                                  <img
-                                    src={candidate.photoUrl}
-                                    alt={candidate.fullName}
-                                    className="h-16 w-16 rounded-full object-cover border-2 border-gray-200"
-                                  />
-                                ) : (
-                                  <div className="h-16 w-16 rounded-full bg-gray-100 border-2 border-gray-200 flex items-center justify-center text-gray-500 font-bold">
-                                    {getInitial(candidate.fullName)}
-                                  </div>
-                                )}
-                                <div>
-                                  <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-                                    {candidate.positionName}
-                                  </p>
-                                  <p className="text-xl font-semibold text-gray-800">
-                                    {candidate.fullName}
-                                  </p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {otherElections.length > 0 && (
-          <div className="space-y-4">
-            <div className="text-center sm:text-left">
-              <h2 className="text-xl font-semibold text-gray-800">
-                Otras votaciones
-              </h2>
-            </div>
-
-            <div className="overflow-hidden">
-              <div
-                className="flex transition-transform duration-300 ease-out"
-                style={{ transform: `translateX(-${otherElectionsPage * 100}%)` }}
-              >
-                {otherElectionPages.map((pageItems, pageIndex) => (
-                  <div
-                    key={`other-elections-page-${pageIndex}`}
-                    aria-hidden={pageIndex !== otherElectionsPage}
-                    className="grid w-full shrink-0 gap-4 md:grid-cols-2 xl:grid-cols-3"
-                  >
-                    {pageItems.map((item) => (
-                      <button
-                        type="button"
-                        key={item.id}
-                        onClick={() => navigateToElection(item)}
-                        tabIndex={pageIndex === otherElectionsPage ? 0 : -1}
-                        className="rounded-xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:border-[#459151] hover:shadow-md"
-                      >
-                        <div className="mb-2">
-                          <StatusBadge state={item.status} />
-                        </div>
-                        <h3 className="font-semibold text-gray-800">{item.name}</h3>
-                        <p className="mt-1 text-sm text-gray-500">{item.objective}</p>
-                      </button>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {otherElectionsTotalPages > 1 ? (
-              <div className="flex items-center justify-center gap-3 pt-1">
                 <button
                   type="button"
-                  aria-label="Anterior"
-                  onClick={() =>
-                    setOtherElectionsPage((current) => Math.max(0, current - 1))
-                  }
-                  disabled={otherElectionsPage === 0}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-xl font-semibold text-gray-700 shadow-sm transition hover:border-[#459151] hover:text-[#2E6A38] disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Cerrar"
+                  onClick={() => setIsMoreMenuOpen(false)}
+                  className="rounded-full p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
                 >
-                  ‹
+                  X
                 </button>
-                <div className="flex items-center gap-2">
-                  {Array.from({ length: otherElectionsTotalPages }, (_, index) => (
+              </div>
+              <div className="divide-y divide-gray-100">
+                {MORE_OPTIONS_UI.map((option) => (
+                  <MoreOptionButton
+                    key={option.id}
+                    option={option}
+                    onClick={() => {
+                      setActiveMoreView(option.id);
+                      setActiveStatusTab("more");
+                      setIsMoreMenuOpen(false);
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          </>
+        ) : null}
+
+        {activeStatusTab === "dates" ? (
+          <section role="tabpanel" className="space-y-5">
+            <h2 className="text-xl font-bold text-gray-900">
+              Fechas y estado de la eleccion
+            </h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              <StatusDateCard
+                icon="I"
+                label="Inicio de votacion"
+                value={formatDateTimeForUi(event?.votingStart)}
+              />
+              <StatusDateCard
+                icon="C"
+                label="Cierre de votacion"
+                value={formatDateTimeForUi(event?.votingEnd)}
+              />
+              <StatusDateCard
+                icon="R"
+                label="Publicacion de resultados"
+                value={formatDateTimeForUi(event?.resultsPublishAt)}
+                action={
+                  scheduleEditable ? (
                     <button
                       type="button"
-                      key={`other-elections-dot-${index}`}
-                      aria-label={`Ir al grupo ${index + 1}`}
-                      onClick={() => setOtherElectionsPage(index)}
-                      className={`h-2.5 rounded-full transition-all ${
-                        index === otherElectionsPage
-                          ? "w-7 bg-[#459151]"
-                          : "w-2.5 bg-gray-300 hover:bg-gray-400"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  aria-label="Siguiente"
-                  onClick={() =>
-                    setOtherElectionsPage((current) =>
-                      Math.min(otherElectionsTotalPages - 1, current + 1),
-                    )
-                  }
-                  disabled={otherElectionsPage >= otherElectionsTotalPages - 1}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-xl font-semibold text-gray-700 shadow-sm transition hover:border-[#459151] hover:text-[#2E6A38] disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  ›
-                </button>
+                      onClick={() => setIsScheduleModalOpen(true)}
+                      className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 transition hover:border-[#459151] hover:text-[#2E6A38]"
+                    >
+                      <PencilSquareIcon className="h-4 w-4" aria-hidden="true" />
+                      Modificar horarios
+                    </button>
+                  ) : null
+                }
+              />
+            </div>
+          </section>
+        ) : null}
+
+        {activeStatusTab === "results" ? (
+          <section role="tabpanel" className="space-y-5">
+            {shouldShowResults && hasAdminResults ? (
+              <ElectionOfficialResultsView
+                candidates={adminResultCandidates}
+                winnerCandidateId={adminResultsRole?.ranking[0]?.optionId ?? null}
+                totalVotes={adminResultsRole?.total}
+                isReferendum={isReferendum}
+              />
+            ) : shouldShowResults && hasPublicResults ? (
+              <ElectionOfficialResultsView
+                candidates={publicResultCandidates}
+                winnerCandidateId={publicElectionDetail?.winnerCandidateId}
+                totalVotes={publicElectionDetail?.results?.totalVotes}
+                isReferendum={publicElectionDetail?.isReferendum ?? isReferendum}
+              />
+            ) : loadingPublicElectionDetail ? (
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm">
+                <p className="font-semibold text-gray-800">Cargando resultados...</p>
               </div>
-            ) : null}
-          </div>
-        )}
+            ) : (
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm">
+                <p className="font-semibold text-gray-800">
+                  No hay resultados oficiales para mostrar.
+                </p>
+                <p className="mt-2 text-sm text-gray-500">
+                  Cuando estén disponibles, aparecerán aquí sin cambiar de ruta.
+                </p>
+                {publicElectionUrl ? (
+                  <button
+                    type="button"
+                    onClick={handleOpenPublicElection}
+                    className="mt-4 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-[#459151]"
+                  >
+                    Abrir resultados públicos
+                  </button>
+                ) : null}
+              </div>
+            )}
+          </section>
+        ) : null}
+
+        {activeStatusTab === "ballot" ? (
+          <section role="tabpanel" className="space-y-5">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">
+                Papeleta y opciones
+              </h2>
+              <p className="mt-2 text-sm text-gray-500">
+                Vista previa en modo lectura para votantes.
+              </p>
+            </div>
+            <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
+              <PhoneMockup>
+                <BallotPreview
+                  parties={parties}
+                  isReferendum={isReferendum}
+                  question={event?.objective}
+                />
+              </PhoneMockup>
+            </div>
+          </section>
+        ) : null}
+
+        {activeStatusTab === "more" && activeMoreView !== "menu" ? (
+          <section role="tabpanel" className="space-y-5">
+            <div className="min-w-0">
+              {activeMoreView === "padron" ? (
+                <CardShell title="Padron y participacion">
+                  <div className="space-y-5">
+                    <label className="block">
+                      <span className="mb-2 block text-sm font-medium text-gray-700">Buscar por carnet</span>
+                      <input
+                        type="search"
+                        value={searchTerm}
+                        onChange={(event) => setSearchTerm(event.target.value)}
+                        placeholder="Ej. 1234567"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-[#459151] focus:ring-2 focus:ring-[#459151]/15"
+                      />
+                    </label>
+                    <div className="overflow-x-auto rounded-xl border border-gray-200">
+                      {filteredVoters.length > 0 ? (
+                        <table className="min-w-full divide-y divide-gray-200 text-sm">
+                          <thead className="bg-gray-50 text-left text-xs font-bold uppercase tracking-wide text-gray-500">
+                            <tr>
+                              <th scope="col" className="px-4 py-3">Carnet</th>
+                              <th scope="col" className="px-4 py-3">Habilitado</th>
+                              <th scope="col" className="px-4 py-3">Estado</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 bg-white">
+                            {filteredVoters.map((voter, index) => {
+                              const participated = voter.enabled && index % 2 === 0;
+                              return (
+                                <tr key={voter.id}>
+                                  <td className="px-4 py-3 font-medium text-gray-900">{voter.carnet}</td>
+                                  <td className="px-4 py-3">
+                                    <span className={voter.enabled ? "rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700" : "rounded-full bg-gray-200 px-3 py-1 text-xs font-semibold text-gray-600"}>
+                                      {voter.enabled ? "Si" : "No"}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <span className={participated ? "rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700" : "rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700"}>
+                                      {participated ? "Votó" : "No votó"}
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <p className="rounded-xl border border-gray-200 bg-gray-50 p-5 text-center text-sm text-gray-500">
+                          No hay coincidencias en el padrón.
+                        </p>
+                      )}
+                    </div>
+                    {displayPadronTotalPages > 1 ? (
+                      <div className="flex items-center justify-between gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setPage((current) => Math.max(1, current - 1))}
+                          disabled={page <= 1}
+                          className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 disabled:opacity-50"
+                        >
+                          Anterior
+                        </button>
+                        <span className="text-sm text-gray-500">Página {page} de {displayPadronTotalPages}</span>
+                        <button
+                          type="button"
+                          onClick={() => setPage((current) => Math.min(displayPadronTotalPages, current + 1))}
+                          disabled={page >= displayPadronTotalPages}
+                          className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 disabled:opacity-50"
+                        >
+                          Siguiente
+                        </button>
+                      </div>
+                    ) : null}
+                    {currentPadron ? (
+                      <button
+                        type="button"
+                        onClick={() => void handleDownloadPadronPdf()}
+                        disabled={downloadingPadronPdf}
+                        className="w-full rounded-xl bg-[#2E7D32] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#256b2b] disabled:opacity-60 sm:w-auto"
+                      >
+                        {downloadingPadronPdf ? "Descargando..." : "Descargar PDF"}
+                      </button>
+                    ) : null}
+                  </div>
+                </CardShell>
+              ) : null}
+
+              {activeMoreView === "analytics" ? (
+                <CardShell title="Estadisticas">
+                  {canViewParticipationAnalytics ? (
+                    loadingParticipationAnalytics ? (
+                      <p className="text-sm text-gray-500">Cargando estadisticas...</p>
+                    ) : participationAnalyticsError ? (
+                      <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                        No se pudieron cargar las estadisticas.
+                      </p>
+                    ) : participationAnalytics ? (
+                      <div className="space-y-6">
+                        <div className="grid gap-3 sm:grid-cols-3">
+                          <article className="rounded-2xl bg-gray-50 p-4">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Habilitados</p>
+                            <p className="mt-2 text-3xl font-bold text-gray-900">{participationAnalytics.totalEnabled}</p>
+                          </article>
+                          <article className="rounded-2xl bg-gray-50 p-4">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Participaron</p>
+                            <p className="mt-2 text-3xl font-bold text-[#2E7D32]">{participationAnalytics.totalParticipated}</p>
+                          </article>
+                          <article className="rounded-2xl bg-gray-50 p-4">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Ausentismo</p>
+                            <p className="mt-2 text-3xl font-bold text-gray-900">{participationAnalytics.totalPending}</p>
+                          </article>
+                        </div>
+                        <div className="grid gap-5 lg:grid-cols-[220px_1fr] lg:items-center">
+                          <div className="mx-auto flex h-44 w-44 items-center justify-center rounded-full border-[18px] border-[#2E7D32] bg-white shadow-inner">
+                            <span className="text-3xl font-bold text-gray-900">
+                              {participationAnalytics.participationPercentage}%
+                            </span>
+                          </div>
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-3 text-sm text-gray-700">
+                              <span className="h-3 w-3 rounded-full bg-[#2E7D32]" />
+                              Participaron
+                            </div>
+                            <div className="flex items-center gap-3 text-sm text-gray-700">
+                              <span className="h-3 w-3 rounded-full bg-gray-200" />
+                              Ausentes
+                            </div>
+                            <FieldRow label="Participacion" value={participationAnalytics.participationPercentage + "%"} />
+                            <FieldRow label="Estado" value={formatAnalyticsStatus(participationAnalytics.status)} />
+                            <FieldRow label="Fecha publicacion" value={formatDateTimeForUi(participationAnalytics.publishedAt)} />
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsAnalyticsModalOpen(true)}
+                          className="w-full rounded-xl bg-[#2E7D32] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#256b2b] sm:w-auto"
+                        >
+                          Descargar reporte
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500">Sin estadisticas disponibles.</p>
+                    )
+                  ) : (
+                    <p className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-500">
+                      Tu rol actual no tiene permisos para ver estadisticas.
+                    </p>
+                  )}
+                </CardShell>
+              ) : null}
+
+              {activeMoreView === "public-link" ? (
+                <CardShell title="Enlace público">
+                  <div className="mx-auto flex w-full max-w-md flex-col gap-2 sm:flex-row sm:justify-center">
+                    <button
+                      type="button"
+                      onClick={handleCopyPublicElectionLink}
+                      className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-[#459151]"
+                    >
+                      Copiar enlace
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleOpenPublicElection}
+                      className="rounded-lg bg-[#2E7D32] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#256b2b]"
+                    >
+                      Abrir votación pública
+                    </button>
+                  </div>
+                </CardShell>
+              ) : null}
+
+              {activeMoreView === "kiosk" ? (
+                <CardShell title="Punto presencial QR">
+                  <div className="mx-auto w-full max-w-xl space-y-4">
+                    <p className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                      {presentialKioskEnabled
+                        ? "El punto presencial está activo para generar enlaces QR."
+                        : "El voto presencial con QR no está activado para esta elección."}
+                    </p>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <button
+                        type="button"
+                        onClick={handleOpenKiosk}
+                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 transition hover:border-[#459151]"
+                      >
+                        Abrir punto QR
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleCopyKioskLink()}
+                        disabled={creatingKioskLink}
+                        className="rounded-lg bg-[#2E7D32] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#256b2b] disabled:opacity-60"
+                      >
+                        {creatingKioskLink ? "Generando..." : "Copiar enlace QR"}
+                      </button>
+                    </div>
+                  </div>
+                </CardShell>
+              ) : null}
+
+              {activeMoreView === "blockchain" ? (
+                <CardShell title="Integridad verificable">
+                  <div className="space-y-5">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#2E7D32]">
+                        Integridad verificable
+                      </p>
+                      <h3 className="mt-2 text-2xl font-bold text-gray-900">
+                        Contrato inteligente publico
+                      </h3>
+                      <p className="mt-2 text-sm leading-6 text-gray-600">
+                        Revisa el contrato publico en BaseScan para contrastar la informacion de la votacion y sus resultados.
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-900">
+                      <p className="font-semibold">Manual rapido en BaseScan</p>
+                      <ol className="mt-3 list-decimal space-y-2 pl-5">
+                        <li>Copiar ID de eleccion.</li>
+                        <li>Abrir contrato inteligente.</li>
+                        <li>Entrar a <strong>Contract &gt; Read Contract</strong>.</li>
+                        <li>Buscar <strong>getVoteInfo</strong> y usar <strong>Query / Read</strong>.</li>
+                        <li>Buscar <strong>getVoteResults</strong> para contrastar resultados.</li>
+                      </ol>
+                    </div>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <button
+                        type="button"
+                        onClick={() => void handleCopyElectionId()}
+                        className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 transition hover:border-[#459151]"
+                      >
+                        Copiar ID
+                      </button>
+                      {SMART_CONTRACT_URL ? (
+                        <a
+                          href={SMART_CONTRACT_URL}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-xl bg-[#2E7D32] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#256b2b]"
+                        >
+                          Ver contrato inteligente
+                        </a>
+                      ) : (
+                        <span className="rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-500">
+                          Contrato no configurado
+                        </span>
+                      )}
+                    </div>
+                    {electionIdCopyMessage ? (
+                      <p className="text-sm text-gray-500">{electionIdCopyMessage}</p>
+                    ) : null}
+                  </div>
+                </CardShell>
+              ) : null}
+
+              {activeMoreView === "news" ? (
+                <CardShell title="Noticias">
+                  {canCreateNews ? (
+                    <div className="space-y-4">
+                      <p className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                        Crea una noticia o comunicado para esta votación.
+                      </p>
+                      <CreateNewsForm onSubmit={handleCreateNews} isLoading={creatingNews} />
+                    </div>
+                  ) : (
+                    <p className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-500">
+                      Las noticias se habilitan cuando la votación está publicada, activa o finalizada.
+                    </p>
+                  )}
+                </CardShell>
+              ) : null}
+
+              {activeMoreView === "tvd" ? (
+                <CardShell title="Uso $TVD">
+                  <div className="space-y-5">
+                    <div className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-medium text-violet-800">
+                      {tvdUsage.closingNotice}
+                    </div>
+                    <div className="rounded-2xl border border-gray-100 bg-white px-4 py-1 shadow-sm">
+                      <TvdAmountCard label="Reservado" amount={tvdUsage.reserved} />
+                      <TvdAmountCard label="Consumido" amount={tvdUsage.consumed} />
+                      <TvdAmountCard label="Liberado/devuelto" amount={tvdUsage.released} />
+                      <div className="flex items-start justify-between gap-4 py-4">
+                        <p className="text-sm font-semibold text-gray-600">
+                          Estado actual
+                        </p>
+                        <p className="text-right text-base font-bold text-gray-900">
+                          {tvdUsage.currentStatus}
+                        </p>
+                      </div>
+                    </div>
+                    {tvdCopyMessage ? (
+                      <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                        {tvdCopyMessage}
+                      </div>
+                    ) : null}
+                    <div className="rounded-xl border border-gray-200">
+                      <button
+                        type="button"
+                        onClick={() => setTvdOperationsOpen((current) => !current)}
+                        aria-expanded={tvdOperationsOpen}
+                        className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left font-semibold text-gray-900"
+                      >
+                        Operaciones asociadas
+                        <ChevronDownIcon
+                          aria-hidden="true"
+                          className={`h-5 w-5 text-gray-500 transition ${
+                            tvdOperationsOpen ? "rotate-180" : ""
+                          }`}
+                        />
+                      </button>
+                      {tvdOperationsOpen ? (
+                        <div className="space-y-3 border-t border-gray-200 p-4">
+                          {tvdUsage.operations.map((operation) => (
+                            <article key={operation.id} className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                                <div>
+                                  <p className="font-semibold text-gray-900">{operation.type}</p>
+                                  <p className="mt-1 text-sm text-gray-500">
+                                    {operation.date} - {operation.amount} / {operation.amountBs}
+                                  </p>
+                                  <p className="mt-1 font-mono text-xs text-gray-500">
+                                    {abbreviateHash(operation.txHash)}
+                                  </p>
+                                </div>
+                                <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
+                                  <span className="w-fit rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                                    {operation.status}
+                                  </span>
+                                  <div className="flex flex-wrap gap-2 sm:justify-end">
+                                    <button
+                                      type="button"
+                                      aria-label={`Copiar txHash ${operation.type}`}
+                                      onClick={async () => {
+                                        const copied = await copyTextToClipboard(operation.txHash);
+                                        setTvdCopyMessage(
+                                          copied
+                                            ? "txHash copiado."
+                                            : "No se pudo copiar el txHash.",
+                                        );
+                                      }}
+                                      className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 transition hover:border-[#459151] hover:text-[#2E6A38]"
+                                    >
+                                      <ClipboardDocumentIcon className="h-4 w-4" aria-hidden="true" />
+                                      Copiar
+                                    </button>
+                                    <a
+                                      href={operation.explorerUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      aria-label={`Abrir explorer ${operation.type}`}
+                                      className="inline-flex items-center gap-1.5 rounded-lg bg-[#2E7D32] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#256b2b]"
+                                    >
+                                      <ArrowTopRightOnSquareIcon className="h-4 w-4" aria-hidden="true" />
+                                      Explorer
+                                    </a>
+                                  </div>
+                                </div>
+                              </div>
+                            </article>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                </CardShell>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
+
       </div>
 
       <Modal2

@@ -1,16 +1,21 @@
 // Página principal de Elecciones
-// Muestra EmptyState si no hay elecciones, o lista si hay
+// Muestra el dashboard institucional y conserva la lista real de votaciones
 // Conectado a backend real con RTK Query
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from '@/domains/votacion/navigation/compat-private';
 import { useSelector } from 'react-redux';
 import { useDeleteVotingEventMutation, useDisableVotingEventMutation, useGetVotingEventsQuery } from '../../store/votingEvents';
 import { selectTenantId, selectIsLoggedIn } from '../../store/auth/authSlice';
 import Modal2 from '../../components/Modal2';
-import EmptyState from './components/EmptyState';
 import type { VotingEvent } from '../../store/votingEvents/types';
 import { formatDateTimeForUi, hasDraftAlreadyStarted, useClientNow } from '../electionConfig/renderUtils';
+import AdminInstitutionAccountCard from '../adminTvd/components/AdminInstitutionAccountCard';
+import AdminTvdBalanceCard from '../adminTvd/components/AdminTvdBalanceCard';
+import EstimateVotersModal from '../adminTvd/components/EstimateVotersModal';
+import InsufficientTvdBalanceModal from '../adminTvd/components/InsufficientTvdBalanceModal';
+import { getInstitutionTvdBalance } from '../adminTvd/services/adminTvdBalanceApi';
+import type { InstitutionTvdBalance } from '../adminTvd/types';
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const DEADLINE_REMINDER_WINDOW_MS = 24 * ONE_HOUR_MS;
@@ -80,6 +85,13 @@ const ElectionsPage: React.FC = () => {
   const [disableVotingEvent, { isLoading: disabling }] = useDisableVotingEventMutation();
   const [deleteConfirm, setDeleteConfirm] = useState<VotingEvent | null>(null);
   const [disableConfirm, setDisableConfirm] = useState<VotingEvent | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [balance, setBalance] = useState<InstitutionTvdBalance>({
+    amount: 0,
+    currency: '$TVD',
+  });
+  const [showEstimateModal, setShowEstimateModal] = useState(false);
+  const [insufficientEstimate, setInsufficientEstimate] = useState<number | null>(null);
 
   // Query de eventos - skip si no hay tenantId
   const { data: events = [], isLoading, error, refetch } = useGetVotingEventsQuery(
@@ -88,9 +100,38 @@ const ElectionsPage: React.FC = () => {
   );
 
   const isEmpty = events.length === 0;
+  const filteredEvents = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return events;
+    return events.filter((event) =>
+      `${event.name} ${event.objective}`.toLowerCase().includes(term),
+    );
+  }, [events, searchTerm]);
+
+  useEffect(() => {
+    let active = true;
+    void getInstitutionTvdBalance().then((nextBalance) => {
+      if (active) setBalance(nextBalance);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleCreateClick = () => {
+    setShowEstimateModal(true);
+  };
+
+  const continueToCreateWizard = () => {
+    setShowEstimateModal(false);
+    setInsufficientEstimate(null);
     navigate('/votacion/elecciones/new');
+  };
+
+  const handleInsufficientBalance = (totalEstimated: number) => {
+    setShowEstimateModal(false);
+    setInsufficientEstimate(totalEstimated);
   };
 
   const handleElectionClick = (event: VotingEvent) => {
@@ -188,15 +229,20 @@ const ElectionsPage: React.FC = () => {
     );
   }
 
-  // Empty State
-  if (isEmpty) {
-    return <EmptyState onCreateClick={handleCreateClick} />;
-  }
-
   // Lista de elecciones (cuando hay al menos una)
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-8 grid gap-4 sm:grid-cols-2">
+          <AdminTvdBalanceCard
+            balance={balance}
+            onClick={() => navigate('/votacion/recarga-operativa')}
+          />
+          <AdminInstitutionAccountCard
+            onClick={() => navigate('/votacion/cuenta-institucional')}
+          />
+        </div>
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <h1 className="text-2xl font-bold text-gray-900">Mis Votaciones</h1>
@@ -217,13 +263,52 @@ const ElectionsPage: React.FC = () => {
           </button>
         </div>
 
+        <div className="mb-5">
+          <label htmlFor="election-search" className="sr-only">
+            Buscar votación
+          </label>
+          <input
+            id="election-search"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Buscar votación..."
+            className="w-full rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm text-slate-700 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-[#459151] focus:ring-2 focus:ring-[#459151]/20"
+          />
+        </div>
+
         {/* Lista de elecciones */}
         <div className="grid gap-4">
-          {events.map((event) => {
+          {isEmpty ? (
+            <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
+              <h2 className="text-xl font-semibold text-slate-900">
+                Bienvenido a Tu voto decide
+              </h2>
+              <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-500">
+                Crea tu primera votación para configurar cargos, candidatos y padrón.
+              </p>
+              <button
+                type="button"
+                onClick={handleCreateClick}
+                className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#459151] px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#3a7a44]"
+              >
+                Crear votación
+              </button>
+            </div>
+          ) : filteredEvents.length === 0 ? (
+            <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
+              No encontramos votaciones con ese criterio.
+            </div>
+          ) : filteredEvents.map((event) => {
             const publicationReminderActive = isInOfficialPublicationReminderWindow(event, nowMs);
             const startAlreadyExpired = hasDraftAlreadyStarted(event, nowMs);
             const expiredElection = event.status === 'PUBLICATION_EXPIRED';
             const blockedCard = startAlreadyExpired || expiredElection;
+            const participationPercentage = Number(
+              (event as any).participationPercentage ??
+                (event as any).participation?.percentage ??
+                NaN,
+            );
+            const hasParticipationPercentage = Number.isFinite(participationPercentage);
 
             return (
               <div
@@ -281,6 +366,11 @@ const ElectionsPage: React.FC = () => {
                 </div>
 
                 <div className="text-sm text-gray-500 space-y-2">
+                  {hasParticipationPercentage && (
+                    <p className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                      {participationPercentage.toFixed(1)}%
+                    </p>
+                  )}
                   <p>
                     <span className="font-medium">Inicio:</span> {formatDateTimeForUi(event.votingStart)}
                   </p>
@@ -408,6 +498,26 @@ const ElectionsPage: React.FC = () => {
           </div>
         </div>
       </Modal2>
+
+      <EstimateVotersModal
+        isOpen={showEstimateModal}
+        availableBalance={balance.amount}
+        onClose={() => setShowEstimateModal(false)}
+        onContinue={continueToCreateWizard}
+        onInsufficientBalance={handleInsufficientBalance}
+      />
+
+      <InsufficientTvdBalanceModal
+        isOpen={insufficientEstimate !== null}
+        estimatedAmount={insufficientEstimate ?? 0}
+        onClose={() => setInsufficientEstimate(null)}
+        onRecharge={() => {
+          const amount = insufficientEstimate ?? 0;
+          setInsufficientEstimate(null);
+          navigate(`/votacion/recarga-operativa?monto=${amount}`);
+        }}
+        onSaveDraft={continueToCreateWizard}
+      />
     </div>
   );
 };

@@ -13,6 +13,7 @@ import ScheduleSummaryCard from "./components/ScheduleSummaryCard";
 import ConfirmActivateModal from "./components/ConfirmActivateModal";
 import ActivatedSuccessModal from "./components/ActivatedSuccessModal";
 import CreateNewsModal from "./components/CreateNewsModal";
+import ReviewAccordionSection from "./components/review/ReviewAccordionSection";
 import { useElectionPublish } from "./data/useElectionPublish";
 import Modal2 from "../../components/Modal2";
 import ConfigPageFallback from "./components/ConfigPageFallback";
@@ -473,150 +474,331 @@ const ElectionConfigReview: React.FC = () => {
     );
   }
 
+  const reviewStatusLabel = isPublicationExpired
+    ? "Ventana vencida"
+    : votingClosed
+      ? "Votación finalizada"
+      : votingInProgress
+        ? "Votación activa"
+        : eventState === "OFFICIALLY_PUBLISHED"
+          ? "Publicación oficial confirmada"
+          : canProceedToOfficialPublication
+            ? "Lista para publicar"
+            : "Revisión pendiente";
+
+  const reviewStatusTone = isPublicationExpired
+    ? "border-red-200 bg-red-50 text-red-700"
+    : canProceedToOfficialPublication
+      ? "border-green-200 bg-green-50 text-[#2E6A38]"
+      : "border-amber-200 bg-amber-50 text-amber-700";
+
+  const reviewSubtitle = ballotPreview?.isReferendum
+    ? "Revisa la vista previa, horarios y configuración antes de notificar o publicar oficialmente el referéndum."
+    : "Revisa la vista previa, horarios y configuración antes de notificar o publicar oficialmente la votación.";
+
+  const statusBadge = (
+    <span
+      className={`inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-semibold ${reviewStatusTone}`}
+    >
+      {reviewStatusLabel}
+    </span>
+  );
+
+  const previewContent = (
+    <div className="flex flex-col items-center">
+      <span className="mb-4 inline-block rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-600">
+        Vista previa móvil
+      </span>
+      <PhoneMockup>
+        <BallotPreview
+          parties={ballotPreview?.parties || []}
+          isReferendum={ballotPreview?.isReferendum}
+          question={ballotPreview?.electionObjective}
+        />
+      </PhoneMockup>
+    </div>
+  );
+
+  const unregisteredVotersWarning = hasUnregisteredForPublication ? (
+    <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm">
+      Existen {publicationMissingIdentityCount} votantes no registrados. No
+      recibirán notificación ni podrán votar hasta que se registren y sean
+      habilitados.
+    </div>
+  ) : null;
+
+  const pendingWarnings = (
+    <>
+      {reviewReadiness && notificationBlockingPending.length > 0 ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm">
+          <p className="font-semibold">
+            Faltan estos puntos antes de notificar a los votantes:
+          </p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            {notificationBlockingPending.map((item) => (
+              <li key={item}>
+                {getPendingLabel(item, Boolean(ballotPreview?.isReferendum))}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </>
+  );
+
+  const importantWarningsCount = [
+    Boolean(unregisteredVotersWarning),
+    votingInProgress,
+    votingClosed,
+    isPublicationExpired,
+    !isPublicationExpired,
+    !isPublicationExpired,
+  ].filter(Boolean).length;
+
+  const importantWarningsBadge =
+    importantWarningsCount > 0 ? (
+      <span className="inline-flex w-fit rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+        {importantWarningsCount}{" "}
+        {importantWarningsCount === 1 ? "aviso importante" : "avisos importantes"}
+      </span>
+    ) : null;
+
+  const scheduleContent = (
+    <div className="space-y-3">
+      <ScheduleSummaryCard
+        votingStart={votingEvent?.votingStart}
+        votingEnd={votingEvent?.votingEnd}
+        resultsPublishAt={votingEvent?.resultsPublishAt}
+        compact
+      />
+      {scheduleEditable ? (
+        <button
+          type="button"
+          onClick={() => {
+            setScheduleError(null);
+            setScheduleSuccess(null);
+            setIsScheduleModalOpen(true);
+          }}
+          className="w-full rounded-lg border border-[#459151]/20 bg-[#EFF7F0] px-4 py-3 text-sm font-medium text-[#2E6A38] transition-colors hover:bg-[#E4F3E7]"
+        >
+          Modificar horarios
+        </button>
+      ) : null}
+      {scheduleSuccess ? (
+        <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-700">
+          {scheduleSuccess}
+        </div>
+      ) : null}
+    </div>
+  );
+
+  const warningsContent = (
+    <div className="space-y-3">
+      {unregisteredVotersWarning}
+      {votingInProgress ? (
+        <div className="rounded-lg border border-blue-200 bg-white p-4 text-sm text-blue-800 shadow-sm">
+          La votación está activa. La revisión y la publicación oficial ya no se
+          gestionan desde esta vista.
+        </div>
+      ) : null}
+      {votingClosed ? (
+        <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
+          La votación ya finalizó. Esta vista queda solo para consulta
+          histórica.
+        </div>
+      ) : null}
+      {isPublicationExpired ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          La ventana de publicación oficial venció. Esta votación ya no debe
+          editarse como borrador ni publicarse normalmente.
+        </div>
+      ) : null}
+      {!isPublicationExpired ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm">
+          <p className="mt-1 font-semibold">
+            Puedes modificar y confirmar la publicación oficial hasta{" "}
+            {publicationDeadlineLabel}
+          </p>
+        </div>
+      ) : null}
+      {!isPublicationExpired ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-amber-800 shadow-sm">
+          <p className="mt-2 font-bold uppercase">
+            Si se atrasa, la votación quedará anulada.
+          </p>
+        </div>
+      ) : null}
+    </div>
+  );
+
+  const additionalConfigContent = (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700 shadow-sm">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="font-semibold text-gray-900">
+              Usar voto presencial con QR
+            </p>
+            <p className="mt-1 text-xs text-gray-500">
+              Opcional para punto presencial.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={presentialKioskEnabled}
+            disabled={!canChangePresentialOption || savingPresentialOption}
+            onClick={() => void handlePresentialToggle(!presentialKioskEnabled)}
+            className={`relative inline-flex h-7 w-12 shrink-0 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+              presentialKioskEnabled ? "bg-[#459151]" : "bg-gray-300"
+            }`}
+          >
+            <span
+              className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                presentialKioskEnabled ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
+        {presentialMessage ? (
+          <p className="mt-3 rounded-lg bg-green-50 px-3 py-2 text-xs font-medium text-green-700">
+            {presentialMessage}
+          </p>
+        ) : null}
+        {presentialError ? (
+          <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+            {presentialError}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700 shadow-sm">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="font-semibold text-gray-900">
+              Permitir habilitar votantes después de la publicación oficial
+            </p>
+            <p className="mt-1 text-xs text-gray-500">
+              Si se desactiva, el padrón quedará en solo lectura.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={allowPostPublicationPadronEnable}
+            disabled={!fullElectionEditingEnabled || activating}
+            onClick={() =>
+              void handlePostPublicationPadronToggle(
+                !allowPostPublicationPadronEnable,
+              )
+            }
+            className={`relative inline-flex h-7 w-12 shrink-0 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+              allowPostPublicationPadronEnable
+                ? "bg-[#459151]"
+                : "bg-gray-300"
+            }`}
+          >
+            <span
+              className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                allowPostPublicationPadronEnable
+                  ? "translate-x-6"
+                  : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
+        {padronLimitedError ? (
+          <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+            {padronLimitedError}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+
+  const newsContent = reviewAlreadyNotified ? (
+    <div className="rounded-lg border border-gray-200 bg-white px-5 py-4 shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-base font-semibold text-gray-900">
+          ¿Quieres informar algo?
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setNewsError(null);
+            setNewsSuccess(null);
+            setIsNewsModalOpen(true);
+          }}
+          className="w-full rounded-lg border border-[#459151]/20 bg-[#EFF7F0] px-4 py-3 text-sm font-semibold text-[#2E6A38] transition-colors hover:bg-[#E4F3E7] sm:w-auto"
+        >
+          Crear noticia
+        </button>
+      </div>
+    </div>
+  ) : null;
+
   return (
     <div className="bg-gray-50 min-h-[calc(100vh-64px)] flex flex-col">
-      {/* Contenido principal */}
-      <div className="py-8 flex-1">
-        <div className="max-w-6xl mx-auto px-4">
-          {/* Título */}
-          <h1 className="text-xl md:text-2xl font-semibold text-gray-700 text-center mb-8">
-            {ballotPreview?.isReferendum
-              ? "Así verán los votantes el referéndum. Revisa antes de publicar."
-              : "Así verán los votantes las papeletas. Revisa antes de publicar."}
-          </h1>
+      <main className="flex-1 px-4 py-6 pb-32 sm:py-8 lg:pb-8">
+        <div className="mx-auto max-w-6xl space-y-6">
+          <header className="mx-auto max-w-3xl text-center">
+            <div className="mb-3 flex justify-center">{statusBadge}</div>
+            <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">
+              Revisión antes de publicar
+            </h1>
+            <p className="mt-3 text-sm leading-6 text-gray-600 md:text-base">
+              {reviewSubtitle}
+            </p>
+          </header>
 
-          {/* Contenido: Preview + Resumen */}
-          <div className="flex flex-col lg:flex-row gap-8 items-start justify-center">
-            {/* Columna izquierda: Etiqueta + Phone Preview */}
-            <div className="w-full lg:w-auto flex flex-col items-center">
-              {/* Etiqueta Vista previa */}
-              <div className="mb-4">
-                <span className="inline-block px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 bg-white">
-                  Vista previa móvil
-                </span>
-              </div>
+          <div className="grid gap-6 lg:grid-cols-[minmax(280px,380px)_minmax(0,1fr)] lg:items-start">
+            <aside className="hidden lg:sticky lg:top-6 lg:flex lg:flex-col lg:items-center">
+              {previewContent}
+            </aside>
 
-              {/* Phone Mockup */}
-              <PhoneMockup>
-                <BallotPreview
-                  parties={ballotPreview?.parties || []}
-                  isReferendum={ballotPreview?.isReferendum}
-                  question={ballotPreview?.electionObjective}
-                />
-              </PhoneMockup>
-            </div>
-
-            {/* Columna derecha: Resumen (mobile: arriba, desktop: lado) */}
-            <div className="w-full lg:w-80 order-first lg:order-last space-y-4">
-              {hasUnregisteredForPublication ? (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm">
-                  Existen {publicationMissingIdentityCount} votantes no registrados. No recibirán notificación ni podrán votar hasta que se registren y sean habilitados.
-                </div>
-              ) : null}
-              {reviewReadiness && notificationBlockingPending.length > 0 ? (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm">
-                  <p className="font-semibold">
-                    Faltan estos puntos antes de notificar a los votantes:
-                  </p>
-                  <ul className="mt-2 list-disc space-y-1 pl-5">
-                    {notificationBlockingPending.map((item) => (
-                      <li key={item}>
-                        {getPendingLabel(
-                          item,
-                          Boolean(ballotPreview?.isReferendum),
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-              <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700 shadow-sm">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="font-semibold text-gray-900">
-                      Usar voto presencial con QR
-                    </p>
-                    <p className="mt-1 text-xs text-gray-500">
-                      Opcional para punto presencial.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={presentialKioskEnabled}
-                    disabled={
-                      !canChangePresentialOption || savingPresentialOption
-                    }
-                    onClick={() =>
-                      void handlePresentialToggle(!presentialKioskEnabled)
-                    }
-                    className={`relative inline-flex h-7 w-12 shrink-0 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                      presentialKioskEnabled ? "bg-[#459151]" : "bg-gray-300"
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                        presentialKioskEnabled
-                          ? "translate-x-6"
-                          : "translate-x-1"
-                      }`}
+            <div className="space-y-4">
+              <ReviewAccordionSection
+                title="Estado general"
+                defaultOpen
+              >
+                <div className="space-y-4">
+                  {pendingWarnings}
+                  {configSummary ? (
+                    <ConfigSummaryCard
+                      summary={configSummary}
+                      isReferendum={Boolean(ballotPreview?.isReferendum)}
                     />
-                  </button>
-                </div>
-                {presentialMessage ? (
-                  <p className="mt-3 rounded-lg bg-green-50 px-3 py-2 text-xs font-medium text-green-700">
-                    {presentialMessage}
-                  </p>
-                ) : null}
-                {presentialError ? (
-                  <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
-                    {presentialError}
-                  </p>
-                ) : null}
-              </div>
-              <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700 shadow-sm">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="font-semibold text-gray-900">
-                      Permitir habilitar votantes después de la publicación
-                      oficial
+                  ) : null}
+                  {!configSummary && !hasUnregisteredForPublication && notificationBlockingPending.length === 0 ? (
+                    <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+                      No hay resumen disponible para esta revisión.
                     </p>
-                    <p className="mt-1 text-xs text-gray-500">
-                      Si se desactiva, el padrón quedará en solo lectura.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={allowPostPublicationPadronEnable}
-                    disabled={!fullElectionEditingEnabled || activating}
-                    onClick={() =>
-                      void handlePostPublicationPadronToggle(
-                        !allowPostPublicationPadronEnable,
-                      )
-                    }
-                    className={`relative inline-flex h-7 w-12 shrink-0 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                      allowPostPublicationPadronEnable
-                        ? "bg-[#459151]"
-                        : "bg-gray-300"
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                        allowPostPublicationPadronEnable
-                          ? "translate-x-6"
-                          : "translate-x-1"
-                      }`}
-                    />
-                  </button>
+                  ) : null}
                 </div>
+              </ReviewAccordionSection>
 
-                {padronLimitedError ? (
-                  <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
-                    {padronLimitedError}
-                  </p>
-                ) : null}
-              </div>
+              <ReviewAccordionSection
+                title="Vista previa para votantes"
+                className="lg:hidden"
+              >
+                {previewContent}
+              </ReviewAccordionSection>
+
+              <ReviewAccordionSection title="Horarios">
+                {scheduleContent}
+              </ReviewAccordionSection>
+
+              <ReviewAccordionSection
+                title="Avisos importantes"
+                badge={importantWarningsBadge}
+              >
+                {warningsContent}
+              </ReviewAccordionSection>
+
+              <ReviewAccordionSection title="Configuración adicional">
+                {additionalConfigContent}
+              </ReviewAccordionSection>
+
               {newsSuccess ? (
                 <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-700 shadow-sm">
                   {newsSuccess}
@@ -627,102 +809,14 @@ const ElectionConfigReview: React.FC = () => {
                   {newsError}
                 </div>
               ) : null}
-              {votingInProgress ? (
-                <div className="rounded-lg border border-blue-200 bg-white p-4 text-sm text-blue-800 shadow-sm">
-                  La votación está activa. La revisión y la publicación oficial
-                  ya no se gestionan desde esta vista.
-                </div>
-              ) : null}
-              {votingClosed ? (
-                <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
-                  La votación ya finalizó. Esta vista queda solo para consulta
-                  histórica.
-                </div>
-              ) : null}
-              {isPublicationExpired && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-                  La ventana de publicación oficial venció. Esta votación ya no
-                  debe editarse como borrador ni publicarse normalmente.
-                </div>
-              )}
-              {reviewAlreadyNotified ? (
-                <div className="rounded-lg border border-gray-200 bg-white px-5 py-4 shadow-sm">
-                  <div className="flex flex-col gap-4">
-                    <div>
-                      <p className="text-base flex justify-center font-semibold text-gray-900">
-                        ¿Quieres informar algo?
-                      </p>
-
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setNewsError(null);
-                        setNewsSuccess(null);
-                        setIsNewsModalOpen(true);
-                      }}
-                      className="w-full rounded-lg border border-[#459151]/20 bg-[#EFF7F0] px-4 py-3 text-sm font-semibold text-[#2E6A38] transition-colors hover:bg-[#E4F3E7] sm:w-auto"
-                    >
-                      Crear noticia
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-              <div className="space-y-3">
-                <ScheduleSummaryCard
-                  votingStart={votingEvent?.votingStart}
-                  votingEnd={votingEvent?.votingEnd}
-                  resultsPublishAt={votingEvent?.resultsPublishAt}
-                  compact
-                />
-                {scheduleEditable ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setScheduleError(null);
-                      setScheduleSuccess(null);
-                      setIsScheduleModalOpen(true);
-                    }}
-                    className="w-full rounded-lg border border-[#459151]/20 bg-[#EFF7F0] px-4 py-3 text-sm font-medium text-[#2E6A38] transition-colors hover:bg-[#E4F3E7]"
-                  >
-                    Modificar horarios
-                  </button>
-                ) : null}
-              </div>
-
-              {!isPublicationExpired ? (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm">
-                  <p className="mt-1 font-semibold">
-                    Puedes modificar y confirmar la publicación oficial hasta{" "}
-                    {publicationDeadlineLabel}
-                  </p>
-                </div>
-              ) : null}
-              {!isPublicationExpired ? (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-amber-800 shadow-sm">
-                  <p className="mt-2 font-bold uppercase">
-                    Si se atrasa, la votación quedará anulada.
-                  </p>
-                </div>
-              ) : null}
-              {scheduleSuccess ? (
-                <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-700">
-                  {scheduleSuccess}
-                </div>
-              ) : null}
-              {configSummary && (
-                <ConfigSummaryCard
-                  summary={configSummary}
-                  isReferendum={Boolean(ballotPreview?.isReferendum)}
-                />
-              )}
+              {newsContent}
             </div>
           </div>
         </div>
-      </div>
+      </main>
 
       {/* Footer con acciones */}
-      <div className="border-t border-gray-200 bg-white py-4">
+      <div className="sticky bottom-0 z-20 border-t border-gray-200 bg-white/95 py-4 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur lg:static lg:shadow-none">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             {/* Botón volver */}
