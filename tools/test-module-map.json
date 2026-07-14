@@ -1,0 +1,257 @@
+{
+  "vitest": {
+    "general": {
+      "name": "General configuration, hooks and state",
+      "flows": [
+        "FRONT-A",
+        "CORE",
+        "STATE",
+        "ERROR_HANDLING"
+      ],
+      "files": [
+        "tests/integration/dependency-checks.test.ts",
+        "tests/unit/capture-element-as-png.test.ts",
+        "tests/unit/request-error-message.test.ts",
+        "tests/unit/runtime-failure-reporting.test.ts"
+      ]
+    },
+    "auth-access": {
+      "name": "Authentication and administrative access - Security P0",
+      "flows": [
+        "FRONT-B",
+        "AUTH",
+        "SECURITY_P0"
+      ],
+      "files": [
+        "tests/integration/auth-domain-password-pages.test.tsx",
+        "tests/integration/auth-resultados-pages.test.tsx",
+        "tests/integration/resultados-private-guard.test.tsx",
+        "tests/integration/roles-permissions-navigation.test.tsx",
+        "tests/integration/votacion-private-guard.test.tsx",
+        "tests/unit/auth-context.test.ts",
+        "tests/unit/auth-resultados.validation.test.ts",
+        "tests/unit/auth-roles-navigation.test.ts",
+        "tests/unit/middleware.test.ts",
+        "tests/unit/register-prefill.test.ts",
+        "tests/unit/resolve-auth-resultados-redirect.test.ts"
+      ]
+    },
+    "applications": {
+      "name": "Institutional applications and approvals",
+      "flows": [
+        "FRONT-C",
+        "INSTITUTIONAL_APPLICATIONS"
+      ],
+      "files": [
+        "tests/integration/access-approvals.test.tsx"
+      ]
+    },
+    "election-dashboard": {
+      "name": "Election dashboard and listing",
+      "flows": [
+        "FRONT-D",
+        "ELECTION_LISTING"
+      ],
+      "files": [
+        "tests/unit/election-render-utils.test.ts"
+      ]
+    },
+    "election-config": {
+      "name": "Election creation and configuration",
+      "flows": [
+        "FRONT-E",
+        "BRS-F10"
+      ],
+      "files": [
+        "tests/integration/election-config-cd-flow.test.tsx",
+        "tests/integration/election-config-components.test.tsx",
+        "tests/unit/election-configuration-cd.test.tsx"
+      ]
+    },
+    "election-options": {
+      "name": "Positions, options, candidates and referendum",
+      "flows": [
+        "FRONT-F",
+        "BRS-F11"
+      ],
+      "files": [
+        "tests/unit/referendum-flow.test.tsx"
+      ]
+    },
+    "register": {
+      "name": "Electoral register management",
+      "flows": [
+        "FRONT-G",
+        "BRS-F12",
+        "BRS-F13"
+      ],
+      "files": [
+        "tests/integration/election-padron-flow.test.tsx",
+        "tests/unit/padron-gemini-observations.test.ts",
+        "tests/unit/padron-parser.test.ts",
+        "tests/unit/padron-participation-check.test.tsx",
+        "tests/unit/padron-ux.test.tsx"
+      ]
+    },
+    "publication": {
+      "name": "Election review and official publication",
+      "flows": [
+        "FRONT-H",
+        "BRS-F18"
+      ],
+      "files": [
+        "tests/unit/election-publication-ux.test.tsx",
+        "tests/unit/use-election-publish.test.tsx"
+      ]
+    },
+    "active-election": {
+      "name": "Active election status and ballot",
+      "flows": [
+        "FRONT-I",
+        "BRS-F17"
+      ],
+      "files": [
+        "tests/unit/kiosk-constants.test.ts"
+      ]
+    },
+    "results": {
+      "name": "Election results and public view",
+      "flows": [
+        "FRONT-J",
+        "BRS-F01",
+        "BRS-F02",
+        "BRS-F22"
+      ],
+      "files": [
+        "tests/integration/resultados-reports-audit.test.tsx",
+        "tests/integration/table-search-pagination.test.tsx",
+        "tests/unit/past-elections-page.test.tsx",
+        "tests/unit/public-landing-repository.test.ts"
+      ]
+    },
+    "participation": {
+      "name": "Participation history and analytics",
+      "flows": [
+        "FRONT-K",
+        "BRS-F15",
+        "BRS-F22"
+      ],
+      "files": [
+        "tests/integration/participation-analytics-flow.test.tsx",
+        "tests/unit/participation-analytics-modal.test.tsx",
+        "tests/unit/voting-events-participation-api.test.ts"
+      ]
+    },
+    "notifications": {
+      "name": "News and notifications",
+      "flows": [
+        "FRONT-L",
+        "BRS-F20",
+        "BRS-F21"
+      ],
+      "files": [
+        "tests/unit/create-news-modal.test.tsx"
+      ]
+    }
+  },
+  "cypress": {
+    "auth-access": {
+      "name": "Authentication and administrative access - Security P0",
+      "flows": [
+        "FRONT-B",
+        "AUTH",
+        "SECURITY_P0"
+      ],
+      "files": [
+        "cypress/e2e/smoke/auth-and-guards.cy.ts"
+      ],
+      "manualFiles": [
+        "cypress/legacy/auth_resultados_canonica.cy.ts",
+        "cypress/legacy/votacion_publica_canonica.cy.ts"
+      ]
+    },
+    "applications": {
+      "name": "Institutional applications and approvals",
+      "flows": [
+        "FRONT-C",
+        "INSTITUTIONAL_APPLICATIONS"
+      ],
+      "files": [
+        "cypress/e2e/smoke/approvals.cy.ts"
+      ],
+      "manualFiles": []
+    },
+    "election-config": {
+      "name": "Election creation and configuration",
+      "flows": [
+        "FRONT-D",
+        "FRONT-E",
+        "BRS-F10"
+      ],
+      "files": [
+        "cypress/e2e/smoke/election-management.cy.ts"
+      ],
+      "manualFiles": [
+        "cypress/legacy/NavegacionGobernadorLP.cy.ts",
+        "cypress/legacy/admin.vistas.cy.ts",
+        "cypress/legacy/flujo_principal.cy.ts"
+      ]
+    },
+    "register": {
+      "name": "Electoral register management",
+      "flows": [
+        "FRONT-G",
+        "BRS-F12",
+        "BRS-F13"
+      ],
+      "files": [
+        "cypress/e2e/smoke/padron.cy.ts"
+      ],
+      "manualFiles": [
+        "cypress/legacy/Registro.real.cy.ts",
+        "cypress/staging/registro_admin_e2e.cy.ts"
+      ]
+    },
+    "publication": {
+      "name": "Election review and official publication",
+      "flows": [
+        "FRONT-H",
+        "FRONT-I",
+        "BRS-F18"
+      ],
+      "files": [
+        "cypress/e2e/smoke/publication-status.cy.ts"
+      ],
+      "manualFiles": [
+        "cypress/legacy/votacion_privada_flujo_canonico.cy.ts"
+      ]
+    },
+    "results": {
+      "name": "Election results and public view",
+      "flows": [
+        "FRONT-J",
+        "BRS-F01",
+        "BRS-F02",
+        "BRS-F22"
+      ],
+      "files": [
+        "cypress/e2e/smoke/public-election.cy.ts",
+        "cypress/e2e/smoke/results-reports.cy.ts"
+      ],
+      "manualFiles": [
+        "cypress/legacy/VerDetallesMesa.cy.ts",
+        "cypress/legacy/ballots.cy.ts",
+        "cypress/legacy/filters.cy.ts",
+        "cypress/legacy/filters.role.cy.ts",
+        "cypress/legacy/imagenesAlcaldeGobernador.cy.ts",
+        "cypress/legacy/mesa.cy.ts",
+        "cypress/legacy/reports.cy.ts",
+        "cypress/legacy/results.role.cy.ts",
+        "cypress/legacy/results.visual.1.cy.ts",
+        "cypress/legacy/results.visual.2.cy.ts",
+        "cypress/staging/resultadosNoAcceso.flow.real.cy.ts",
+        "cypress/staging/results.filters.real.cy.ts"
+      ]
+    }
+  }
+}
