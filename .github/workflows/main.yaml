@@ -104,7 +104,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Auth and permissions tests
-        run: pnpm test:flow:auth-permissions
+        run: pnpm test:flow:auth-permissions --reporter=verbose
 
   frontend-approvals:
     name: Frontend flow - approvals
@@ -129,7 +129,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Approvals tests
-        run: pnpm test:flow:approvals
+        run: pnpm test:flow:approvals --reporter=verbose
 
   frontend-election-management:
     name: Frontend flow - election management
@@ -154,7 +154,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Election management tests
-        run: pnpm test:flow:election-management
+        run: pnpm test:flow:election-management --reporter=verbose
 
   frontend-padron-publication:
     name: Frontend flow - padron and publication
@@ -179,7 +179,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Padron and publication tests
-        run: pnpm test:flow:padron-publication
+        run: pnpm test:flow:padron-publication --reporter=verbose
 
   frontend-results-reports:
     name: Frontend flow - results and reports
@@ -204,7 +204,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Results and reports tests
-        run: pnpm test:flow:results-reports
+        run: pnpm test:flow:results-reports --reporter=verbose
 
   frontend-cypress-smoke:
     name: Frontend Cypress smoke
