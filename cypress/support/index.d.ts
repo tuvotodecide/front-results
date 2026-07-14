@@ -20,7 +20,20 @@ declare global {
              * @param url The URL to visit.
              * @param auth Current auth state.
              */
-            visitWithAuth(url: string, auth: { token: string; user: any }): Chainable<void>;
+            visitWithAuth(
+                url: string,
+                auth: { token: string; user: any; authSession?: Record<string, unknown> }
+            ): Chainable<void>;
+
+            /**
+             * Opens a route with a SUPERADMIN resultados session.
+             */
+            setResultsAdminSession(url?: string): Chainable<void>;
+
+            /**
+             * Opens a route with a TENANT_ADMIN votacion session.
+             */
+            setTenantSession(url?: string): Chainable<void>;
 
             /**
              * Seeds test data (no-op in this mock environment).

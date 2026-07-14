@@ -354,13 +354,19 @@ export default function AccessApprovalsPage() {
                 </div>
               ) : null}
 
-              {!institutional.isLoading && filteredRows.length === 0 ? (
+              {!institutional.isLoading && institutional.isError ? (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-8 text-sm text-red-800">
+                  No se pudieron cargar las solicitudes institucionales. Intenta nuevamente.
+                </div>
+              ) : null}
+
+              {!institutional.isLoading && !institutional.isError && filteredRows.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-[#d7dbe1] bg-[#fbfcfd] px-4 py-10 text-sm text-[#6b7280]">
                   {EMPTY_MESSAGES[tab]}
                 </div>
               ) : null}
 
-              {filteredRows.map((row) => {
+              {!institutional.isError && filteredRows.map((row) => {
                 const isSelected = isDetailOpen && row.id === selectedId;
                 return (
                   <button

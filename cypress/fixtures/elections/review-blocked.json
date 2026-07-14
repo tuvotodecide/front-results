@@ -1,0 +1,13 @@
+{
+  "id": "event-smoke",
+  "state": "DRAFT",
+  "isReady": false,
+  "pending": ["padron", "padron_validation"],
+  "publishDeadline": "2027-01-09T08:00:00.000Z",
+  "publicationWindow": {
+    "deadline": "2027-01-09T08:00:00.000Z",
+    "canConfirmOfficialPublication": false,
+    "expired": false,
+    "hoursUntilDeadline": 240
+  }
+}

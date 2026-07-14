@@ -1,0 +1,15 @@
+{
+  "id": "event-smoke",
+  "tenantId": "tenant-smoke",
+  "name": "Elección Smoke 2027",
+  "objective": "Validar publicación visible",
+  "state": "READY_FOR_REVIEW",
+  "status": "READY_FOR_REVIEW",
+  "votingStart": "2027-01-10T08:00:00.000Z",
+  "votingEnd": "2027-01-10T18:00:00.000Z",
+  "resultsPublishAt": "2027-01-10T19:00:00.000Z",
+  "publishDeadline": "2027-01-09T08:00:00.000Z",
+  "publicEligibilityEnabled": true,
+  "isReferendum": false,
+  "publicPath": "/votacion/elecciones/event-smoke/publica"
+}

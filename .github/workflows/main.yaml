@@ -45,8 +45,8 @@ env:
   BUILD_PLATFORMS: linux/amd64
 
 jobs:
-  quality:
-    name: Quality checks
+  frontend-quality:
+    name: Frontend quality
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -72,11 +72,235 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Unit tests
-        run: pnpm test:unit
+      - name: Cypress lint
+        run: pnpm lint:cypress
 
-      - name: Integration tests
-        run: pnpm test:integration
+      - name: Cypress typecheck
+        run: pnpm typecheck:cypress
+
+      - name: Check focused or skipped active tests
+        run: pnpm check:no-focused-tests
+
+  frontend-auth-permissions:
+    name: Frontend flow - auth and permissions
+    needs: frontend-quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Auth and permissions tests
+        run: pnpm test:flow:auth-permissions
+
+  frontend-approvals:
+    name: Frontend flow - approvals
+    needs: frontend-quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Approvals tests
+        run: pnpm test:flow:approvals
+
+  frontend-election-management:
+    name: Frontend flow - election management
+    needs: frontend-quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Election management tests
+        run: pnpm test:flow:election-management
+
+  frontend-padron-publication:
+    name: Frontend flow - padron and publication
+    needs: frontend-quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Padron and publication tests
+        run: pnpm test:flow:padron-publication
+
+  frontend-results-reports:
+    name: Frontend flow - results and reports
+    needs: frontend-quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Results and reports tests
+        run: pnpm test:flow:results-reports
+
+  frontend-cypress-smoke:
+    name: Frontend Cypress smoke
+    needs: frontend-quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify Cypress binary
+        run: pnpm cypress:verify
+
+      - name: Start Next application
+        shell: bash
+        run: |
+          pnpm exec next dev -H 127.0.0.1 -p 3000 > next-smoke.log 2>&1 &
+          echo $! > next-smoke.pid
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:3000 >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat next-smoke.log
+          exit 1
+
+      - name: Cypress smoke tests
+        env:
+          CYPRESS_BASE_URL: http://127.0.0.1:3000
+        run: pnpm test:cypress:smoke
+
+      - name: Stop Next application
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f next-smoke.pid ]]; then
+            kill "$(cat next-smoke.pid)" || true
+          fi
+
+      - name: Upload Cypress screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-smoke-screenshots
+          path: cypress/screenshots/
+          if-no-files-found: ignore
+
+      - name: Upload Cypress videos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-smoke-videos
+          path: cypress/videos/
+          if-no-files-found: ignore
+
+  frontend-coverage-build:
+    name: Frontend coverage and build
+    needs:
+      - frontend-auth-permissions
+      - frontend-approvals
+      - frontend-election-management
+      - frontend-padron-publication
+      - frontend-results-reports
+      - frontend-cypress-smoke
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Coverage
         run: pnpm test:coverage
@@ -92,21 +316,22 @@ jobs:
         shell: bash
         run: |
           {
-            echo "# Frontend admin integration validations"
+            echo "# Frontend admin validations by flow"
             echo ""
             echo "| Validation | Command |"
             echo "|---|---|"
-            echo "| Lint | \`pnpm lint\` |"
-            echo "| Typecheck | \`pnpm typecheck\` |"
-            echo "| Unit tests | \`pnpm test:unit\` |"
-            echo "| Integration tests | \`pnpm test:integration\` |"
+            echo "| Quality | \`pnpm lint && pnpm typecheck && pnpm lint:cypress && pnpm typecheck:cypress && pnpm check:no-focused-tests\` |"
+            echo "| Auth and permissions | \`pnpm test:flow:auth-permissions\` |"
+            echo "| Approvals | \`pnpm test:flow:approvals\` |"
+            echo "| Election management | \`pnpm test:flow:election-management\` |"
+            echo "| Padron and publication | \`pnpm test:flow:padron-publication\` |"
+            echo "| Results and reports | \`pnpm test:flow:results-reports\` |"
+            echo "| Cypress smoke | \`pnpm test:cypress:smoke\` |"
             echo "| Coverage | \`pnpm test:coverage\` |"
             echo "| Build | \`pnpm build\` |"
             echo "| Dependency checks | \`pnpm check:dependencies\` |"
             echo ""
             echo "Coverage HTML report path: \`coverage/index.html\`"
-            echo ""
-            echo "Cypress and real E2E are intentionally excluded from this quality job."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload coverage report
@@ -119,7 +344,7 @@ jobs:
 
   build:
     name: Build & Push Docker image
-    needs: quality
+    needs: frontend-coverage-build
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: devops_aws
@@ -329,7 +554,13 @@ jobs:
 
   frontend-metrics:
     name: Frontend metrics
-    needs: [quality, build, deploy-dev, deploy-prod]
+    needs:
+      - frontend-quality
+      - frontend-coverage-build
+      - frontend-cypress-smoke
+      - build
+      - deploy-dev
+      - deploy-prod
     if: always()
     runs-on: ubuntu-latest
     permissions:

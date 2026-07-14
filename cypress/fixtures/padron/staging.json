@@ -1,0 +1,38 @@
+{
+  "importJob": {
+    "importJobId": "job-smoke",
+    "status": "PARSED",
+    "sourceType": "SYSTEM",
+    "summary": {
+      "parsedCount": 2,
+      "stagingCount": 2,
+      "enabledCount": 2,
+      "validCount": 2,
+      "invalidCount": 0,
+      "duplicateCount": 0,
+      "disabledCount": 0,
+      "missingIdentityCount": 0,
+      "totalCount": 2
+    }
+  },
+  "data": [
+    {
+      "id": "staging-1",
+      "ci": "1234567",
+      "enabled": true,
+      "validationStatus": "VALID",
+      "sourceRow": 1
+    },
+    {
+      "id": "staging-2",
+      "ci": "7654321",
+      "enabled": true,
+      "validationStatus": "VALID",
+      "sourceRow": 2
+    }
+  ],
+  "page": 1,
+  "limit": 50,
+  "total": 2,
+  "totalPages": 1
+}

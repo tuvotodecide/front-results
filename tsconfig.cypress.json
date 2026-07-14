@@ -10,7 +10,12 @@
   },
   "include": [
     "cypress.config.ts",
-    "cypress/**/*.ts",
-    "cypress/**/*.tsx"
+    "cypress/support/**/*.ts",
+    "cypress/e2e/smoke/**/*.ts",
+    "cypress/e2e/smoke/**/*.tsx"
+  ],
+  "exclude": [
+    "cypress/legacy/**",
+    "cypress/staging/**"
   ]
 }

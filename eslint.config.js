@@ -97,7 +97,11 @@ export default tseslint.config(
   },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
-    files: ['cypress.config.ts', 'cypress/**/*.{ts,tsx}'],
+    files: [
+      'cypress.config.ts',
+      'cypress/support/**/*.{ts,tsx}',
+      'cypress/e2e/smoke/**/*.{ts,tsx}',
+    ],
     languageOptions: {
       ecmaVersion: 2020,
       globals: {
@@ -115,5 +119,8 @@ export default tseslint.config(
       ...sharedRules,
       '@typescript-eslint/no-require-imports': 'off',
     },
+  },
+  {
+    ignores: ['cypress/legacy/**', 'cypress/staging/**'],
   },
 )
