@@ -1,0 +1,21 @@
+{
+  "id": "event-public-smoke",
+  "name": "Elección Pública Smoke",
+  "objective": "Universidad Demo",
+  "phase": "RESULTS",
+  "votingStart": "2027-01-10T08:00:00.000Z",
+  "votingEnd": "2027-01-10T18:00:00.000Z",
+  "publicEligibilityEnabled": true,
+  "resultsAvailable": true,
+  "options": [
+    {
+      "id": "party-smoke",
+      "name": "Frente Verde",
+      "color": "#2E7D32",
+      "candidates": [
+        { "id": "cand-smoke", "name": "Ana Perez", "roleName": "Presidencia" }
+      ]
+    }
+  ],
+  "results": [{ "option": "Frente Verde", "votes": 120 }]
+}

@@ -1,0 +1,24 @@
+[
+  {
+    "id": "app-smoke-pending",
+    "name": "Ana Smoke",
+    "dni": "1234567",
+    "email": "ana.smoke@test.local",
+    "institutionName": "Universidad Smoke",
+    "tenantName": "Universidad Smoke",
+    "tenantId": "tenant-smoke",
+    "status": "PENDING_APPROVAL",
+    "createdAt": "2026-07-01T10:00:00.000Z"
+  },
+  {
+    "id": "app-smoke-approved",
+    "name": "Bruno Smoke",
+    "dni": "7654321",
+    "email": "bruno.smoke@test.local",
+    "institutionName": "Instituto Smoke",
+    "tenantName": "Instituto Smoke",
+    "tenantId": "tenant-approved",
+    "status": "APPROVED",
+    "createdAt": "2026-06-15T10:00:00.000Z"
+  }
+]

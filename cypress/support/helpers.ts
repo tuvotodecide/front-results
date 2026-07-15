@@ -301,7 +301,7 @@ export const waitForElementToDisappear = (
  */
 export const validateApiResponse = (response: any, requiredFields: string[]): boolean => {
   return requiredFields.every(field => {
-    return response.hasOwnProperty(field);
+    return Object.prototype.hasOwnProperty.call(response, field);
   });
 };
 

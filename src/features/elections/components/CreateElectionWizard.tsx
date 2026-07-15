@@ -106,7 +106,12 @@ const DateTimeField: React.FC<DateTimeFieldProps> = ({ id, name, min, hint }) =>
   const openPicker = () => {
     const input = inputRef.current as (HTMLInputElement & { showPicker?: () => void }) | null;
     input?.focus();
-    input?.showPicker?.();
+    try {
+      input?.showPicker?.();
+    } catch {
+      // Electron/headless browsers can reject showPicker despite a real click.
+      // The native input remains usable, so keep the form flow intact.
+    }
   };
 
   return (

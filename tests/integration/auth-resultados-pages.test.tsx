@@ -314,4 +314,38 @@ describe("canonical auth resultados pages", () => {
       });
     });
   });
+
+  it("shows a visible session error when resultados login receives an unauthorized response", async () => {
+    const user = userEvent.setup();
+    loginUser.mockReturnValue({
+      unwrap: vi.fn().mockRejectedValue({
+        status: 401,
+        data: {
+          message: "Sesión expirada. Vuelve a iniciar sesión.",
+        },
+      }),
+    });
+
+    const { container, store } = renderWithAuthStore(<LoginResultadosPage />);
+
+    await user.type(
+      container.querySelector('[data-cy="login-email"]') as HTMLInputElement,
+      "admin@test.com",
+    );
+    await user.type(
+      container.querySelector('[data-cy="login-password"]') as HTMLInputElement,
+      "12345678",
+    );
+    await user.click(container.querySelector('[data-cy="login-submit"]') as HTMLButtonElement);
+
+    expect(await screen.findByText("No se pudo iniciar sesión")).toBeInTheDocument();
+    expect(
+      screen.getByText("Sesión expirada. Vuelve a iniciar sesión."),
+    ).toBeInTheDocument();
+    expect(navigate).not.toHaveBeenCalledWith("/resultados/pendiente", {
+      replace: true,
+    });
+    expect(store.getState().auth.token).toBeNull();
+    expect(store.getState().auth.user).toBeNull();
+  });
 });

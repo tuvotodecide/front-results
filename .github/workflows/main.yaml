@@ -27,6 +27,7 @@ on:
       - "Dockerfile"
       - "package.json"
       - "package-lock.json"
+      - "pnpm-lock.yaml"
       - "src/**"
       - "public/**"
       - "tests/**"
@@ -45,9 +46,10 @@ env:
   BUILD_PLATFORMS: linux/amd64
 
 jobs:
-  quality:
-    name: Quality checks
+  module-tests:
+    name: Frontend - Module tests
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -66,48 +68,37 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint
+      - name: Verify module mapping
+        if: ${{ !cancelled() }}
+        run: pnpm test:modules:check
+
+      - name: Run lint
+        if: ${{ !cancelled() }}
         run: pnpm lint
 
-      - name: Typecheck
+      - name: Run typecheck
+        if: ${{ !cancelled() }}
         run: pnpm typecheck
 
-      - name: Unit tests
-        run: pnpm test:unit
+      - name: Run Cypress lint
+        if: ${{ !cancelled() }}
+        run: pnpm lint:cypress
 
-      - name: Integration tests
-        run: pnpm test:integration
+      - name: Run Cypress typecheck
+        if: ${{ !cancelled() }}
+        run: pnpm typecheck:cypress
 
-      - name: Coverage
-        run: pnpm test:coverage
+      - name: Check focused or skipped active tests
+        if: ${{ !cancelled() }}
+        run: pnpm check:no-focused-tests
 
-      - name: Build
+      - name: Run build
+        if: ${{ !cancelled() }}
         run: pnpm build
 
-      - name: Dependency checks
-        run: pnpm check:dependencies
-
-      - name: Publish validation summary
-        if: always()
-        shell: bash
-        run: |
-          {
-            echo "# Frontend admin integration validations"
-            echo ""
-            echo "| Validation | Command |"
-            echo "|---|---|"
-            echo "| Lint | \`pnpm lint\` |"
-            echo "| Typecheck | \`pnpm typecheck\` |"
-            echo "| Unit tests | \`pnpm test:unit\` |"
-            echo "| Integration tests | \`pnpm test:integration\` |"
-            echo "| Coverage | \`pnpm test:coverage\` |"
-            echo "| Build | \`pnpm build\` |"
-            echo "| Dependency checks | \`pnpm check:dependencies\` |"
-            echo ""
-            echo "Coverage HTML report path: \`coverage/index.html\`"
-            echo ""
-            echo "Cypress and real E2E are intentionally excluded from this quality job."
-          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Run unit coverage
+        if: ${{ !cancelled() }}
+        run: pnpm test:coverage
 
       - name: Upload coverage report
         if: always()
@@ -117,9 +108,149 @@ jobs:
           path: coverage/
           if-no-files-found: warn
 
+      - name: Run dependency checks
+        if: ${{ !cancelled() }}
+        run: pnpm check:dependencies
+
+      - name: Run module tests - General configuration, hooks and state
+        if: ${{ !cancelled() }}
+        run: pnpm test:module:general
+
+      - name: Run module tests - Authentication and administrative access
+        if: ${{ !cancelled() }}
+        run: pnpm test:module:auth-access
+
+      - name: Run module tests - Institutional applications and approvals
+        if: ${{ !cancelled() }}
+        run: pnpm test:module:applications
+
+      - name: Run module tests - Election dashboard and listing
+        if: ${{ !cancelled() }}
+        run: pnpm test:module:election-dashboard
+
+      - name: Run module tests - Election creation and configuration
+        if: ${{ !cancelled() }}
+        run: pnpm test:module:election-config
+
+      - name: Run module tests - Positions, options, candidates and referendum
+        if: ${{ !cancelled() }}
+        run: pnpm test:module:election-options
+
+      - name: Run module tests - Electoral register management
+        if: ${{ !cancelled() }}
+        run: pnpm test:module:register
+
+      - name: Run module tests - Election review and official publication
+        if: ${{ !cancelled() }}
+        run: pnpm test:module:publication
+
+      - name: Run module tests - Active election status and ballot
+        if: ${{ !cancelled() }}
+        run: pnpm test:module:active-election
+
+      - name: Run module tests - Election results and public view
+        if: ${{ !cancelled() }}
+        run: pnpm test:module:results
+
+      - name: Run module tests - Participation history and analytics
+        if: ${{ !cancelled() }}
+        run: pnpm test:module:participation
+
+      - name: Run module tests - News and notifications
+        if: ${{ !cancelled() }}
+        run: pnpm test:module:notifications
+
+      - name: Verify Cypress binary
+        if: ${{ !cancelled() }}
+        run: pnpm cypress:verify
+
+      - name: Start frontend for Cypress
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          pnpm exec next start -H 127.0.0.1 -p 3000 > next-cypress.log 2>&1 &
+          echo $! > next-cypress.pid
+          for i in {1..90}; do
+            if curl -fsS http://127.0.0.1:3000 >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat next-cypress.log
+          exit 1
+
+      - name: Run Cypress tests - Authentication and administrative access
+        if: ${{ !cancelled() }}
+        env:
+          CYPRESS_BASE_URL: http://127.0.0.1:3000
+        run: pnpm cypress:module:auth-access
+
+      - name: Run Cypress tests - Institutional applications and approvals
+        if: ${{ !cancelled() }}
+        env:
+          CYPRESS_BASE_URL: http://127.0.0.1:3000
+        run: pnpm cypress:module:applications
+
+      - name: Run Cypress tests - Election creation and configuration
+        if: ${{ !cancelled() }}
+        env:
+          CYPRESS_BASE_URL: http://127.0.0.1:3000
+        run: pnpm cypress:module:election-config
+
+      - name: Run Cypress tests - Electoral register management
+        if: ${{ !cancelled() }}
+        env:
+          CYPRESS_BASE_URL: http://127.0.0.1:3000
+        run: pnpm cypress:module:register
+
+      - name: Run Cypress tests - Election review and official publication
+        if: ${{ !cancelled() }}
+        env:
+          CYPRESS_BASE_URL: http://127.0.0.1:3000
+        run: pnpm cypress:module:publication
+
+      - name: Run Cypress tests - Election results and public view
+        if: ${{ !cancelled() }}
+        env:
+          CYPRESS_BASE_URL: http://127.0.0.1:3000
+        run: pnpm cypress:module:results
+
+      - name: Upload Cypress evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-cypress-evidence
+          path: |
+            next-cypress.log
+            cypress/screenshots/
+            cypress/videos/
+            cypress/results/
+          if-no-files-found: ignore
+
+      - name: Stop frontend server
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f next-cypress.pid ]]; then
+            kill "$(cat next-cypress.pid)" || true
+          fi
+
+      - name: Frontend module validation summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "# Frontend module tests"
+            echo ""
+            echo "The frontend automated battery ran in one job with visible Vitest and Cypress module steps."
+            echo ""
+            echo "Cypress base URL: `http://127.0.0.1:3000`"
+            echo "Coverage HTML report path: `coverage/index.html`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   build:
     name: Build & Push Docker image
-    needs: quality
+    needs: module-tests
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: devops_aws
@@ -329,7 +460,11 @@ jobs:
 
   frontend-metrics:
     name: Frontend metrics
-    needs: [quality, build, deploy-dev, deploy-prod]
+    needs:
+      - module-tests
+      - build
+      - deploy-dev
+      - deploy-prod
     if: always()
     runs-on: ubuntu-latest
     permissions:

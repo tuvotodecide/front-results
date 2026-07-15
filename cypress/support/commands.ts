@@ -7,6 +7,17 @@ const resultsOkPresidential = require("../fixtures/results_ok_presidential.json"
 type AuthSession = {
   token: string;
   user: unknown;
+  authSession?: Record<string, unknown>;
+};
+
+const createToken = (payload: Record<string, unknown>) => {
+  const encode = (value: Record<string, unknown>) =>
+    btoa(JSON.stringify(value))
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
+
+  return `${encode({ alg: "none", typ: "JWT" })}.${encode(payload)}.signature`;
 };
 
 type MockConfigStatus = {
@@ -33,6 +44,7 @@ const AUTH_COOKIE_KEYS = {
   role: "tvd_auth_role",
   status: "tvd_auth_status",
   active: "tvd_auth_active",
+  context: "tvd_auth_context",
 } as const;
 
 const buildSessionCookies = (session: AuthSession) => {
@@ -42,17 +54,28 @@ const buildSessionCookies = (session: AuthSession) => {
     user.status ?? ((user.active as boolean | undefined) ? "ACTIVE" : "PENDING"),
   );
   const active = String(Boolean(user.active));
+  const activeContext = (session.authSession?.activeContext ?? {}) as Record<string, unknown>;
+  const context = activeContext.type ? String(activeContext.type) : "";
 
   return [
-    `${AUTH_COOKIE_KEYS.token}=${session.token}; Path=/; SameSite=Lax`,
-    `${AUTH_COOKIE_KEYS.role}=${role}; Path=/; SameSite=Lax`,
-    `${AUTH_COOKIE_KEYS.status}=${status}; Path=/; SameSite=Lax`,
-    `${AUTH_COOKIE_KEYS.active}=${active}; Path=/; SameSite=Lax`,
-  ];
+    { name: AUTH_COOKIE_KEYS.token, value: session.token },
+    { name: AUTH_COOKIE_KEYS.role, value: role },
+    { name: AUTH_COOKIE_KEYS.status, value: status },
+    { name: AUTH_COOKIE_KEYS.active, value: active },
+    context ? { name: AUTH_COOKIE_KEYS.context, value: context } : null,
+  ].filter(Boolean);
 };
 
 Cypress.Commands.add("clearSession", () => {
+  cy.clearAllCookies();
+  cy.clearAllLocalStorage();
+  cy.clearAllSessionStorage();
   cy.clearCookies();
+  cy.clearCookie("tvd_auth_token");
+  cy.clearCookie("tvd_auth_role");
+  cy.clearCookie("tvd_auth_status");
+  cy.clearCookie("tvd_auth_active");
+  cy.clearCookie("tvd_auth_context");
   cy.clearLocalStorage();
   cy.window().then((win) => {
     win.localStorage.clear();
@@ -72,16 +95,88 @@ Cypress.Commands.add(
 
 Cypress.Commands.add("visitWithAuth", (url: string, session: AuthSession) => {
   const cookies = buildSessionCookies(session);
-  cy.visit("/", {
+  cookies.forEach((cookie) => {
+    if (cookie) {
+      cy.setCookie(cookie.name, cookie.value);
+    }
+  });
+  cy.visit(url, {
     onBeforeLoad(win) {
-      cookies.forEach((cookie) => {
-        win.document.cookie = cookie;
-      });
       win.localStorage.setItem("token", session.token);
       win.localStorage.setItem("user", JSON.stringify(session.user));
+      if (session.authSession) {
+        win.localStorage.setItem("authSession", JSON.stringify(session.authSession));
+      } else {
+        win.localStorage.removeItem("authSession");
+      }
     },
   });
-  cy.visit(url);
+});
+
+Cypress.Commands.add("setResultsAdminSession", (url: string = "/resultados/panel") => {
+  const token = createToken({
+    sub: "super-smoke",
+    role: "SUPERADMIN",
+    active: true,
+    exp: Math.floor(Date.now() / 1000) + 3600,
+  });
+
+  cy.visitWithAuth(url, {
+    token,
+    user: {
+      id: "super-smoke",
+      email: "superadmin@smoke.test",
+      name: "Superadmin Smoke",
+      role: "SUPERADMIN",
+      active: true,
+      status: "ACTIVE",
+    },
+    authSession: {
+      role: "SUPERADMIN",
+      active: true,
+      tenantId: null,
+      availableContexts: [{ type: "GLOBAL_ADMIN" }],
+      requiresContextSelection: false,
+      defaultContext: { type: "GLOBAL_ADMIN" },
+      activeContext: { type: "GLOBAL_ADMIN" },
+      accessStatus: null,
+    },
+  });
+});
+
+Cypress.Commands.add("setTenantSession", (url: string = "/votacion/elecciones") => {
+  const token = createToken({
+    sub: "tenant-smoke",
+    role: "TENANT_ADMIN",
+    active: true,
+    tenantId: "tenant-smoke",
+    exp: Math.floor(Date.now() / 1000) + 3600,
+  });
+
+  cy.visitWithAuth(url, {
+    token,
+    user: {
+      id: "tenant-smoke",
+      email: "tenant@smoke.test",
+      name: "Tenant Smoke",
+      role: "TENANT_ADMIN",
+      active: true,
+      status: "ACTIVE",
+      tenantId: "tenant-smoke",
+    },
+    authSession: {
+      role: "TENANT_ADMIN",
+      active: true,
+      tenantId: "tenant-smoke",
+      availableContexts: [
+        { type: "TENANT", tenantId: "tenant-smoke", tenantName: "Tenant Smoke" },
+      ],
+      requiresContextSelection: false,
+      defaultContext: { type: "TENANT", tenantId: "tenant-smoke", tenantName: "Tenant Smoke" },
+      activeContext: { type: "TENANT", tenantId: "tenant-smoke", tenantName: "Tenant Smoke" },
+      accessStatus: null,
+    },
+  });
 });
 
 Cypress.Commands.add("seedTestData", () => {

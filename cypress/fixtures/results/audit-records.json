@@ -1,0 +1,11 @@
+{
+  "data": [
+    {
+      "id": "audit-smoke",
+      "mesa": "MESA-001",
+      "departamento": "La Paz",
+      "estado": "Coincide",
+      "observaciones": "Fixture smoke"
+    }
+  ]
+}

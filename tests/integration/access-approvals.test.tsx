@@ -12,6 +12,7 @@ const accessApprovalsMocks = vi.hoisted(() => ({
   reject: vi.fn(),
   revoke: vi.fn(),
   reopen: vi.fn(),
+  isError: false,
 }));
 
 vi.mock("@/store/accessApprovals", () => {
@@ -26,7 +27,7 @@ vi.mock("@/store/accessApprovals", () => {
     useGetInstitutionalApplicationsQuery: () => ({
       data: accessApprovalsMocks.applications,
       isLoading: accessApprovalsMocks.isLoading,
-      isError: false,
+      isError: accessApprovalsMocks.isError,
     }),
     useGetInstitutionalApplicationQuery: (
       applicationId: string,
@@ -74,6 +75,7 @@ describe("access approvals admin page", () => {
       accessApprovalApplications.map((application) => [application.id, application]),
     );
     accessApprovalsMocks.isLoading = false;
+    accessApprovalsMocks.isError = false;
     accessApprovalsMocks.approve.mockReset().mockResolvedValue(undefined);
     accessApprovalsMocks.reject.mockReset().mockResolvedValue(undefined);
     accessApprovalsMocks.revoke.mockReset().mockResolvedValue(undefined);
@@ -113,6 +115,20 @@ describe("access approvals admin page", () => {
     renderApprovals();
 
     expect(screen.getByText("No hay solicitudes institucionales pendientes.")).toBeInTheDocument();
+  });
+
+  it("shows a visible load error instead of treating backend failure as an empty list", () => {
+    accessApprovalsMocks.isError = true;
+    accessApprovalsMocks.applications = [];
+
+    renderApprovals();
+
+    expect(
+      screen.getByText("No se pudieron cargar las solicitudes institucionales. Intenta nuevamente."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("No hay solicitudes institucionales pendientes."),
+    ).not.toBeInTheDocument();
   });
 
   it("approves and rejects a pending application with the expected public payloads", async () => {

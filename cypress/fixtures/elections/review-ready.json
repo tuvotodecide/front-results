@@ -1,0 +1,13 @@
+{
+  "id": "event-smoke",
+  "state": "READY_FOR_REVIEW",
+  "isReady": true,
+  "pending": [],
+  "publishDeadline": "2027-01-09T08:00:00.000Z",
+  "publicationWindow": {
+    "deadline": "2027-01-09T08:00:00.000Z",
+    "canConfirmOfficialPublication": true,
+    "expired": false,
+    "hoursUntilDeadline": 240
+  }
+}
