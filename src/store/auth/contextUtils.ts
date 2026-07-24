@@ -82,7 +82,7 @@ export const resolveHomeByContext = (context: AuthContext | null | undefined) =>
   if (!context) return "/";
 
   if (context.type === "GLOBAL_ADMIN") {
-    return "/resultados/panel";
+    return "/superadmin";
   }
 
   if (context.type === "TERRITORIAL") {
@@ -364,6 +364,10 @@ export const resolvePostLoginRedirect = (
   }
 
   if (requestedPath) {
+    if (context.type === "GLOBAL_ADMIN") {
+      return requestedPath.startsWith("/superadmin") ? requestedPath : "/superadmin";
+    }
+
     if (
       requestedPath.startsWith("/votacion") &&
       isContextAllowedForDomain(context, "votacion")

@@ -110,7 +110,7 @@ describe("middleware access rules", () => {
     expect(response.headers.get("location")).toBe("http://localhost/resultados");
   });
 
-  it("allows superadmin users into resultados admin routes", () => {
+  it("redirects global superadmin users away from resultados admin routes", () => {
     const token = createToken({
       exp: Math.floor(Date.now() / 1000) + 3600,
       role: "SUPERADMIN",
@@ -123,10 +123,11 @@ describe("middleware access rules", () => {
         [AUTH_COOKIE_KEYS.role]: "SUPERADMIN",
         [AUTH_COOKIE_KEYS.status]: "ACTIVE",
         [AUTH_COOKIE_KEYS.active]: "true",
+        [AUTH_COOKIE_KEYS.context]: "GLOBAL_ADMIN",
       }),
     );
 
-    expect(response.headers.get("x-middleware-next")).toBe("1");
+    expect(response.headers.get("location")).toBe("http://localhost/superadmin");
   });
 
   it("allows superadmin users into superadmin routes", () => {
@@ -142,6 +143,7 @@ describe("middleware access rules", () => {
         [AUTH_COOKIE_KEYS.role]: "SUPERADMIN",
         [AUTH_COOKIE_KEYS.status]: "ACTIVE",
         [AUTH_COOKIE_KEYS.active]: "true",
+        [AUTH_COOKIE_KEYS.context]: "GLOBAL_ADMIN",
       }),
     );
 
@@ -151,14 +153,14 @@ describe("middleware access rules", () => {
   it("allows GLOBAL_ADMIN context into superadmin routes", () => {
     const token = createToken({
       exp: Math.floor(Date.now() / 1000) + 3600,
-      role: "TENANT_ADMIN",
+      role: "SUPERADMIN",
       active: true,
     });
 
     const response = handleSuperadminAccess(
       createRequest("/superadmin", {
         [AUTH_COOKIE_KEYS.token]: token,
-        [AUTH_COOKIE_KEYS.role]: "TENANT_ADMIN",
+        [AUTH_COOKIE_KEYS.role]: "SUPERADMIN",
         [AUTH_COOKIE_KEYS.status]: "ACTIVE",
         [AUTH_COOKIE_KEYS.active]: "true",
         [AUTH_COOKIE_KEYS.context]: "GLOBAL_ADMIN",
@@ -178,6 +180,26 @@ describe("middleware access rules", () => {
     );
 
     expect(response.headers.get("x-middleware-next")).toBe("1");
+  });
+
+  it("redirects global superadmin users away from private voting routes", () => {
+    const token = createToken({
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      role: "SUPERADMIN",
+      active: true,
+    });
+
+    const response = handleVotacionAccess(
+      createRequest("/votacion/elecciones/new", {
+        [AUTH_COOKIE_KEYS.token]: token,
+        [AUTH_COOKIE_KEYS.role]: "SUPERADMIN",
+        [AUTH_COOKIE_KEYS.status]: "ACTIVE",
+        [AUTH_COOKIE_KEYS.active]: "true",
+        [AUTH_COOKIE_KEYS.context]: "GLOBAL_ADMIN",
+      }),
+    );
+
+    expect(response.headers.get("location")).toBe("http://localhost/superadmin");
   });
 
   it("does not allow dev superadmin cookie when dev auth is disabled", () => {

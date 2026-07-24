@@ -44,7 +44,7 @@ export const resolveAuthResultadosRedirect = (
   }
 
   if (user.role === "SUPERADMIN") {
-    return "/resultados/panel";
+    return "/superadmin";
   }
 
   if (user.role === "TENANT_ADMIN") {

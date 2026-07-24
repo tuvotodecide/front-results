@@ -42,6 +42,9 @@ export const resolveAuthVotacionRedirect = (
   }
 
   if (user.role === "TENANT_ADMIN" || user.role === "SUPERADMIN") {
+    if (user.role === "SUPERADMIN") {
+      return "/superadmin";
+    }
     return "/votacion/elecciones";
   }
 

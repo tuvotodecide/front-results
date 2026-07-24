@@ -130,6 +130,10 @@ export const normalizeStatus = (
 export const hasPathPrefix = (pathname: string, basePath: string) =>
   pathname === basePath || pathname.startsWith(`${basePath}/`);
 
+export const isGlobalSuperadminSession = (
+  session: { role: SessionRole; context: SessionContext } | null,
+) => Boolean(session && session.role === "SUPERADMIN" && session.context === "GLOBAL_ADMIN");
+
 const redirectTo = (request: NextRequest, pathname: string) => {
   const url = request.nextUrl.clone();
   url.pathname = pathname;
@@ -201,6 +205,10 @@ export const handleResultadosAccess = (request: NextRequest) => {
     return redirectTo(request, "/resultados/rechazado");
   }
 
+  if (isGlobalSuperadminSession(session)) {
+    return redirectTo(request, "/superadmin");
+  }
+
   const normalizedPathname =
     request.nextUrl.pathname.slice("/resultados".length) || "/";
   const isAdminPath = resultadosAdminPaths.some((path) =>
@@ -242,6 +250,10 @@ export const handleVotacionAccess = (request: NextRequest) => {
     return redirectTo(request, "/votacion/rechazado");
   }
 
+  if (isGlobalSuperadminSession(session)) {
+    return redirectTo(request, "/superadmin");
+  }
+
   return NextResponse.next();
 };
 
@@ -273,7 +285,7 @@ export const handleSuperadminAccess = (request: NextRequest) => {
     return redirectTo(request, "/resultados/rechazado");
   }
 
-  if (session.role === "SUPERADMIN" || session.context === "GLOBAL_ADMIN") {
+  if (isGlobalSuperadminSession(session)) {
     return NextResponse.next();
   }
 

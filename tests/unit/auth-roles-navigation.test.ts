@@ -69,6 +69,45 @@ describe("auth roles and navigation", () => {
     expect(resolvePostLoginRedirect(auth, "/aprobaciones")).toBe("/aprobaciones");
   });
 
+  it("routes global superadmin sessions to /superadmin", () => {
+    const auth = {
+      ...baseState,
+      token,
+      accessToken: token,
+      role: "SUPERADMIN",
+      active: true,
+      user: {
+        id: "superadmin-1",
+        email: "superadmin@test.local",
+        name: "Superadmin",
+        role: "SUPERADMIN" as const,
+        active: true,
+      },
+      availableContexts: [
+        {
+          type: "GLOBAL_ADMIN" as const,
+          role: "SUPERADMIN",
+          label: "Administrador global",
+        },
+      ],
+      activeContext: {
+        type: "GLOBAL_ADMIN" as const,
+        role: "SUPERADMIN",
+        label: "Administrador global",
+      },
+    };
+
+    expect(resolveDomainLogin(auth, "resultados")).toMatchObject({
+      kind: "allowed",
+      redirectTo: "/superadmin",
+    });
+    expect(resolvePostLoginRedirect(auth, "/resultados/panel")).toBe("/superadmin");
+    expect(resolvePostLoginRedirect(auth, "/votacion/elecciones/new")).toBe("/superadmin");
+    expect(resolvePostLoginRedirect(auth, "/superadmin/tvd/contrato")).toBe(
+      "/superadmin/tvd/contrato",
+    );
+  });
+
   it("clears auth state and browser session keys on logout", () => {
     localStorage.setItem("token", "token");
     localStorage.setItem("user", "{}");
