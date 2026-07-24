@@ -11,7 +11,7 @@ import {
   ClipboardList,
   Home,
   ListRestart,
-  Search,
+  LogOut,
   Shield,
   Users,
   Wallet,
@@ -124,6 +124,12 @@ export default function SuperadminTopNav() {
   const dispatch = useDispatch();
   const logoAsset = tuvotoDecideImage as string | { src: string };
   const logoSrc = typeof logoAsset === "string" ? logoAsset : logoAsset.src;
+  const userLabel = auth.user?.name || auth.user?.email || "SUPERADMIN";
+
+  const logout = () => {
+    dispatch(logOut());
+    window.location.replace("/resultados/login");
+  };
 
   const linkClass = (href: string) =>
     `inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors sm:h-10 sm:px-3.5 ${
@@ -142,9 +148,15 @@ export default function SuperadminTopNav() {
               Tu voto decide
             </span>
           </Link>
-          <span className="inline-flex items-center rounded-full bg-[#edf6ef] px-2.5 py-1 text-[11px] font-semibold text-[#287c36] sm:hidden">
-            SUPERADMIN
-          </span>
+          <button
+            type="button"
+            data-cy="logout-button-mobile"
+            onClick={logout}
+            className="inline-flex items-center gap-1.5 rounded-full border border-[#dfe3df] px-2.5 py-1 text-[11px] font-semibold text-[#555] sm:hidden"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Salir
+          </button>
         </div>
 
         <nav className="flex w-full min-w-0 flex-wrap items-center justify-center gap-2 sm:w-auto sm:justify-self-center">
@@ -175,10 +187,20 @@ export default function SuperadminTopNav() {
               </button>
             </>
           ) : (
-            <span className="inline-flex items-center gap-2 rounded-full bg-[#edf6ef] px-3 py-1.5 text-xs font-semibold text-[#287c36]">
-              <Search className="h-3.5 w-3.5" />
-              SUPERADMIN
-            </span>
+            <>
+              <span className="inline-flex max-w-[220px] items-center rounded-full bg-[#edf6ef] px-3 py-1.5 text-xs font-semibold text-[#287c36]">
+                <span className="truncate">{userLabel}</span>
+              </span>
+              <button
+                type="button"
+                data-cy="logout-button"
+                onClick={logout}
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#dfe3df] px-3 py-1.5 text-xs font-semibold text-[#555] transition-colors hover:bg-[#f7f8f7] hover:text-[#287c36]"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Cerrar sesión
+              </button>
+            </>
           )}
         </div>
       </div>

@@ -72,53 +72,68 @@ const toBigIntValue = (value: unknown) => {
   return null;
 };
 
-const isProductionRuntime = () =>
-  typeof process !== "undefined" &&
-  (process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production");
-
 const serverEnv = (key: string) =>
   typeof process !== "undefined" ? String(process.env[key] ?? "").trim() : "";
 
-const DEFAULT_BASE_SEPOLIA = {
-  tokenAddress: "0x0156D96BAbC74139a5cdb2cf2C90FDA1F6B53562",
-  deploymentTxHash:
-    "0x7adaaa8cb8ec6cde002f452a42da95c8356935b16fd0ee675db887640d948b77",
-  multisigAddress: "0x9b9A73a7Cb6e863f31db443Ea4a6d9Ea395c2C95",
-  initialDistributionTxHash:
-    "0x7adaaa8cb8ec6cde002f452a42da95c8356935b16fd0ee675db887640d948b77",
-  coreDistributionTxHash:
-    "0xcb5436033e65eb8a46808c4605abac008a35dc0eead44e8a7fe1e1eac4a722e2",
-} as const;
+const readFirstServerEnv = (keys: readonly string[]) => {
+  for (const key of keys) {
+    const value = serverEnv(key);
+    if (value) return value;
+  }
+  return "";
+};
 
 const getConfiguredAddress = (
-  key: string,
-  fallback: string | null,
+  key: string | readonly string[],
   issues: TvdReadIssue[],
 ) => {
-  const value = normalizeAddress(serverEnv(key)) ?? (!isProductionRuntime() ? fallback : null);
+  const keys = Array.isArray(key) ? key : [key];
+  const value = normalizeAddress(readFirstServerEnv(keys));
   if (!value) {
-    issues.push({ code: `${key}_MISSING`, message: `Falta configurar ${key}` });
+    issues.push({
+      code: `${keys[0]}_MISSING`,
+      message: `Falta configurar ${keys.join(" o ")}`,
+    });
   }
   return value;
 };
 
 const getConfiguredHash = (
-  key: string,
-  fallback: string | null,
+  key: string | readonly string[],
   issues: TvdReadIssue[],
 ) => {
-  const value = normalizeHash(serverEnv(key)) ?? (!isProductionRuntime() ? fallback : null);
+  const keys = Array.isArray(key) ? key : [key];
+  const value = normalizeHash(readFirstServerEnv(keys));
   if (!value) {
-    issues.push({ code: `${key}_MISSING`, message: `Falta configurar ${key}` });
+    issues.push({
+      code: `${keys[0]}_MISSING`,
+      message: `Falta configurar ${keys.join(" o ")}`,
+    });
   }
   return value;
 };
 
 const OFFICIAL_WALLET_CONFIG = [
-  { id: "treasury", name: "Tesorería multisig", key: "TVD_TREASURY_WALLET" },
-  { id: "ecosystem", name: "Ecosistema", key: "TVD_ECOSYSTEM_WALLET" },
-  { id: "liquidity", name: "Liquidez", key: "TVD_LIQUIDITY_WALLET" },
-  { id: "core-team", name: "Equipo Core", key: "TVD_CORE_TEAM_WALLET" },
+  {
+    id: "treasury",
+    name: "Tesorería multisig",
+    keys: ["TVD_TREASURY_WALLET", "TREASURY_WALLET"],
+  },
+  {
+    id: "ecosystem",
+    name: "Ecosistema",
+    keys: ["TVD_ECOSYSTEM_WALLET", "ECOSYSTEM_WALLET"],
+  },
+  {
+    id: "liquidity",
+    name: "Liquidez",
+    keys: ["TVD_LIQUIDITY_WALLET", "LIQUIDITY_WALLET"],
+  },
+  {
+    id: "core-team",
+    name: "Equipo Core",
+    keys: ["TVD_CORE_TEAM_WALLET", "CORE_TEAM_WALLET", "CORE_VESTING_ADDRESS"],
+  },
 ] as const;
 
 const addressInfo = (
@@ -328,23 +343,23 @@ export const readTvdContractsOverview = async (
   const config = getTvdServerBlockchainConfig();
   const issues: TvdReadIssue[] = [];
   const tvdAddress =
-    getConfiguredAddress("TVD_TOKEN_ADDRESS", DEFAULT_BASE_SEPOLIA.tokenAddress, issues) ??
+    getConfiguredAddress("TVD_TOKEN_ADDRESS", issues) ??
     normalizeAddress(contracts.tvdToken?.address);
   const tvdTxHash =
-    getConfiguredHash("TVD_TOKEN_DEPLOY_TX_HASH", DEFAULT_BASE_SEPOLIA.deploymentTxHash, issues) ??
+    getConfiguredHash(["TVD_TOKEN_TX_HASH", "TVD_TOKEN_DEPLOY_TX_HASH"], issues) ??
     normalizeHash(contracts.tvdToken?.txHash);
   const multisigAddress =
-    getConfiguredAddress("TVD_MULTISIG_ADDRESS", DEFAULT_BASE_SEPOLIA.multisigAddress, issues) ??
+    getConfiguredAddress(["MULTISIG_WALLET_ADDRESS", "TVD_MULTISIG_ADDRESS"], issues) ??
     normalizeAddress(contracts.multisigWallet?.address);
-  const multisigTxHash = normalizeHash(contracts.multisigWallet?.txHash);
+  const multisigTxHash =
+    getConfiguredHash(["MULTISIG_WALLET_TX_HASH", "TVD_MULTISIG_TX_HASH"], issues) ??
+    normalizeHash(contracts.multisigWallet?.txHash);
   const initialDistributionTxHash = getConfiguredHash(
-    "TVD_INITIAL_DISTRIBUTION_TX_HASH",
-    DEFAULT_BASE_SEPOLIA.initialDistributionTxHash,
+    ["TVD_INITIAL_DISTRIBUTION_TX_HASH", "TVD_TOKEN_TX_HASH", "TVD_TOKEN_DEPLOY_TX_HASH"],
     issues,
   );
   const coreDistributionTxHash = getConfiguredHash(
-    "TVD_CORE_DISTRIBUTION_TX_HASH",
-    DEFAULT_BASE_SEPOLIA.coreDistributionTxHash,
+    ["TVD_CORE_DISTRIBUTION_TX_HASH", "CORE_DISTRIBUTION_TX_HASH"],
     issues,
   );
 
@@ -370,7 +385,7 @@ export const readTvdContractsOverview = async (
 
   const officialWallets: TvdContractsReadModel["officialWallets"] =
     OFFICIAL_WALLET_CONFIG.map((fund) => {
-      const address = getConfiguredAddress(fund.key, null, issues);
+      const address = getConfiguredAddress(fund.keys, issues);
       const txHash = fund.id === "core-team" ? coreDistributionTxHash : initialDistributionTxHash;
       return {
         id: fund.id,
@@ -378,18 +393,18 @@ export const readTvdContractsOverview = async (
         address,
         explorerUrl: buildExplorerAddressUrl(config.explorerBaseUrl, address),
         status: address ? "loading" : "not_configured",
-        configKey: fund.key,
+        configKey: fund.keys[0],
         initialDistribution: {
           txHash,
           txExplorerUrl: buildExplorerTxUrl(config.explorerBaseUrl, txHash),
           amount: null,
           status: address && txHash ? "loading" : "not_configured",
-          message: address ? null : `Falta configurar ${fund.key}`,
+          message: address ? null : `Falta configurar ${fund.keys.join(" o ")}`,
         },
         currentDistribution: {
           amount: null,
           status: address ? "loading" : "not_configured",
-          message: address ? null : `Falta configurar ${fund.key}`,
+          message: address ? null : `Falta configurar ${fund.keys.join(" o ")}`,
         },
       };
     });

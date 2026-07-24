@@ -20,6 +20,7 @@ describe("SuperadminTopNav", () => {
     expect(screen.queryByRole("link", { name: /Votaciones/i })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /\$TVD/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Gestión/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Cerrar sesión/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /\$TVD/i }));
 
