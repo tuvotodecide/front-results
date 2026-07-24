@@ -3,6 +3,7 @@ import { Provider } from "react-redux";
 import { render } from "@testing-library/react";
 import type { ReactElement } from "react";
 import authReducer, { type AuthState } from "@/store/auth/authSlice";
+import { apiSlice } from "@/store/apiSlice";
 
 export const renderWithAuthStore = (
   ui: ReactElement,
@@ -10,8 +11,11 @@ export const renderWithAuthStore = (
 ) => {
   const store = configureStore({
     reducer: {
+      [apiSlice.reducerPath]: apiSlice.reducer,
       auth: authReducer.reducer,
     },
+    middleware: (getDefaultMiddleware) =>
+      getDefaultMiddleware().concat(apiSlice.middleware),
     preloadedState: {
       auth: {
         token: null,

@@ -14,7 +14,6 @@ import { completeReadiness, readyForReviewEvent } from "../fixtures/admin/padron
 
 const navigateMock = vi.fn();
 const refetchMock = vi.fn();
-
 vi.mock("@/domains/votacion/navigation/compat-private", () => ({
   useNavigate: () => navigateMock,
   useParams: () => ({ electionId: "evt-1" }),
@@ -755,6 +754,185 @@ describe("publication deadlines UX", () => {
     consoleErrorMock.mockRestore();
   });
 
+  it("shows persistent official publication request progress and blocks duplicate publication", async () => {
+    const user = userEvent.setup();
+    useElectionPublishMock.mockReturnValue({
+      votingEvent: readyForReviewEvent,
+      ballotPreview: null,
+      configSummary: makeConfigSummary(),
+      publicationMissingIdentityCount: 0,
+      publicationPadronCount: 10,
+      reviewReadiness: completeReadiness,
+      loading: false,
+      error: null,
+      electionStatus: "DRAFT",
+      openReview: vi.fn(),
+      openingReview: false,
+      activateElection: vi.fn(),
+      activating: false,
+      activationResult: null,
+      officialPublicationRequest: {
+        requestId: "opr-1",
+        eventId: "evt-1",
+        status: "PENDING_APPROVAL",
+        expiresAt: "2026-04-18T06:00:00.000Z",
+        votersCount: "10",
+        requiredCredits: "10",
+        requiredTvd: "10000000000000000000",
+        tvdPerCredit: "1000000000000000000",
+        signerWallet: "0xabc",
+        createdAt: "2026-04-17T12:00:00.000Z",
+        updatedAt: "2026-04-17T12:00:00.000Z",
+      },
+      officialPublicationMessage:
+        "Esperando confirmación desde la aplicación móvil.",
+      officialPublicationIsActive: true,
+      officialPublicationCanCancel: true,
+      officialPublicationTxUrl: null,
+      cancelOfficialPublication: vi.fn(),
+      cancelingOfficialPublication: false,
+      copyToClipboard: vi.fn(),
+      getShareUrl: vi.fn(),
+      refetch: refetchMock,
+    } satisfies UseElectionPublishReturn);
+
+    render(<ElectionConfigReview />);
+
+    await user.click(screen.getByRole("button", { name: /avisos importantes/i }));
+
+    expect(screen.getByText("Solicitud de publicación oficial")).toBeInTheDocument();
+    expect(
+      screen.getByText("Esperando confirmación desde la aplicación móvil."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Esperando confirmación móvil" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Cancelar solicitud" }),
+    ).toBeEnabled();
+  });
+
+  it("shows retry action for failed retryable official publication attempts", async () => {
+    const user = userEvent.setup();
+    const activateElectionMock = vi.fn();
+    useElectionPublishMock.mockReturnValue({
+      votingEvent: readyForReviewEvent,
+      ballotPreview: null,
+      configSummary: makeConfigSummary(),
+      publicationMissingIdentityCount: 0,
+      publicationPadronCount: 10,
+      reviewReadiness: completeReadiness,
+      loading: false,
+      error: null,
+      electionStatus: "DRAFT",
+      openReview: vi.fn(),
+      openingReview: false,
+      activateElection: activateElectionMock,
+      activating: false,
+      activationResult: null,
+      officialPublicationRequest: {
+        requestId: "opr-failed",
+        eventId: "evt-1",
+        status: "FAILED_RETRYABLE",
+        expiresAt: "2026-04-18T06:00:00.000Z",
+        votersCount: "10",
+        requiredCredits: "10",
+        requiredTvd: "10000000000000000000",
+        tvdPerCredit: "1000000000000000000",
+        signerWallet: "0xabc",
+        createdAt: "2026-04-17T12:00:00.000Z",
+        updatedAt: "2026-04-17T12:00:00.000Z",
+        errorCode: "OFFICIAL_PUBLICATION_ARTIFACT_KEY_MISSING",
+        errorStage: "ARTIFACT_ENCRYPTION",
+        retryable: true,
+        active: false,
+      },
+      officialPublicationMessage:
+        "No se pudo preparar la publicación oficial. Revisa la configuración del servicio e inténtalo nuevamente.",
+      officialPublicationIsActive: false,
+      officialPublicationCanRetry: true,
+      officialPublicationCanCancel: false,
+      officialPublicationTxUrl: null,
+      cancelOfficialPublication: vi.fn(),
+      cancelingOfficialPublication: false,
+      copyToClipboard: vi.fn(),
+      getShareUrl: vi.fn(),
+      refetch: refetchMock,
+    } satisfies UseElectionPublishReturn);
+
+    render(<ElectionConfigReview />);
+
+    await user.click(screen.getByRole("button", { name: /avisos importantes/i }));
+
+    expect(
+      screen.getByText(
+        "No se pudo preparar la publicación oficial. Revisa la configuración del servicio e inténtalo nuevamente.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Esperando confirmación móvil" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Cancelar solicitud" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Reintentar publicación" }),
+    ).toBeEnabled();
+  });
+
+  it("cancels a safe official publication request after confirmation", async () => {
+    const user = userEvent.setup();
+    const cancelOfficialPublication = vi.fn().mockResolvedValue(undefined);
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    useElectionPublishMock.mockReturnValue({
+      votingEvent: readyForReviewEvent,
+      ballotPreview: null,
+      configSummary: makeConfigSummary(),
+      publicationMissingIdentityCount: 0,
+      publicationPadronCount: 10,
+      reviewReadiness: completeReadiness,
+      loading: false,
+      error: null,
+      electionStatus: "DRAFT",
+      openReview: vi.fn(),
+      openingReview: false,
+      activateElection: vi.fn(),
+      activating: false,
+      activationResult: null,
+      officialPublicationRequest: {
+        requestId: "opr-1",
+        eventId: "evt-1",
+        status: "CLAIMED",
+        expiresAt: "2026-04-18T06:00:00.000Z",
+        votersCount: "10",
+        requiredCredits: "10",
+        requiredTvd: "10000000000000000000",
+        tvdPerCredit: "1000000000000000000",
+        signerWallet: "0xabc",
+        createdAt: "2026-04-17T12:00:00.000Z",
+        updatedAt: "2026-04-17T12:00:00.000Z",
+      },
+      officialPublicationMessage:
+        "La solicitud fue abierta en el dispositivo del administrador.",
+      officialPublicationIsActive: true,
+      officialPublicationCanCancel: true,
+      officialPublicationTxUrl: null,
+      cancelOfficialPublication,
+      cancelingOfficialPublication: false,
+      copyToClipboard: vi.fn(),
+      getShareUrl: vi.fn(),
+      refetch: refetchMock,
+    } satisfies UseElectionPublishReturn);
+
+    render(<ElectionConfigReview />);
+
+    await user.click(screen.getByRole("button", { name: /avisos importantes/i }));
+    await user.click(screen.getByRole("button", { name: "Cancelar solicitud" }));
+
+    expect(cancelOfficialPublication).toHaveBeenCalledTimes(1);
+    confirmSpy.mockRestore();
+  });
+
   it("prevents a second official publication once the event is already published", () => {
     useElectionPublishMock.mockReturnValue({
       votingEvent: makeVotingEvent({
@@ -1097,7 +1275,12 @@ describe("publication deadlines UX", () => {
     expect(screen.getByText("Confirmar publicación oficial")).toBeInTheDocument();
     expect(
       screen.getByText(
-        /esta decisión publica oficialmente la elección y no podrás realizar más cambios/i,
+        /utiliza la aplicación Tu Voto Decide en el teléfono vinculado a tu cuenta/i,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /la wallet institucional dispone de los TVD requeridos/i,
       ),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancelar" })).toBeInTheDocument();

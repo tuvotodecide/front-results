@@ -11,6 +11,147 @@ import TvdParametersPage from "@/domains/superadmin/screens/TvdParametersPage";
 import TvdWalletLookupPage from "@/domains/superadmin/screens/TvdWalletLookupPage";
 import { mockAssignmentTxHash } from "@/domains/superadmin/data/superadminTvd.mock";
 import * as clipboardService from "@/domains/superadmin/services/clipboard";
+import { renderWithAuthStore } from "../utils/renderWithStore";
+
+const tvdContractReadModel = {
+  status: "available",
+  network: {
+    chainId: 84532,
+    name: "Base Sepolia",
+    explorerBaseUrl: "https://sepolia.basescan.org",
+  },
+  tvdToken: {
+    address: "0x1234567890abcdef1234567890abcdef12345678",
+    txHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    explorerUrl:
+      "https://sepolia.basescan.org/address/0x1234567890abcdef1234567890abcdef12345678",
+    txExplorerUrl:
+      "https://sepolia.basescan.org/tx/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    status: "available",
+    deploymentDate: {
+      status: "available",
+      isoDate: "2026-07-23T12:00:00.000Z",
+      message: null,
+    },
+  },
+  multisig: {
+    address: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+    txHash: null,
+    explorerUrl:
+      "https://sepolia.basescan.org/address/0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+    txExplorerUrl: null,
+    status: "available",
+    required: "2",
+    ownersCount: 3,
+    thresholdLabel: "2 de 3 firmantes",
+    owners: [
+      {
+        address: "0x1111111111111111111111111111111111111111",
+        explorerUrl:
+          "https://sepolia.basescan.org/address/0x1111111111111111111111111111111111111111",
+      },
+    ],
+    warning: null,
+    readStatus: "available",
+    errorMessage: null,
+  },
+  officialWallets: [
+    {
+      id: "treasury",
+      name: "Tesorería multisig",
+      address: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+      explorerUrl:
+        "https://sepolia.basescan.org/address/0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+      status: "available",
+      configKey: "TVD_TREASURY_WALLET",
+      initialDistribution: {
+        txHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        txExplorerUrl:
+          "https://sepolia.basescan.org/tx/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        amount: "1000 $TVD",
+        status: "available",
+        message: null,
+      },
+      currentDistribution: {
+        amount: "900 $TVD",
+        status: "available",
+        message: null,
+      },
+    },
+  ],
+  updatedAt: "2026-07-23T12:30:00.000Z",
+  issues: [],
+};
+
+const tvdParametersReadModel = {
+  status: "available",
+  network: {
+    chainId: 8453,
+    name: "Base",
+    explorerBaseUrl: "https://basescan.org",
+  },
+  decimals: 18,
+  tvdPerCredit: {
+    raw: "1000000000000000000",
+    formatted: "1 TVD",
+    status: "available",
+    message: null,
+  },
+  burn: {
+    raw: "1000",
+    formatted: "10%",
+    status: "available",
+    message: null,
+    burnBps: "1000",
+    burnPercentage: "10%",
+  },
+  rewardByVote: {
+    raw: "0",
+    formatted: "0 TVD",
+    status: "available",
+    message: null,
+    enabled: false,
+  },
+  campaign: {
+    status: "available",
+    message: "No existe una campaña configurada",
+    count: "0",
+    fields: [],
+  },
+  contracts: {
+    tvdToken: {
+      address: "0x1234567890abcdef1234567890abcdef12345678",
+      txHash: null,
+      explorerUrl:
+        "https://basescan.org/address/0x1234567890abcdef1234567890abcdef12345678",
+      txExplorerUrl: null,
+      status: "available",
+    },
+    electoralCredits: {
+      address: "0x4444444444444444444444444444444444444444",
+      txHash: null,
+      explorerUrl: "https://basescan.org/address/0x4444444444444444444444444444444444444444",
+      txExplorerUrl: null,
+      status: "available",
+    },
+    voteManager: {
+      address: "0x5555555555555555555555555555555555555555",
+      txHash: null,
+      explorerUrl: "https://basescan.org/address/0x5555555555555555555555555555555555555555",
+      txExplorerUrl: null,
+      status: "available",
+    },
+    incentiveCampaigns: {
+      address: "0x6666666666666666666666666666666666666666",
+      txHash: null,
+      explorerUrl: "https://basescan.org/address/0x6666666666666666666666666666666666666666",
+      txExplorerUrl: null,
+      status: "available",
+    },
+  },
+  updatedAt: "2026-07-23T12:30:00.000Z",
+  issues: [],
+};
 
 describe("pantallas Superadmin", () => {
   beforeEach(() => {
@@ -21,6 +162,7 @@ describe("pantallas Superadmin", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("renderiza panel principal con las 7 cards y links", () => {
@@ -42,26 +184,44 @@ describe("pantallas Superadmin", () => {
     });
   });
 
-  it("renderiza contrato $TVD con red, txHash, firmantes y fondos", () => {
+  it("renderiza contrato $TVD con red, txHash, firmantes y fondos", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ success: true, data: tvdContractReadModel }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
     render(<TvdContractPage />);
 
-    expect(screen.getByText("Base L2")).toBeInTheDocument();
-    expect(screen.getByText(/0x4A3b8C1D/i)).toBeInTheDocument();
-    expect(screen.getByText(/0xdeadc0de/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Base Sepolia/)).toBeInTheDocument();
+    expect(screen.getByText("0x1234...5678")).toBeInTheDocument();
+    expect(screen.getByText("0xaaaa...aaaa")).toBeInTheDocument();
     expect(screen.getByText("Firmante 1")).toBeInTheDocument();
-    expect(screen.getByText("Tesorería y Expansión B2B")).toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: /Comprobar en la web/i }).length).toBeGreaterThan(1);
+    expect(screen.getByText("Tesorería multisig")).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /Ver en BaseScan/i }).length).toBeGreaterThan(1);
   });
 
   it("abre y cierra modal informativo de parámetros económicos", async () => {
     const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(tvdParametersReadModel), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
     render(<TvdParametersPage />);
 
     expect(screen.getByText("Consumo por voto válido")).toBeInTheDocument();
     expect(screen.getByText("Porcentaje de quema")).toBeInTheDocument();
     expect(screen.getByText("Recompensa por voto válido")).toBeInTheDocument();
 
-    await user.click(screen.getAllByRole("button", { name: /Editar/i })[0]);
+    await user.click(await screen.findAllByRole("button", { name: /Ver detalle/i }).then((items) => items[0]));
 
     expect(
       screen.getByRole("dialog", {
@@ -178,46 +338,123 @@ describe("pantallas Superadmin", () => {
     });
   });
 
-  it("consulta una billetera mock y muestra detalle de saldo", async () => {
+  it("consulta una billetera real mediante Backend Results y no muestra saldo", async () => {
     const user = userEvent.setup();
-    render(<TvdWalletLookupPage />);
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          accountAddress: "0x1234567890AbcdEF1234567890aBcdef12345678",
+          registeredInIdentity: true,
+          identityStatus: "REGISTERED",
+          associationStatus: "ASSOCIATED",
+          canUse: true,
+          reasonCode: "WALLET_ASSOCIATED",
+          associations: [
+            {
+              tenantId: "tenant-1",
+              tenantName: "Tribunal Supremo Electoral",
+              tenantActive: true,
+              assignmentId: "assignment-1",
+              userId: "user-1",
+              institutionalRole: "TENANT_ADMIN",
+              assignmentStatus: "APPROVED",
+              assignmentActive: true,
+              userActive: true,
+              walletStatus: "VERIFIED",
+              walletVerifiedAt: "2026-07-21T10:00:00.000Z",
+              walletVerificationSource: "IDENTITY",
+            },
+          ],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    renderWithAuthStore(<TvdWalletLookupPage />, {
+      token: "superadmin-token",
+      role: "SUPERADMIN",
+      active: true,
+      user: {
+        id: "superadmin-1",
+        email: "superadmin@test.dev",
+        name: "Superadmin",
+        role: "SUPERADMIN",
+        active: true,
+      },
+    });
 
     expect(
-      screen.getByText("Ingresa una dirección de wallet para consultar."),
+      screen.getByText(/Ingresa una dirección de wallet para verificar/i),
     ).toBeInTheDocument();
 
     await user.type(
       screen.getByLabelText(/Dirección de wallet/i),
-      "0x1234794723747832234792342341432231",
+      "0x1234567890abcdef1234567890abcdef12345678",
     );
     await user.click(screen.getByRole("button", { name: /Consultar/i }));
 
-    expect(screen.getByText("Detalle de billetera")).toBeInTheDocument();
-    expect(screen.getByText("Sí pertenece")).toBeInTheDocument();
-    expect(screen.getByText("100 $TVD")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Ver en explorer/i })).toBeInTheDocument();
+    expect(await screen.findByText("Detalle de wallet")).toBeInTheDocument();
+    expect(screen.getAllByText("Wallet registrada y asociada").length).toBeGreaterThan(0);
+    expect(screen.getByText("Tribunal Supremo Electoral")).toBeInTheDocument();
+    expect(screen.queryByText("100 $TVD")).not.toBeInTheDocument();
   });
 
-  it("mantiene estado vacío de billetera sin input y permite copiar la wallet consultada", async () => {
+  it("valida input vacío y permite copiar la wallet consultada", async () => {
     const user = userEvent.setup();
-    render(<TvdWalletLookupPage />);
+    const normalizedAddress = "0x1234567890AbcdEF1234567890aBcdef12345678";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            accountAddress: normalizedAddress,
+            registeredInIdentity: false,
+            identityStatus: "NOT_REGISTERED",
+            associationStatus: "UNASSOCIATED",
+            canUse: false,
+            reasonCode: "WALLET_NOT_REGISTERED",
+            associations: [],
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        ),
+      ),
+    );
+    renderWithAuthStore(<TvdWalletLookupPage />, {
+      token: "superadmin-token",
+      role: "SUPERADMIN",
+      active: true,
+      user: {
+        id: "superadmin-1",
+        email: "superadmin@test.dev",
+        name: "Superadmin",
+        role: "SUPERADMIN",
+        active: true,
+      },
+    });
 
     await user.click(screen.getByRole("button", { name: /Consultar/i }));
     expect(screen.queryByText("Detalle de billetera")).not.toBeInTheDocument();
     expect(
-      screen.getByText("Ingresa una dirección de wallet para consultar."),
+      screen.getByText("Ingresa una dirección de wallet."),
     ).toBeInTheDocument();
 
     await user.type(
       screen.getByLabelText(/Dirección de wallet/i),
-      "0x1234794723747832234792342341432231",
+      "0x1234567890abcdef1234567890abcdef12345678",
     );
     await user.click(screen.getByRole("button", { name: /Consultar/i }));
+    expect((await screen.findAllByText("Wallet no registrada")).length).toBeGreaterThan(0);
     await user.click(screen.getByRole("button", { name: /Copiar/i }));
 
     await waitFor(() => {
       expect(clipboardService.copyTextToClipboard).toHaveBeenCalledWith(
-        "0x1234794723747832234792342341432231",
+        normalizedAddress,
       );
     });
   });

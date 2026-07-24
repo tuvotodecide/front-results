@@ -17,8 +17,7 @@ const ConfirmActivateModal: React.FC<ConfirmActivateModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
-  isLoading,
-  isReferendum = false,
+  isLoading,
   unregisteredCount = 0,
 }) => {
   const hasUnregistered = unregisteredCount > 0;
@@ -59,12 +58,13 @@ const ConfirmActivateModal: React.FC<ConfirmActivateModalProps> = ({
 
         {/* Descripción */}
         <p className="mb-3 px-4 text-base font-semibold text-gray-700">
-          ¿Deseas publicar oficialmente esta elección?
+          Para completar la publicación oficial, utiliza la aplicación Tu Voto
+          Decide en el teléfono vinculado a tu cuenta y confirma la solicitud.
         </p>
         <p className="text-green-600 mb-8 px-4">
-          {isReferendum
-            ? 'Esta decisión publica oficialmente el referéndum y no podrás realizar más cambios.'
-            : 'Esta decisión publica oficialmente la elección y no podrás realizar más cambios.'}
+          La solicitud se enviará a la aplicación móvil después de validar que
+          la votación está lista y que la wallet institucional dispone de los
+          TVD requeridos.
         </p>
 
         {hasUnregistered ? (

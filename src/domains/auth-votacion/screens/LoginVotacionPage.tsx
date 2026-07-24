@@ -21,6 +21,10 @@ import {
   type AuthState,
 } from "../../../store/auth/authSlice";
 import {
+  consumeAuthSessionEndReason,
+  getAuthSessionEndMessage,
+} from "../../../store/auth/sessionInvalidation";
+import {
   isSameContext,
   resolveDomainLogin,
   resolvePostLoginRedirect,
@@ -167,6 +171,9 @@ const LoginVotacionPage = () => {
   const [deniedAccess, setDeniedAccess] = useState<
     Extract<DomainLoginResult, { kind: "denied" }> | null
   >(null);
+  const [sessionEndMessage, setSessionEndMessage] = useState<string | null>(
+    null,
+  );
   const [loginUser, { isLoading: loggingIn }] = useLoginUserMutation();
 
   const [modal, setModal] = useState<ModalState>({
@@ -182,6 +189,12 @@ const LoginVotacionPage = () => {
       : modal.kind === "error"
         ? "error"
         : "info";
+
+  useEffect(() => {
+    setSessionEndMessage(
+      getAuthSessionEndMessage(consumeAuthSessionEndReason()),
+    );
+  }, []);
 
   useEffect(() => {
     if (user && token) {
@@ -411,6 +424,15 @@ const LoginVotacionPage = () => {
               Ingresa a tu panel de administración
             </p>
           </div>
+
+          {sessionEndMessage ? (
+            <div
+              className="mb-5 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm font-medium text-yellow-800"
+              role="status"
+            >
+              {sessionEndMessage}
+            </div>
+          ) : null}
 
           <Formik<LoginValues>
             initialValues={{ email: "", password: "" }}

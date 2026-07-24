@@ -41,6 +41,9 @@ export interface AuthContext {
   tenantId?: string | null;
   tenantName?: string | null;
   membershipId?: string | null;
+  hasWallet?: boolean;
+  requiresWalletUpdate?: boolean;
+  walletStatus?: "MISSING" | "VERIFIED";
   votingDepartmentId?: string | null;
   votingMunicipalityId?: string | null;
 }
@@ -65,6 +68,9 @@ export interface AccessStatus {
       tenantId?: string | null;
       tenantName?: string | null;
       reason?: string | null;
+      hasWallet?: boolean;
+      requiresWalletUpdate?: boolean;
+      walletStatus?: "MISSING" | "VERIFIED";
     }>;
   };
   territorial: {
@@ -247,6 +253,16 @@ const normalizeContext = (ctx: any): AuthContext | null => {
     tenantId: ctx?.tenantId ?? null,
     tenantName: ctx?.tenantName ?? null,
     membershipId: ctx?.membershipId ?? null,
+    hasWallet:
+      typeof ctx?.hasWallet === "boolean" ? ctx.hasWallet : undefined,
+    requiresWalletUpdate:
+      typeof ctx?.requiresWalletUpdate === "boolean"
+        ? ctx.requiresWalletUpdate
+        : undefined,
+    walletStatus:
+      ctx?.walletStatus === "MISSING" || ctx?.walletStatus === "VERIFIED"
+        ? ctx.walletStatus
+        : undefined,
     votingDepartmentId: ctx?.votingDepartmentId ?? null,
     votingMunicipalityId: ctx?.votingMunicipalityId ?? null,
   };
@@ -534,6 +550,39 @@ export const authSlice = createSlice({
         );
       }
     },
+    updateActiveTenantWalletState: (state, action) => {
+      const tenantId = action.payload?.tenantId ?? state.activeContext?.tenantId;
+      if (!tenantId) return;
+
+      const walletState = {
+        hasWallet: Boolean(action.payload?.hasWallet),
+        requiresWalletUpdate: Boolean(action.payload?.requiresWalletUpdate),
+        walletStatus:
+          action.payload?.walletStatus === "VERIFIED" ? "VERIFIED" : "MISSING",
+      } as const;
+
+      const applyWalletState = (context: AuthContext | null) => {
+        if (context?.type !== "TENANT" || context.tenantId !== tenantId) return;
+        context.hasWallet = walletState.hasWallet;
+        context.requiresWalletUpdate = walletState.requiresWalletUpdate;
+        context.walletStatus = walletState.walletStatus;
+      };
+
+      applyWalletState(state.activeContext);
+      applyWalletState(state.defaultContext);
+      state.availableContexts.forEach(applyWalletState);
+
+      state.accessStatus?.tenant.items.forEach((item) => {
+        if (item.tenantId !== tenantId) return;
+        item.hasWallet = walletState.hasWallet;
+        item.requiresWalletUpdate = walletState.requiresWalletUpdate;
+        item.walletStatus = walletState.walletStatus;
+      });
+
+      if (!state.isDevSession) {
+        persistAuthSession(state);
+      }
+    },
     setDevAuthSession: (state, action) => {
       const user = normalizeUser(action.payload?.user);
       const availableContexts = normalizeContexts(
@@ -584,8 +633,13 @@ export const authSlice = createSlice({
   },
 });
 
-export const { setAuth, setActiveContext, setDevAuthSession, logOut } =
-  authSlice.actions;
+export const {
+  setAuth,
+  setActiveContext,
+  setDevAuthSession,
+  updateActiveTenantWalletState,
+  logOut,
+} = authSlice.actions;
 export const selectAuth = (state: RootState) => state.auth;
 
 // Selector to check if user is logged in

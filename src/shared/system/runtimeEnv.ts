@@ -32,6 +32,20 @@ const getStaticNextPublicEnv = (key: string): string | undefined => {
       return process.env.NEXT_PUBLIC_VOTE_CONTRACT_ADDRESS;
     case "NEXT_PUBLIC_SMART_CONTRACT_URL":
       return process.env.NEXT_PUBLIC_SMART_CONTRACT_URL;
+    case "NEXT_PUBLIC_TVD_CHAIN_ID":
+      return process.env.NEXT_PUBLIC_TVD_CHAIN_ID;
+    case "NEXT_PUBLIC_TVD_CHAIN_RPC_URL":
+      return process.env.NEXT_PUBLIC_TVD_CHAIN_RPC_URL;
+    case "NEXT_PUBLIC_TVD_NETWORK_NAME":
+      return process.env.NEXT_PUBLIC_TVD_NETWORK_NAME;
+    case "NEXT_PUBLIC_TVD_BLOCK_EXPLORER_URL":
+      return process.env.NEXT_PUBLIC_TVD_BLOCK_EXPLORER_URL;
+    case "NEXT_PUBLIC_TVD_TOKEN_ADDRESS":
+      return process.env.NEXT_PUBLIC_TVD_TOKEN_ADDRESS;
+    case "NEXT_PUBLIC_TVD_ASSIGNMENT_CONTRACT_ADDRESS":
+      return process.env.NEXT_PUBLIC_TVD_ASSIGNMENT_CONTRACT_ADDRESS;
+    case "NEXT_PUBLIC_TVD_DECIMALS":
+      return process.env.NEXT_PUBLIC_TVD_DECIMALS;
     default:
       return undefined;
   }

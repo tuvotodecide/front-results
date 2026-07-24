@@ -3,14 +3,17 @@ import VotacionPrivateGuard from "@/domains/votacion/guards/VotacionPrivateGuard
 import { renderWithAuthStore } from "../utils/renderWithStore";
 
 const replace = vi.fn();
+let pathname = "/votacion";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace }),
+  usePathname: () => pathname,
 }));
 
 describe("VotacionPrivateGuard", () => {
   beforeEach(() => {
     replace.mockReset();
+    pathname = "/votacion";
   });
 
   it("redirects anonymous users to canonical voting login", async () => {
@@ -98,6 +101,72 @@ describe("VotacionPrivateGuard", () => {
           type: "TENANT",
           role: "TENANT_ADMIN",
           tenantId: "tenant-1",
+        },
+      },
+    );
+
+    expect(screen.getByText("private voting")).toBeInTheDocument();
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("redirects tenant admins without wallet to institutional account", async () => {
+    renderWithAuthStore(
+      <VotacionPrivateGuard>
+        <div>private voting</div>
+      </VotacionPrivateGuard>,
+      {
+        token: "token",
+        user: {
+          id: "1",
+          email: "tenant@test.com",
+          name: "Tenant",
+          role: "TENANT_ADMIN",
+          active: true,
+          status: "ACTIVE",
+          tenantId: "tenant-1",
+        },
+        activeContext: {
+          type: "TENANT",
+          role: "TENANT_ADMIN",
+          tenantId: "tenant-1",
+          requiresWalletUpdate: true,
+          walletStatus: "MISSING",
+          hasWallet: false,
+        },
+      },
+    );
+
+    await waitFor(() => {
+      expect(replace).toHaveBeenCalledWith("/votacion/cuenta-institucional");
+    });
+    expect(screen.queryByText("private voting")).not.toBeInTheDocument();
+  });
+
+  it("keeps the institutional account route available without wallet", () => {
+    pathname = "/votacion/cuenta-institucional";
+
+    renderWithAuthStore(
+      <VotacionPrivateGuard>
+        <div>private voting</div>
+      </VotacionPrivateGuard>,
+      {
+        token: "token",
+        user: {
+          id: "1",
+          email: "tenant@test.com",
+          name: "Tenant",
+          role: "TENANT_ADMIN",
+          active: true,
+          status: "ACTIVE",
+          tenantId: "tenant-1",
+        },
+        activeContext: {
+          type: "TENANT",
+          role: "TENANT_ADMIN",
+          tenantId: "tenant-1",
+          requiresWalletUpdate: true,
+          walletStatus: "MISSING",
+          hasWallet: false,
         },
       },
     );

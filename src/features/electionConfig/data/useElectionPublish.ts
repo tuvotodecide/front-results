@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import {
   useGetEventOptionsQuery,
   useGetEventReviewReadinessQuery,
@@ -7,8 +7,13 @@ import {
   useGetPadronVersionsQuery,
   useGetPadronWorkflowSummaryQuery,
   useGetVotingEventQuery,
-  useConfirmOfficialPublicationMutation,
+  useCancelOfficialPublicationRequestMutation,
+  useCreateOfficialPublicationRequestMutation,
+  useGetActiveOfficialPublicationRequestQuery,
   useMarkEventReadyForReviewMutation,
+  OfficialPublicationAdminResponse,
+  OfficialPublicationRequestSummary,
+  OfficialPublicationRequestStatus,
   VotingEvent,
 } from '../../../store/votingEvents';
 import { getOptionColors, stableCreatedAt } from '../renderUtils';
@@ -36,10 +41,80 @@ export interface UseElectionPublishReturn {
   activateElection: () => Promise<ActivationResult>;
   activating: boolean;
   activationResult: ActivationResult | null;
+  officialPublicationRequest?: OfficialPublicationRequestSummary | null;
+  officialPublicationMessage?: string | null;
+  officialPublicationIsActive?: boolean;
+  officialPublicationCanRetry?: boolean;
+  officialPublicationCanCancel?: boolean;
+  officialPublicationTxUrl?: string | null;
+  cancelOfficialPublication?: () => Promise<void>;
+  cancelingOfficialPublication?: boolean;
   getShareUrl: () => Promise<string>;
   copyToClipboard: (text: string) => Promise<boolean>;
   refetch: () => Promise<void>;
 }
+
+const ACTIVE_OFFICIAL_PUBLICATION_STATUSES = new Set<OfficialPublicationRequestStatus>([
+  'PREPARING',
+  'PENDING_APPROVAL',
+  'CLAIMED',
+  'SIGNING',
+  'SUBMITTED',
+  'CHAIN_PENDING',
+  'CHAIN_CONFIRMED',
+  'FINALIZING',
+]);
+
+const CANCELABLE_OFFICIAL_PUBLICATION_STATUSES = new Set<OfficialPublicationRequestStatus>([
+  'PREPARING',
+  'PENDING_APPROVAL',
+  'CLAIMED',
+  'SIGNING',
+]);
+
+const RETRYABLE_OFFICIAL_PUBLICATION_STATUSES = new Set<OfficialPublicationRequestStatus>([
+  'FAILED_RETRYABLE',
+  'EXPIRED',
+]);
+
+export const getOfficialPublicationStatusMessage = (
+  status?: OfficialPublicationRequestStatus | null,
+) => {
+  switch (status) {
+    case 'PREPARING':
+      return 'Estamos preparando la solicitud de publicación.';
+    case 'PENDING_APPROVAL':
+    case 'CLAIMED':
+    case 'SIGNING':
+      return 'Esperando confirmación desde la aplicación móvil.';
+    case 'SUBMITTED':
+    case 'CHAIN_PENDING':
+      return 'Firmado correctamente. Esperando confirmación en blockchain.';
+    case 'CHAIN_CONFIRMED':
+    case 'FINALIZING':
+      return 'Operación confirmada. Finalizando la publicación oficial.';
+    case 'COMPLETED':
+      return 'La votación fue publicada oficialmente.';
+    case 'REJECTED':
+      return 'La solicitud de publicación fue rechazada desde la aplicación móvil.';
+    case 'EXPIRED':
+      return 'El tiempo para confirmar esta publicación ya terminó.';
+    case 'CANCELLED':
+      return 'La solicitud de publicación fue cancelada.';
+    case 'FAILED_RETRYABLE':
+      return 'No se pudo completar la publicación. Puedes volver a intentarlo.';
+    case 'FAILED_FINAL':
+    case 'NEEDS_REVIEW':
+      return 'La publicación requiere revisión.';
+    default:
+      return null;
+  }
+};
+
+const getExplorerTxUrl = (txHash?: string | null) => {
+  if (!txHash) return null;
+  return `https://sepolia.basescan.org/tx/${txHash}`;
+};
 
 export const useElectionPublish = (electionId: string): UseElectionPublishReturn => {
   const { data: event, isLoading: loadingEvent, refetch: refetchEvent } =
@@ -59,10 +134,76 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
     useGetPadronSummaryQuery(electionId, { skip: !electionId });
   const { data: reviewReadiness, isLoading: loadingReadiness, refetch: refetchReadiness } =
     useGetEventReviewReadinessQuery(electionId, { skip: !electionId });
+  const {
+    data: activeOfficialPublication,
+    isLoading: loadingOfficialPublication,
+    refetch: refetchOfficialPublication,
+  } = useGetActiveOfficialPublicationRequestQuery(electionId, {
+    skip: !electionId,
+  });
 
   const [markReadyForReview, { isLoading: openingReview }] = useMarkEventReadyForReviewMutation();
-  const [confirmOfficialPublication, { isLoading: activating }] = useConfirmOfficialPublicationMutation();
+  const [createOfficialPublicationRequest, { isLoading: activating }] =
+    useCreateOfficialPublicationRequestMutation();
+  const [cancelOfficialPublicationRequest, { isLoading: cancelingOfficialPublication }] =
+    useCancelOfficialPublicationRequestMutation();
   const [activationResult, setActivationResult] = useState<ActivationResult | null>(null);
+  const officialPublicationActiveRequest = activeOfficialPublication?.request ?? null;
+  const officialPublicationLatestAttempt = activeOfficialPublication?.latestAttempt ?? null;
+  const officialPublicationRequest =
+    officialPublicationActiveRequest ?? officialPublicationLatestAttempt ?? null;
+  const officialPublicationStatus = officialPublicationRequest?.status ?? null;
+  const officialPublicationIsActive = officialPublicationActiveRequest?.status
+    ? ACTIVE_OFFICIAL_PUBLICATION_STATUSES.has(officialPublicationActiveRequest.status)
+    : false;
+  const officialPublicationCanRetry = officialPublicationStatus
+    ? RETRYABLE_OFFICIAL_PUBLICATION_STATUSES.has(officialPublicationStatus)
+    : false;
+  const officialPublicationCanCancel = Boolean(
+    officialPublicationActiveRequest?.status &&
+      CANCELABLE_OFFICIAL_PUBLICATION_STATUSES.has(officialPublicationActiveRequest.status) &&
+      !officialPublicationActiveRequest?.txHash,
+  );
+  const officialPublicationMessage =
+    getOfficialPublicationStatusMessage(officialPublicationStatus);
+  const officialPublicationTxUrl = getExplorerTxUrl(officialPublicationRequest?.txHash);
+
+  useEffect(() => {
+    if (!officialPublicationIsActive) return undefined;
+    const interval = window.setInterval(() => {
+      void refetchOfficialPublication();
+      if (
+        officialPublicationStatus === 'CHAIN_CONFIRMED' ||
+        officialPublicationStatus === 'FINALIZING'
+      ) {
+        void refetchEvent();
+      }
+    }, 5000);
+    return () => window.clearInterval(interval);
+  }, [
+    officialPublicationIsActive,
+    officialPublicationStatus,
+    refetchEvent,
+    refetchOfficialPublication,
+  ]);
+
+  useEffect(() => {
+    if (officialPublicationStatus !== 'COMPLETED') return;
+    void Promise.all([
+      refetchEvent(),
+      refetchReadiness(),
+      refetchPadron(),
+      refetchPadronWorkflow(),
+      refetchPadronSummary(),
+    ]);
+  }, [
+    officialPublicationStatus,
+    refetchEvent,
+    refetchPadron,
+    refetchPadronSummary,
+    refetchPadronWorkflow,
+    refetchReadiness,
+  ]);
   const publicationMissingIdentityCount = Number(
     padronWorkflow?.activeDraft?.summary.missingIdentityCount ?? 0,
   );
@@ -154,16 +295,23 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
   }, [event]);
 
   const activateElection = useCallback(async (): Promise<ActivationResult> => {
-    const response = await confirmOfficialPublication({ eventId: electionId }).unwrap();
+    let response: OfficialPublicationAdminResponse;
+    try {
+      response = await createOfficialPublicationRequest({ eventId: electionId }).unwrap();
+    } catch (error) {
+      await refetchOfficialPublication();
+      throw error;
+    }
+    await refetchOfficialPublication();
 
-    const publicUrl = response.publicUrl ?? `${window.location.origin}/votacion/elecciones/${electionId}/publica`;
+    const publicUrl = `${window.location.origin}/votacion/elecciones/${electionId}/publica`;
     const shareText = `Participa en la votación: ${publicUrl}`;
     const out: ActivationResult = {
       publicUrl,
       shareText,
-      electionStatus: 'ACTIVE',
-      startsAt: event?.votingStart ?? response.officialPublishedAt ?? '',
-      nullifiers: response.nullifiers ?? [],
+      electionStatus: response.request?.status === 'COMPLETED' ? 'ACTIVE' : 'DRAFT',
+      startsAt: event?.votingStart ?? '',
+      nullifiers: [],
     };
 
     setActivationResult(out);
@@ -173,13 +321,15 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
       refetchPadron(),
       refetchPadronWorkflow(),
       refetchPadronSummary(),
+      refetchOfficialPublication(),
     ]);
     return out;
   }, [
-    confirmOfficialPublication,
+    createOfficialPublicationRequest,
     electionId,
     event?.votingStart,
     refetchEvent,
+    refetchOfficialPublication,
     refetchPadron,
     refetchPadronSummary,
     refetchPadronWorkflow,
@@ -192,6 +342,18 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
     await refetchEvent();
     return response;
   }, [electionId, markReadyForReview, refetchEvent, refetchReadiness]);
+
+  const cancelOfficialPublication = useCallback(async () => {
+    const requestId = officialPublicationRequest?.requestId;
+    if (!requestId) return;
+    await cancelOfficialPublicationRequest({ requestId }).unwrap();
+    await Promise.all([refetchOfficialPublication(), refetchEvent()]);
+  }, [
+    cancelOfficialPublicationRequest,
+    officialPublicationRequest?.requestId,
+    refetchEvent,
+    refetchOfficialPublication,
+  ]);
 
   const getShareUrl = useCallback(async (): Promise<string> => {
     return `${window.location.origin}/votacion/elecciones/${electionId}/publica`;
@@ -218,9 +380,11 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
       refetchPadronWorkflow(),
       refetchPadronSummary(),
       refetchReadiness(),
+      refetchOfficialPublication(),
     ]);
   }, [
     refetchEvent,
+    refetchOfficialPublication,
     refetchOptions,
     refetchPadron,
     refetchPadronSummary,
@@ -244,13 +408,22 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
       loadingPadron ||
       loadingPadronWorkflow ||
       loadingPadronSummary ||
-      loadingReadiness,
+      loadingReadiness ||
+      loadingOfficialPublication,
     error: null,
     openReview,
     openingReview,
     activateElection,
     activating,
     activationResult,
+    officialPublicationRequest,
+    officialPublicationMessage,
+    officialPublicationIsActive,
+    officialPublicationCanRetry,
+    officialPublicationCanCancel,
+    officialPublicationTxUrl,
+    cancelOfficialPublication,
+    cancelingOfficialPublication,
     getShareUrl,
     copyToClipboard,
     refetch,

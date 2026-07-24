@@ -1,196 +1,342 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import OperationalRechargePage from "@/features/adminTvd/screens/OperationalRechargePage";
+import { renderWithAuthStore } from "../utils/renderWithStore";
 
-const navigateMock = vi.fn();
 let searchParams = new URLSearchParams();
+const visualBalanceRefetch = vi.fn();
 
 vi.mock("@/domains/votacion/navigation/compat-private", () => ({
-  useNavigate: () => navigateMock,
   useSearchParams: () => [searchParams, vi.fn()] as const,
 }));
 
-vi.mock("@/domains/votacion/components/KioskQrSvg", () => ({
-  default: ({ value }: { value: string }) => <div aria-label="Código QR">{value}</div>,
+vi.mock("@/features/adminTvd/hooks/useTvdVisualBalance", () => ({
+  useTvdVisualBalance: () => ({
+    data: {
+      wallet: "0x1111111111111111111111111111111111111111",
+      chainId: 80002,
+      tokenAddress: "0x3333333333333333333333333333333333333333",
+      assignmentContractAddress: "0x2222222222222222222222222222222222222222",
+      decimals: 18,
+      liquidBalanceSmallestUnit: "50000000000000000000",
+      assignedBalanceSmallestUnit: "30000000000000000000",
+      totalBalanceSmallestUnit: "80000000000000000000",
+      liquidBalanceFormatted: "50",
+      assignedBalanceFormatted: "30",
+      totalBalanceFormatted: "80",
+      readAt: "2026-07-21T12:00:00.000Z",
+    },
+    error: null,
+    isLoading: false,
+    refetch: visualBalanceRefetch,
+  }),
 }));
+
+type FetchCall = {
+  url: string;
+  method: string;
+  headers: Headers;
+  body: string | null;
+};
+
+const fetchCalls: FetchCall[] = [];
+const paymentDetailQueue: unknown[] = [];
+
+const jsonResponse = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+
+const summaryResponse = {
+  tenantId: "tenant-1",
+  assignmentId: "assignment-1",
+  wallet: "0x1111111111111111111111111111111111111111",
+  walletStatus: "VERIFIED",
+  assignedBalance: {
+    smallestUnit: "30000000000000000000",
+    formatted: "30",
+    decimals: 18,
+  },
+  liquidBalance: {
+    smallestUnit: "50000000000000000000",
+    formatted: "50",
+  },
+  totalBalance: {
+    smallestUnit: "80000000000000000000",
+    formatted: "80",
+  },
+  tokenSymbol: "TVD",
+  chainId: 80002,
+  contractAddress: "0x2222222222222222222222222222222222222222",
+  lastAccreditation: null,
+  pendingAccreditationsCount: 0,
+};
+
+const quoteResponse = {
+  fiatAmount: "10.50",
+  fiatAmountMinor: "1050",
+  fiatCurrency: "BOB",
+  estimatedTvd: "4.2",
+  estimatedTvdSmallestUnit: "4200000000000000000",
+  bobPerToken: "2.5",
+  exchangeRateVersion: 7,
+  quotedAt: "2026-07-21T12:00:00.000Z",
+};
+
+const qrPaymentResponse = {
+  id: "payment-1",
+  tenantId: "tenant-1",
+  requestedByUserId: "user-1",
+  amount: "10.50",
+  amountMinor: "1050",
+  currency: "BOB",
+  status: "QR_ACTIVE",
+  provider: "RED_ENLACE",
+  merchantReference: "123456",
+  providerReference: "654321",
+  qrImage: "iVBORw0KGgo=",
+  qrExpiresAt: "2026-07-21T12:30:00.000Z",
+  confirmationSource: null,
+  tvdQuote: {
+    fiatAmountMinor: "1050",
+    fiatCurrency: "BOB",
+    bobPerToken: "2.5",
+    exchangeRateVersion: 7,
+    tokenAmount: "4.2",
+    tokenAmountSmallestUnit: "4200000000000000000",
+    quotedAt: "2026-07-21T12:00:00.000Z",
+  },
+  tokenAccreditation: null,
+  createdAt: "2026-07-21T12:00:00.000Z",
+  updatedAt: "2026-07-21T12:00:00.000Z",
+  confirmedAt: null,
+};
+
+const confirmedPaymentResponse = {
+  paymentId: "payment-1",
+  amount: "10.50",
+  amountMinor: "1050",
+  currency: "BOB",
+  status: "PAYMENT_CONFIRMED",
+  provider: "RED_ENLACE",
+  merchantReference: "123456",
+  providerReference: "654321",
+  qrExpiresAt: "2026-07-21T12:30:00.000Z",
+  confirmationSource: "WEBHOOK",
+  createdAt: "2026-07-21T12:00:00.000Z",
+  updatedAt: "2026-07-21T12:01:00.000Z",
+  confirmedAt: "2026-07-21T12:01:00.000Z",
+  tvdQuote: qrPaymentResponse.tvdQuote,
+  accreditationId: "accreditation-1",
+  accreditationStatus: "PENDING",
+  txHash: null,
+};
+
+const activePaymentDetailResponse = {
+  ...confirmedPaymentResponse,
+  status: "QR_ACTIVE",
+  confirmedAt: null,
+  accreditationId: null,
+  accreditationStatus: null,
+  txHash: null,
+};
+
+const confirmedAccreditationResponse = {
+  ...confirmedPaymentResponse,
+  accreditationStatus: "CONFIRMED",
+  txHash: "0xabc123",
+};
+
+const renderRechargePage = () =>
+  renderWithAuthStore(<OperationalRechargePage />, {
+    token: "jwt-token",
+    accessToken: "jwt-token",
+    role: "TENANT_ADMIN",
+    active: true,
+    tenantId: "tenant-1",
+    activeContext: {
+      type: "TENANT",
+      tenantId: "tenant-1",
+      tenantName: "Colegio Demo",
+      role: "TENANT_ADMIN",
+    },
+    user: {
+      id: "user-1",
+      email: "admin@demo.bo",
+      name: "Admin Demo",
+      role: "TENANT_ADMIN",
+      active: true,
+      tenantId: "tenant-1",
+      tenantName: "Colegio Demo",
+    },
+  });
+
+const installFetchMock = () => {
+  const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const request =
+      input instanceof Request
+        ? input
+        : new Request(input, init);
+    const url = new URL(request.url);
+    fetchCalls.push({
+      url: `${url.pathname}${url.search}`,
+      method: request.method,
+      headers: request.headers,
+      body: request.method === "GET" ? null : await request.text(),
+    });
+
+    if (url.pathname.endsWith("/tvd/me/summary")) {
+      return jsonResponse(summaryResponse);
+    }
+    if (url.pathname.endsWith("/tvd/me/quote")) {
+      return jsonResponse(quoteResponse);
+    }
+    if (url.pathname.endsWith("/payments/qr")) {
+      return jsonResponse(qrPaymentResponse);
+    }
+    if (url.pathname.endsWith("/tvd/me/payments/payment-1")) {
+      return jsonResponse(paymentDetailQueue.shift() ?? confirmedPaymentResponse);
+    }
+    if (url.pathname.endsWith("/tvd/me/payments")) {
+      return jsonResponse({
+        items: [confirmedPaymentResponse],
+        page: 1,
+        limit: 5,
+        total: 1,
+        hasNextPage: false,
+      });
+    }
+    return jsonResponse({ code: "NOT_FOUND" }, 404);
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
+};
 
 describe("Admin tenant operational recharge", () => {
   beforeEach(() => {
+    // Timers reales: RTK Query y user-event coordinan mejor con el debounce de la pantalla.
     vi.clearAllMocks();
-    navigateMock.mockReset();
+    fetchCalls.length = 0;
+    paymentDetailQueue.length = 0;
+    visualBalanceRefetch.mockReset();
     searchParams = new URLSearchParams();
+    installFetchMock();
   });
 
-  it("renderiza paso 1, precarga monto de query y permite editar equivalente", async () => {
-    const user = userEvent.setup();
-    searchParams = new URLSearchParams("monto=750");
-
-    render(<OperationalRechargePage />);
-
-    const amountInput = screen.getByLabelText("Monto a recargar");
-    expect(amountInput).toHaveValue("750");
-    expect(screen.getByText("Equivalente estimado")).toBeInTheDocument();
-    expect(screen.getByText("Bs. 375")).toBeInTheDocument();
-    expect(screen.getByLabelText("Equivalente estimado").tagName).toBe("OUTPUT");
-    expect(screen.getAllByRole("textbox")).toHaveLength(1);
-    expect(screen.queryByText(/mock/i)).not.toBeInTheDocument();
-    expect(await screen.findByText("Básico")).toBeInTheDocument();
-    expect(screen.getByText("Estándar")).toBeInTheDocument();
-
-    await user.clear(amountInput);
-    await user.type(amountInput, "300");
-
-    expect(amountInput).toHaveValue("300");
-    expect(screen.getByText("Bs. 150")).toBeInTheDocument();
+  afterEach(() => {
+        vi.unstubAllGlobals();
   });
 
-  it("muestra Bs. 250 para 500 escrito y no muestra error con monto válido", async () => {
+  it("consulta cotizacion real y no muestra paquetes ni saldo mock", async () => {
     const user = userEvent.setup();
-    render(<OperationalRechargePage />);
+    renderRechargePage();
 
-    const amountInput = screen.getByLabelText("Monto a recargar");
-    const continueButton = screen.getByRole("button", { name: /Continuar/i });
+    expect(await screen.findByText("Colegio Demo")).toBeInTheDocument();
+    expect(screen.queryByText("Básico")).not.toBeInTheDocument();
+    expect(screen.queryByText("Estándar")).not.toBeInTheDocument();
+    expect(screen.getByText("80")).toBeInTheDocument();
 
-    await user.type(amountInput, "500");
+    await user.clear(screen.getByLabelText("Monto BOB a pagar"));
+    await user.type(screen.getByLabelText("Monto BOB a pagar"), "10.50");
 
-    expect(amountInput).toHaveValue("500");
-    expect(screen.getAllByText("Bs. 250").length).toBeGreaterThan(0);
-    expect(screen.queryByText("Ingresa un monto válido para continuar.")).not.toBeInTheDocument();
-    expect(continueButton).toBeEnabled();
+    expect(await screen.findByText("4.2 TVD")).toBeInTheDocument();
+    expect(screen.getByText("Bs. 2.5 por TVD")).toBeInTheDocument();
+    expect(
+      fetchCalls.some((call) =>
+        call.url.includes("/tvd/me/quote?amount=10.50&currency=BOB"),
+      ),
+    ).toBe(true);
   });
 
-  it("calcula equivalente para monto manual y habilita Continuar con monto válido", async () => {
+  it("bloquea montos invalidos antes de consultar cotizacion o crear QR", async () => {
     const user = userEvent.setup();
-    render(<OperationalRechargePage />);
+    renderRechargePage();
 
-    const amountInput = screen.getByLabelText("Monto a recargar");
-    const continueButton = screen.getByRole("button", { name: /Continuar/i });
+    await user.type(screen.getByLabelText("Monto BOB a pagar"), "0");
 
-    expect(continueButton).toBeDisabled();
-    expect(screen.getByText("Ingresa un monto válido para continuar.")).toBeInTheDocument();
+    expect(screen.getByText("El monto debe ser mayor que cero.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Generar QR/i })).toBeDisabled();
+    expect(fetchCalls.some((call) => call.url.includes("/tvd/me/quote"))).toBe(false);
 
-    await user.type(amountInput, "100");
+    await user.clear(screen.getByLabelText("Monto BOB a pagar"));
+    await user.type(screen.getByLabelText("Monto BOB a pagar"), "10.555");
 
-    expect(amountInput).toHaveValue("100");
-    expect(screen.getByText("Bs. 50")).toBeInTheDocument();
-    expect(screen.getByText("El monto se usará para cubrir el consumo operativo de la votación.")).toBeInTheDocument();
-    expect(continueButton).toBeEnabled();
+    expect(
+      screen.getByText("Usa un monto en BOB con hasta dos decimales."),
+    ).toBeInTheDocument();
   });
 
-  it("muestra Bs. 580 para 1200 escrito aunque no haya paquete seleccionado", async () => {
+  it("crea QR real con Idempotency-Key y no envia wallet, tasa, glosa ni x-api-key", async () => {
     const user = userEvent.setup();
-    render(<OperationalRechargePage />);
+    paymentDetailQueue.push(activePaymentDetailResponse);
+    renderRechargePage();
 
-    const amountInput = screen.getByLabelText("Monto a recargar");
-    const standardOption = await screen.findByRole("button", { name: /Estándar/i });
+    await user.clear(screen.getByLabelText("Monto BOB a pagar"));
+    await user.type(screen.getByLabelText("Monto BOB a pagar"), "10.50");
+    await screen.findByText("4.2 TVD");
 
-    await user.type(amountInput, "1200");
+    const createButton = screen.getByRole("button", { name: /Generar QR/i });
+    await user.dblClick(createButton);
 
-    expect(amountInput).toHaveValue("1200");
-    expect(screen.getAllByText("Bs. 580").length).toBeGreaterThan(0);
-    expect(standardOption).toHaveAttribute("aria-pressed", "false");
-  });
+    expect(await screen.findByAltText("Código QR para pagar la recarga TVD")).toBeInTheDocument();
 
-  it("bloquea monto vacío/cero/inválido y muestra ayuda", async () => {
-    const user = userEvent.setup();
-    render(<OperationalRechargePage />);
+    const qrPosts = fetchCalls.filter((call) => call.url.endsWith("/payments/qr"));
+    expect(qrPosts).toHaveLength(1);
+    expect(qrPosts[0].headers.get("Authorization")).toBe("Bearer jwt-token");
+    expect(qrPosts[0].headers.get("Idempotency-Key")).toBeTruthy();
+    expect(qrPosts[0].headers.get("x-api-key")).toBeNull();
 
-    const amountInput = screen.getByLabelText("Monto a recargar");
-    const continueButton = screen.getByRole("button", { name: /Continuar/i });
-
-    expect(continueButton).toBeDisabled();
-    expect(screen.getByText("Ingresa un monto válido para continuar.")).toBeInTheDocument();
-
-    await user.type(amountInput, "0");
-    expect(continueButton).toBeDisabled();
-    expect(screen.getByText("Ingresa un monto válido para continuar.")).toBeInTheDocument();
-
-    await user.clear(amountInput);
-    await user.type(amountInput, "abc");
-    expect(amountInput).toHaveValue("");
-    expect(continueButton).toBeDisabled();
-  });
-
-  it("las opciones rápidas actualizan monto, equivalente y estado seleccionado", async () => {
-    const user = userEvent.setup();
-    render(<OperationalRechargePage />);
-
-    const amountInput = screen.getByLabelText("Monto a recargar");
-    const basicOption = await screen.findByRole("button", { name: /Básico/i });
-    const standardOption = screen.getByRole("button", { name: /Estándar/i });
-
-    await user.click(basicOption);
-    expect(amountInput).toHaveValue("500");
-    expect(screen.getAllByText("Bs. 250").length).toBeGreaterThan(0);
-    expect(basicOption).toHaveAttribute("aria-pressed", "true");
-
-    await user.click(standardOption);
-    expect(amountInput).toHaveValue("1200");
-    expect(screen.getAllByText("Bs. 580").length).toBeGreaterThan(0);
-    expect(standardOption).toHaveAttribute("aria-pressed", "true");
-    expect(basicOption).toHaveAttribute("aria-pressed", "false");
-  });
-
-  it("limpia selección de paquete cuando se escribe un monto manual", async () => {
-    const user = userEvent.setup();
-    render(<OperationalRechargePage />);
-
-    const amountInput = screen.getByLabelText("Monto a recargar");
-    const basicOption = await screen.findByRole("button", { name: /Básico/i });
-
-    await user.click(basicOption);
-    expect(basicOption).toHaveAttribute("aria-pressed", "true");
-
-    await user.clear(amountInput);
-    await user.type(amountInput, "600");
-
-    expect(amountInput).toHaveValue("600");
-    expect(screen.getByText("Bs. 300")).toBeInTheDocument();
-    expect(basicOption).toHaveAttribute("aria-pressed", "false");
-  });
-
-  it("completa flujo QR, verificación y confirmación", async () => {
-    const user = userEvent.setup();
-    render(<OperationalRechargePage />);
-
-    await user.type(screen.getByLabelText("Monto a recargar"), "100");
-    await user.click(screen.getByRole("button", { name: /Continuar/i }));
-
-    expect(await screen.findByLabelText("Código QR")).toBeInTheDocument();
-    expect(screen.getByText("QR válido por 15 minutos")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Descargar QR/i })).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: /Ya realicé el pago/i }));
-    expect(screen.getByText("Verificando pago...")).toBeInTheDocument();
-
-    await waitFor(() => {
-      expect(screen.getByText("Recarga completada")).toBeInTheDocument();
+    const body = JSON.parse(qrPosts[0].body ?? "{}") as Record<string, unknown>;
+    expect(body).toEqual({
+      amount: "10.50",
+      currency: "BOB",
+      description: "Recarga operativa",
     });
-    expect(screen.getByText("Ya puedes continuar con tu votación.")).toBeInTheDocument();
-    expect(screen.getByText("REC-100-2026")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Continuar" }));
-    expect(navigateMock).toHaveBeenCalledWith("/votacion/elecciones");
+    expect(body.walletAddress).toBeUndefined();
+    expect(body.bobPerToken).toBeUndefined();
+    expect(body.estimatedTvd).toBeUndefined();
+    expect(body.glosa).toBeUndefined();
   });
 
-  it("permite copiar referencia de recarga confirmada", async () => {
+  it("muestra pago confirmado y acreditacion pendiente como estados separados", async () => {
+    const user = userEvent.setup();
+    paymentDetailQueue.push(confirmedPaymentResponse);
+    renderRechargePage();
+
+    await user.clear(screen.getByLabelText("Monto BOB a pagar"));
+    await user.type(screen.getByLabelText("Monto BOB a pagar"), "10.50");
+    await screen.findByText("4.2 TVD");
+    await user.click(screen.getByRole("button", { name: /Generar QR/i }));
+
+    expect(await screen.findByText("Pago recibido correctamente.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Pago recibido; acreditación TVD en proceso."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Pago fallido")).not.toBeInTheDocument();
+  });
+
+  it("actualiza saldo visual al confirmar acreditacion y permite copiar referencia", async () => {
     const user = userEvent.setup();
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
       value: { writeText },
     });
+    paymentDetailQueue.push(confirmedAccreditationResponse);
+    renderRechargePage();
 
-    render(<OperationalRechargePage />);
-    await user.type(screen.getByLabelText("Monto a recargar"), "50");
-    await user.click(screen.getByRole("button", { name: /Continuar/i }));
-    await user.click(await screen.findByRole("button", { name: /Ya realicé el pago/i }));
+    await user.clear(screen.getByLabelText("Monto BOB a pagar"));
+    await user.type(screen.getByLabelText("Monto BOB a pagar"), "10.50");
+    await screen.findByText("4.2 TVD");
+    await user.click(screen.getByRole("button", { name: /Generar QR/i }));
 
-    await screen.findByText("Recarga completada");
-    await user.click(screen.getByRole("button", { name: /Copiar referencia/i }));
+    expect(await screen.findByText("TVD acreditados correctamente.")).toBeInTheDocument();
+    await waitFor(() => expect(visualBalanceRefetch).toHaveBeenCalled());
+    await user.click(screen.getByRole("button", { name: /Copiar/i }));
 
-    expect(writeText).toHaveBeenCalledWith("REC-50-2026");
+    expect(writeText).toHaveBeenCalledWith("123456");
     expect(screen.getByText("Referencia copiada.")).toBeInTheDocument();
   });
 });

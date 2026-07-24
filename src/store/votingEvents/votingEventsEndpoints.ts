@@ -36,6 +36,9 @@ import type {
   ParticipationStatus,
   PresentialCurrentState,
   ReviewReadinessResponse,
+  OfficialPublicationAdminResponse,
+  OfficialPublicationRequestStatus,
+  OfficialPublicationRequestSummary,
   PublishEventResponse,
   ReplaceCandidatesDto,
   UpdateEventRoleDto,
@@ -380,6 +383,61 @@ const toParticipationAnalytics = (raw: any): ParticipationAnalytics => {
   };
 };
 
+const toOfficialPublicationRequestSummary = (
+  raw: any,
+): OfficialPublicationRequestSummary | null => {
+  const source = unwrapApiData(raw);
+  if (!source) return null;
+
+  return {
+    requestId: String(source?.requestId ?? source?.id ?? ""),
+    eventId: String(source?.eventId ?? ""),
+    status: (source?.status ?? "PREPARING") as OfficialPublicationRequestStatus,
+    expiresAt: source?.expiresAt ?? null,
+    votersCount:
+      source?.votersCount === null || source?.votersCount === undefined
+        ? ""
+        : String(source.votersCount),
+    requiredCredits:
+      source?.requiredCredits === null || source?.requiredCredits === undefined
+        ? ""
+        : String(source.requiredCredits),
+    requiredTvd:
+      source?.requiredTvd === null || source?.requiredTvd === undefined
+        ? ""
+        : String(source.requiredTvd),
+    tvdPerCredit:
+      source?.tvdPerCredit === null || source?.tvdPerCredit === undefined
+        ? ""
+        : String(source.tvdPerCredit),
+    signerWallet: String(source?.signerWallet ?? ""),
+    createdAt: source?.createdAt ?? null,
+    updatedAt: source?.updatedAt ?? null,
+    userOpHash: source?.userOpHash ?? null,
+    txHash: source?.txHash ?? null,
+    errorCode: source?.errorCode ?? null,
+    errorStage: source?.errorStage ?? null,
+    safeMessage: source?.safeMessage ?? null,
+    retryable:
+      source?.retryable === undefined ? undefined : Boolean(source.retryable),
+    active: source?.active === undefined ? undefined : Boolean(source.active),
+  };
+};
+
+const toOfficialPublicationAdminResponse = (
+  raw: any,
+): OfficialPublicationAdminResponse => {
+  const source = unwrapApiData(raw);
+  return {
+    created:
+      source?.created === undefined ? undefined : Boolean(source.created),
+    request: toOfficialPublicationRequestSummary(source?.request ?? null),
+    latestAttempt: toOfficialPublicationRequestSummary(
+      source?.latestAttempt ?? null,
+    ),
+  };
+};
+
 export const votingEventsEndpoints = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getVotingEvents: builder.query<VotingEvent[], { tenantId?: string } | void>({
@@ -472,6 +530,79 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
         { type: "VotingEvents", id: eventId },
         { type: "VotingEventPadron", id: eventId },
         { type: "VotingEventPadronSummary", id: eventId },
+      ],
+    }),
+
+    createOfficialPublicationRequest: builder.mutation<
+      OfficialPublicationAdminResponse,
+      { eventId: string }
+    >({
+      query: ({ eventId }) => ({
+        url: `/voting/events/${eventId}/official-publication/requests`,
+        method: "POST",
+        body: {},
+      }),
+      transformResponse: (response: any) =>
+        toOfficialPublicationAdminResponse(response),
+      invalidatesTags: (_result, _error, { eventId }) => [
+        { type: "OfficialPublicationRequests", id: eventId },
+      ],
+    }),
+
+    getActiveOfficialPublicationRequest: builder.query<
+      OfficialPublicationAdminResponse,
+      string
+    >({
+      query: (eventId) =>
+        `/voting/events/${eventId}/official-publication/requests/active`,
+      transformResponse: (response: any) =>
+        toOfficialPublicationAdminResponse(response),
+      providesTags: (_result, _error, eventId) => [
+        { type: "OfficialPublicationRequests", id: eventId },
+      ],
+    }),
+
+    getOfficialPublicationRequest: builder.query<
+      OfficialPublicationAdminResponse,
+      string
+    >({
+      query: (requestId) => `/voting/official-publication/requests/${requestId}`,
+      transformResponse: (response: any) =>
+        toOfficialPublicationAdminResponse(response),
+      providesTags: (result, _error, requestId) => [
+        { type: "OfficialPublicationRequests", id: requestId },
+        ...(result?.request?.eventId
+          ? [
+              {
+                type: "OfficialPublicationRequests" as const,
+                id: result.request.eventId,
+              },
+            ]
+          : []),
+      ],
+    }),
+
+    cancelOfficialPublicationRequest: builder.mutation<
+      OfficialPublicationAdminResponse,
+      { requestId: string }
+    >({
+      query: ({ requestId }) => ({
+        url: `/voting/official-publication/requests/${requestId}/cancel`,
+        method: "POST",
+        body: { reasonCode: "USER_CANCELLED" },
+      }),
+      transformResponse: (response: any) =>
+        toOfficialPublicationAdminResponse(response),
+      invalidatesTags: (result, _error, { requestId }) => [
+        { type: "OfficialPublicationRequests", id: requestId },
+        ...(result?.request?.eventId
+          ? [
+              {
+                type: "OfficialPublicationRequests" as const,
+                id: result.request.eventId,
+              },
+            ]
+          : []),
       ],
     }),
 
@@ -1160,6 +1291,12 @@ export const {
   useGetEventReviewReadinessQuery,
   useMarkEventReadyForReviewMutation,
   useConfirmOfficialPublicationMutation,
+  useCreateOfficialPublicationRequestMutation,
+  useGetActiveOfficialPublicationRequestQuery,
+  useLazyGetActiveOfficialPublicationRequestQuery,
+  useGetOfficialPublicationRequestQuery,
+  useLazyGetOfficialPublicationRequestQuery,
+  useCancelOfficialPublicationRequestMutation,
   useGetEventRolesQuery,
   useLazyGetEventRolesQuery,
   useCreateEventRoleMutation,

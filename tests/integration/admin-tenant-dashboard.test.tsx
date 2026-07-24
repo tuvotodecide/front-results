@@ -107,10 +107,12 @@ describe("Admin tenant dashboard", () => {
     navigateMock.mockReset();
   });
 
-  it("renderiza cards mock, búsqueda y votaciones del backend mockeado", () => {
+  it("renderiza accesos reales, búsqueda y votaciones del backend mockeado", () => {
     renderDashboard();
 
-    expect(screen.getByText("SALDO $TVD")).toBeInTheDocument();
+    expect(screen.getByText("Recarga operativa")).toBeInTheDocument();
+    expect(screen.getByText("Recarga TVD mediante QR")).toBeInTheDocument();
+    expect(screen.queryByText("SALDO $TVD")).not.toBeInTheDocument();
     expect(screen.getByText("Cuenta")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Mis Votaciones" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Nueva Votación" })).toBeInTheDocument();
@@ -156,7 +158,7 @@ describe("Admin tenant dashboard", () => {
 
     await user.click(screen.getByRole("button", { name: "Nueva Votación" }));
 
-    expect(screen.getByRole("dialog", { name: "Estimar empadronados" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Estimar participantes" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Cancelar" }));
 
     expect(navigateMock).not.toHaveBeenCalledWith("/votacion/elecciones/new");

@@ -529,6 +529,50 @@ export interface PublishEventResponse {
   publicPath?: string;
 }
 
+export type OfficialPublicationRequestStatus =
+  | "PREPARING"
+  | "PENDING_APPROVAL"
+  | "CLAIMED"
+  | "SIGNING"
+  | "SUBMITTED"
+  | "CHAIN_PENDING"
+  | "CHAIN_CONFIRMED"
+  | "FINALIZING"
+  | "COMPLETED"
+  | "REJECTED"
+  | "EXPIRED"
+  | "CANCELLED"
+  | "FAILED_RETRYABLE"
+  | "FAILED_FINAL"
+  | "NEEDS_REVIEW";
+
+export interface OfficialPublicationRequestSummary {
+  requestId: string;
+  eventId: string;
+  status: OfficialPublicationRequestStatus;
+  expiresAt: string | null;
+  votersCount: string;
+  requiredCredits: string;
+  requiredTvd: string;
+  tvdPerCredit: string;
+  signerWallet: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+  userOpHash?: string | null;
+  txHash?: string | null;
+  errorCode?: string | null;
+  errorStage?: string | null;
+  safeMessage?: string | null;
+  retryable?: boolean;
+  active?: boolean;
+}
+
+export interface OfficialPublicationAdminResponse {
+  created?: boolean;
+  request: OfficialPublicationRequestSummary | null;
+  latestAttempt?: OfficialPublicationRequestSummary | null;
+}
+
 export interface PublicationWindow {
   deadline?: string | null;
   canConfirmOfficialPublication: boolean;

@@ -17,6 +17,24 @@ export interface InstitutionalTenant {
   active: boolean;
 }
 
+export interface PublicInstitutionTenant {
+  institutionId: string;
+  institutionName: string;
+}
+
+export interface PublicInstitutionTenantListResponse {
+  items: PublicInstitutionTenant[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface PublicInstitutionTenantListQuery {
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
 export interface TenantAdminAssignment {
   tenantId: string;
   userId: string;

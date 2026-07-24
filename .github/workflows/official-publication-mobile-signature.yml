@@ -1,0 +1,109 @@
+name: Official Publication Mobile Signature
+
+on:
+  workflow_dispatch:
+    inputs:
+      include_build:
+        description: Run build jobs
+        required: false
+        default: "false"
+      include_lint:
+        description: Run lint jobs
+        required: false
+        default: "false"
+      include_sandbox_e2e:
+        description: Run protected sandbox E2E jobs
+        required: false
+        default: "false"
+  pull_request:
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "docs/testing/official-publication-mobile-signature/**"
+      - ".github/workflows/official-publication-mobile-signature.yml"
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  frontend-admin:
+    name: Frontend Admin focal tests
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: .\docs\testing\official-publication-mobile-signature\scripts\run-frontend-admin-tests.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-admin-official-publication-logs
+          path: docs/testing/official-publication-mobile-signature/logs
+
+  backend-results:
+    name: Backend Results focal tests
+    runs-on: windows-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - run: .\docs\testing\official-publication-mobile-signature\scripts\run-backend-results-tests.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-results-official-publication-logs
+          path: docs/testing/official-publication-mobile-signature/logs
+
+  mobile-app:
+    name: Mobile focal tests
+    runs-on: windows-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - run: .\docs\testing\official-publication-mobile-signature\scripts\run-mobile-tests.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mobile-official-publication-logs
+          path: docs/testing/official-publication-mobile-signature/logs
+
+  backend-identity:
+    name: Backend Identity contract tests
+    runs-on: windows-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - run: .\docs\testing\official-publication-mobile-signature\scripts\run-identity-tests.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: identity-official-publication-logs
+          path: docs/testing/official-publication-mobile-signature/logs
+
+  wira-sdk:
+    name: Wira AA mocked tests
+    runs-on: windows-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - run: .\docs\testing\official-publication-mobile-signature\scripts\run-wira-tests.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wira-official-publication-logs
+          path: docs/testing/official-publication-mobile-signature/logs
+
+  sandbox-e2e:
+    name: Protected sandbox E2E
+    runs-on: windows-latest
+    if: github.event_name == 'workflow_dispatch' && inputs.include_sandbox_e2e == 'true'
+    environment: official-publication-sandbox
+    steps:
+      - uses: actions/checkout@v4
+      - run: .\docs\testing\official-publication-mobile-signature\scripts\run-all-official-publication-tests.ps1 -IncludeSandboxE2E

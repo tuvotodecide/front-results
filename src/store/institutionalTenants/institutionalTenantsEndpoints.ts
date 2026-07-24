@@ -3,11 +3,29 @@ import type {
   CreateInstitutionalTenantDto,
   AssignTenantAdminDto,
   InstitutionalTenant,
+  PublicInstitutionTenantListQuery,
+  PublicInstitutionTenantListResponse,
   TenantAdminAssignment,
 } from "./types";
 
 export const institutionalTenantsEndpoints = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
+    listPublicInstitutionalTenants: builder.query<
+      PublicInstitutionTenantListResponse,
+      PublicInstitutionTenantListQuery | void
+    >({
+      query: (params) => ({
+        url: "/institutional-tenants/public",
+        method: "GET",
+        params: {
+          ...(params?.search ? { search: params.search } : {}),
+          ...(params?.page ? { page: params.page } : {}),
+          ...(params?.limit ? { limit: params.limit } : {}),
+        },
+      }),
+      providesTags: ["InstitutionalTenants"],
+    }),
+
     // Crear tenant institucional
     createInstitutionalTenant: builder.mutation<
       InstitutionalTenant,
@@ -40,6 +58,8 @@ export const institutionalTenantsEndpoints = apiSlice.injectEndpoints({
 
 // Exportar hooks generados automáticamente
 export const {
+  useListPublicInstitutionalTenantsQuery,
+  useLazyListPublicInstitutionalTenantsQuery,
   useCreateInstitutionalTenantMutation,
   useAssignTenantAdminMutation,
 } = institutionalTenantsEndpoints;

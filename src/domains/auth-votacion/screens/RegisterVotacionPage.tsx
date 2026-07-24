@@ -1,10 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ErrorMessage, Field, Form, Formik, type FormikHelpers } from "formik";
+import { useEffect, useRef, useState } from "react";
+import {
+  ErrorMessage,
+  Field,
+  Form,
+  Formik,
+  type FormikHelpers,
+} from "formik";
 import * as Yup from "yup";
 import tuvotoDecideImage from "../../../assets/tuvotodecide.webp";
 import { useCreateInstitutionalAdminApplicationMutation } from "../../../store/auth/authEndpoints";
+import { useResolveInstitutionalWalletByDniMutation } from "@/store/institutionalWallets";
+import {
+  useLazyListPublicInstitutionalTenantsQuery,
+  type PublicInstitutionTenant,
+} from "@/store/institutionalTenants";
 import { Link, useNavigate, useSearchParams } from "../navigation/compat";
 import LoadingButton from "../../../components/LoadingButton";
 import Modal2 from "../../../components/Modal2";
@@ -16,8 +27,11 @@ import { resolveRegisterPrefill } from "@/domains/auth-context/registerPrefill";
 
 type VotingFormValues = {
   dni: string;
+  accountAddress: string;
   name: string;
   email: string;
+  institutionMode: "new" | "existing";
+  institutionId: string;
   tenantName: string;
   password: string;
   confirmPassword: string;
@@ -25,11 +39,37 @@ type VotingFormValues = {
 
 type RegisterPayload = {
   dni: string;
+  accountAddress: string;
   name: string;
   email: string;
   password?: string;
-  institutionName: string;
+  institutionName?: string;
+  institutionId?: string;
 };
+
+type WalletResolutionStatus =
+  | "pending"
+  | "loading"
+  | "found"
+  | "not_found"
+  | "rate_limited"
+  | "error";
+
+const DNI_PATTERN = /^[A-Za-z0-9-]{5,20}$/;
+
+const WALLET_PENDING_MESSAGE = "Wallet pendiente de consultar";
+const WALLET_LOADING_MESSAGE = "Buscando billetera registrada...";
+const WALLET_NOT_FOUND_MESSAGE =
+  "No se encontró una billetera registrada para este carnet. Debe registrarse primero en la aplicación móvil.";
+const WALLET_RATE_LIMIT_MESSAGE =
+  "Se realizaron demasiados intentos. Intente nuevamente más tarde.";
+const WALLET_LOOKUP_ERROR_MESSAGE =
+  "No fue posible consultar la billetera en este momento. Intente nuevamente.";
+const INSTITUTION_CATALOG_LOADING_MESSAGE = "Cargando instituciones...";
+const INSTITUTION_CATALOG_ERROR_MESSAGE =
+  "No fue posible cargar las instituciones. Intente nuevamente.";
+const INSTITUTION_CATALOG_EMPTY_MESSAGE =
+  "No hay instituciones disponibles en este momento.";
 
 const getLogoSrc = () => {
   const logoAsset = tuvotoDecideImage as string | { src: string };
@@ -65,8 +105,12 @@ const buildValidationSchema = (requiresPassword: boolean) =>
   Yup.object({
     dni: Yup.string()
       .trim()
-      .matches(/^[A-Za-z0-9-]{5,20}$/, "Carnet inválido")
+      .matches(DNI_PATTERN, "Carnet inválido")
       .required("El carnet es obligatorio"),
+    accountAddress: Yup.string()
+      .trim()
+      .matches(/^0x[a-fA-F0-9]{40}$/, "La wallet no está resuelta")
+      .required("Debes resolver la wallet antes de registrarte"),
     name: Yup.string()
       .trim()
       .min(3, "Mínimo 3 caracteres")
@@ -76,11 +120,24 @@ const buildValidationSchema = (requiresPassword: boolean) =>
       .trim()
       .email("Correo electrónico inválido")
       .required("El correo es obligatorio"),
-    tenantName: Yup.string()
-      .trim()
-      .required("El nombre de la institución es obligatorio")
-      .min(3, "Mínimo 3 caracteres")
-      .max(160, "Máximo 160 caracteres"),
+    institutionMode: Yup.string()
+      .oneOf(["new", "existing"])
+      .required(),
+    institutionId: Yup.string().when("institutionMode", {
+      is: "existing",
+      then: (schema) => schema.trim().required("Selecciona una institución activa"),
+      otherwise: (schema) => schema.trim().notRequired(),
+    }),
+    tenantName: Yup.string().when("institutionMode", {
+      is: "new",
+      then: (schema) =>
+        schema
+          .trim()
+          .required("El nombre de la institución es obligatorio")
+          .min(3, "Mínimo 3 caracteres")
+          .max(160, "Máximo 160 caracteres"),
+      otherwise: (schema) => schema.trim().notRequired(),
+    }),
     password: requiresPassword
       ? Yup.string()
           .trim()
@@ -94,6 +151,328 @@ const buildValidationSchema = (requiresPassword: boolean) =>
           .required("Debes confirmar tu contraseña")
       : Yup.string().trim().notRequired(),
   });
+
+const getWalletResolutionStatus = (error: unknown): WalletResolutionStatus => {
+  if (typeof error === "object" && error !== null && "status" in error) {
+    const status = (error as { status?: unknown }).status;
+    if (status === 429) return "rate_limited";
+  }
+  return "error";
+};
+
+const getWalletResolutionMessage = (
+  status: WalletResolutionStatus,
+  accountAddress: string,
+) => {
+  if (status === "loading") return WALLET_LOADING_MESSAGE;
+  if (status === "found") return accountAddress;
+  if (status === "not_found") return WALLET_NOT_FOUND_MESSAGE;
+  if (status === "rate_limited") return WALLET_RATE_LIMIT_MESSAGE;
+  if (status === "error") return WALLET_LOOKUP_ERROR_MESSAGE;
+  return WALLET_PENDING_MESSAGE;
+};
+
+function WalletResolutionField({
+  dni,
+  accountAddress,
+  onAccountAddressChange,
+}: {
+  dni: string;
+  accountAddress: string;
+  onAccountAddressChange: (value: string) => void;
+}) {
+  const [resolveWallet] = useResolveInstitutionalWalletByDniMutation();
+  const [status, setStatus] = useState<WalletResolutionStatus>("pending");
+  const lastRequestedDniRef = useRef("");
+  const onAccountAddressChangeRef = useRef(onAccountAddressChange);
+  const normalizedDni = dni.trim();
+  const isDniValid = DNI_PATTERN.test(normalizedDni);
+
+  useEffect(() => {
+    onAccountAddressChangeRef.current = onAccountAddressChange;
+  }, [onAccountAddressChange]);
+
+  useEffect(() => {
+    onAccountAddressChangeRef.current("");
+
+    if (!isDniValid) {
+      lastRequestedDniRef.current = "";
+      setStatus("pending");
+      return;
+    }
+
+    setStatus("pending");
+    const timer = window.setTimeout(() => {
+      if (lastRequestedDniRef.current === normalizedDni) return;
+      lastRequestedDniRef.current = normalizedDni;
+      setStatus("loading");
+      resolveWallet({ dni: normalizedDni })
+        .unwrap()
+        .then((response) => {
+          if (lastRequestedDniRef.current !== normalizedDni) return;
+          if (response.registered && response.accountAddress) {
+            onAccountAddressChangeRef.current(response.accountAddress);
+            setStatus("found");
+            return;
+          }
+          onAccountAddressChangeRef.current("");
+          setStatus("not_found");
+        })
+        .catch((error) => {
+          if (lastRequestedDniRef.current !== normalizedDni) return;
+          onAccountAddressChangeRef.current("");
+          setStatus(getWalletResolutionStatus(error));
+        });
+    }, 450);
+
+    return () => window.clearTimeout(timer);
+  }, [isDniValid, normalizedDni, resolveWallet]);
+
+  const statusMessage = getWalletResolutionMessage(status, accountAddress);
+  const isErrorState =
+    status === "not_found" || status === "rate_limited" || status === "error";
+
+  return (
+    <div className="flex flex-col">
+      <label className="text-sm font-semibold text-gray-700 mb-1 ml-1">
+        Wallet institucional
+      </label>
+      <input
+        data-cy="register-account-address"
+        value={accountAddress}
+        readOnly
+        placeholder={WALLET_PENDING_MESSAGE}
+        className="w-full px-4 py-2.5 border border-gray-300 rounded-xl bg-gray-50 font-mono text-xs text-gray-700 outline-none"
+      />
+      <p
+        className={`mt-1 ml-1 text-xs font-medium ${
+          isErrorState ? "text-red-600" : "text-gray-500"
+        }`}
+        role={isErrorState ? "alert" : "status"}
+      >
+        {statusMessage}
+      </p>
+      <ErrorMessage
+        name="accountAddress"
+        component="div"
+        className="text-xs text-red-500 mt-1 ml-1 font-medium"
+      />
+    </div>
+  );
+}
+
+function InstitutionModeSelector({
+  mode,
+  institutionId,
+  onModeChange,
+  onInstitutionIdChange,
+  onTenantNameChange,
+}: {
+  mode: VotingFormValues["institutionMode"];
+  institutionId: string;
+  onModeChange: (mode: VotingFormValues["institutionMode"]) => void;
+  onInstitutionIdChange: (institutionId: string) => void;
+  onTenantNameChange: (tenantName: string) => void;
+}) {
+  const [institutionSearch, setInstitutionSearch] = useState("");
+  const [institutionOptions, setInstitutionOptions] = useState<
+    PublicInstitutionTenant[]
+  >([]);
+  const [institutionSearchStatus, setInstitutionSearchStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
+  const [listPublicInstitutions] = useLazyListPublicInstitutionalTenantsQuery();
+  const searchSequenceRef = useRef(0);
+  const selectedInstitution =
+    institutionOptions.find(
+      (institution) => institution.institutionId === institutionId,
+    ) ?? null;
+
+  const selectMode = (nextMode: VotingFormValues["institutionMode"]) => {
+    onModeChange(nextMode);
+    if (nextMode === "new") {
+      onInstitutionIdChange("");
+      setInstitutionSearch("");
+      setInstitutionOptions([]);
+      setInstitutionSearchStatus("idle");
+      return;
+    }
+    onTenantNameChange("");
+  };
+
+  const updateInstitutionSearch = (value: string) => {
+    searchSequenceRef.current += 1;
+    setInstitutionSearch(value);
+    setInstitutionOptions([]);
+    setInstitutionSearchStatus("idle");
+    if (selectedInstitution && value !== selectedInstitution.institutionName) {
+      onInstitutionIdChange("");
+    }
+  };
+
+  const runInstitutionSearch = async () => {
+    const search = institutionSearch.trim().replace(/\s+/g, " ");
+    if (search.length < 2) {
+      setInstitutionOptions([]);
+      setInstitutionSearchStatus("success");
+      return;
+    }
+
+    const sequence = searchSequenceRef.current + 1;
+    searchSequenceRef.current = sequence;
+    setInstitutionSearchStatus("loading");
+    setInstitutionOptions([]);
+    onInstitutionIdChange("");
+
+    try {
+      const response = await listPublicInstitutions({
+        search,
+        page: 1,
+        limit: 10,
+      }).unwrap();
+      if (sequence !== searchSequenceRef.current) return;
+      setInstitutionOptions(response.items);
+      setInstitutionSearchStatus("success");
+    } catch {
+      if (sequence !== searchSequenceRef.current) return;
+      setInstitutionOptions([]);
+      setInstitutionSearchStatus("error");
+    }
+  };
+
+  const selectInstitution = (institution: PublicInstitutionTenant) => {
+    onInstitutionIdChange(institution.institutionId);
+    setInstitutionSearch(institution.institutionName);
+    setInstitutionSearchStatus("success");
+  };
+
+  const showEmptyMessage =
+    institutionSearchStatus === "success" &&
+    institutionSearch.trim().length >= 2 &&
+    institutionOptions.length === 0;
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <button
+          type="button"
+          data-cy="register-mode-new"
+          onClick={() => selectMode("new")}
+          className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-all ${
+            mode === "new"
+              ? "border-[#459151] bg-green-50 text-[#276331]"
+              : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+          }`}
+        >
+          Crear una nueva institución
+        </button>
+        <button
+          type="button"
+          data-cy="register-mode-existing"
+          onClick={() => selectMode("existing")}
+          className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-all ${
+            mode === "existing"
+              ? "border-[#459151] bg-green-50 text-[#276331]"
+              : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+          }`}
+        >
+          Solicitar acceso a una institución existente
+        </button>
+      </div>
+
+      {mode === "existing" ? (
+        <div className="flex flex-col">
+          <label className="text-sm font-semibold text-gray-700 mb-1 ml-1">
+            Institución
+          </label>
+          <div className="flex gap-2">
+            <input
+              data-cy="register-institution-search"
+              value={institutionSearch}
+              onChange={(event) => updateInstitutionSearch(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  void runInstitutionSearch();
+                }
+              }}
+              placeholder="Buscar institución activa"
+              className="min-w-0 flex-1 px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#459151] focus:border-transparent outline-none transition-all"
+            />
+            <button
+              type="button"
+              onClick={() => void runInstitutionSearch()}
+              className="shrink-0 rounded-xl bg-[#459151] px-4 py-2 text-sm font-bold text-white"
+            >
+              Buscar
+            </button>
+          </div>
+          {institutionSearchStatus === "loading" ? (
+            <p className="mt-1 ml-1 text-xs font-medium text-gray-500" role="status">
+              {INSTITUTION_CATALOG_LOADING_MESSAGE}
+            </p>
+          ) : null}
+          {institutionSearchStatus === "error" ? (
+            <p className="mt-1 ml-1 text-xs font-medium text-red-600" role="alert">
+              {INSTITUTION_CATALOG_ERROR_MESSAGE}
+            </p>
+          ) : null}
+          {showEmptyMessage ? (
+            <p className="mt-1 ml-1 text-xs font-medium text-gray-500" role="status">
+              {INSTITUTION_CATALOG_EMPTY_MESSAGE}
+            </p>
+          ) : null}
+          {institutionOptions.length > 0 ? (
+            <div className="mt-2 max-h-40 overflow-auto rounded-xl border border-gray-200 bg-white">
+              {institutionOptions.map((institution) => (
+                <button
+                  key={institution.institutionId}
+                  type="button"
+                  data-cy="register-institution-option"
+                  onClick={() => selectInstitution(institution)}
+                  className={`block w-full px-4 py-2 text-left text-sm transition-all hover:bg-green-50 ${
+                    institution.institutionId === institutionId
+                      ? "bg-green-50 font-semibold text-[#276331]"
+                      : "text-gray-700"
+                  }`}
+                >
+                  {institution.institutionName}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          {institutionId ? (
+            <p className="mt-1 ml-1 text-xs font-medium text-[#459151]" role="status">
+              Institución seleccionada: {selectedInstitution?.institutionName ?? institutionSearch}
+            </p>
+          ) : null}
+          <ErrorMessage
+            name="institutionId"
+            component="div"
+            className="text-xs text-red-500 mt-1 ml-1 font-medium"
+          />
+        </div>
+      ) : (
+        <div className="flex flex-col">
+          <label className="text-sm font-semibold text-gray-700 mb-1 ml-1">
+            Nombre de la institución o empresa
+          </label>
+          <Field
+            name="tenantName"
+            data-cy="register-tenant-name"
+            placeholder="Ej: Universidad Nacional, Empresa ABC"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#459151] focus:border-transparent outline-none transition-all"
+          />
+          <ErrorMessage
+            name="tenantName"
+            component="div"
+            className="text-xs text-red-500 mt-1 ml-1 font-medium"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
 
 const RegisterVotacionPage = () => {
   const logoSrc = getLogoSrc();
@@ -141,13 +520,16 @@ const RegisterVotacionPage = () => {
     setIsSubmitting(true);
 
     const payload: RegisterPayload = {
-      dni: values.dni,
+      dni: values.dni.trim(),
+      accountAddress: values.accountAddress.trim(),
       name: values.name,
       email: values.email,
       ...(isExistingIdentityFlow || !values.password.trim()
         ? {}
         : { password: values.password }),
-      institutionName: values.tenantName,
+      ...(values.institutionMode === "existing"
+        ? { institutionId: values.institutionId }
+        : { institutionName: values.tenantName }),
     };
 
     try {
@@ -192,8 +574,11 @@ const RegisterVotacionPage = () => {
           <Formik<VotingFormValues>
             initialValues={{
               dni: prefill.dni,
+              accountAddress: "",
               name: prefill.name,
               email: prefill.email,
+              institutionMode: "new",
+              institutionId: "",
               tenantName: "",
               password: "",
               confirmPassword: "",
@@ -202,6 +587,7 @@ const RegisterVotacionPage = () => {
             validationSchema={validationSchema}
             onSubmit={registerVotingUser}
           >
+            {({ setFieldValue, values }) => (
             <Form className="space-y-5" autoComplete="off">
               {isExistingIdentityFlow ? (
                 <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
@@ -226,6 +612,14 @@ const RegisterVotacionPage = () => {
                   className="text-xs text-red-500 mt-1 ml-1 font-medium"
                 />
               </div>
+
+              <WalletResolutionField
+                dni={values.dni}
+                accountAddress={values.accountAddress}
+                onAccountAddressChange={(value) =>
+                  void setFieldValue("accountAddress", value, false)
+                }
+              />
 
               <div className="flex flex-col">
                 <label className="text-sm font-semibold text-gray-700 mb-1 ml-1">
@@ -260,26 +654,19 @@ const RegisterVotacionPage = () => {
                 />
               </div>
 
-              <div className="flex flex-col">
-                <label className="text-sm font-semibold text-gray-700 mb-1 ml-1">
-                  Nombre de la institución o empresa
-                </label>
-                <Field
-                  name="tenantName"
-                  data-cy="register-tenant-name"
-                  placeholder="Ej: Universidad Nacional, Empresa ABC"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#459151] focus:border-transparent outline-none transition-all"
-                />
-                <ErrorMessage
-                  name="tenantName"
-                  component="div"
-                  className="text-xs text-red-500 mt-1 ml-1 font-medium"
-                />
-                {/* <p className="text-xs text-gray-500 mt-1 ml-1">
-                  Recibirás un correo para verificar tu solicitud. Luego quedará
-                  pendiente de aprobación.
-                </p> */}
-              </div>
+              <InstitutionModeSelector
+                mode={values.institutionMode}
+                institutionId={values.institutionId}
+                onModeChange={(mode) =>
+                  void setFieldValue("institutionMode", mode, false)
+                }
+                onInstitutionIdChange={(institutionId) =>
+                  void setFieldValue("institutionId", institutionId, false)
+                }
+                onTenantNameChange={(tenantName) =>
+                  void setFieldValue("tenantName", tenantName, false)
+                }
+              />
 
               {!isExistingIdentityFlow ? (
                 <>
@@ -343,11 +730,14 @@ const RegisterVotacionPage = () => {
                 <LoadingButton
                   type="submit"
                   data-cy="register-submit"
+                  disabled={!values.accountAddress || isSubmitting}
                   isLoading={isSubmitting}
                   style={{ backgroundColor: "#459151" }}
                   className="w-full text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-[#459151]/20 active:scale-[0.98]"
                 >
-                  {isExistingIdentityFlow ? "Solicitar acceso" : "Registrarse"}
+                  {isExistingIdentityFlow || values.institutionMode === "existing"
+                    ? "Solicitar acceso"
+                    : "Registrarse"}
                 </LoadingButton>
 
                 <Link
@@ -358,6 +748,7 @@ const RegisterVotacionPage = () => {
                 </Link>
               </div>
             </Form>
+            )}
           </Formik>
         </div>
       </div>

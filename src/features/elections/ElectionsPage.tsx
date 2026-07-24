@@ -2,7 +2,7 @@
 // Muestra el dashboard institucional y conserva la lista real de votaciones
 // Conectado a backend real con RTK Query
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from '@/domains/votacion/navigation/compat-private';
 import { useSelector } from 'react-redux';
 import { useDeleteVotingEventMutation, useDisableVotingEventMutation, useGetVotingEventsQuery } from '../../store/votingEvents';
@@ -11,11 +11,7 @@ import Modal2 from '../../components/Modal2';
 import type { VotingEvent } from '../../store/votingEvents/types';
 import { formatDateTimeForUi, hasDraftAlreadyStarted, useClientNow } from '../electionConfig/renderUtils';
 import AdminInstitutionAccountCard from '../adminTvd/components/AdminInstitutionAccountCard';
-import AdminTvdBalanceCard from '../adminTvd/components/AdminTvdBalanceCard';
 import EstimateVotersModal from '../adminTvd/components/EstimateVotersModal';
-import InsufficientTvdBalanceModal from '../adminTvd/components/InsufficientTvdBalanceModal';
-import { getInstitutionTvdBalance } from '../adminTvd/services/adminTvdBalanceApi';
-import type { InstitutionTvdBalance } from '../adminTvd/types';
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const DEADLINE_REMINDER_WINDOW_MS = 24 * ONE_HOUR_MS;
@@ -86,12 +82,7 @@ const ElectionsPage: React.FC = () => {
   const [deleteConfirm, setDeleteConfirm] = useState<VotingEvent | null>(null);
   const [disableConfirm, setDisableConfirm] = useState<VotingEvent | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [balance, setBalance] = useState<InstitutionTvdBalance>({
-    amount: 0,
-    currency: '$TVD',
-  });
   const [showEstimateModal, setShowEstimateModal] = useState(false);
-  const [insufficientEstimate, setInsufficientEstimate] = useState<number | null>(null);
 
   // Query de eventos - skip si no hay tenantId
   const { data: events = [], isLoading, error, refetch } = useGetVotingEventsQuery(
@@ -108,30 +99,18 @@ const ElectionsPage: React.FC = () => {
     );
   }, [events, searchTerm]);
 
-  useEffect(() => {
-    let active = true;
-    void getInstitutionTvdBalance().then((nextBalance) => {
-      if (active) setBalance(nextBalance);
-    });
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
   const handleCreateClick = () => {
     setShowEstimateModal(true);
   };
 
   const continueToCreateWizard = () => {
     setShowEstimateModal(false);
-    setInsufficientEstimate(null);
     navigate('/votacion/elecciones/new');
   };
 
-  const handleInsufficientBalance = (totalEstimated: number) => {
+  const handleRechargeFromEstimate = () => {
     setShowEstimateModal(false);
-    setInsufficientEstimate(totalEstimated);
+    navigate('/votacion/recarga-operativa');
   };
 
   const handleElectionClick = (event: VotingEvent) => {
@@ -234,10 +213,24 @@ const ElectionsPage: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-8 grid gap-4 sm:grid-cols-2">
-          <AdminTvdBalanceCard
-            balance={balance}
+          <button
+            type="button"
             onClick={() => navigate('/votacion/recarga-operativa')}
-          />
+            className="flex min-h-[96px] w-full items-center justify-between rounded-2xl border border-amber-300 bg-white px-5 py-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-amber-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-amber-300"
+            aria-label="Ir a recarga operativa"
+          >
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                Recarga operativa
+              </p>
+              <p className="mt-2 text-sm font-semibold text-slate-900">
+                Recarga TVD mediante QR
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                El saldo se valida en backend con tu wallet activa.
+              </p>
+            </div>
+          </button>
           <AdminInstitutionAccountCard
             onClick={() => navigate('/votacion/cuenta-institucional')}
           />
@@ -501,22 +494,9 @@ const ElectionsPage: React.FC = () => {
 
       <EstimateVotersModal
         isOpen={showEstimateModal}
-        availableBalance={balance.amount}
         onClose={() => setShowEstimateModal(false)}
         onContinue={continueToCreateWizard}
-        onInsufficientBalance={handleInsufficientBalance}
-      />
-
-      <InsufficientTvdBalanceModal
-        isOpen={insufficientEstimate !== null}
-        estimatedAmount={insufficientEstimate ?? 0}
-        onClose={() => setInsufficientEstimate(null)}
-        onRecharge={() => {
-          const amount = insufficientEstimate ?? 0;
-          setInsufficientEstimate(null);
-          navigate(`/votacion/recarga-operativa?monto=${amount}`);
-        }}
-        onSaveDraft={continueToCreateWizard}
+        onRecharge={handleRechargeFromEstimate}
       />
     </div>
   );

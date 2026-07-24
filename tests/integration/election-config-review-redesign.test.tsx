@@ -16,6 +16,7 @@ const openReviewMock = vi.fn();
 const activateElectionMock = vi.fn();
 const getShareUrlMock = vi.fn();
 const copyToClipboardMock = vi.fn();
+const useGetVotingEventTvdCapacityQueryMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/domains/votacion/navigation/compat-private", () => ({
   useNavigate: () => navigateMock,
@@ -38,6 +39,12 @@ const useElectionPublishMock = vi.fn();
 
 vi.mock("@/features/electionConfig/data/useElectionPublish", () => ({
   useElectionPublish: (...args: unknown[]) => useElectionPublishMock(...args),
+}));
+
+vi.mock("@/store/tvd", () => ({
+  useGetVotingEventTvdCapacityQuery: (
+    ...args: ReadonlyArray<unknown>
+  ) => useGetVotingEventTvdCapacityQueryMock(...args),
 }));
 
 vi.mock("@/features/electionConfig/components/PhoneMockup", () => ({
@@ -243,6 +250,29 @@ describe("election config review redesign", () => {
       "https://app.test/votacion/elecciones/evt-1/publica",
     );
     copyToClipboardMock.mockResolvedValue(true);
+    useGetVotingEventTvdCapacityQueryMock.mockReturnValue({
+      data: {
+        eventId: "evt-1",
+        participantCount: 10,
+        padronVersionId: "padron-1",
+        tokensPerParticipant: "1",
+        requiredTokens: "10",
+        requiredSmallestUnit: "10000000000000000000",
+        availableTokens: "20",
+        availableSmallestUnit: "20000000000000000000",
+        missingTokens: "0",
+        missingSmallestUnit: "0",
+        canPublish: true,
+        reasonCode: null,
+        balanceSource: "BLOCKCHAIN",
+        usableBalanceField: "totalBalanceSmallestUnit",
+        walletAddress: "0x1111111111111111111111111111111111111111",
+      },
+      error: null,
+      isLoading: false,
+      isFetching: false,
+      refetch: vi.fn(),
+    });
 
     vi.mocked(votingEvents.useDeleteVotingEventMutation).mockReturnValue([
       vi.fn(() => ({ unwrap: () => Promise.resolve({}) })),
@@ -282,6 +312,7 @@ describe("election config review redesign", () => {
       "Vista previa para votantes",
       "Horarios",
       "Avisos importantes",
+      "Capacidad TVD",
       "Configuración adicional",
     ]) {
       expect(
@@ -426,6 +457,167 @@ describe("election config review redesign", () => {
     expect(screen.getByRole("dialog", { name: "Modal" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Publicar oficialmente" }));
     expect(activateElectionMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("bloquea visualmente publicación cuando capacidad TVD definitiva es insuficiente", async () => {
+    const user = userEvent.setup();
+    useGetVotingEventTvdCapacityQueryMock.mockReturnValue({
+      data: {
+        eventId: "evt-1",
+        participantCount: 25,
+        padronVersionId: "padron-1",
+        tokensPerParticipant: "1",
+        requiredTokens: "25",
+        requiredSmallestUnit: "25000000000000000000",
+        availableTokens: "20",
+        availableSmallestUnit: "20000000000000000000",
+        missingTokens: "5",
+        missingSmallestUnit: "5000000000000000000",
+        canPublish: false,
+        reasonCode: "INSUFFICIENT_TVD_BALANCE",
+        balanceSource: "BLOCKCHAIN",
+        usableBalanceField: "totalBalanceSmallestUnit",
+        walletAddress: "0x1111111111111111111111111111111111111111",
+      },
+      error: null,
+      isLoading: false,
+      isFetching: false,
+      refetch: vi.fn(),
+    });
+
+    renderReview();
+
+    expect(screen.getByText("Faltan TVD para cubrir esta elección.")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Faltan 5 TVD para avanzar visualmente hacia publicación/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Confirmar publicación oficial/i }),
+    ).toBeDisabled();
+
+    await user.click(screen.getAllByRole("button", { name: "Ir a recarga" })[0]!);
+    expect(navigateMock).toHaveBeenCalledWith("/votacion/recarga-operativa");
+    expect(activateElectionMock).not.toHaveBeenCalled();
+  });
+
+  it("mantiene publicación bloqueada si la validación TVD definitiva falla y permite retry", async () => {
+    const refetchCapacityMock = vi.fn();
+    useGetVotingEventTvdCapacityQueryMock.mockReturnValue({
+      data: undefined,
+      error: { status: 503 },
+      isLoading: false,
+      isFetching: false,
+      refetch: refetchCapacityMock,
+    });
+    const user = userEvent.setup();
+
+    renderReview();
+
+    expect(
+      screen.getByText("No pudimos validar el saldo actual. Intenta nuevamente."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Confirmar publicación oficial/i }),
+    ).toBeDisabled();
+
+    await user.click(
+      screen.getByRole("button", { name: "Reintentar validación" }),
+    );
+    expect(refetchCapacityMock).toHaveBeenCalledTimes(1);
+    expect(activateElectionMock).not.toHaveBeenCalled();
+  });
+
+  it("bloquea avance mientras carga capacidad TVD y no conserva un resultado anterior", () => {
+    const { rerender } = renderReview();
+
+    expect(
+      screen.getByText("La wallet tiene capacidad para el padrón actual."),
+    ).toBeInTheDocument();
+
+    useGetVotingEventTvdCapacityQueryMock.mockReturnValue({
+      data: undefined,
+      error: null,
+      isLoading: true,
+      isFetching: false,
+      refetch: vi.fn(),
+    });
+    rerender(<ElectionConfigReview />);
+
+    expect(screen.getByText("Validando capacidad TVD...")).toBeInTheDocument();
+    expect(
+      screen.queryByText("La wallet tiene capacidad para el padrón actual."),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Confirmar publicación oficial/i }),
+    ).toBeDisabled();
+    expect(activateElectionMock).not.toHaveBeenCalled();
+  });
+
+  it("canPublish true habilita solo el siguiente paso visual y no publica automaticamente", () => {
+    renderReview();
+
+    expect(useGetVotingEventTvdCapacityQueryMock).toHaveBeenCalledWith(
+      { eventId: "evt-1" },
+      expect.objectContaining({
+        refetchOnMountOrArgChange: true,
+      }),
+    );
+    expect(
+      screen.getByText("La wallet tiene capacidad para el padrón actual."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Este resultado solo confirma capacidad. La publicación oficial sigue siendo un paso separado.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Confirmar publicación oficial/i }),
+    ).toBeEnabled();
+    expect(activateElectionMock).not.toHaveBeenCalled();
+  });
+
+  it("bloquea con padrón no listo y permite reintentar o ir a recarga", async () => {
+    const user = userEvent.setup();
+    const refetchCapacityMock = vi.fn();
+    useGetVotingEventTvdCapacityQueryMock.mockReturnValue({
+      data: {
+        eventId: "evt-1",
+        participantCount: 0,
+        padronVersionId: null,
+        tokensPerParticipant: "1",
+        requiredTokens: "0",
+        requiredSmallestUnit: "0",
+        availableTokens: "20",
+        availableSmallestUnit: "20000000000000000000",
+        missingTokens: "0",
+        missingSmallestUnit: "0",
+        canPublish: false,
+        reasonCode: "PADRON_PROCESSING",
+        balanceSource: "BLOCKCHAIN",
+        usableBalanceField: "totalBalanceSmallestUnit",
+        walletAddress: "0x1111111111111111111111111111111111111111",
+      },
+      error: null,
+      isLoading: false,
+      isFetching: false,
+      refetch: refetchCapacityMock,
+    });
+
+    renderReview();
+
+    expect(screen.getByText("El padrón todavía está procesándose.")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Confirmar publicación oficial/i }),
+    ).toBeDisabled();
+
+    await user.click(
+      screen.getByRole("button", { name: "Reintentar validación" }),
+    );
+    expect(refetchCapacityMock).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "Ir a recarga" }));
+    expect(navigateMock).toHaveBeenCalledWith("/votacion/recarga-operativa");
+    expect(activateElectionMock).not.toHaveBeenCalled();
   });
 
   it("respeta estados bloqueados vencido, activo y finalizado", () => {

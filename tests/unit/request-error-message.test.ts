@@ -24,4 +24,20 @@ describe("request error message mapper", () => {
       "Intenta nuevamente.",
     );
   });
+
+  it("maps official publication TVD and window codes to safe functional messages", () => {
+    expect(
+      getRequestErrorMessage(
+        { data: { code: "TVD_CREDITS_INSUFFICIENT_CAPACITY" } },
+        "Intenta nuevamente.",
+      ),
+    ).toBe("No tienes suficientes $TVD para publicar esta votación.");
+
+    expect(
+      getRequestErrorMessage(
+        { data: { code: "PUBLICATION_WINDOW_CLOSED" } },
+        "Intenta nuevamente.",
+      ),
+    ).toBe("El tiempo para publicar oficialmente esta votación ya terminó.");
+  });
 });

@@ -1,4 +1,6 @@
 import { apiSlice } from "../apiSlice";
+import type { HistoryContractsResponse } from "@/shared/tvd/superadminTvdTypes";
+import { getRuntimeEnv } from "@/shared/system/runtimeEnv";
 
 export interface ContractTerritory {
   type: "municipality" | "department";
@@ -43,6 +45,15 @@ export interface PublicContractsResponse {
   total: number;
 }
 
+const getHistoryContractsUrl = () => {
+  const baseUrl = String(
+    getRuntimeEnv("VITE_BASE_API_URL", "NEXT_PUBLIC_BASE_API_URL") ?? "",
+  ).trim();
+  if (!baseUrl) return "/history/contracts";
+  const rootUrl = baseUrl.replace(/\/api\/v1\/?$/i, "").replace(/\/$/, "");
+  return `${rootUrl}/history/contracts`;
+};
+
 export const contractsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getMyElections: builder.query<MyElectionsResponse, void>({
@@ -59,7 +70,18 @@ export const contractsApi = apiSlice.injectEndpoints({
       }),
       providesTags: ["Contracts"],
     }),
+    getHistoryContracts: builder.query<HistoryContractsResponse, void>({
+      query: () => ({
+        url: getHistoryContractsUrl(),
+        method: "GET",
+      }),
+      providesTags: ["Contracts"],
+    }),
   }),
 });
 
-export const { useGetMyElectionsQuery, useGetPublicActiveContractsQuery } = contractsApi;
+export const {
+  useGetMyElectionsQuery,
+  useGetPublicActiveContractsQuery,
+  useGetHistoryContractsQuery,
+} = contractsApi;

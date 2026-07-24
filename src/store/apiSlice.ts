@@ -5,8 +5,21 @@ import {
   fetchBaseQuery,
 } from "@reduxjs/toolkit/query/react";
 import { logOut } from "./auth/authSlice";
+import {
+  AUTH_VERSION_MISMATCH_CODE,
+  persistAuthSessionEndReason,
+} from "./auth/sessionInvalidation";
 import { getRuntimeEnv } from "../shared/system/runtimeEnv";
 import { readStorage } from "../shared/system/browserStorage";
+
+type ApiStateShape = {
+  auth?: {
+    token?: string | null;
+  };
+  election?: {
+    selectedElectionId?: string | null;
+  };
+};
 
 const baseApiUrl =
   getRuntimeEnv("VITE_BASE_API_URL", "NEXT_PUBLIC_BASE_API_URL") ||
@@ -19,8 +32,8 @@ const baseQuery = fetchBaseQuery({
   baseUrl: baseApiUrl,
 
   prepareHeaders: (headers, { getState }) => {
-    const state = getState() as any;
-    const token = state.auth.token;
+    const state = getState() as ApiStateShape;
+    const token = state.auth?.token;
     headers.set("Accept", "application/json");
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);
@@ -28,6 +41,29 @@ const baseQuery = fetchBaseQuery({
     return headers;
   },
 });
+
+const getErrorCode = (errorData: unknown) => {
+  if (
+    typeof errorData === "object" &&
+    errorData !== null &&
+    "code" in errorData &&
+    typeof errorData.code === "string"
+  ) {
+    return errorData.code;
+  }
+
+  return null;
+};
+
+const getUnauthorizedRedirectTarget = (isAuthVersionMismatch: boolean) => {
+  if (isAuthVersionMismatch) {
+    if (appMode === "voting") return "/votacion/login";
+    if (appMode === "resultados") return "/resultados/login";
+    return "/login";
+  }
+
+  return appMode === "voting" ? "/" : "/login";
+};
 
 const needsElectionId = (path: string) => {
   const p = path.startsWith("/") ? path : `/${path}`;
@@ -50,7 +86,7 @@ const baseQueryWrapper = async (
   api: BaseQueryApi,
   extraOptions: {},
 ) => {
-  const state = api.getState() as any;
+  const state = api.getState() as ApiStateShape;
   const urlElectionId =
     typeof window !== "undefined"
       ? new URLSearchParams(window.location.search).get("electionId")
@@ -66,7 +102,8 @@ const baseQueryWrapper = async (
 
   const urlPath = typeof args === "string" ? args : (args.url as string);
   if (eid && needsElectionId(urlPath)) {
-    const prevParams = (adjusted.params as Record<string, any>) || {};
+    const prevParams =
+      (adjusted.params as Record<string, unknown> | undefined) || {};
     if (!("electionId" in prevParams)) {
       adjusted.params = { ...prevParams, electionId: eid };
     }
@@ -75,9 +112,17 @@ const baseQueryWrapper = async (
   const result = await baseQuery(adjusted, api, extraOptions);
 
   if (result.error?.status === 401 && state?.auth?.token) {
+    const code = getErrorCode(result.error.data);
+    const isAuthVersionMismatch = code === AUTH_VERSION_MISMATCH_CODE;
+    if (isAuthVersionMismatch) {
+      persistAuthSessionEndReason(AUTH_VERSION_MISMATCH_CODE);
+    }
     api.dispatch(logOut());
+    if (isAuthVersionMismatch) {
+      api.dispatch(apiSlice.util.resetApiState());
+    }
     if (typeof window !== "undefined") {
-      const target = appMode === "voting" ? "/" : "/login";
+      const target = getUnauthorizedRedirectTarget(isAuthVersionMismatch);
       if (window.location.pathname !== target) {
         window.location.assign(target);
       }
@@ -114,8 +159,15 @@ export const apiSlice = createApi({
     "VotingEventPadronSummary",
     "VotingEventResults",
     "VotingEventNews",
+    "OfficialPublicationRequests",
     "InstitutionalTenants",
     "AccessApprovals",
+    "TvdPayments",
+    "TvdPayment",
+    "TvdAccreditations",
+    "TvdEventCapacity",
+    "InstitutionalRecoveryRequests",
+    "InstitutionalRecoveryRequest",
   ],
   endpoints: () => ({}),
 });

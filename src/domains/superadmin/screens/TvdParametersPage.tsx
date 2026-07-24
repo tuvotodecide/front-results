@@ -1,10 +1,12 @@
 "use client";
 
-import { CheckCircle2, Edit3, Info, PauseCircle } from "lucide-react";
+import { CheckCircle2, ExternalLink, Info, PauseCircle } from "lucide-react";
 import { useState } from "react";
 import Modal2 from "@/components/Modal2";
+import { formatDateTimeForUi } from "@/features/electionConfig/renderUtils";
+import { truncateAddress } from "@/shared/tvd/tvdBlockchainFormatters";
 import SuperadminPageHeader from "../components/SuperadminPageHeader";
-import { tvdEconomicParametersMock } from "../data/superadminTvd.mock";
+import { useTvdParametersReadModel } from "../hooks/useSuperadminTvdReadModel";
 import type { TvdEconomicParameter } from "../types";
 
 const ReadOnlySwitch = ({ enabled }: { enabled: boolean }) => (
@@ -23,8 +25,46 @@ const ReadOnlySwitch = ({ enabled }: { enabled: boolean }) => (
 );
 
 export default function TvdParametersPage() {
-  const data = tvdEconomicParametersMock;
   const [selected, setSelected] = useState<TvdEconomicParameter | null>(null);
+  const { data, isLoading, error } = useTvdParametersReadModel();
+  const parameters: TvdEconomicParameter[] = [
+    {
+      id: "vote-consumption",
+      name: "Consumo por voto válido",
+      value: data?.tvdPerCredit.formatted ?? "No disponible",
+      example:
+        data?.tvdPerCredit.raw !== null && data?.tvdPerCredit.raw !== undefined
+          ? `Valor raw: ${data.tvdPerCredit.raw}`
+          : (data?.tvdPerCredit.message ?? "Pendiente de lectura on-chain."),
+    },
+    {
+      id: "burn-percentage",
+      name: "Porcentaje de quema",
+      value: data?.burn.burnPercentage ?? "No disponible",
+      example:
+        data?.burn.burnBps !== null && data?.burn.burnBps !== undefined
+          ? `${data.burn.burnBps} BPS`
+          : (data?.burn.message ?? "Pendiente de lectura on-chain."),
+    },
+    {
+      id: "vote-reward",
+      name: "Recompensa por voto válido",
+      value: data?.rewardByVote.formatted ?? "No disponible",
+      example:
+        data?.rewardByVote.raw !== null && data?.rewardByVote.raw !== undefined
+          ? `Valor raw: ${data.rewardByVote.raw}`
+          : (data?.rewardByVote.message ?? "Pendiente de lectura on-chain."),
+    },
+  ];
+  const rewardsEnabled = data?.rewardByVote.enabled ?? false;
+  const campaignEnabled = data?.campaign.status === "available" && data.campaign.count !== "0";
+  const blockchainUrl = data?.contracts.tvdToken.explorerUrl ?? null;
+  const consultedContracts: Array<[string, string | null | undefined]> = [
+    ["TVD Token", data?.contracts.tvdToken.address],
+    ["ElectoralCredits", data?.contracts.electoralCredits.address],
+    ["VoteManager", data?.contracts.voteManager.address],
+    ["IncentiveCampaigns", data?.contracts.incentiveCampaigns.address],
+  ];
 
   return (
     <section>
@@ -34,13 +74,29 @@ export default function TvdParametersPage() {
       />
 
       <div className="space-y-6">
+        {isLoading ? (
+          <div className="rounded-lg border border-[#dfe6df] bg-white px-4 py-3 text-sm text-[#555]">
+            Cargando datos blockchain...
+          </div>
+        ) : null}
+        {error ? (
+          <div className="rounded-lg border border-[#f3ca72] bg-[#fff8e8] px-4 py-3 text-sm text-[#a45400]">
+            {error}
+          </div>
+        ) : null}
+        {!isLoading && !error && data?.status === "partial" ? (
+          <div className="rounded-lg border border-[#f3ca72] bg-[#fff8e8] px-4 py-3 text-sm text-[#a45400]">
+            Parcialmente disponible. Algunas lecturas secundarias no respondieron.
+          </div>
+        ) : null}
+
         <article className="overflow-hidden rounded-2xl border border-[#dfe6df] bg-white shadow-sm">
           <div className="border-b border-[#e8ece8] px-5 py-4">
             <h2 className="text-lg font-semibold text-[#3f3f3f]">
               Parámetros de consumo y recompensa
             </h2>
             <p className="mt-1 text-sm text-[#747474]">
-              Datos consultados desde contrato o servicio de lectura autorizado
+              Datos consultados en {data?.network.name ?? "red no configurada"}
             </p>
           </div>
           <div className="overflow-x-auto">
@@ -54,7 +110,7 @@ export default function TvdParametersPage() {
                 </tr>
               </thead>
               <tbody>
-                {data.parameters.map((parameter) => (
+                {parameters.map((parameter) => (
                   <tr key={parameter.id} className="border-t border-[#e8ece8]">
                     <td className="px-5 py-5 font-medium text-[#424242]">
                       {parameter.name}
@@ -71,8 +127,8 @@ export default function TvdParametersPage() {
                         onClick={() => setSelected(parameter)}
                         className="inline-flex items-center gap-2 rounded-md border border-[#dfe3df] px-3 py-2 text-sm text-[#666] transition-colors hover:border-[#287c36] hover:text-[#287c36]"
                       >
-                        <Edit3 className="h-4 w-4" />
-                        Editar
+                        <Info className="h-4 w-4" />
+                        Ver detalle
                       </button>
                     </td>
                   </tr>
@@ -91,14 +147,16 @@ export default function TvdParametersPage() {
                 </span>
                 <div>
                   <h2 className="font-semibold text-[#287c36]">
-                    {data.rewards.title}
+                    {rewardsEnabled ? "Activas" : "Deshabilitadas"}
                   </h2>
                   <p className="text-sm text-[#747474]">
-                    {data.rewards.description}
+                    {data?.rewardByVote.formatted
+                      ? `Recompensa por voto: ${data.rewardByVote.formatted}`
+                      : "Recompensa no disponible"}
                   </p>
                 </div>
               </div>
-              <ReadOnlySwitch enabled={data.rewards.enabled} />
+              <ReadOnlySwitch enabled={rewardsEnabled} />
             </div>
           </article>
 
@@ -110,17 +168,47 @@ export default function TvdParametersPage() {
                 </span>
                 <div>
                   <h2 className="font-semibold text-[#c75b00]">
-                    {data.initialCampaign.title}
+                    {campaignEnabled ? "Activa" : "Sin campaña activa"}
                   </h2>
                   <p className="text-sm text-[#747474]">
-                    {data.initialCampaign.description}
+                    {data?.campaign.message ?? "No existe una campaña configurada"}
                   </p>
                 </div>
               </div>
-              <ReadOnlySwitch enabled={data.initialCampaign.enabled} />
+              <ReadOnlySwitch enabled={campaignEnabled} />
             </div>
+            {data?.campaign.fields.length ? (
+              <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
+                {data.campaign.fields.map((field) => (
+                  <div key={field.label} className="rounded-lg border border-[#edf0ed] p-3">
+                    <dt className="text-xs text-[#747474]">{field.label}</dt>
+                    <dd className="mt-1 break-all font-medium text-[#424242]">
+                      {field.label.toLowerCase().includes("fecha")
+                        ? formatDateTimeForUi(field.value)
+                        : field.value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            ) : null}
           </article>
         </div>
+
+        <article className="overflow-hidden rounded-2xl border border-[#dfe6df] bg-white shadow-sm">
+          <h2 className="border-b border-[#e8ece8] px-5 py-4 font-semibold text-[#3f3f3f]">
+            Contratos consultados
+          </h2>
+          <div className="grid gap-0 sm:grid-cols-2">
+            {consultedContracts.map(([label, address]) => (
+              <div key={label} className="border-b border-[#e8ece8] px-4 py-3 sm:border-r">
+                <p className="text-xs text-[#747474]">{label}</p>
+                <p className="mt-1 break-all font-mono text-sm text-[#313131]" title={address ?? ""}>
+                  {truncateAddress(address)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </article>
 
         <p className="flex items-start gap-2 text-sm text-[#747474]">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
@@ -162,16 +250,23 @@ export default function TvdParametersPage() {
               Cerrar
             </button>
             <a
-              href={data.blockchainUrl}
+              href={blockchainUrl ?? "#"}
               target="_blank"
-              rel="noreferrer"
-              className="rounded-lg bg-[#287c36] px-4 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-[#1f642b]"
+              rel="noopener noreferrer"
+              aria-disabled={!blockchainUrl}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#287c36] px-4 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-[#1f642b] aria-disabled:pointer-events-none aria-disabled:bg-[#9aa79c]"
             >
+              <ExternalLink className="h-4 w-4" />
               Abrir en blockchain
             </a>
           </div>
         </div>
       </Modal2>
+      {data?.updatedAt ? (
+        <p className="mt-5 text-xs text-[#747474]">
+          Última actualización: {formatDateTimeForUi(data.updatedAt)}
+        </p>
+      ) : null}
     </section>
   );
 }

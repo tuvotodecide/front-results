@@ -100,6 +100,13 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm test:coverage
 
+      - name: Official publication frontend focused tests
+        if: ${{ !cancelled() }}
+        run: >
+          pnpm exec vitest run
+          tests/unit/official-publication-final-ux.test.tsx
+          tests/unit/use-election-publish.test.tsx
+
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4

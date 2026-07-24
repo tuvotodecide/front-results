@@ -39,6 +39,12 @@ import {
   useUpdateEventScheduleMutation,
   useUpdateVotingEventMutation,
 } from "../../store/votingEvents";
+import { useGetVotingEventTvdCapacityQuery } from "../../store/tvd";
+import {
+  formatTvdCapacityAmount,
+  getCapacityRequestErrorMessage,
+  getTvdCapacityReasonMessage,
+} from "../adminTvd/utils/tvdCapacityUi";
 
 const basePendingLabels: Record<string, string> = {
   datos_base: "Datos base de la votación",
@@ -89,10 +95,19 @@ const ElectionConfigReview: React.FC = () => {
     activateElection,
     activating,
     activationResult,
+    officialPublicationRequest = null,
+    officialPublicationMessage = null,
+    officialPublicationIsActive = false,
+    officialPublicationCanRetry = false,
+    officialPublicationCanCancel = false,
+    officialPublicationTxUrl = null,
+    cancelOfficialPublication = async () => undefined,
+    cancelingOfficialPublication = false,
     getShareUrl,
     copyToClipboard,
     refetch,
   } = useElectionPublish(actualElectionId);
+  const eventState = votingEvent?.state ?? votingEvent?.status ?? "DRAFT";
   const [deleteVotingEvent, { isLoading: deletingEvent }] =
     useDeleteVotingEventMutation();
   const [updateEventSchedule, { isLoading: updatingSchedule }] =
@@ -103,6 +118,21 @@ const ElectionConfigReview: React.FC = () => {
     useCreatePresentialSessionMutation();
   const [createEventNews, { isLoading: creatingNews }] =
     useCreateEventNewsMutation();
+  const {
+    data: tvdCapacity,
+    error: tvdCapacityError,
+    isLoading: tvdCapacityLoading,
+    isFetching: tvdCapacityFetching,
+    refetch: refetchTvdCapacity,
+  } = useGetVotingEventTvdCapacityQuery(
+    { eventId: actualElectionId },
+    {
+      skip:
+        !actualElectionId ||
+        (eventState !== "READY_FOR_REVIEW" && eventState !== "PUBLISHED"),
+      refetchOnMountOrArgChange: true,
+    },
+  );
   const didRefetchOnMount = useRef(false);
 
   useEffect(() => {
@@ -222,7 +252,7 @@ const ElectionConfigReview: React.FC = () => {
       }
       await activateElection();
       setShowConfirmModal(false);
-      setShowSuccessModal(true);
+      setShowSuccessModal(false);
     } catch (error: any) {
       setShowConfirmModal(false);
       setPublishErrorMessage(
@@ -248,15 +278,23 @@ const ElectionConfigReview: React.FC = () => {
     navigate("/votacion/elecciones");
   };
 
+  const officialPublicationState =
+    eventState === "READY_FOR_REVIEW" || eventState === "PUBLISHED";
+  const tvdCapacityBlocksOfficialPublication =
+    officialPublicationState &&
+    (tvdCapacityLoading ||
+      tvdCapacityFetching ||
+      Boolean(tvdCapacityError) ||
+      tvdCapacity?.canPublish !== true);
   const isPublishButtonDisabled = () => {
     return (
       !canProceedToOfficialPublication ||
       activating ||
-      reviewReadiness?.publicationWindow?.expired
+      officialPublicationIsActive ||
+      reviewReadiness?.publicationWindow?.expired ||
+      tvdCapacityBlocksOfficialPublication
     );
   };
-
-  const eventState = votingEvent?.state ?? votingEvent?.status ?? "DRAFT";
   const fullElectionEditingEnabled = canEditElectionBeforeCutoff(
     votingEvent,
     nowMs,
@@ -301,6 +339,25 @@ const ElectionConfigReview: React.FC = () => {
     reviewReadiness?.publicationWindow?.deadline ??
       votingEvent?.publishDeadline,
   );
+
+  const handleCancelOfficialPublication = async () => {
+    if (!officialPublicationCanCancel || cancelingOfficialPublication) return;
+    const confirmed = window.confirm(
+      "¿Cancelar la solicitud de publicación oficial?",
+    );
+    if (!confirmed) return;
+    try {
+      await cancelOfficialPublication();
+    } catch (error: any) {
+      setPublishErrorMessage(
+        getRequestErrorMessage(
+          error,
+          "No se pudo cancelar la solicitud. Actualiza el estado e intenta nuevamente.",
+        ),
+      );
+      setShowErrorModal(true);
+    }
+  };
 
   const handlePresentialToggle = async (enabled: boolean) => {
     if (
@@ -408,6 +465,10 @@ const ElectionConfigReview: React.FC = () => {
         "No se pudo actualizar el horario.";
       setScheduleError(String(message));
     }
+  };
+
+  const handleGoToRecharge = () => {
+    navigate("/votacion/recarga-operativa");
   };
 
   const handleCreateNews = async (payload: {
@@ -553,6 +614,7 @@ const ElectionConfigReview: React.FC = () => {
     isPublicationExpired,
     !isPublicationExpired,
     !isPublicationExpired,
+    Boolean(officialPublicationRequest),
   ].filter(Boolean).length;
 
   const importantWarningsBadge =
@@ -626,6 +688,183 @@ const ElectionConfigReview: React.FC = () => {
           <p className="mt-2 font-bold uppercase">
             Si se atrasa, la votación quedará anulada.
           </p>
+        </div>
+      ) : null}
+      {officialPublicationRequest ? (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="font-semibold">Solicitud de publicación oficial</p>
+              <p className="mt-1">
+                {officialPublicationMessage ??
+                  "El sistema está consultando el estado actual de la solicitud."}
+              </p>
+              <p className="mt-2 text-xs text-blue-700">
+                ID: {officialPublicationRequest.requestId}
+              </p>
+              {officialPublicationRequest.expiresAt ? (
+                <p className="mt-1 text-xs text-blue-700">
+                  Vence: {formatDateTimeForUi(officialPublicationRequest.expiresAt)}
+                </p>
+              ) : null}
+              {officialPublicationTxUrl ? (
+                <a
+                  href={officialPublicationTxUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2 inline-flex text-sm font-semibold text-blue-700 underline"
+                >
+                  Ver transacción
+                </a>
+              ) : null}
+            </div>
+            {officialPublicationCanCancel ? (
+              <button
+                type="button"
+                onClick={handleCancelOfficialPublication}
+                disabled={cancelingOfficialPublication}
+                className="rounded-lg border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-800 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {cancelingOfficialPublication ? "Cancelando..." : "Cancelar solicitud"}
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+
+  const tvdCapacityContent = (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
+        <p className="font-semibold text-slate-900">
+          Validación definitiva por padrón vigente
+        </p>
+        <p className="mt-1 text-xs leading-5 text-slate-500">
+          Se revisan los participantes habilitados reales y la capacidad de la
+          wallet institucional activa. Esta validación no publica, no reserva y
+          no consume TVD.
+        </p>
+      </div>
+
+      {!officialPublicationState ? (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+          La capacidad definitiva se valida cuando la elección está lista para
+          publicación. La estimación inicial no se usa como conteo definitivo.
+        </div>
+      ) : null}
+
+      {tvdCapacityLoading ? (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+          Validando capacidad TVD...
+        </div>
+      ) : null}
+
+      {tvdCapacityError ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <p>{getCapacityRequestErrorMessage(tvdCapacityError)}</p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => void refetchTvdCapacity()}
+              className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+            >
+              Reintentar validación
+            </button>
+            <button
+              type="button"
+              onClick={handleGoToRecharge}
+              className="rounded-lg border border-[#459151]/20 bg-[#EFF7F0] px-4 py-2 text-sm font-semibold text-[#2E6A38] transition hover:bg-[#E4F3E7]"
+            >
+              Ir a recarga
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {tvdCapacity ? (
+        <div
+          className={`rounded-lg border p-4 text-sm shadow-sm ${
+            tvdCapacity.canPublish
+              ? "border-green-200 bg-green-50 text-green-800"
+              : "border-amber-200 bg-amber-50 text-amber-900"
+          }`}
+        >
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <p className="text-xs font-semibold uppercase text-slate-500">
+                Participantes habilitados
+              </p>
+              <p className="mt-1 text-lg font-bold">
+                {tvdCapacity.participantCount.toLocaleString("es-BO")}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase text-slate-500">
+                Regla
+              </p>
+              <p className="mt-1 text-lg font-bold">
+                {tvdCapacity.tokensPerParticipant} TVD por participante
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase text-slate-500">
+                TVD requeridos
+              </p>
+              <p className="mt-1 text-lg font-bold">
+                {formatTvdCapacityAmount(tvdCapacity.requiredTokens)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase text-slate-500">
+                TVD disponibles
+              </p>
+              <p className="mt-1 text-lg font-bold">
+                {formatTvdCapacityAmount(tvdCapacity.availableTokens)}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-lg bg-white/70 px-4 py-3">
+            <p className="font-semibold">
+              {tvdCapacity.canPublish
+                ? "La wallet tiene capacidad para el padrón actual."
+                : tvdCapacity.reasonCode === "INSUFFICIENT_TVD_BALANCE"
+                  ? "No tienes suficientes TVD para publicar esta votación."
+                  : getTvdCapacityReasonMessage(tvdCapacity.reasonCode)}
+            </p>
+            {!tvdCapacity.canPublish ? (
+              <p className="mt-1">
+                TVD requeridos: {formatTvdCapacityAmount(tvdCapacity.requiredTokens)}.
+                TVD disponibles: {formatTvdCapacityAmount(tvdCapacity.availableTokens)}.
+              </p>
+            ) : (
+              <p className="mt-1">
+                Este resultado solo confirma capacidad. La publicación oficial
+                sigue siendo un paso separado.
+              </p>
+            )}
+          </div>
+
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => void refetchTvdCapacity()}
+              disabled={tvdCapacityFetching}
+              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+            >
+              {tvdCapacityFetching ? "Validando..." : "Reintentar validación"}
+            </button>
+            {!tvdCapacity.canPublish ? (
+              <button
+                type="button"
+                onClick={handleGoToRecharge}
+                className="rounded-lg border border-[#459151]/20 bg-white px-4 py-2 text-sm font-semibold text-[#2E6A38] transition hover:bg-[#EFF7F0]"
+              >
+                Ir a recarga
+              </button>
+            ) : null}
+          </div>
         </div>
       ) : null}
     </div>
@@ -795,6 +1034,10 @@ const ElectionConfigReview: React.FC = () => {
                 {warningsContent}
               </ReviewAccordionSection>
 
+              <ReviewAccordionSection title="Capacidad TVD" defaultOpen>
+                {tvdCapacityContent}
+              </ReviewAccordionSection>
+
               <ReviewAccordionSection title="Configuración adicional">
                 {additionalConfigContent}
               </ReviewAccordionSection>
@@ -840,6 +1083,13 @@ const ElectionConfigReview: React.FC = () => {
                 <p className="mb-2 text-sm text-red-700">
                   Ya no se puede publicar oficialmente porque el plazo cerró el{" "}
                   {publicationDeadlineLabel}.
+                </p>
+              ) : null}
+              {officialPublicationState &&
+              !reviewReadiness?.publicationWindow?.expired &&
+              tvdCapacityBlocksOfficialPublication ? (
+                <p className="mb-2 text-sm text-amber-700">
+                  Valida capacidad TVD suficiente antes de avanzar.
                 </p>
               ) : null}
               {isPublicationExpired ? (
@@ -895,7 +1145,11 @@ const ElectionConfigReview: React.FC = () => {
                     }
                   `}
                 >
-                  Confirmar publicación oficial
+                  {officialPublicationIsActive
+                    ? "Esperando confirmación móvil"
+                    : officialPublicationCanRetry
+                      ? "Reintentar publicación"
+                    : "Confirmar publicación oficial"}
                 </button>
               ) : (
                 <button

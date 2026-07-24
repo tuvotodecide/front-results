@@ -2,6 +2,7 @@ type RequestError =
   | {
       status?: number | string;
       data?: {
+        code?: unknown;
         message?: unknown;
       };
       error?: string;
@@ -59,6 +60,23 @@ export const getRequestErrorMessage = (
       return 'El carnet debe ser alfanumérico.';
     }
     return normalizedMessage;
+  }
+
+  const code = typeof error?.data?.code === 'string' ? error.data.code : '';
+  switch (code) {
+    case 'TVD_CREDITS_INSUFFICIENT_CAPACITY':
+    case 'TVD_INSUFFICIENT_CONTRACT_BALANCE':
+      return 'No tienes suficientes $TVD para publicar esta votación.';
+    case 'TVD_ALLOWANCE_INSUFFICIENT':
+      return 'La wallet institucional no tiene allowance TVD suficiente para publicar esta votación.';
+    case 'PUBLICATION_WINDOW_CLOSED':
+      return 'El tiempo para publicar oficialmente esta votación ya terminó.';
+    case 'TVD_CREDITS_OPERATOR_NOT_AUTHORIZED':
+      return 'El contrato de votación no está autorizado para reservar créditos TVD.';
+    case 'TVD_CREATE_VOTE_PREFLIGHT_REVERTED':
+      return 'La simulación de publicación fue rechazada. Revisa la configuración antes de intentar nuevamente.';
+    default:
+      break;
   }
 
   return fallbackMessage;
