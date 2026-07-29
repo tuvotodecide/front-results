@@ -8,6 +8,11 @@ export type CreateInstitutionalRecoveryRequest = {
   supervisorPhoneNumber: string;
 };
 
+export type CreateAdminEmailChangeRequest = {
+  newEmail: string;
+  reason?: string;
+};
+
 export type InstitutionalRecoveryPublicReceipt = {
   requestId: string;
   status: InstitutionalRecoveryStatus;
@@ -20,6 +25,7 @@ export type InstitutionalRecoveryListQuery = {
 
 export type InstitutionalRecoveryListItem = {
   requestId: string;
+  requestType?: "ACCESS_RECOVERY" | "ADMIN_EMAIL_CHANGE";
   tenantId: string;
   institutionName: string;
   fullName: string;
@@ -49,6 +55,10 @@ export type InstitutionalRecoveryListResponse = {
 export type ApproveInstitutionalRecoveryRequest = {
   targetUserId: string;
   targetAssignmentId: string;
+  reason?: string;
+};
+
+export type ApproveAdminEmailChangeRequest = {
   reason?: string;
 };
 

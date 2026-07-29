@@ -39,7 +39,6 @@ type VotingFormValues = {
 
 type RegisterPayload = {
   dni: string;
-  accountAddress: string;
   name: string;
   email: string;
   password?: string;
@@ -51,7 +50,8 @@ type WalletResolutionStatus =
   | "pending"
   | "loading"
   | "found"
-  | "not_found"
+  | "person_not_registered"
+  | "wallet_not_found"
   | "rate_limited"
   | "error";
 
@@ -60,7 +60,9 @@ const DNI_PATTERN = /^[A-Za-z0-9-]{5,20}$/;
 const WALLET_PENDING_MESSAGE = "Wallet pendiente de consultar";
 const WALLET_LOADING_MESSAGE = "Buscando billetera registrada...";
 const WALLET_NOT_FOUND_MESSAGE =
-  "No se encontró una billetera registrada para este carnet. Debe registrarse primero en la aplicación móvil.";
+  "Debe crear o registrar primero su billetera en Tu Voto Decide.";
+const PERSON_NOT_REGISTERED_MESSAGE =
+  "Debe registrarse primero en Tu Voto Decide.";
 const WALLET_RATE_LIMIT_MESSAGE =
   "Se realizaron demasiados intentos. Intente nuevamente más tarde.";
 const WALLET_LOOKUP_ERROR_MESSAGE =
@@ -166,7 +168,8 @@ const getWalletResolutionMessage = (
 ) => {
   if (status === "loading") return WALLET_LOADING_MESSAGE;
   if (status === "found") return accountAddress;
-  if (status === "not_found") return WALLET_NOT_FOUND_MESSAGE;
+  if (status === "person_not_registered") return PERSON_NOT_REGISTERED_MESSAGE;
+  if (status === "wallet_not_found") return WALLET_NOT_FOUND_MESSAGE;
   if (status === "rate_limited") return WALLET_RATE_LIMIT_MESSAGE;
   if (status === "error") return WALLET_LOOKUP_ERROR_MESSAGE;
   return WALLET_PENDING_MESSAGE;
@@ -216,7 +219,11 @@ function WalletResolutionField({
             return;
           }
           onAccountAddressChangeRef.current("");
-          setStatus("not_found");
+          setStatus(
+            response.reason === "WALLET_NOT_FOUND"
+              ? "wallet_not_found"
+              : "person_not_registered",
+          );
         })
         .catch((error) => {
           if (lastRequestedDniRef.current !== normalizedDni) return;
@@ -230,7 +237,10 @@ function WalletResolutionField({
 
   const statusMessage = getWalletResolutionMessage(status, accountAddress);
   const isErrorState =
-    status === "not_found" || status === "rate_limited" || status === "error";
+    status === "person_not_registered" ||
+    status === "wallet_not_found" ||
+    status === "rate_limited" ||
+    status === "error";
 
   return (
     <div className="flex flex-col">
@@ -521,7 +531,6 @@ const RegisterVotacionPage = () => {
 
     const payload: RegisterPayload = {
       dni: values.dni.trim(),
-      accountAddress: values.accountAddress.trim(),
       name: values.name,
       email: values.email,
       ...(isExistingIdentityFlow || !values.password.trim()

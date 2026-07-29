@@ -11,7 +11,7 @@ export interface RegisterTenantAdminPayload {
 
 export interface CreateInstitutionalAdminApplicationPayload {
   dni: string;
-  accountAddress: string;
+  accountAddress?: string;
   name: string;
   email: string;
   password?: string;
@@ -58,9 +58,11 @@ export const authApiSlice = apiSlice.injectEndpoints({
         method: "POST",
         body: {
           dni: data.dni,
-          accountAddress: data.accountAddress,
           name: data.name,
           email: data.email,
+          ...(data.accountAddress?.trim()
+            ? { accountAddress: data.accountAddress }
+            : {}),
           ...(data.password?.trim() ? { password: data.password } : {}),
           ...(data.institutionId ? { institutionId: data.institutionId } : {}),
           ...(data.institutionName ? { institutionName: data.institutionName } : {}),

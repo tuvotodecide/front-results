@@ -13,6 +13,7 @@ const accessApprovalsMocks = vi.hoisted(() => ({
   revoke: vi.fn(),
   reopen: vi.fn(),
   isError: false,
+  approveIsLoading: false,
 }));
 
 vi.mock("@/store/accessApprovals", () => {
@@ -20,7 +21,7 @@ vi.mock("@/store/accessApprovals", () => {
     (payload: unknown) => ({
       unwrap: () => fn(payload),
     }),
-    { isLoading: false },
+    { isLoading: fn === accessApprovalsMocks.approve ? accessApprovalsMocks.approveIsLoading : false },
   ];
 
   return {
@@ -76,6 +77,7 @@ describe("access approvals admin page", () => {
     );
     accessApprovalsMocks.isLoading = false;
     accessApprovalsMocks.isError = false;
+    accessApprovalsMocks.approveIsLoading = false;
     accessApprovalsMocks.approve.mockReset().mockResolvedValue(undefined);
     accessApprovalsMocks.reject.mockReset().mockResolvedValue(undefined);
     accessApprovalsMocks.revoke.mockReset().mockResolvedValue(undefined);
@@ -142,7 +144,9 @@ describe("access approvals admin page", () => {
     await waitFor(() => {
       expect(accessApprovalsMocks.approve).toHaveBeenCalledWith("app-pending");
     });
-    expect(screen.getByText("La solicitud institucional fue aprobada.")).toBeInTheDocument();
+    expect(
+      screen.getByText("La solicitud quedó pendiente de autorización desde tu teléfono."),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Rechazar registro" }));
 
@@ -152,6 +156,66 @@ describe("access approvals admin page", () => {
       });
     });
     expect(screen.getByText("La solicitud institucional fue rechazada.")).toBeInTheDocument();
+  });
+
+  it("muestra solicitudes aprobadas pendientes de confirmación como procesamiento sin acciones manuales", async () => {
+    accessApprovalsMocks.applications = [
+      {
+        id: "app-chain",
+        name: "Diana Procesando",
+        dni: "445566",
+        email: "diana@example.com",
+        institutionName: "Institución Procesando",
+        tenantId: "tenant-chain",
+        status: "PENDING_CHAIN_CONFIRMATION",
+      },
+    ];
+    accessApprovalsMocks.details = {
+      "app-chain": accessApprovalsMocks.applications[0],
+    };
+
+    renderApprovals();
+
+    await screen.findByRole("button", { name: /Diana Procesando/ });
+    expect(screen.getAllByText("Procesando autorización").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "Aprobar registro" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Rechazar registro" })).not.toBeInTheDocument();
+  });
+
+  it("D-APR-002: muestra pendiente de autorización desde el teléfono sin acceso activo", async () => {
+    accessApprovalsMocks.applications = [
+      {
+        id: "app-mobile",
+        name: "Elena Teléfono",
+        dni: "778899",
+        email: "elena@example.com",
+        institutionName: "Institución Teléfono",
+        tenantId: "tenant-mobile",
+        status: "PENDING_MOBILE_AUTHORIZATION",
+      },
+    ];
+    accessApprovalsMocks.details = {
+      "app-mobile": accessApprovalsMocks.applications[0],
+    };
+
+    renderApprovals();
+
+    await screen.findByRole("button", { name: /Elena Teléfono/ });
+    expect(
+      screen.getAllByText("Pendiente de autorización desde tu teléfono").length,
+    ).toBeGreaterThan(0);
+    expect(screen.queryByText("Acceso habilitado")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Aprobar registro" })).not.toBeInTheDocument();
+  });
+
+  it("D-APR-004: bloquea doble clic visible mientras la aprobación está en curso", async () => {
+    accessApprovalsMocks.approveIsLoading = true;
+    renderApprovals();
+
+    await screen.findByRole("button", { name: /Ana Pendiente/ });
+
+    expect(screen.getByRole("button", { name: "Aprobar registro" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Rechazar registro" })).toBeDisabled();
   });
 
   it("revokes approved applications and reports API action errors visibly", async () => {

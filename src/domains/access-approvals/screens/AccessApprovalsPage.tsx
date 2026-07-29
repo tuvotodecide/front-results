@@ -19,11 +19,16 @@ type FeedbackState = { kind: "success" | "error"; message: string } | null;
 type ActionTone = "primary" | "danger" | "secondary";
 
 const STATUS_LABELS: Record<string, string> = {
-  PENDING_APPROVAL: "Pendiente",
-  APPROVED: "Aprobado",
+  PENDING_APPROVAL: "Pendiente de aprobación",
+  PENDING_CHAIN_CONFIRMATION: "Procesando autorización",
+  CHAIN_RETRY_PENDING: "Volver a intentar",
+  RECONCILIATION_PENDING: "Procesando autorización",
+  CHAIN_FAILED: "No pudimos completar la autorización",
+  APPROVED: "Acceso habilitado",
   REJECTED: "Rechazado",
   REVOKED: "Revocado",
   PENDING_EMAIL_VERIFICATION: "Verificación pendiente",
+  PENDING_MOBILE_AUTHORIZATION: "Pendiente de autorización desde tu teléfono",
 };
 
 const TAB_LABELS: Record<InstitutionalTab, string> = {
@@ -54,7 +59,16 @@ const statusLabel = (status?: ApprovalStatus) =>
   STATUS_LABELS[status ?? ""] ?? status ?? "Sin estado";
 
 const getStatusBucket = (status?: ApprovalStatus): InstitutionalTab | null => {
-  if (status === "PENDING_APPROVAL") return "pending";
+  if (
+    status === "PENDING_APPROVAL" ||
+    status === "PENDING_MOBILE_AUTHORIZATION" ||
+    status === "PENDING_CHAIN_CONFIRMATION" ||
+    status === "CHAIN_RETRY_PENDING" ||
+    status === "RECONCILIATION_PENDING" ||
+    status === "CHAIN_FAILED"
+  ) {
+    return "pending";
+  }
   if (status === "APPROVED") return "approved";
   if (status === "REJECTED" || status === "REVOKED") return "rejected";
   return null;
@@ -91,8 +105,17 @@ const badgeClassName = (status?: ApprovalStatus) => {
     return "border-[#5fd08b] bg-[#ebfff1] text-[#15703c]";
   }
 
-  if (status === "PENDING_APPROVAL") {
+  if (
+    status === "PENDING_APPROVAL" ||
+    status === "PENDING_MOBILE_AUTHORIZATION" ||
+    status === "PENDING_CHAIN_CONFIRMATION" ||
+    status === "RECONCILIATION_PENDING"
+  ) {
     return "border-[#f2d88a] bg-[#fff8de] text-[#8a6a14]";
+  }
+
+  if (status === "CHAIN_RETRY_PENDING" || status === "CHAIN_FAILED") {
+    return "border-[#f3bf8d] bg-[#fff3e7] text-[#a45b16]";
   }
 
   if (status === "REVOKED") {
@@ -218,7 +241,7 @@ export default function AccessApprovalsPage() {
             label: "Aprobar registro",
             tone: "primary" as const,
             onClick: () =>
-              runAction("La solicitud institucional fue aprobada.", () =>
+              runAction("La solicitud quedó pendiente de autorización desde tu teléfono.", () =>
                 approveInstitutional(selected.id).unwrap(),
               ),
           },
@@ -457,7 +480,7 @@ export default function AccessApprovalsPage() {
                           value={selected.institutionName || selected.tenantName}
                         />
                         <InfoLine label="Fecha de registro" value={formatDate(selected.createdAt)} />
-                        <InfoLine label="Tenant" value={selected.tenantId} />
+                        <InfoLine label="Institución" value={selected.tenantId} />
                         {selected.reason ? (
                           <InfoLine label="Observación registrada" value={selected.reason} />
                         ) : null}

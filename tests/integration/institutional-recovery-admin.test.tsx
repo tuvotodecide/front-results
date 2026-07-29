@@ -88,6 +88,7 @@ const makeFetchMock = (
 ) => {
   const captured = {
     approveBodies: [] as Record<string, unknown>[],
+    approveEmailChangeBodies: [] as Record<string, unknown>[],
     rejectBodies: [] as Record<string, unknown>[],
     requests: [] as Request[],
   };
@@ -126,6 +127,26 @@ const makeFetchMock = (
       path === "/api/v1/institutional-access-recovery-requests/request-2"
     ) {
       return jsonResponse(approvedDetail);
+    }
+
+    if (
+      request.method === "POST" &&
+      path === "/api/v1/institutional-access-recovery-requests/request-1/email-change/approve"
+    ) {
+      captured.approveEmailChangeBodies.push(
+        (await request.clone().json()) as Record<string, unknown>,
+      );
+      return jsonResponse(
+        {
+          requestId: "request-1",
+          status: options.approveStatus === 409 ? "PENDING" : "APPROVED",
+          tenantId: "tenant-1",
+          userId: "user-1",
+          assignmentId: "assignment-1",
+          resolvedAt: "2026-07-22T13:00:00.000Z",
+        },
+        options.approveStatus ?? 200,
+      );
     }
 
     if (
@@ -257,6 +278,51 @@ describe("institutional recovery admin console", () => {
     expect(captured.approveBodies[0]).not.toHaveProperty("resetToken");
     expect(captured.approveBodies[0]).not.toHaveProperty("password");
     expect(await screen.findByText("Operación completada")).toBeInTheDocument();
+  });
+
+  it("D-MAIL-003 aprueba cambio de correo administrativo con endpoint especifico y sin reset de contraseña", async () => {
+    const user = userEvent.setup();
+    const { captured, fetchMock } = makeFetchMock({
+      detail: {
+        ...pendingDetail,
+        requestType: "ADMIN_EMAIL_CHANGE",
+      },
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderAdminPage();
+
+    await screen.findAllByText("Tribunal Supremo Electoral");
+    await user.click(screen.getAllByRole("button", { name: /Ver detalle/i })[0]);
+    await user.type(
+      await screen.findByPlaceholderText(/nota administrativa segura/i),
+      "Aprobado por Superadmin",
+    );
+    expect(screen.queryByText(/nueva contraseña/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/seguirá usando su contraseña existente/i),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Aprobar cambio/i }));
+    const dialog = screen.getByRole("dialog", {
+      name: /Aprobar cambio de correo/i,
+    });
+    await user.click(within(dialog).getByRole("button", { name: /Aprobar cambio/i }));
+
+    await waitFor(() => {
+      expect(captured.approveEmailChangeBodies).toHaveLength(1);
+    });
+    expect(captured.approveEmailChangeBodies[0]).toEqual({
+      reason: "Aprobado por Superadmin",
+    });
+    expect(captured.approveBodies).toHaveLength(0);
+    expect(captured.approveEmailChangeBodies[0]).not.toHaveProperty("targetUserId");
+    expect(captured.approveEmailChangeBodies[0]).not.toHaveProperty("targetAssignmentId");
+    expect(captured.approveEmailChangeBodies[0]).not.toHaveProperty("password");
+    expect(captured.approveEmailChangeBodies[0]).not.toHaveProperty("resetToken");
+    expect(
+      await screen.findByText(/la contraseña existente se conserva/i),
+    ).toBeInTheDocument();
   });
 
   it("rechaza una solicitud sin modificar acceso ni enviar estado manual", async () => {

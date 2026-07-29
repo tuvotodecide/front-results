@@ -1,7 +1,9 @@
 import { apiSlice } from "../apiSlice";
 import type {
   ApproveInstitutionalRecoveryRequest,
+  ApproveAdminEmailChangeRequest,
   CreateInstitutionalRecoveryRequest,
+  CreateAdminEmailChangeRequest,
   InstitutionalRecoveryApprovalResponse,
   InstitutionalRecoveryDetail,
   InstitutionalRecoveryListQuery,
@@ -21,6 +23,17 @@ export const institutionalRecoveryEndpoints = apiSlice.injectEndpoints({
         method: "POST",
         body,
       }),
+    }),
+    createAdminEmailChangeRequest: builder.mutation<
+      InstitutionalRecoveryPublicReceipt,
+      CreateAdminEmailChangeRequest
+    >({
+      query: (body) => ({
+        url: "/institutional-access-recovery-requests/me/email-change",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["InstitutionalRecoveryRequests"],
     }),
     listInstitutionalRecoveryRequests: builder.query<
       InstitutionalRecoveryListResponse,
@@ -59,6 +72,20 @@ export const institutionalRecoveryEndpoints = apiSlice.injectEndpoints({
         { type: "InstitutionalRecoveryRequest", id: requestId },
       ],
     }),
+    approveAdminEmailChangeRequest: builder.mutation<
+      InstitutionalRecoveryApprovalResponse,
+      { requestId: string; body: ApproveAdminEmailChangeRequest }
+    >({
+      query: ({ requestId, body }) => ({
+        url: `/institutional-access-recovery-requests/${requestId}/email-change/approve`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (_result, _error, { requestId }) => [
+        "InstitutionalRecoveryRequests",
+        { type: "InstitutionalRecoveryRequest", id: requestId },
+      ],
+    }),
     rejectInstitutionalRecoveryRequest: builder.mutation<
       InstitutionalRecoveryDetail,
       { requestId: string; body: RejectInstitutionalRecoveryRequest }
@@ -78,8 +105,10 @@ export const institutionalRecoveryEndpoints = apiSlice.injectEndpoints({
 
 export const {
   useCreateInstitutionalRecoveryRequestMutation,
+  useCreateAdminEmailChangeRequestMutation,
   useListInstitutionalRecoveryRequestsQuery,
   useGetInstitutionalRecoveryRequestQuery,
   useApproveInstitutionalRecoveryRequestMutation,
+  useApproveAdminEmailChangeRequestMutation,
   useRejectInstitutionalRecoveryRequestMutation,
 } = institutionalRecoveryEndpoints;

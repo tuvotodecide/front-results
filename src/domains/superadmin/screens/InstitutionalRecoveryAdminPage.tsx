@@ -24,6 +24,7 @@ import {
 } from "../utils/institutionalRecoveryAdminUi";
 import {
   useApproveInstitutionalRecoveryRequestMutation,
+  useApproveAdminEmailChangeRequestMutation,
   useGetInstitutionalRecoveryRequestQuery,
   useListInstitutionalRecoveryRequestsQuery,
   useRejectInstitutionalRecoveryRequestMutation,
@@ -164,6 +165,8 @@ export default function InstitutionalRecoveryAdminPage() {
 
   const [approveRequest, approveState] =
     useApproveInstitutionalRecoveryRequestMutation();
+  const [approveEmailChangeRequest, approveEmailChangeState] =
+    useApproveAdminEmailChangeRequestMutation();
   const [rejectRequest, rejectState] =
     useRejectInstitutionalRecoveryRequestMutation();
 
@@ -184,8 +187,14 @@ export default function InstitutionalRecoveryAdminPage() {
     detailResponse ?? selectedListItem ?? null;
   const detailedSelected = detailResponse ?? null;
   const canApprove = canApproveInstitutionalRecovery(detailedSelected);
-  const actionBusy = approveState.isLoading || rejectState.isLoading;
+  const actionBusy =
+    approveState.isLoading ||
+    approveEmailChangeState.isLoading ||
+    rejectState.isLoading;
   const hasOpenPendingDetail = selected?.status === "PENDING";
+  const selectedIsEmailChange =
+    (detailedSelected?.requestType ?? selected?.requestType) ===
+    "ADMIN_EMAIL_CHANGE";
 
   const closeDetail = () => {
     setSelectedRequestId(null);
@@ -196,18 +205,28 @@ export default function InstitutionalRecoveryAdminPage() {
     if (!detailedSelected || !canApprove) return;
 
     try {
-      await approveRequest({
-        requestId: detailedSelected.requestId,
-        body: {
-          targetUserId: detailedSelected.candidateUserId ?? "",
-          targetAssignmentId: detailedSelected.candidateAssignmentId ?? "",
-          reason: normalizeOptionalRecoveryReason(reviewerNote),
-        },
-      }).unwrap();
+      const reason = normalizeOptionalRecoveryReason(reviewerNote);
+      if (selectedIsEmailChange) {
+        await approveEmailChangeRequest({
+          requestId: detailedSelected.requestId,
+          body: { reason },
+        }).unwrap();
+      } else {
+        await approveRequest({
+          requestId: detailedSelected.requestId,
+          body: {
+            targetUserId: detailedSelected.candidateUserId ?? "",
+            targetAssignmentId: detailedSelected.candidateAssignmentId ?? "",
+            reason,
+          },
+        }).unwrap();
+      }
       setConfirmOpen(false);
       setActionMessage({
         kind: "success",
-        text: "Cambio de correo aprobado. Las sesiones anteriores quedarán invalidadas y el administrador deberá establecer una nueva contraseña.",
+        text: selectedIsEmailChange
+          ? "Cambio de correo aprobado. Las sesiones anteriores quedaron invalidadas y la contraseña existente se conserva."
+          : "Recuperación aprobada. Las sesiones anteriores quedarán invalidadas y se enviarán instrucciones al nuevo correo.",
       });
       await refetchList();
       closeDetail();
@@ -523,8 +542,8 @@ export default function InstitutionalRecoveryAdminPage() {
                 Esta operación cambia únicamente el correo del mismo
                 administrador. Usuario, institución, assignment, wallet y rol
                 permanecen sin cambios. Al aprobar, las sesiones anteriores se
-                cerrarán y el administrador deberá establecer una nueva
-                contraseña desde el nuevo correo.
+                cerrarán y el administrador seguirá usando su contraseña
+                existente con el nuevo correo.
               </p>
             </div>
 
@@ -571,7 +590,7 @@ export default function InstitutionalRecoveryAdminPage() {
             <button
               type="button"
               onClick={() => setConfirmOpen(false)}
-              disabled={approveState.isLoading}
+                disabled={approveState.isLoading || approveEmailChangeState.isLoading}
               className="rounded-lg bg-[#f4f4f4] px-4 py-3 text-sm font-semibold text-[#444] hover:bg-[#ececec] disabled:cursor-not-allowed disabled:opacity-60"
             >
               Cancelar
@@ -579,10 +598,12 @@ export default function InstitutionalRecoveryAdminPage() {
             <button
               type="button"
               onClick={() => void approve()}
-              disabled={approveState.isLoading}
+                disabled={approveState.isLoading || approveEmailChangeState.isLoading}
               className="rounded-lg bg-[#287c36] px-4 py-3 text-sm font-semibold text-white hover:bg-[#1f642b] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {approveState.isLoading ? "Aprobando..." : "Aprobar cambio"}
+              {approveState.isLoading || approveEmailChangeState.isLoading
+                ? "Aprobando..."
+                : "Aprobar cambio"}
             </button>
           </div>
         </div>

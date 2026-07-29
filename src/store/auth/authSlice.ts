@@ -52,6 +52,7 @@ export type AccessRequestStatus =
   | "PENDING"
   | "APPROVED"
   | "REJECTED"
+  | "SUSPENDED"
   | "REVOKED";
 
 export interface AccessStatus {

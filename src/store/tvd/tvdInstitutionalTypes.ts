@@ -27,7 +27,6 @@ export type TvdMySummaryQueryArg = {
 
 export type TvdWalletRegularizationRequest = {
   dni: string;
-  accountAddress: string;
 };
 
 export type TvdWalletRegularizationResponse = {

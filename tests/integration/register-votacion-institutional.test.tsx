@@ -119,14 +119,13 @@ describe("RegisterVotacionPage institutional wallet resolution", () => {
     });
   });
 
-  it("resuelve wallet por DNI, la muestra completa y la envía en el registro final", async () => {
+  it("resuelve wallet por DNI, la muestra completa y no la envía en el registro final", async () => {
     const { container } = renderWithAuthStore(<RegisterVotacionPage />);
     await submitForm(container);
 
     await waitFor(() => {
       expect(createInstitutionalAdminApplication).toHaveBeenCalledWith({
         dni: "12345678",
-        accountAddress: wallet,
         name: "Admin Tenant",
         email: "admin@test.com",
         password: "12345678",
@@ -138,6 +137,9 @@ describe("RegisterVotacionPage institutional wallet resolution", () => {
     });
     expect(getInput(container, '[data-cy="register-account-address"]')).toHaveAttribute(
       "readonly",
+    );
+    expect(createInstitutionalAdminApplication.mock.calls[0][0]).not.toHaveProperty(
+      "accountAddress",
     );
     expect(navigate).toHaveBeenCalledWith("/votacion/pendiente", {
       replace: true,
@@ -170,7 +172,6 @@ describe("RegisterVotacionPage institutional wallet resolution", () => {
     await waitFor(() => {
       expect(createInstitutionalAdminApplication).toHaveBeenCalledWith({
         dni: "12345678",
-        accountAddress: wallet,
         name: "Admin Tenant",
         email: "admin@test.com",
         password: "12345678",
@@ -179,6 +180,9 @@ describe("RegisterVotacionPage institutional wallet resolution", () => {
     });
     expect(createInstitutionalAdminApplication.mock.calls[0][0]).not.toHaveProperty(
       "institutionName",
+    );
+    expect(createInstitutionalAdminApplication.mock.calls[0][0]).not.toHaveProperty(
+      "accountAddress",
     );
   });
 
@@ -285,12 +289,34 @@ describe("RegisterVotacionPage institutional wallet resolution", () => {
     expect(await screen.findByText(message)).toBeInTheDocument();
   });
 
-  it("bloquea el envío cuando el DNI no tiene wallet registrada", async () => {
+  it("bloquea el envío cuando el CI o DNI no corresponde a una persona registrada", async () => {
     const user = userEvent.setup();
     resolveInstitutionalWalletByDni.mockReturnValue({
       unwrap: vi.fn().mockResolvedValue({
         registered: false,
         accountAddress: null,
+        reason: "PERSON_NOT_REGISTERED",
+      }),
+    });
+
+    const { container } = renderWithAuthStore(<RegisterVotacionPage />);
+
+    await user.type(getInput(container, '[data-cy="register-dni"]'), "12345678");
+    expect(
+      await screen.findByText("Debe registrarse primero en Tu Voto Decide."),
+    ).toBeInTheDocument();
+
+    expect(screen.getByRole("button", { name: "Registrarse" })).toBeDisabled();
+    expect(createInstitutionalAdminApplication).not.toHaveBeenCalled();
+  });
+
+  it("bloquea el envío cuando la persona registrada no tiene billetera", async () => {
+    const user = userEvent.setup();
+    resolveInstitutionalWalletByDni.mockReturnValue({
+      unwrap: vi.fn().mockResolvedValue({
+        registered: false,
+        accountAddress: null,
+        reason: "WALLET_NOT_FOUND",
       }),
     });
 
@@ -299,12 +325,29 @@ describe("RegisterVotacionPage institutional wallet resolution", () => {
     await user.type(getInput(container, '[data-cy="register-dni"]'), "12345678");
     expect(
       await screen.findByText(
-        "No se encontró una billetera registrada para este carnet. Debe registrarse primero en la aplicación móvil.",
+        "Debe crear o registrar primero su billetera en Tu Voto Decide.",
       ),
     ).toBeInTheDocument();
 
     expect(screen.getByRole("button", { name: "Registrarse" })).toBeDisabled();
     expect(createInstitutionalAdminApplication).not.toHaveBeenCalled();
+  });
+
+  it("muestra conflicto de correo ocupado y no finaliza el registro", async () => {
+    createInstitutionalAdminApplication.mockReturnValueOnce({
+      unwrap: vi.fn().mockRejectedValue({
+        data: { message: "El email o DNI ya está asociado a otro usuario" },
+      }),
+    });
+    const { container } = renderWithAuthStore(<RegisterVotacionPage />);
+    await submitForm(container);
+
+    expect(
+      await screen.findByText("El email o DNI ya está asociado a otro usuario"),
+    ).toBeInTheDocument();
+    expect(navigate).not.toHaveBeenCalledWith("/votacion/pendiente", {
+      replace: true,
+    });
   });
 
   it("limpia la wallet anterior cuando cambia el DNI", async () => {

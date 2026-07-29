@@ -4,6 +4,12 @@ export type ApprovalStatus =
   | "NONE"
   | "PENDING_EMAIL_VERIFICATION"
   | "PENDING_APPROVAL"
+  | "PENDING_MOBILE_AUTHORIZATION"
+  | "MOBILE_AUTHORIZATION_EXPIRED"
+  | "PENDING_CHAIN_CONFIRMATION"
+  | "CHAIN_RETRY_PENDING"
+  | "RECONCILIATION_PENDING"
+  | "CHAIN_FAILED"
   | "PENDING"
   | "APPROVED"
   | "REJECTED"
@@ -23,6 +29,29 @@ export interface InstitutionalApplication {
   reason?: string | null;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export type InstitutionalAdminInvitationStatus =
+  | "PENDING"
+  | "ACCEPTED"
+  | "REJECTED"
+  | "EXPIRED"
+  | "CANCELLED";
+
+export interface InstitutionalAdminInvitation {
+  id: string;
+  tenantId?: string | null;
+  dni: string;
+  name?: string;
+  status: InstitutionalAdminInvitationStatus;
+  expiresAt?: string | null;
+  acceptedAt?: string | null;
+  rejectedAt?: string | null;
+  cancelledAt?: string | null;
+  applicationId?: string | null;
+  noticeCount?: number;
+  lastNoticeAt?: string | null;
+  reason?: string | null;
 }
 
 export interface TerritorialAccessRequest {
@@ -64,6 +93,22 @@ const normalizeInstitutional = (raw: any): InstitutionalApplication => ({
   updatedAt: raw?.updatedAt,
 });
 
+const normalizeInvitation = (raw: any): InstitutionalAdminInvitation => ({
+  id: String(raw?.id ?? raw?._id ?? ""),
+  tenantId: raw?.tenantId ? String(raw.tenantId) : null,
+  dni: String(raw?.dni ?? ""),
+  name: raw?.name ?? undefined,
+  status: raw?.status ?? "PENDING",
+  expiresAt: raw?.expiresAt ?? null,
+  acceptedAt: raw?.acceptedAt ?? null,
+  rejectedAt: raw?.rejectedAt ?? null,
+  cancelledAt: raw?.cancelledAt ?? null,
+  applicationId: raw?.applicationId ? String(raw.applicationId) : null,
+  noticeCount: raw?.noticeCount ?? 0,
+  lastNoticeAt: raw?.lastNoticeAt ?? null,
+  reason: raw?.reason ?? null,
+});
+
 const normalizeTerritorial = (raw: any): TerritorialAccessRequest => ({
   userId: String(raw?.userId ?? raw?.id ?? raw?._id ?? ""),
   id: raw?.id ? String(raw.id) : raw?._id ? String(raw._id) : undefined,
@@ -94,6 +139,51 @@ export const accessApprovalsApi = apiSlice.injectEndpoints({
       transformResponse: (response: any) =>
         unwrapList<any>(response).map(normalizeInstitutional),
       providesTags: ["AccessApprovals"],
+    }),
+    getInstitutionalAdminInvitations: builder.query<
+      InstitutionalAdminInvitation[],
+      string
+    >({
+      query: (tenantId) =>
+        `/institutional-admin-applications/tenants/${tenantId}/invitations`,
+      transformResponse: (response: any) =>
+        unwrapList<any>(response).map(normalizeInvitation),
+      providesTags: ["AccessApprovals"],
+    }),
+    createInstitutionalAdminInvitation: builder.mutation<
+      InstitutionalAdminInvitation,
+      { tenantId: string; dni: string; name?: string; reason?: string }
+    >({
+      query: ({ tenantId, ...body }) => ({
+        url: `/institutional-admin-applications/tenants/${tenantId}/invitations`,
+        method: "POST",
+        body,
+      }),
+      transformResponse: (response: any) => normalizeInvitation(response?.data ?? response),
+      invalidatesTags: ["AccessApprovals"],
+    }),
+    resendInstitutionalAdminInvitation: builder.mutation<
+      InstitutionalAdminInvitation,
+      string
+    >({
+      query: (invitationId) => ({
+        url: `/institutional-admin-applications/invitations/${invitationId}/resend`,
+        method: "POST",
+      }),
+      transformResponse: (response: any) => normalizeInvitation(response?.data ?? response),
+      invalidatesTags: ["AccessApprovals"],
+    }),
+    cancelInstitutionalAdminInvitation: builder.mutation<
+      InstitutionalAdminInvitation,
+      { invitationId: string; reason?: string }
+    >({
+      query: ({ invitationId, reason }) => ({
+        url: `/institutional-admin-applications/invitations/${invitationId}/cancel`,
+        method: "POST",
+        body: reason ? { reason } : undefined,
+      }),
+      transformResponse: (response: any) => normalizeInvitation(response?.data ?? response),
+      invalidatesTags: ["AccessApprovals"],
     }),
     getPendingInstitutionalApplications: builder.query<
       InstitutionalApplication[],
@@ -204,6 +294,10 @@ export const accessApprovalsApi = apiSlice.injectEndpoints({
 
 export const {
   useGetInstitutionalApplicationsQuery,
+  useGetInstitutionalAdminInvitationsQuery,
+  useCreateInstitutionalAdminInvitationMutation,
+  useResendInstitutionalAdminInvitationMutation,
+  useCancelInstitutionalAdminInvitationMutation,
   useGetPendingInstitutionalApplicationsQuery,
   useGetInstitutionalApplicationQuery,
   useApproveInstitutionalApplicationMutation,

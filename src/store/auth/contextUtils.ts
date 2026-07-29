@@ -199,6 +199,17 @@ const resolveDeniedDomainAccess = (
       };
     }
 
+    if (tenantStatus === "SUSPENDED") {
+      return {
+        kind: "denied",
+        message:
+          accessStatus?.tenant.items.find((item) => item.status === "SUSPENDED")
+            ?.reason ||
+          accessStatus?.tenant.message ||
+          "Acceso suspendido.",
+      };
+    }
+
     if (tenantStatus === "REVOKED") {
       return {
         kind: "denied",
