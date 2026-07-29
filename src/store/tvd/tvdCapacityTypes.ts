@@ -7,6 +7,15 @@ export type TvdCapacityReasonCode =
   | "PADRON_EMPTY"
   | null;
 
+export type TvdPublicationReadiness =
+  | "PUBLICATION_BALANCE_INSUFFICIENT"
+  | "PUBLICATION_MAX_EXCEEDED"
+  | "PUBLICATION_CONTRACT_ROLE_MISSING"
+  | "PUBLICATION_PADRON_BLOCKED"
+  | "PUBLICATION_READY"
+  | "PUBLICATION_PROCESSING"
+  | "PUBLICATION_CONFIRMED";
+
 export type TvdEstimatedCapacityRequest = {
   estimatedParticipants: string;
 };
@@ -23,7 +32,7 @@ export type TvdEstimatedCapacityResponse = {
   hasEstimatedCapacity: boolean;
   reasonCode: TvdCapacityReasonCode;
   balanceSource: "BLOCKCHAIN";
-  usableBalanceField: "totalBalanceSmallestUnit";
+  usableBalanceField: "liquidBalanceSmallestUnit";
   walletAddress: string;
 };
 
@@ -40,7 +49,8 @@ export type TvdEventCapacityResponse = {
   missingSmallestUnit: string;
   canPublish: boolean;
   reasonCode: TvdCapacityReasonCode;
+  publicationReadiness?: TvdPublicationReadiness;
   balanceSource: "BLOCKCHAIN";
-  usableBalanceField: "totalBalanceSmallestUnit";
+  usableBalanceField: "liquidBalanceSmallestUnit";
   walletAddress: string;
 };

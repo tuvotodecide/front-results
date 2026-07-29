@@ -265,7 +265,7 @@ describe("election config review redesign", () => {
         canPublish: true,
         reasonCode: null,
         balanceSource: "BLOCKCHAIN",
-        usableBalanceField: "totalBalanceSmallestUnit",
+        usableBalanceField: "liquidBalanceSmallestUnit",
         walletAddress: "0x1111111111111111111111111111111111111111",
       },
       error: null,
@@ -476,7 +476,7 @@ describe("election config review redesign", () => {
         canPublish: false,
         reasonCode: "INSUFFICIENT_TVD_BALANCE",
         balanceSource: "BLOCKCHAIN",
-        usableBalanceField: "totalBalanceSmallestUnit",
+        usableBalanceField: "liquidBalanceSmallestUnit",
         walletAddress: "0x1111111111111111111111111111111111111111",
       },
       error: null,
@@ -487,9 +487,11 @@ describe("election config review redesign", () => {
 
     renderReview();
 
-    expect(screen.getByText("Faltan TVD para cubrir esta elección.")).toBeInTheDocument();
     expect(
-      screen.getByText(/Faltan 5 TVD para avanzar visualmente hacia publicación/i),
+      screen.getByText("No tienes suficientes TVD para publicar esta votación."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/TVD requeridos: 25 TVD\. TVD disponibles: 20 TVD\./i),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /Confirmar publicación oficial/i }),
@@ -514,7 +516,7 @@ describe("election config review redesign", () => {
     renderReview();
 
     expect(
-      screen.getByText("No pudimos validar el saldo actual. Intenta nuevamente."),
+      screen.getByText("No se pudo validar la disponibilidad de TVD. Intenta nuevamente."),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /Confirmar publicación oficial/i }),
@@ -576,7 +578,7 @@ describe("election config review redesign", () => {
     expect(activateElectionMock).not.toHaveBeenCalled();
   });
 
-  it("bloquea con padrón no listo y permite reintentar o ir a recarga", async () => {
+  it("bloquea con padrón no listo y permite reintentar sin ofrecer recarga", async () => {
     const user = userEvent.setup();
     const refetchCapacityMock = vi.fn();
     useGetVotingEventTvdCapacityQueryMock.mockReturnValue({
@@ -594,7 +596,7 @@ describe("election config review redesign", () => {
         canPublish: false,
         reasonCode: "PADRON_PROCESSING",
         balanceSource: "BLOCKCHAIN",
-        usableBalanceField: "totalBalanceSmallestUnit",
+        usableBalanceField: "liquidBalanceSmallestUnit",
         walletAddress: "0x1111111111111111111111111111111111111111",
       },
       error: null,
@@ -614,9 +616,7 @@ describe("election config review redesign", () => {
       screen.getByRole("button", { name: "Reintentar validación" }),
     );
     expect(refetchCapacityMock).toHaveBeenCalledTimes(1);
-
-    await user.click(screen.getByRole("button", { name: "Ir a recarga" }));
-    expect(navigateMock).toHaveBeenCalledWith("/votacion/recarga-operativa");
+    expect(screen.queryByRole("button", { name: "Ir a recarga" })).not.toBeInTheDocument();
     expect(activateElectionMock).not.toHaveBeenCalled();
   });
 

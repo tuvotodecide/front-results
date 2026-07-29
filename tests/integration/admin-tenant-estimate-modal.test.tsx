@@ -32,7 +32,7 @@ const capacityResponse = {
   hasEstimatedCapacity: true,
   reasonCode: null,
   balanceSource: "BLOCKCHAIN",
-  usableBalanceField: "totalBalanceSmallestUnit",
+  usableBalanceField: "liquidBalanceSmallestUnit",
   walletAddress: "0x1111111111111111111111111111111111111111",
 } as const;
 
@@ -213,7 +213,7 @@ describe("Admin tenant estimate and insufficient balance modals", () => {
     await user.click(screen.getByRole("button", { name: "Validar capacidad" }));
 
     expect(
-      await screen.findByText("No pudimos validar el saldo actual. Intenta nuevamente."),
+      await screen.findByText("No se pudo validar la disponibilidad de TVD. Intenta nuevamente."),
     ).toBeInTheDocument();
 
     fetchMock.mockImplementationOnce(async (input: RequestInfo | URL, init?: RequestInit) => {

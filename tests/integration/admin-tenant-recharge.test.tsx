@@ -1,7 +1,8 @@
-import { screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import OperationalRechargePage from "@/features/adminTvd/screens/OperationalRechargePage";
+import { setActiveContext } from "@/store/auth/authSlice";
 import { renderWithAuthStore } from "../utils/renderWithStore";
 
 let searchParams = new URLSearchParams();
@@ -109,6 +110,10 @@ const qrPaymentResponse = {
     quotedAt: "2026-07-21T12:00:00.000Z",
   },
   tokenAccreditation: null,
+  previousPaymentId: null,
+  regeneratedToPaymentId: null,
+  regenerationStatus: "NOT_REGENERABLE",
+  regenerationReason: "PAYMENT_STATUS_QR_ACTIVE",
   createdAt: "2026-07-21T12:00:00.000Z",
   updatedAt: "2026-07-21T12:00:00.000Z",
   confirmedAt: null,
@@ -132,6 +137,8 @@ const confirmedPaymentResponse = {
   accreditationId: "accreditation-1",
   accreditationStatus: "PENDING",
   txHash: null,
+  regenerationStatus: "NOT_REGENERABLE",
+  regenerationReason: "PAYMENT_ALREADY_CONFIRMED",
 };
 
 const activePaymentDetailResponse = {
@@ -141,12 +148,49 @@ const activePaymentDetailResponse = {
   accreditationId: null,
   accreditationStatus: null,
   txHash: null,
+  qrImage: qrPaymentResponse.qrImage,
+  regenerationStatus: "NOT_REGENERABLE",
+  regenerationReason: "PAYMENT_STATUS_QR_ACTIVE",
 };
 
 const confirmedAccreditationResponse = {
   ...confirmedPaymentResponse,
   accreditationStatus: "CONFIRMED",
   txHash: "0xabc123",
+};
+
+const blockedAccreditationResponse = {
+  ...confirmedPaymentResponse,
+  accreditationStatus: "BLOCKED_CONFIGURATION",
+  blockchainStatus: "ACCREDITATION_BLOCKED_CONFIGURATION",
+  flowStatus: "ACCREDITATION_BLOCKED_CONFIGURATION",
+  lastAccreditationErrorCode: "TVD_SIGNER_ROLE_MISSING",
+};
+
+const expiredPaymentDetailResponse = {
+  ...activePaymentDetailResponse,
+  status: "EXPIRED",
+  qrExpiresAt: "2026-07-21T12:00:00.000Z",
+  regenerationStatus: "REGENERABLE",
+  regenerationReason: "QR_EXPIRED_QUOTE_VALID",
+};
+
+const ambiguousPaymentDetailResponse = {
+  ...activePaymentDetailResponse,
+  status: "RECONCILIATION_PENDING",
+  regenerationStatus: "RECONCILIATION_REQUIRED",
+  regenerationReason: "PAYMENT_REGENERATION_RECONCILIATION_REQUIRED",
+};
+
+const regeneratedQrPaymentResponse = {
+  ...qrPaymentResponse,
+  id: "payment-2",
+  merchantReference: "223344",
+  providerReference: "443322",
+  previousPaymentId: "payment-1",
+  regenerationStatus: "NOT_REGENERABLE",
+  regenerationReason: "PAYMENT_STATUS_QR_ACTIVE",
+  qrExpiresAt: "2026-07-21T13:00:00.000Z",
 };
 
 const renderRechargePage = () =>
@@ -196,8 +240,20 @@ const installFetchMock = () => {
     if (url.pathname.endsWith("/payments/qr")) {
       return jsonResponse(qrPaymentResponse);
     }
+    if (url.pathname.endsWith("/payments/payment-1/regenerate")) {
+      return jsonResponse(regeneratedQrPaymentResponse);
+    }
     if (url.pathname.endsWith("/tvd/me/payments/payment-1")) {
       return jsonResponse(paymentDetailQueue.shift() ?? confirmedPaymentResponse);
+    }
+    if (url.pathname.endsWith("/tvd/me/payments/payment-2")) {
+      return jsonResponse({
+        ...activePaymentDetailResponse,
+        paymentId: "payment-2",
+        merchantReference: "223344",
+        providerReference: "443322",
+        qrExpiresAt: "2026-07-21T13:00:00.000Z",
+      });
     }
     if (url.pathname.endsWith("/tvd/me/payments")) {
       return jsonResponse({
@@ -300,6 +356,124 @@ describe("Admin tenant operational recharge", () => {
     expect(body.glosa).toBeUndefined();
   });
 
+  it("muestra Descargar QR debajo de la imagen y no llama backend al descargar", async () => {
+    const user = userEvent.setup();
+    const click = vi.fn();
+    const remove = vi.fn();
+    const anchor = {
+      click,
+      remove,
+      set href(_value: string) {},
+      set download(value: string) {
+        expect(value).toBe("qr-recarga-tvd-123456.png");
+      },
+      set rel(value: string) {
+        expect(value).toBe("noopener");
+      },
+    } as unknown as HTMLAnchorElement;
+    paymentDetailQueue.push(activePaymentDetailResponse);
+    renderRechargePage();
+
+    await user.clear(screen.getByLabelText("Monto BOB a pagar"));
+    await user.type(screen.getByLabelText("Monto BOB a pagar"), "10.50");
+    await screen.findByText("4.2 TVD");
+    await user.click(screen.getByRole("button", { name: /Generar QR/i }));
+
+    const image = await screen.findByAltText("Código QR para pagar la recarga TVD");
+    const downloadButton = screen.getByRole("button", { name: /Descargar QR/i });
+    expect(
+      image.compareDocumentPosition(downloadButton) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    const before = fetchCalls.length;
+    const createElement = vi.spyOn(document, "createElement").mockReturnValue(anchor);
+    const appendChild = vi.spyOn(document.body, "appendChild").mockImplementation((node) => node);
+    vi.stubGlobal("URL", {
+      createObjectURL: vi.fn(() => "blob:qr"),
+      revokeObjectURL: vi.fn(),
+    });
+    await user.click(downloadButton);
+    expect(click).toHaveBeenCalledTimes(1);
+    expect(fetchCalls).toHaveLength(before);
+
+    createElement.mockRestore();
+    appendChild.mockRestore();
+  });
+
+  it("regenera QR solo cuando backend autoriza y usa endpoint con Idempotency-Key", async () => {
+    const user = userEvent.setup();
+    paymentDetailQueue.push(expiredPaymentDetailResponse);
+    renderRechargePage();
+
+    await user.clear(screen.getByLabelText("Monto BOB a pagar"));
+    await user.type(screen.getByLabelText("Monto BOB a pagar"), "10.50");
+    await screen.findByText("4.2 TVD");
+    await user.click(screen.getByRole("button", { name: /Generar QR/i }));
+
+    const regenerateButton = await screen.findByRole("button", {
+      name: /Regenerar QR/i,
+    });
+    await user.dblClick(regenerateButton);
+
+    expect(await screen.findByText("QR regenerado. Esperando confirmación del pago.")).toBeInTheDocument();
+    const regeneratePosts = fetchCalls.filter((call) =>
+      call.url.endsWith("/payments/payment-1/regenerate"),
+    );
+    expect(regeneratePosts).toHaveLength(1);
+    expect(regeneratePosts[0].headers.get("Authorization")).toBe("Bearer jwt-token");
+    expect(regeneratePosts[0].headers.get("Idempotency-Key")).toBeTruthy();
+    expect(regeneratePosts[0].body).toBe("");
+  });
+
+  it("bloquea regeneracion visual cuando backend exige conciliacion", async () => {
+    const user = userEvent.setup();
+    paymentDetailQueue.push(ambiguousPaymentDetailResponse);
+    renderRechargePage();
+
+    await user.clear(screen.getByLabelText("Monto BOB a pagar"));
+    await user.type(screen.getByLabelText("Monto BOB a pagar"), "10.50");
+    await screen.findByText("4.2 TVD");
+    await user.click(screen.getByRole("button", { name: /Generar QR/i }));
+
+    expect(
+      await screen.findByText(
+        "Estamos verificando el estado del QR anterior. No generaremos otro QR hasta resolverlo para evitar un doble pago.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Regenerar QR/i })).not.toBeInTheDocument();
+  });
+
+  it("limpia QR, quote y polling visual al cambiar de tenant activo", async () => {
+    const user = userEvent.setup();
+    paymentDetailQueue.push(activePaymentDetailResponse);
+    const rendered = renderRechargePage();
+
+    await user.clear(screen.getByLabelText("Monto BOB a pagar"));
+    await user.type(screen.getByLabelText("Monto BOB a pagar"), "10.50");
+    await screen.findByText("4.2 TVD");
+    await user.click(screen.getByRole("button", { name: /Generar QR/i }));
+
+    expect(await screen.findByAltText("Código QR para pagar la recarga TVD")).toBeInTheDocument();
+
+    act(() => {
+      rendered.store.dispatch(
+        setActiveContext({
+          type: "TENANT",
+          tenantId: "tenant-2",
+          tenantName: "Universidad Demo",
+          role: "TENANT_ADMIN",
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.queryByAltText("Código QR para pagar la recarga TVD"),
+      ).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: /Generar QR/i })).toBeDisabled();
+  });
+
   it("muestra pago confirmado y acreditacion pendiente como estados separados", async () => {
     const user = userEvent.setup();
     paymentDetailQueue.push(confirmedPaymentResponse);
@@ -315,6 +489,22 @@ describe("Admin tenant operational recharge", () => {
       screen.getByText("Pago recibido; acreditación TVD en proceso."),
     ).toBeInTheDocument();
     expect(screen.queryByText("Pago fallido")).not.toBeInTheDocument();
+  });
+
+  it("detiene polling visual y muestra bloqueo de configuracion de acreditacion", async () => {
+    const user = userEvent.setup();
+    paymentDetailQueue.push(blockedAccreditationResponse);
+    renderRechargePage();
+
+    await user.clear(screen.getByLabelText("Monto BOB a pagar"));
+    await user.type(screen.getByLabelText("Monto BOB a pagar"), "10.50");
+    await screen.findByText("4.2 TVD");
+    await user.click(screen.getByRole("button", { name: /Generar QR/i }));
+
+    expect(
+      await screen.findByText(/Acreditación bloqueada por configuración/i),
+    ).toBeInTheDocument();
+    expect(paymentDetailQueue).toHaveLength(0);
   });
 
   it("actualiza saldo visual al confirmar acreditacion y permite copiar referencia", async () => {

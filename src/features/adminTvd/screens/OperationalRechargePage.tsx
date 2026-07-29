@@ -5,6 +5,7 @@ import { useSelector } from "react-redux";
 import {
   ArrowPathIcon,
   ArrowRightIcon,
+  ArrowDownTrayIcon,
   CheckCircleIcon,
   ClipboardDocumentIcon,
   ExclamationTriangleIcon,
@@ -17,6 +18,7 @@ import {
   useGetMyTvdQuoteQuery,
   useGetMyTvdSummaryQuery,
   useListMyTvdPaymentsQuery,
+  useRegenerateQrPaymentMutation,
   type MyTvdPaymentResponse,
   type PublicQrPaymentResponse,
 } from "@/store/tvd";
@@ -29,6 +31,8 @@ import {
   getPaymentId,
   getPaymentStatusMessage,
   getQrImageSource,
+  downloadQrPng,
+  isValidQrPngImage,
   isAccreditationTerminal,
   shouldPollPayment,
   validateBobAmount,
@@ -60,6 +64,15 @@ const getSafeApiMessage = (error: unknown, fallback: string) => {
     }
     if (code === "TVD_ASSIGNMENT_NOT_FOUND") {
       return "No existe un contexto institucional operativo.";
+    }
+    if (code === "PAYMENT_REGENERATION_RECONCILIATION_REQUIRED") {
+      return "Estamos verificando el estado del QR anterior. No generaremos otro QR hasta resolverlo para evitar un doble pago.";
+    }
+    if (code === "PAYMENT_REGENERATION_NOT_ALLOWED") {
+      return "El estado actual del pago no permite regenerar QR.";
+    }
+    if (code === "PAYMENT_ALREADY_REGENERATED") {
+      return "Este pago ya tiene un QR nuevo asociado.";
     }
   }
   const status = error.status;
@@ -118,6 +131,8 @@ export default function OperationalRechargePage() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const previousContextKey = useRef(tenantContextKey);
+  const regeneratingRef = useRef(false);
+  const regeneratedPaymentIdsRef = useRef(new Set<string>());
 
   useEffect(() => {
     if (previousContextKey.current === tenantContextKey) return;
@@ -131,6 +146,8 @@ export default function OperationalRechargePage() {
     setPollingEnabled(false);
     setFeedback(null);
     setFormError(null);
+    regeneratingRef.current = false;
+    regeneratedPaymentIdsRef.current.clear();
   }, [tenantContextKey]);
 
   const amountValidation = useMemo(() => validateBobAmount(amount), [amount]);
@@ -180,6 +197,7 @@ export default function OperationalRechargePage() {
     skip: !quoteArg,
   });
   const [createQrPayment, createQrState] = useCreateQrPaymentMutation();
+  const [regenerateQrPayment, regenerateQrState] = useRegenerateQrPaymentMutation();
   const paymentQuery = useGetMyTvdPaymentQuery(paymentId ?? "", {
     skip: !paymentId,
     pollingInterval: pollingEnabled ? 5000 : 0,
@@ -198,6 +216,21 @@ export default function OperationalRechargePage() {
 
   const activePayment = paymentQuery.data ?? createdPayment;
   const activeAccreditationStatus = getAccreditationStatus(activePayment);
+  const activePaymentQrImage =
+    activePayment && "qrImage" in activePayment ? activePayment.qrImage : createdPayment?.qrImage;
+  const activeQrImageSource = getQrImageSource(activePaymentQrImage);
+  const activeRegenerationStatus = activePayment?.regenerationStatus ?? "NOT_REGENERABLE";
+  const activeRegenerationReason = activePayment?.regenerationReason ?? "";
+  const needsFreshQuoteForRegeneration =
+    activeRegenerationStatus === "REGENERABLE" &&
+    activeRegenerationReason === "QR_EXPIRED_QUOTE_EXPIRED" &&
+    Boolean(activePayment?.amount);
+  const regenerationQuoteQuery = useGetMyTvdQuoteQuery(
+    activePayment?.amount
+      ? { amount: activePayment.amount, currency: "BOB" as const }
+      : { amount: "0.01", currency: "BOB" as const },
+    { skip: !needsFreshQuoteForRegeneration },
+  );
   const quoteMatchesCurrent =
     currentPayload?.amount === debouncedAmount && quote?.fiatAmount === debouncedAmount;
   const canCreateQr =
@@ -207,6 +240,20 @@ export default function OperationalRechargePage() {
     summary?.walletStatus === "VERIFIED" &&
     !createQrState.isLoading;
   const paymentShouldPoll = shouldPollPayment(activePayment);
+  const canDownloadQr =
+    Boolean(activePaymentQrImage) &&
+    Boolean(activeQrImageSource) &&
+    activePayment?.status === "QR_ACTIVE";
+  const canRegenerateQr =
+    activeRegenerationStatus === "REGENERABLE" &&
+    !regenerateQrState.isLoading &&
+    (!needsFreshQuoteForRegeneration || Boolean(regenerationQuoteQuery.data));
+
+  useEffect(() => {
+    if (activeQrImageSource) {
+      setQrImageSource(activeQrImageSource);
+    }
+  }, [activeQrImageSource]);
 
   useEffect(() => {
     if (activePayment && !paymentShouldPoll) {
@@ -290,6 +337,61 @@ export default function OperationalRechargePage() {
     if (!reference) return;
     const copied = await copyTextToClipboard(reference);
     setFeedback(copied ? "Referencia copiada." : "No se pudo copiar la referencia.");
+  };
+
+  const handleDownloadQr = () => {
+    const downloaded = downloadQrPng(activePaymentQrImage, getPaymentReference(activePayment));
+    setFeedback(
+      downloaded
+        ? "QR descargado."
+        : "No pudimos descargar el QR porque la imagen no es válida.",
+    );
+  };
+
+  const handleRegenerateQr = async () => {
+    if (regeneratingRef.current) return;
+    const currentPaymentId = getPaymentId(activePayment);
+    if (!currentPaymentId) return;
+    if (regeneratedPaymentIdsRef.current.has(currentPaymentId)) return;
+    if (activeRegenerationStatus === "RECONCILIATION_REQUIRED") {
+      setFeedback(
+        "Estamos verificando el estado del QR anterior. No generaremos otro QR hasta resolverlo para evitar un doble pago.",
+      );
+      return;
+    }
+    if (needsFreshQuoteForRegeneration && !regenerationQuoteQuery.data) {
+      setFeedback("Espera a que la nueva cotización termine de cargar.");
+      return;
+    }
+    setFeedback(null);
+    setFormError(null);
+    regeneratingRef.current = true;
+    regeneratedPaymentIdsRef.current.add(currentPaymentId);
+    try {
+      const payment = await regenerateQrPayment({
+        paymentId: currentPaymentId,
+        idempotencyKey: generatePaymentIdempotencyKey(),
+      }).unwrap();
+      const nextPaymentId = getPaymentId(payment);
+      setAttempt(null);
+      setCreatedPayment(payment);
+      setPaymentId(nextPaymentId);
+      setPollingEnabled(Boolean(nextPaymentId));
+      setQrImageSource(getQrImageSource(payment.qrImage));
+      setStep(2);
+      setFeedback("QR regenerado. Esperando confirmación del pago.");
+      await historyQuery.refetch();
+    } catch (error) {
+      regeneratedPaymentIdsRef.current.delete(currentPaymentId);
+      setFormError(
+        getSafeApiMessage(
+          error,
+          "No pudimos regenerar el QR. Reintenta cuando el estado anterior esté resuelto.",
+        ),
+      );
+    } finally {
+      regeneratingRef.current = false;
+    }
   };
 
   return (
@@ -548,6 +650,26 @@ export default function OperationalRechargePage() {
                 </div>
               )}
 
+              <p className="mt-4 text-sm text-slate-500">Expira</p>
+              <p className="mt-1 font-semibold text-slate-900">
+                {formatDateTime(activePayment.qrExpiresAt)}
+              </p>
+
+              {canDownloadQr ? (
+                <button
+                  type="button"
+                  onClick={handleDownloadQr}
+                  className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                >
+                  <ArrowDownTrayIcon className="h-5 w-5" aria-hidden="true" />
+                  Descargar QR
+                </button>
+              ) : activePaymentQrImage && !isValidQrPngImage(activePaymentQrImage) ? (
+                <p className="mt-4 text-sm font-medium text-amber-700">
+                  La imagen QR no es válida para descarga.
+                </p>
+              ) : null}
+
               <h2 className="mt-5 text-lg font-bold text-slate-900">
                 Escanea el QR desde tu banca móvil
               </h2>
@@ -583,12 +705,6 @@ export default function OperationalRechargePage() {
                       Copiar
                     </button>
                   </div>
-                </div>
-                <div className="flex justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3">
-                  <span className="text-slate-500">Expira</span>
-                  <strong className="text-slate-900">
-                    {formatDateTime(activePayment.qrExpiresAt)}
-                  </strong>
                 </div>
               </div>
             </div>
@@ -627,6 +743,40 @@ export default function OperationalRechargePage() {
                       Reintentar
                     </button>
                   </div>
+                ) : null}
+                {activeRegenerationStatus === "RECONCILIATION_REQUIRED" ? (
+                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                    Estamos verificando el estado del QR anterior. No generaremos otro QR hasta resolverlo para evitar un doble pago.
+                  </div>
+                ) : null}
+                {needsFreshQuoteForRegeneration ? (
+                  <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                    {regenerationQuoteQuery.isFetching ? (
+                      "Calculando nueva cotización..."
+                    ) : regenerationQuoteQuery.data ? (
+                      <>
+                        Nueva cotización: Bs. {regenerationQuoteQuery.data.fiatAmount} por{" "}
+                        {regenerationQuoteQuery.data.estimatedTvd} TVD.
+                      </>
+                    ) : (
+                      "No pudimos cargar la nueva cotización."
+                    )}
+                  </div>
+                ) : null}
+                {activeRegenerationStatus === "REGENERABLE" ? (
+                  <button
+                    type="button"
+                    onClick={() => void handleRegenerateQr()}
+                    disabled={!canRegenerateQr}
+                    className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {regenerateQrState.isLoading ? (
+                      <ArrowPathIcon className="h-5 w-5 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <ArrowPathIcon className="h-5 w-5" aria-hidden="true" />
+                    )}
+                    {regenerateQrState.isLoading ? "Regenerando..." : "Regenerar QR"}
+                  </button>
                 ) : null}
               </div>
 

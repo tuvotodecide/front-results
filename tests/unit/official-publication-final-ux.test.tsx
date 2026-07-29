@@ -52,5 +52,13 @@ describe("official publication final frontend UX", () => {
     expect(getCapacityRequestErrorMessage({ status: "FETCH_ERROR" })).toBe(
       "No se pudo validar la disponibilidad de TVD. Intenta nuevamente.",
     );
+    expect(
+      getCapacityRequestErrorMessage({
+        status: 503,
+        data: { code: "OFFICIAL_PUBLICATION_VOTE_MANAGER_NOT_OPERATOR" },
+      }),
+    ).toBe(
+      "Configuración contractual pendiente. No solicites firma móvil ni recarga hasta corregir infraestructura.",
+    );
   });
 });

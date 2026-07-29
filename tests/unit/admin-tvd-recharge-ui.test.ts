@@ -1,10 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   createRechargePayloadFingerprint,
+  buildQrDownloadFilename,
+  downloadQrPng,
   generatePaymentIdempotencyKey,
   getAccreditationStatusMessage,
   getPaymentStatusMessage,
   getQrImageSource,
+  isValidQrPngImage,
   isAccreditationTerminal,
   shouldPollPayment,
   validateBobAmount,
@@ -84,9 +87,56 @@ describe("admin TVD recharge utilities", () => {
   it("normaliza imagen QR base64 sin construir una glosa ni payload falso", () => {
     expect(getQrImageSource("iVBORw0KGgo=")).toBe("data:image/png;base64,iVBORw0KGgo=");
     expect(getQrImageSource("data:image/png;base64,abc")).toBe(
-      "data:image/png;base64,abc",
+      null,
     );
+    expect(getQrImageSource("data:image/png;base64,iVBORw0KGgo=")).toBe(
+      "data:image/png;base64,iVBORw0KGgo=",
+    );
+    expect(getQrImageSource("data:image/svg+xml;base64,PHN2Zz4=")).toBeNull();
     expect(getQrImageSource(null)).toBeNull();
+  });
+
+  it("valida y descarga solo QR PNG con nombre seguro", () => {
+    expect(isValidQrPngImage("iVBORw0KGgo=")).toBe(true);
+    expect(isValidQrPngImage("R0lGODlh")).toBe(false);
+    expect(buildQrDownloadFilename("123/456:secret")).toBe(
+      "qr-recarga-tvd-123456secret.png",
+    );
+
+    const click = vi.fn();
+    const remove = vi.fn();
+    const anchor = {
+      click,
+      remove,
+      set href(value: string) {
+        expect(value).toBe("blob:qr");
+      },
+      set download(value: string) {
+        expect(value).toBe("qr-recarga-tvd-123456.png");
+      },
+      set rel(value: string) {
+        expect(value).toBe("noopener");
+      },
+    } as unknown as HTMLAnchorElement;
+    const createElement = vi.spyOn(document, "createElement").mockReturnValue(anchor);
+    const appendChild = vi.spyOn(document.body, "appendChild").mockImplementation(
+      (node) => node,
+    );
+    const createObjectURL = vi.fn(() => "blob:qr");
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal("URL", { createObjectURL, revokeObjectURL });
+
+    expect(downloadQrPng("iVBORw0KGgo=", "123456")).toBe(true);
+    expect(click).toHaveBeenCalledTimes(1);
+    expect(remove).toHaveBeenCalledTimes(1);
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:qr");
+
+    expect(downloadQrPng("bad", "123456")).toBe(false);
+
+    createElement.mockRestore();
+    appendChild.mockRestore();
+    vi.unstubAllGlobals();
   });
 
   it("separa estados terminales de pago y acreditacion", () => {

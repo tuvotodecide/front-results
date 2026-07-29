@@ -32,7 +32,7 @@ const capacityResponse = {
   canPublish: true,
   reasonCode: null,
   balanceSource: "BLOCKCHAIN",
-  usableBalanceField: "totalBalanceSmallestUnit",
+  usableBalanceField: "liquidBalanceSmallestUnit",
   walletAddress: "0x1111111111111111111111111111111111111111",
 } as const;
 

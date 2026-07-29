@@ -73,6 +73,21 @@ export const getCapacityRequestErrorMessage = (error: unknown) => {
   }
 
   if (typeof status === "number" && status >= 500) {
+    const data =
+      typeof error === "object" && error !== null && "data" in error
+        ? (error as FetchBaseQueryError).data
+        : null;
+    const code =
+      typeof data === "object" && data !== null && "code" in data
+        ? String((data as { code?: unknown }).code)
+        : null;
+    if (
+      code === "OFFICIAL_PUBLICATION_VOTE_MANAGER_NOT_OPERATOR" ||
+      code === "ELECTORAL_CREDITS_CONFIGURATION_INCOMPLETE" ||
+      code === "OFFICIAL_PUBLICATION_IMPLEMENTATION_MISMATCH"
+    ) {
+      return "Configuración contractual pendiente. No solicites firma móvil ni recarga hasta corregir infraestructura.";
+    }
     return "No se pudo validar la disponibilidad de TVD. Intenta nuevamente.";
   }
 
@@ -80,3 +95,7 @@ export const getCapacityRequestErrorMessage = (error: unknown) => {
 };
 
 export const formatTvdCapacityAmount = (value: string) => `${value} TVD`;
+
+export const isTvdCapacityRechargeable = (
+  reasonCode: TvdCapacityReasonCode,
+) => reasonCode === "INSUFFICIENT_TVD_BALANCE";

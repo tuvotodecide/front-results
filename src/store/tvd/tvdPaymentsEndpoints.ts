@@ -4,6 +4,7 @@ import type {
   MyTvdPaymentResponse,
   MyTvdPaymentsListResponse,
   PublicQrPaymentResponse,
+  RegenerateQrPaymentArg,
   TvdPaymentsListQuery,
   TvdQuoteRequest,
   TvdQuoteResponse,
@@ -28,6 +29,22 @@ export const tvdPaymentsEndpoints = apiSlice.injectEndpoints({
         body,
       }),
       invalidatesTags: [{ type: "TvdPayments", id: "LIST" }],
+    }),
+    regenerateQrPayment: builder.mutation<
+      PublicQrPaymentResponse,
+      RegenerateQrPaymentArg
+    >({
+      query: ({ paymentId, idempotencyKey }) => ({
+        url: `/payments/${paymentId}/regenerate`,
+        method: "POST",
+        headers: {
+          "Idempotency-Key": idempotencyKey,
+        },
+      }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: "TvdPayments", id: "LIST" },
+        { type: "TvdPayment", id: arg.paymentId },
+      ],
     }),
     getMyTvdPayment: builder.query<MyTvdPaymentResponse, string>({
       query: (paymentId) => ({
@@ -63,4 +80,5 @@ export const {
   useGetMyTvdPaymentQuery,
   useGetMyTvdQuoteQuery,
   useListMyTvdPaymentsQuery,
+  useRegenerateQrPaymentMutation,
 } = tvdPaymentsEndpoints;

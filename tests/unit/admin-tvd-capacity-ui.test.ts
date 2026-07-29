@@ -1,6 +1,7 @@
 import {
   getCapacityRequestErrorMessage,
   getTvdCapacityReasonMessage,
+  isTvdCapacityRechargeable,
   validateEstimatedParticipants,
 } from "@/features/adminTvd/utils/tvdCapacityUi";
 
@@ -51,10 +52,24 @@ describe("admin TVD capacity UI helpers", () => {
       "No pudimos encontrar la elección o el padrón vigente.",
     );
     expect(getCapacityRequestErrorMessage({ status: 503, data: {} })).toBe(
-      "No pudimos validar el saldo actual. Intenta nuevamente.",
+      "No se pudo validar la disponibilidad de TVD. Intenta nuevamente.",
+    );
+    expect(
+      getCapacityRequestErrorMessage({
+        status: 503,
+        data: { code: "OFFICIAL_PUBLICATION_VOTE_MANAGER_NOT_OPERATOR" },
+      }),
+    ).toBe(
+      "Configuración contractual pendiente. No solicites firma móvil ni recarga hasta corregir infraestructura.",
     );
     expect(getCapacityRequestErrorMessage({ status: "FETCH_ERROR", data: {} })).toBe(
-      "No pudimos validar la capacidad TVD. Intenta nuevamente.",
+      "No se pudo validar la disponibilidad de TVD. Intenta nuevamente.",
     );
+  });
+
+  it("ofrece QR solo cuando el bloqueo real es saldo insuficiente", () => {
+    expect(isTvdCapacityRechargeable("INSUFFICIENT_TVD_BALANCE")).toBe(true);
+    expect(isTvdCapacityRechargeable("PADRON_PROCESSING")).toBe(false);
+    expect(isTvdCapacityRechargeable(null)).toBe(false);
   });
 });

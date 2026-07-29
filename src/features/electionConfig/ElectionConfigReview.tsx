@@ -44,6 +44,7 @@ import {
   formatTvdCapacityAmount,
   getCapacityRequestErrorMessage,
   getTvdCapacityReasonMessage,
+  isTvdCapacityRechargeable,
 } from "../adminTvd/utils/tvdCapacityUi";
 
 const basePendingLabels: Record<string, string> = {
@@ -771,13 +772,6 @@ const ElectionConfigReview: React.FC = () => {
             >
               Reintentar validación
             </button>
-            <button
-              type="button"
-              onClick={handleGoToRecharge}
-              className="rounded-lg border border-[#459151]/20 bg-[#EFF7F0] px-4 py-2 text-sm font-semibold text-[#2E6A38] transition hover:bg-[#E4F3E7]"
-            >
-              Ir a recarga
-            </button>
           </div>
         </div>
       ) : null}
@@ -855,7 +849,7 @@ const ElectionConfigReview: React.FC = () => {
             >
               {tvdCapacityFetching ? "Validando..." : "Reintentar validación"}
             </button>
-            {!tvdCapacity.canPublish ? (
+            {isTvdCapacityRechargeable(tvdCapacity.reasonCode) ? (
               <button
                 type="button"
                 onClick={handleGoToRecharge}

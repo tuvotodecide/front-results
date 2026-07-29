@@ -4,6 +4,7 @@ type RequestError =
       data?: {
         code?: unknown;
         message?: unknown;
+        details?: Record<string, unknown>;
       };
       error?: string;
       message?: unknown;
@@ -12,6 +13,21 @@ type RequestError =
   | undefined;
 
 const OFFLINE_MESSAGE = 'No hay conexión a internet. Verifica tu red e intenta nuevamente.';
+const TVD_DECIMALS = 18n;
+const TVD_SCALE = 10n ** TVD_DECIMALS;
+
+const formatTvdSmallestUnit = (value: unknown) => {
+  try {
+    const amount = BigInt(String(value ?? '0'));
+    const whole = amount / TVD_SCALE;
+    const fraction = amount % TVD_SCALE;
+    if (fraction === 0n) return whole.toString();
+    const fractionText = fraction.toString().padStart(Number(TVD_DECIMALS), '0').replace(/0+$/, '');
+    return `${whole}.${fractionText}`;
+  } catch {
+    return null;
+  }
+};
 
 const isOfflineError = (error: RequestError) => {
   if (!error) return false;
@@ -54,6 +70,23 @@ export const getRequestErrorMessage = (
           ? String((backendMessage as { message?: unknown }).message ?? '').trim()
           : '';
 
+  const code = typeof error?.data?.code === 'string' ? error.data.code : '';
+  const details = error?.data?.details;
+  if (code === 'OFFICIAL_PUBLICATION_BALANCE_INSUFFICIENT') {
+    const required = formatTvdSmallestUnit(details?.requiredTvd);
+    const available = formatTvdSmallestUnit(details?.availableTvd);
+    const deficit = formatTvdSmallestUnit(details?.deficitTvd);
+    if (required && available && deficit) {
+      return `No tienes suficientes $TVD para publicar esta votación. Requerido: ${required} TVD. Disponible: ${available} TVD. Déficit: ${deficit} TVD.`;
+    }
+  }
+  if (
+    code === 'OFFICIAL_PUBLICATION_MAX_TOKEN_EXCEEDED' ||
+    code === 'TVD_CREDITS_MAX_TOKEN_EXCEEDED'
+  ) {
+    return 'La votación supera el máximo permitido por elección. Comprar más tokens no resolverá este límite.';
+  }
+
   if (normalizedMessage.length > 0) {
     const plainMessage = normalizedMessage.toLowerCase();
     if (plainMessage.includes('carnet debe ser alfanumerico')) {
@@ -62,11 +95,18 @@ export const getRequestErrorMessage = (
     return normalizedMessage;
   }
 
-  const code = typeof error?.data?.code === 'string' ? error.data.code : '';
   switch (code) {
+    case 'OFFICIAL_PUBLICATION_BALANCE_INSUFFICIENT':
     case 'TVD_CREDITS_INSUFFICIENT_CAPACITY':
+    case 'TVD_CREDITS_BALANCE_INSUFFICIENT':
     case 'TVD_INSUFFICIENT_CONTRACT_BALANCE':
       return 'No tienes suficientes $TVD para publicar esta votación.';
+    case 'OFFICIAL_PUBLICATION_MAX_TOKEN_EXCEEDED':
+    case 'TVD_CREDITS_MAX_TOKEN_EXCEEDED':
+      return 'La votación supera el máximo permitido por elección. Comprar más tokens no resolverá este límite.';
+    case 'OFFICIAL_PUBLICATION_CHAIN_READ_FAILED':
+    case 'TVD_CREDITS_MAX_TOKEN_INVALID':
+      return 'No pudimos validar el límite TVD por elección. Intenta nuevamente.';
     case 'TVD_ALLOWANCE_INSUFFICIENT':
       return 'La wallet institucional no tiene allowance TVD suficiente para publicar esta votación.';
     case 'PUBLICATION_WINDOW_CLOSED':
