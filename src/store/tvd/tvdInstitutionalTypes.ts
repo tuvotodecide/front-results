@@ -1,4 +1,8 @@
 export type TvdWalletStatus = "MISSING" | "VERIFIED";
+export type TvdBalanceStatus =
+  | "AVAILABLE"
+  | "UNAVAILABLE"
+  | "NOT_APPLICABLE";
 
 export type TvdBalanceAmount = {
   smallestUnit: string;
@@ -11,6 +15,11 @@ export type TvdMySummaryResponse = {
   assignmentId: string;
   wallet: string | null;
   walletStatus: TvdWalletStatus;
+  balanceStatus?: TvdBalanceStatus;
+  balance?: string | null;
+  formattedBalance?: string | null;
+  decimals?: number | null;
+  balanceErrorCode?: string | null;
   assignedBalance: TvdBalanceAmount | null;
   liquidBalance: TvdBalanceAmount | null;
   totalBalance: TvdBalanceAmount | null;

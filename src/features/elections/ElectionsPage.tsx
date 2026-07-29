@@ -116,7 +116,10 @@ const ElectionsPage: React.FC = () => {
     tvdSummary?.walletStatus === 'MISSING' ||
     isWalletUpdateRequiredError(tvdSummaryError);
   const balanceUnavailable =
-    Boolean(tvdSummaryError) && !isWalletUpdateRequiredError(tvdSummaryError);
+    (Boolean(tvdSummaryError) && !isWalletUpdateRequiredError(tvdSummaryError)) ||
+    (walletLinked && tvdSummary?.balanceStatus === 'UNAVAILABLE');
+  const formattedTvdBalance =
+    tvdSummary?.formattedBalance ?? tvdSummary?.totalBalance?.formatted ?? null;
 
   const isEmpty = events.length === 0;
   const filteredEvents = useMemo(() => {
@@ -263,9 +266,9 @@ const ElectionsPage: React.FC = () => {
                 </p>
                 {isTvdSummaryLoading || isTvdSummaryFetching ? (
                   <div className="mt-3 h-9 w-28 animate-pulse rounded bg-slate-100" />
-                ) : walletLinked && tvdSummary?.totalBalance ? (
+                ) : walletLinked && formattedTvdBalance ? (
                   <p className="mt-2 text-3xl font-bold text-slate-900">
-                    {formatTvdDisplay(tvdSummary.totalBalance.formatted)}
+                    {formatTvdDisplay(formattedTvdBalance)}
                   </p>
                 ) : walletMissing ? (
                   <div className="mt-4 text-sm text-red-700" role="alert">
