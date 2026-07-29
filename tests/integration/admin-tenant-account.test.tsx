@@ -2,15 +2,9 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import InstitutionalAccountPage from "@/features/adminTvd/screens/InstitutionalAccountPage";
-import { readTvdOnChainBalance } from "@/features/adminTvd/services/tvdOnChainBalance";
 import type { AuthState } from "@/store/auth/authSlice";
 import type { TvdMySummaryResponse } from "@/store/tvd";
-import type { TvdOnChainBalance } from "@/features/adminTvd/services/tvdOnChainBalance";
 import { renderWithAuthStore } from "../utils/renderWithStore";
-
-vi.mock("@/features/adminTvd/services/tvdOnChainBalance", () => ({
-  readTvdOnChainBalance: vi.fn(),
-}));
 
 const activeWallet = "0x1234567890abcdef1234567890abcdef12345678" as const;
 const secondWallet = "0x2222222222222222222222222222222222222222" as const;
@@ -19,8 +13,6 @@ const PERSON_NOT_REGISTERED_MESSAGE =
 const ALREADY_ADMIN_MESSAGE = "Esta persona ya administra la institución.";
 const DUPLICATE_INVITATION_MESSAGE =
   "Ya existe una invitación pendiente para esta persona.";
-const EMAIL_ALREADY_USED_MESSAGE =
-  "El correo indicado ya pertenece a otra cuenta.";
 
 const summaryResponse: TvdMySummaryResponse = {
   tenantId: "tenant-1",
@@ -45,21 +37,6 @@ const summaryResponse: TvdMySummaryResponse = {
   contractAddress: "0x3333333333333333333333333333333333333333",
   lastAccreditation: null,
   pendingAccreditationsCount: 0,
-};
-
-const visualBalance: TvdOnChainBalance = {
-  wallet: activeWallet,
-  chainId: 84532,
-  tokenAddress: "0x1111111111111111111111111111111111111111",
-  assignmentContractAddress: "0x3333333333333333333333333333333333333333",
-  decimals: 18,
-  liquidBalanceSmallestUnit: "80000000000000000000",
-  assignedBalanceSmallestUnit: "20000000000000000000",
-  totalBalanceSmallestUnit: "100000000000000000000",
-  liquidBalanceFormatted: "80",
-  assignedBalanceFormatted: "20",
-  totalBalanceFormatted: "100",
-  readAt: "2026-07-21T12:00:00.000Z",
 };
 
 const adminsResponse = {
@@ -203,7 +180,6 @@ const setupFetch = (
 describe("Admin tenant institutional account", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(readTvdOnChainBalance).mockResolvedValue(visualBalance);
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
       value: { writeText: async () => undefined },
@@ -215,7 +191,7 @@ describe("Admin tenant institutional account", () => {
     vi.unstubAllGlobals();
   });
 
-  it("muestra una sola wallet activa del usuario autenticado y saldo visual on-chain", async () => {
+  it("muestra una sola wallet activa del usuario autenticado y saldo del resumen real", async () => {
     const fetchMock = setupFetch();
 
     renderWithAuthStore(<InstitutionalAccountPage />, tenantAuth());
@@ -233,17 +209,15 @@ describe("Admin tenant institutional account", () => {
     expect(screen.queryByText("Cuenta auxiliar")).not.toBeInTheDocument();
     expect(screen.queryByText(secondWallet)).not.toBeInTheDocument();
     expect(screen.queryByText("180 TVD")).not.toBeInTheDocument();
+    expect(screen.queryByText("Cambiar correo")).not.toBeInTheDocument();
+    expect(screen.queryByText("Correo actual")).not.toBeInTheDocument();
+    expect(screen.queryByText("Actualizar cuenta")).not.toBeInTheDocument();
+    expect(screen.queryByText(/wallet institucional/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/seed phrase/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/clave privada/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/DNI/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/discoverableHash/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/IDENTITY_API_KEY/i)).not.toBeInTheDocument();
-
-    expect(readTvdOnChainBalance).toHaveBeenCalledWith(
-      activeWallet,
-      summaryResponse.contractAddress,
-      summaryResponse.chainId,
-    );
     expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(4);
     for (const [request] of fetchMock.mock.calls) {
       if (request instanceof Request) {
@@ -251,85 +225,6 @@ describe("Admin tenant institutional account", () => {
         expect(request.headers.get("x-api-key")).toBeNull();
       }
     }
-  });
-
-  it("D-MAIL-001/D-MAIL-002 solicita cambio de correo sin enviar identidad, wallet ni contraseña", async () => {
-    const user = userEvent.setup();
-    const fetchMock = setupFetch(async (request) => {
-      const url = new URL(request.url);
-      if (
-        url.pathname ===
-          "/api/v1/institutional-access-recovery-requests/me/email-change" &&
-        request.method === "POST"
-      ) {
-        const body = JSON.parse(await request.clone().text());
-        if (body.newEmail === "ocupado@example.com") {
-          return jsonResponse(
-            { message: "El correo indicado ya pertenece a otra cuenta." },
-            409,
-          );
-        }
-        return jsonResponse(
-          {
-            requestId: "mail-1",
-            status: "PENDING",
-            requestedAt: "2026-07-28T12:00:00.000Z",
-          },
-          201,
-        );
-      }
-      return undefined;
-    });
-
-    renderWithAuthStore(<InstitutionalAccountPage />, tenantAuth());
-
-    await user.click(await screen.findByRole("button", { name: "Cambiar correo" }));
-    const dialog = screen.getByRole("dialog", { name: "Solicitar cambio de correo" });
-    expect(within(dialog).getByText("admin@tenant.test")).toBeInTheDocument();
-    expect(within(dialog).queryByLabelText(/wallet/i)).not.toBeInTheDocument();
-    expect(within(dialog).queryByLabelText(/CI|DNI|carnet/i)).not.toBeInTheDocument();
-    expect(within(dialog).queryByLabelText(/contraseña/i)).not.toBeInTheDocument();
-
-    await user.type(within(dialog).getByLabelText("Nuevo correo"), "ocupado@example.com");
-    await user.click(within(dialog).getByRole("button", { name: "Solicitar cambio" }));
-    expect(await within(dialog).findByText(EMAIL_ALREADY_USED_MESSAGE)).toBeInTheDocument();
-
-    await user.clear(within(dialog).getByLabelText("Nuevo correo"));
-    await user.type(within(dialog).getByLabelText("Nuevo correo"), "Nuevo.Admin@Tenant.TEST");
-    await user.click(within(dialog).getByRole("button", { name: "Solicitar cambio" }));
-
-    await waitFor(() => {
-      expect(
-        fetchMock.mock.calls.some(
-          ([request]) =>
-            request instanceof Request &&
-            request.method === "POST" &&
-            new URL(request.url).pathname ===
-              "/api/v1/institutional-access-recovery-requests/me/email-change",
-        ),
-      ).toBe(true);
-    });
-    const mailRequests = fetchMock.mock.calls
-      .map(([request]) => request)
-      .filter(
-        (request): request is Request =>
-          request instanceof Request &&
-          request.method === "POST" &&
-          new URL(request.url).pathname ===
-            "/api/v1/institutional-access-recovery-requests/me/email-change",
-      );
-    expect(mailRequests).toHaveLength(2);
-    const finalBody = JSON.parse(await mailRequests[1].clone().text());
-    expect(finalBody).toEqual({ newEmail: "nuevo.admin@tenant.test" });
-    expect(finalBody.userId).toBeUndefined();
-    expect(finalBody.dni).toBeUndefined();
-    expect(finalBody.accountAddress).toBeUndefined();
-    expect(finalBody.wallet).toBeUndefined();
-    expect(finalBody.password).toBeUndefined();
-    expect(finalBody.role).toBeUndefined();
-    expect(
-      await screen.findByText("Cambio de correo solicitado. Queda pendiente de revisión."),
-    ).toBeInTheDocument();
   });
 
   it("D-TRF-001/D-TRF-006/D-TRF-011: principal inicia transferencia y queda pendiente de firma", async () => {
@@ -401,21 +296,23 @@ describe("Admin tenant institutional account", () => {
     expect(screen.getByText("Administrador principal")).toBeInTheDocument();
   });
 
-  it("permite copiar y reintentar saldo visual cuando RPC falla", async () => {
+  it("permite copiar y reintentar saldo cuando falla la consulta", async () => {
     const user = userEvent.setup();
-    vi.mocked(readTvdOnChainBalance)
-      .mockRejectedValueOnce(new Error("rpc down"))
-      .mockResolvedValueOnce(visualBalance);
-    setupFetch(() => jsonResponse(summaryResponse));
+    const fetchMock = setupFetch(() =>
+      jsonResponse({
+        ...summaryResponse,
+        totalBalance: null,
+        liquidBalance: null,
+        assignedBalance: null,
+      }),
+    );
 
     renderWithAuthStore(<InstitutionalAccountPage />, tenantAuth());
 
-    expect(
-      await screen.findByText(/No pudimos consultar el saldo actual/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("No pudimos consultar tu saldo en este momento.")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /Actualizar saldo/i }));
-    expect(await screen.findByText("100 TVD")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalled();
 
     await user.click(screen.getByRole("button", { name: "Copiar" }));
     expect(screen.getByText("Dirección copiada.")).toBeInTheDocument();
@@ -440,9 +337,9 @@ describe("Admin tenant institutional account", () => {
 
     renderWithAuthStore(<InstitutionalAccountPage />, tenantAuth());
 
-    await user.click(await screen.findByRole("button", { name: /Regularizar wallet/i }));
+    await user.click(await screen.findByRole("button", { name: /Vincular mi wallet/i }));
     expect(
-      screen.getByRole("dialog", { name: "Vincular wallet institucional" }),
+      screen.getByRole("dialog", { name: "Vincular mi wallet" }),
     ).toBeInTheDocument();
     expect(screen.getAllByText(/aplicación móvil/i).length).toBeGreaterThan(0);
     expect(screen.queryByLabelText("Wallet candidata")).not.toBeInTheDocument();
@@ -501,7 +398,7 @@ describe("Admin tenant institutional account", () => {
 
     renderWithAuthStore(<InstitutionalAccountPage />, tenantAuth());
 
-    await user.click(await screen.findByRole("button", { name: /Regularizar wallet/i }));
+    await user.click(await screen.findByRole("button", { name: /Vincular mi wallet/i }));
     await user.type(screen.getByLabelText("Carnet de identidad"), "12345678");
     expect(await screen.findByDisplayValue(secondWallet)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Vincular wallet" }));
@@ -557,7 +454,7 @@ describe("Admin tenant institutional account", () => {
     }
 
     expect(
-      await screen.findByText("Wallet institucional vinculada correctamente."),
+      await screen.findByText("Wallet vinculada correctamente."),
     ).toBeInTheDocument();
     expect(await screen.findByText(secondWallet)).toBeInTheDocument();
   });
@@ -580,7 +477,7 @@ describe("Admin tenant institutional account", () => {
 
     renderWithAuthStore(<InstitutionalAccountPage />, tenantAuth());
 
-    await user.click(await screen.findByRole("button", { name: /Regularizar wallet/i }));
+    await user.click(await screen.findByRole("button", { name: /Vincular mi wallet/i }));
     await user.type(screen.getByLabelText("Carnet de identidad"), "12345678");
     expect(await screen.findByDisplayValue(secondWallet)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Vincular wallet" }));

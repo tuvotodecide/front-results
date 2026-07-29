@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import type { ReactNode } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { selectAuth, setActiveContext } from "@/store/auth/authSlice";
 import {
@@ -19,31 +19,10 @@ interface VotacionPrivateGuardProps {
   children: ReactNode;
 }
 
-const WALLET_REGULARIZATION_PATH = "/votacion/cuenta-institucional";
-
-const tenantContextRequiresWalletUpdate = (
-  auth: ReturnType<typeof selectAuth>,
-) => {
-  const tenantId =
-    auth.activeContext?.type === "TENANT"
-      ? auth.activeContext.tenantId
-      : auth.user?.tenantId;
-  const activeRequiresUpdate =
-    auth.activeContext?.type === "TENANT" &&
-    auth.activeContext.requiresWalletUpdate === true;
-  const statusRequiresUpdate = auth.accessStatus?.tenant.items.some(
-    (item) =>
-      item.tenantId === tenantId && item.requiresWalletUpdate === true,
-  );
-
-  return Boolean(activeRequiresUpdate || statusRequiresUpdate);
-};
-
 export default function VotacionPrivateGuard({
   children,
 }: VotacionPrivateGuardProps) {
   const router = useRouter();
-  const pathname = usePathname();
   const dispatch = useDispatch();
   const auth = useSelector(selectAuth);
   const { user, token, activeContext, availableContexts } = auth;
@@ -72,25 +51,11 @@ export default function VotacionPrivateGuard({
     !redirectTo &&
     !domainContext &&
     !hasLegacyAccess;
-  const requiresWalletUpdate =
-    Boolean(user && token) &&
-    !redirectTo &&
-    !shouldBlockDomain &&
-    tenantContextRequiresWalletUpdate(auth);
-  const isWalletRegularizationRoute =
-    (pathname ?? "").startsWith(WALLET_REGULARIZATION_PATH);
-
   useEffect(() => {
     if (redirectTo) {
       router.replace(redirectTo);
     }
   }, [redirectTo, router]);
-
-  useEffect(() => {
-    if (requiresWalletUpdate && !isWalletRegularizationRoute) {
-      router.replace(WALLET_REGULARIZATION_PATH);
-    }
-  }, [isWalletRegularizationRoute, requiresWalletUpdate, router]);
 
   useEffect(() => {
     if (domainContext && shouldActivateDomainContext) {
@@ -99,10 +64,6 @@ export default function VotacionPrivateGuard({
   }, [dispatch, domainContext, shouldActivateDomainContext]);
 
   if (redirectTo) {
-    return null;
-  }
-
-  if (requiresWalletUpdate && !isWalletRegularizationRoute) {
     return null;
   }
 

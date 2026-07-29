@@ -9,14 +9,15 @@ export type TvdBalanceAmount = {
 export type TvdMySummaryResponse = {
   tenantId: string;
   assignmentId: string;
-  wallet: string;
+  wallet: string | null;
   walletStatus: TvdWalletStatus;
-  assignedBalance: TvdBalanceAmount;
-  liquidBalance: TvdBalanceAmount;
-  totalBalance: TvdBalanceAmount;
+  assignedBalance: TvdBalanceAmount | null;
+  liquidBalance: TvdBalanceAmount | null;
+  totalBalance: TvdBalanceAmount | null;
   tokenSymbol: string | null;
   chainId: number | null;
   contractAddress: string | null;
+  assignmentContractAddress?: string | null;
   lastAccreditation: unknown | null;
   pendingAccreditationsCount: number;
 };

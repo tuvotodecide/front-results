@@ -1,8 +1,9 @@
-// Página principal de Elecciones
-// Muestra el dashboard institucional y conserva la lista real de votaciones
-// Conectado a backend real con RTK Query
-
 import React, { useMemo, useState } from 'react';
+import {
+  ArrowPathIcon,
+  ClipboardDocumentIcon,
+  IdentificationIcon,
+} from '@heroicons/react/24/outline';
 import { useNavigate } from '@/domains/votacion/navigation/compat-private';
 import { useSelector } from 'react-redux';
 import { useDeleteVotingEventMutation, useDisableVotingEventMutation, useGetVotingEventsQuery } from '../../store/votingEvents';
@@ -10,13 +11,19 @@ import { selectTenantId, selectIsLoggedIn } from '../../store/auth/authSlice';
 import Modal2 from '../../components/Modal2';
 import type { VotingEvent } from '../../store/votingEvents/types';
 import { formatDateTimeForUi, hasDraftAlreadyStarted, useClientNow } from '../electionConfig/renderUtils';
-import AdminInstitutionAccountCard from '../adminTvd/components/AdminInstitutionAccountCard';
 import EstimateVotersModal from '../adminTvd/components/EstimateVotersModal';
+import { useGetMyTvdSummaryQuery } from '@/store/tvd';
+import type { TvdMySummaryResponse } from '@/store/tvd';
+import { copyTextToClipboard } from '../adminTvd/services/clipboard';
+import {
+  formatTvdDisplay,
+  isWalletUpdateRequiredError,
+  shortWalletAddress,
+} from '../adminTvd/utils/institutionalWalletUi';
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const DEADLINE_REMINDER_WINDOW_MS = 24 * ONE_HOUR_MS;
 
-// Mapear estados del backend a labels en español
 const statusLabels: Record<string, string> = {
   DRAFT: 'Borrador',
   PUBLISHED: 'Publicada',
@@ -72,6 +79,9 @@ const isInOfficialPublicationReminderWindow = (
   return timeUntilDeadline > 0 && timeUntilDeadline <= DEADLINE_REMINDER_WINDOW_MS;
 };
 
+const hasLinkedWallet = (summary: TvdMySummaryResponse | undefined) =>
+  summary?.walletStatus !== 'MISSING' && Boolean(summary?.wallet);
+
 const ElectionsPage: React.FC = () => {
   const navigate = useNavigate();
   const isLoggedIn = useSelector(selectIsLoggedIn);
@@ -83,12 +93,30 @@ const ElectionsPage: React.FC = () => {
   const [disableConfirm, setDisableConfirm] = useState<VotingEvent | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showEstimateModal, setShowEstimateModal] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
 
   // Query de eventos - skip si no hay tenantId
   const { data: events = [], isLoading, error, refetch } = useGetVotingEventsQuery(
     tenantId ? { tenantId } : undefined,
     { skip: !isLoggedIn, refetchOnMountOrArgChange: true }
   );
+  const {
+    data: tvdSummary,
+    isLoading: isTvdSummaryLoading,
+    isFetching: isTvdSummaryFetching,
+    error: tvdSummaryError,
+    refetch: refetchTvdSummary,
+  } = useGetMyTvdSummaryQuery(
+    tenantId ? { tenantId } : undefined,
+    { skip: !isLoggedIn || !tenantId, refetchOnMountOrArgChange: true },
+  );
+
+  const walletLinked = hasLinkedWallet(tvdSummary);
+  const walletMissing =
+    tvdSummary?.walletStatus === 'MISSING' ||
+    isWalletUpdateRequiredError(tvdSummaryError);
+  const balanceUnavailable =
+    Boolean(tvdSummaryError) && !isWalletUpdateRequiredError(tvdSummaryError);
 
   const isEmpty = events.length === 0;
   const filteredEvents = useMemo(() => {
@@ -111,6 +139,20 @@ const ElectionsPage: React.FC = () => {
   const handleRechargeFromEstimate = () => {
     setShowEstimateModal(false);
     navigate('/votacion/recarga-operativa');
+  };
+
+  const handleCopyWallet = async () => {
+    if (!tvdSummary?.wallet) return;
+    const copied = await copyTextToClipboard(tvdSummary.wallet);
+    setCopyFeedback(copied ? 'Dirección copiada.' : 'No pudimos copiar la dirección.');
+  };
+
+  const goToAccount = (action?: 'associate-account') => {
+    navigate(
+      action
+        ? '/votacion/cuenta-institucional?action=associate-account'
+        : '/votacion/cuenta-institucional',
+    );
   };
 
   const handleElectionClick = (event: VotingEvent) => {
@@ -212,28 +254,105 @@ const ElectionsPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-8 grid gap-4 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={() => navigate('/votacion/recarga-operativa')}
-            className="flex min-h-[96px] w-full items-center justify-between rounded-2xl border border-amber-300 bg-white px-5 py-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-amber-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-amber-300"
-            aria-label="Ir a recarga operativa"
-          >
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                Recarga operativa
-              </p>
-              <p className="mt-2 text-sm font-semibold text-slate-900">
-                Recarga TVD mediante QR
-              </p>
-              <p className="mt-1 text-xs text-slate-500">
-                El saldo se valida en backend con tu wallet activa.
-              </p>
+        <div className="mb-8 grid gap-4 lg:grid-cols-2">
+          <section className="min-h-[132px] rounded-xl border border-amber-200 bg-white px-5 py-4 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase text-slate-400 tracking-wide">
+                  SALDO $TVD
+                </p>
+                {isTvdSummaryLoading || isTvdSummaryFetching ? (
+                  <div className="mt-3 h-9 w-28 animate-pulse rounded bg-slate-100" />
+                ) : walletLinked && tvdSummary?.totalBalance ? (
+                  <p className="mt-2 text-3xl font-bold text-slate-900">
+                    {formatTvdDisplay(tvdSummary.totalBalance.formatted)}
+                  </p>
+                ) : walletMissing ? (
+                  <div className="mt-4 text-sm text-red-700" role="alert">
+                    <p className="font-semibold">No tienes una wallet asociada</p>
+                    <p className="mt-1 leading-5">
+                      Completa la asociación con tu CI/DNI. El sistema buscará automáticamente la wallet registrada para tu usuario.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => goToAccount('associate-account')}
+                      className="mt-3 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-700"
+                    >
+                      Asociar mi cuenta
+                    </button>
+                  </div>
+                ) : balanceUnavailable ? (
+                  <p className="mt-3 text-sm font-semibold text-amber-800">
+                    No pudimos consultar tu saldo en este momento.
+                  </p>
+                ) : (
+                  <p className="mt-3 text-sm text-slate-500">
+                    Saldo no disponible.
+                  </p>
+                )}
+              </div>
+              {balanceUnavailable ? (
+                <button
+                  type="button"
+                  onClick={() => void refetchTvdSummary()}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-amber-200 text-amber-700 transition hover:bg-amber-50"
+                  aria-label="Volver a intentar"
+                >
+                  <ArrowPathIcon className="h-4 w-4" aria-hidden="true" />
+                </button>
+              ) : null}
             </div>
-          </button>
-          <AdminInstitutionAccountCard
-            onClick={() => navigate('/votacion/cuenta-institucional')}
-          />
+          </section>
+
+          <section className="flex min-h-[132px] w-full items-start justify-between rounded-xl border border-slate-200 bg-white px-5 py-4 text-left shadow-sm">
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                CUENTA
+              </p>
+              {isTvdSummaryLoading || isTvdSummaryFetching ? (
+                <div className="mt-3 h-6 w-36 animate-pulse rounded bg-slate-100" />
+              ) : walletLinked && tvdSummary?.wallet ? (
+                <>
+                  <p className="mt-3 font-mono text-sm font-bold text-slate-900">
+                    {shortWalletAddress(tvdSummary.wallet)}
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-[#2E6A38]">
+                    Wallet asociada
+                  </p>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void handleCopyWallet();
+                    }}
+                    className="mt-3 inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
+                  >
+                    <ClipboardDocumentIcon className="h-4 w-4" aria-hidden="true" />
+                    Copiar dirección
+                  </button>
+                  {copyFeedback ? (
+                    <p className="mt-2 text-xs font-medium text-[#2E6A38]">
+                      {copyFeedback}
+                    </p>
+                  ) : null}
+                </>
+              ) : (
+                <p className="mt-3 text-sm font-semibold text-slate-700">
+                  Gestionar cuentas
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => goToAccount()}
+                className="mt-3 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
+              >
+                Abrir cuenta
+              </button>
+            </div>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EFF7F0] text-[#2E6A38]">
+              <IdentificationIcon className="h-5 w-5" aria-hidden="true" />
+            </span>
+          </section>
         </div>
 
         {/* Header */}

@@ -27,7 +27,13 @@ vi.mock("@/store/votingEvents", () => ({
   useDisableVotingEventMutation: vi.fn(),
 }));
 
+vi.mock("@/store/tvd", () => ({
+  useGetMyTvdSummaryQuery: vi.fn(),
+  useEstimateMyTvdCapacityMutation: vi.fn(),
+}));
+
 import * as votingEvents from "@/store/votingEvents";
+import * as tvdStore from "@/store/tvd";
 
 const mockEvents: VotingEvent[] = [
   {
@@ -63,7 +69,39 @@ const mockEvents: VotingEvent[] = [
   } as VotingEvent,
 ];
 
-const renderDashboard = (events: VotingEvent[] = mockEvents) => {
+const linkedWallet = "0x1234567890abcdef1234567890abcdef12345678";
+
+const tvdSummaryWithWallet = {
+  tenantId: "tenant-1",
+  assignmentId: "assignment-1",
+  wallet: linkedWallet,
+  walletStatus: "VERIFIED",
+  assignedBalance: {
+    smallestUnit: "20000000000000000000",
+    formatted: "20",
+    decimals: 18,
+  },
+  liquidBalance: {
+    smallestUnit: "80000000000000000000",
+    formatted: "80",
+    decimals: 18,
+  },
+  totalBalance: {
+    smallestUnit: "100000000000000000000",
+    formatted: "100",
+    decimals: 18,
+  },
+  tokenSymbol: "TVD",
+  chainId: 84532,
+  contractAddress: "0x3333333333333333333333333333333333333333",
+  lastAccreditation: null,
+  pendingAccreditationsCount: 0,
+};
+
+const renderDashboard = (
+  events: VotingEvent[] = mockEvents,
+  tvdQueryState: Record<string, unknown> = {},
+) => {
   vi.mocked(votingEvents.useGetVotingEventsQuery).mockReturnValue({
     data: events,
     isLoading: false,
@@ -77,6 +115,28 @@ const renderDashboard = (events: VotingEvent[] = mockEvents) => {
   vi.mocked(votingEvents.useDisableVotingEventMutation).mockReturnValue([
     vi.fn(),
     { isLoading: false },
+  ] as any);
+  vi.mocked(tvdStore.useGetMyTvdSummaryQuery).mockReturnValue({
+    data: tvdSummaryWithWallet,
+    isLoading: false,
+    isFetching: false,
+    error: null,
+    refetch: vi.fn(),
+    ...tvdQueryState,
+  } as any);
+  vi.mocked(tvdStore.useEstimateMyTvdCapacityMutation).mockReturnValue([
+    vi.fn(() => ({
+      unwrap: () =>
+        Promise.resolve({
+          estimatedParticipants: 100,
+          estimatedRequiredTokens: "100",
+          availableTokens: "100",
+          estimatedMissingTokens: "0",
+          hasEstimatedCapacity: true,
+          reasonCode: null,
+        }),
+    })),
+    { isLoading: false, error: null },
   ] as any);
 
   return renderWithAuthStore(<ElectionsPage />, {
@@ -110,9 +170,10 @@ describe("Admin tenant dashboard", () => {
   it("renderiza accesos reales, búsqueda y votaciones del backend mockeado", () => {
     renderDashboard();
 
-    expect(screen.getByText("Recarga operativa")).toBeInTheDocument();
-    expect(screen.getByText("Recarga TVD mediante QR")).toBeInTheDocument();
-    expect(screen.queryByText("SALDO $TVD")).not.toBeInTheDocument();
+    expect(screen.getByText("Saldo $TVD")).toBeInTheDocument();
+    expect(screen.getByText("100 $TVD")).toBeInTheDocument();
+    expect(screen.getByText("Wallet vinculada")).toBeInTheDocument();
+    expect(screen.getByText("0x123456...345678")).toBeInTheDocument();
     expect(screen.getByText("Cuenta")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Mis Votaciones" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Nueva Votación" })).toBeInTheDocument();
@@ -141,15 +202,60 @@ describe("Admin tenant dashboard", () => {
     expect(screen.getByText("No encontramos votaciones con ese criterio.")).toBeInTheDocument();
   });
 
-  it("navega desde cards de saldo y cuenta", async () => {
+  it("navega desde cuenta", async () => {
     const user = userEvent.setup();
     renderDashboard();
 
-    await user.click(screen.getByRole("button", { name: "Ir a recarga operativa" }));
-    expect(navigateMock).toHaveBeenCalledWith("/votacion/recarga-operativa");
-
     await user.click(screen.getByRole("button", { name: "Ir a cuenta institucional" }));
     expect(navigateMock).toHaveBeenCalledWith("/votacion/cuenta-institucional");
+  });
+
+  it("mantiene votaciones visibles y alerta roja cuando no existe wallet vinculada", () => {
+    renderDashboard(mockEvents, {
+      data: {
+        ...tvdSummaryWithWallet,
+        wallet: null,
+        walletStatus: "MISSING",
+        assignedBalance: null,
+        liquidBalance: null,
+        totalBalance: null,
+      },
+      isLoading: false,
+      isFetching: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    expect(screen.getAllByText("No tienes una wallet vinculada").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Vincular mi wallet" })).toBeInTheDocument();
+    expect(screen.getByText("Elección de Presidente 2026")).toBeInTheDocument();
+    expect(screen.queryByText("0 TVD")).not.toBeInTheDocument();
+    expect(screen.queryByText(/wallet institucional/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Regularizar wallet/i)).not.toBeInTheDocument();
+  });
+
+  it("mantiene votaciones visibles y permite reintentar cuando falla el saldo", async () => {
+    const refetchSummary = vi.fn();
+    renderDashboard(mockEvents, {
+      data: {
+        ...tvdSummaryWithWallet,
+        wallet: linkedWallet,
+        walletStatus: "VERIFIED",
+        assignedBalance: null,
+        liquidBalance: null,
+        totalBalance: null,
+      },
+      isLoading: false,
+      isFetching: false,
+      error: { status: 503, data: { code: "TVD_BALANCE_TEMPORARILY_UNAVAILABLE" } },
+      refetch: refetchSummary,
+    });
+    const user = userEvent.setup();
+
+    expect(screen.getByText("No pudimos consultar tu saldo en este momento.")).toBeInTheDocument();
+    expect(screen.getByText("Elección de Presidente 2026")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Volver a intentar" }));
+    expect(refetchSummary).toHaveBeenCalled();
   });
 
   it("abre estimación antes de crear y cancelar no navega", async () => {

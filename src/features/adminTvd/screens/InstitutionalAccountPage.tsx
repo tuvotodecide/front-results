@@ -35,21 +35,17 @@ import {
   useTransferTenantPrimaryMutation,
   useUpdateTenantAdminStatusMutation,
 } from "@/store/institutionalTenants";
-import { useCreateAdminEmailChangeRequestMutation } from "@/store/institutionalRecovery";
 import { useResolveInstitutionalWalletByDniMutation } from "@/store/institutionalWallets";
 import {
   useGetMyTvdSummaryQuery,
   useRegularizeMyInstitutionalWalletMutation,
 } from "@/store/tvd";
 import { copyTextToClipboard } from "../services/clipboard";
-import { useTvdVisualBalance } from "../hooks/useTvdVisualBalance";
 import {
   formatTvdDisplay,
   getRegularizationErrorMessage,
-  getSummaryErrorMessage,
   isWalletUpdateRequiredError,
   shortWalletAddress,
-  validateInstitutionalWalletAddress,
 } from "../utils/institutionalWalletUi";
 
 type WalletResolutionStatus =
@@ -61,29 +57,21 @@ type WalletResolutionStatus =
   | "error";
 
 const DNI_PATTERN = /^[A-Za-z0-9-]{5,20}$/;
-const WALLET_PENDING_MESSAGE = "Wallet pendiente de consultar";
-const WALLET_LOADING_MESSAGE = "Buscando billetera registrada...";
-const WALLET_NOT_FOUND_MESSAGE =
-  "No se encontró una billetera registrada para este carnet. Debe registrarse primero en la aplicación móvil.";
+const WALLET_PENDING_MESSAGE = "Ingresa el CI/DNI para validar la cuenta.";
+const WALLET_LOADING_MESSAGE = "Buscando cuenta registrada...";
 const WALLET_RATE_LIMIT_MESSAGE =
   "Se realizaron demasiados intentos. Intente nuevamente más tarde.";
-const WALLET_LOOKUP_ERROR_MESSAGE =
-  "No fue posible consultar la billetera en este momento. Intente nuevamente.";
 const PERSON_NOT_REGISTERED_MESSAGE =
-  "La persona debe registrarse primero en Tu Voto Decide.";
+  "La persona no está registrada en Tu Voto Decide.";
 const PERSON_WITHOUT_WALLET_MESSAGE =
-  "La persona debe registrar primero su billetera en Tu Voto Decide.";
-const ALREADY_ADMIN_MESSAGE = "Esta persona ya administra la institución.";
+  "No se encontró una wallet registrada para esta persona.";
+const ALREADY_ADMIN_MESSAGE = "Esta persona ya tiene una cuenta en la institución.";
 const DUPLICATE_INVITATION_MESSAGE =
   "Ya existe una invitación pendiente para esta persona.";
 const EXISTING_ACCOUNT_MESSAGE =
-  "Ya tienes una cuenta registrada. Inicia sesión con tu correo actual.";
+  "La cuenta ya se encuentra asociada a otra institución.";
 const SERVICE_UNAVAILABLE_MESSAGE =
-  "El servicio está temporalmente no disponible. Vuelve a intentar.";
-const EMAIL_ALREADY_USED_MESSAGE =
-  "El correo indicado ya pertenece a otra cuenta.";
-const EMAIL_CHANGE_PENDING_MESSAGE =
-  "Ya tienes un cambio de correo pendiente de revisión.";
+  "No pudimos validar la cuenta en este momento. Inténtalo nuevamente.";
 
 const getErrorStatus = (error: unknown) =>
   typeof error === "object" && error !== null && "status" in error
@@ -105,7 +93,7 @@ const getInvitationErrorMessage = (error: unknown) => {
   if (status === 400 && message.includes("registrarse primero")) {
     return PERSON_NOT_REGISTERED_MESSAGE;
   }
-  if (status === 400 && message.includes("billetera")) {
+  if (status === 400 && (message.includes("billetera") || message.includes("wallet"))) {
     return PERSON_WITHOUT_WALLET_MESSAGE;
   }
   if (status === 409 && message.includes("ya administra")) {
@@ -121,27 +109,6 @@ const getInvitationErrorMessage = (error: unknown) => {
     return SERVICE_UNAVAILABLE_MESSAGE;
   }
   return getErrorText(error) || "No se pudo completar la acción. Vuelve a intentar.";
-};
-
-const getEmailChangeErrorMessage = (error: unknown) => {
-  const status = getErrorStatus(error);
-  const message = getErrorText(error).toLowerCase();
-  if (status === 400 || message.includes("correo invalido")) {
-    return "Ingresa un correo válido.";
-  }
-  if (status === 409 && message.includes("pertenece a otra cuenta")) {
-    return EMAIL_ALREADY_USED_MESSAGE;
-  }
-  if (status === 409 && message.includes("pendiente")) {
-    return EMAIL_CHANGE_PENDING_MESSAGE;
-  }
-  if (status === 409 && message.includes("distinto")) {
-    return "El nuevo correo debe ser distinto del correo actual.";
-  }
-  if (status === 503 || status === 504) {
-    return SERVICE_UNAVAILABLE_MESSAGE;
-  }
-  return getErrorText(error) || "No se pudo solicitar el cambio. Vuelve a intentar.";
 };
 
 const invitationStatusLabel = (status?: InstitutionalAdminInvitation["status"]) => {
@@ -213,99 +180,37 @@ const getWalletResolutionStatus = (error: unknown): WalletResolutionStatus => {
   return "error";
 };
 
-const getWalletResolutionMessage = (
-  status: WalletResolutionStatus,
-  accountAddress: string,
-) => {
-  if (status === "loading") return WALLET_LOADING_MESSAGE;
-  if (status === "found") return accountAddress;
-  if (status === "not_found") return WALLET_NOT_FOUND_MESSAGE;
-  if (status === "rate_limited") return WALLET_RATE_LIMIT_MESSAGE;
-  if (status === "error") return WALLET_LOOKUP_ERROR_MESSAGE;
-  return WALLET_PENDING_MESSAGE;
-};
-
 function RegularizationModal({
   isOpen,
-  tenantName,
   isLoading,
   errorMessage,
   onClose,
   onSubmit,
 }: {
   isOpen: boolean;
-  tenantName: string;
   isLoading: boolean;
   errorMessage: string | null;
   onClose: () => void;
   onSubmit: (payload: { dni: string }) => Promise<void>;
 }) {
-  const [resolveWallet] = useResolveInstitutionalWalletByDniMutation();
-  const lastRequestedDniRef = useRef("");
   const [dni, setDni] = useState("");
-  const [accountAddress, setAccountAddress] = useState("");
-  const [resolutionStatus, setResolutionStatus] =
-    useState<WalletResolutionStatus>("pending");
   const [localError, setLocalError] = useState<string | null>(null);
   const normalizedDni = dni.trim();
   const isDniValid = DNI_PATTERN.test(normalizedDni);
 
   useEffect(() => {
-    setAccountAddress("");
     setLocalError(null);
 
     if (!isOpen) {
       setDni("");
-      lastRequestedDniRef.current = "";
-      setResolutionStatus("pending");
       return;
     }
-    if (!isDniValid) {
-      lastRequestedDniRef.current = "";
-      setResolutionStatus("pending");
-      return;
-    }
-
-    setResolutionStatus("pending");
-    const timer = window.setTimeout(() => {
-      if (lastRequestedDniRef.current === normalizedDni) return;
-      lastRequestedDniRef.current = normalizedDni;
-      setResolutionStatus("loading");
-      resolveWallet({ dni: normalizedDni })
-        .unwrap()
-        .then((response) => {
-          if (lastRequestedDniRef.current !== normalizedDni) return;
-          if (response.registered && response.accountAddress) {
-            setAccountAddress(response.accountAddress);
-            setResolutionStatus("found");
-            return;
-          }
-          setAccountAddress("");
-          setResolutionStatus("not_found");
-        })
-        .catch((error) => {
-          if (lastRequestedDniRef.current !== normalizedDni) return;
-          setAccountAddress("");
-          setResolutionStatus(getWalletResolutionStatus(error));
-        });
-    }, 450);
-
-    return () => window.clearTimeout(timer);
-  }, [isDniValid, isOpen, normalizedDni, resolveWallet]);
+  }, [isOpen]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!isDniValid) {
-      setLocalError("Carnet inválido");
-      return;
-    }
-    const validation = validateInstitutionalWalletAddress(accountAddress);
-    if (!validation.valid) {
-      setLocalError(
-        resolutionStatus === "not_found"
-          ? WALLET_NOT_FOUND_MESSAGE
-          : "Debes resolver la wallet antes de vincularla.",
-      );
+      setLocalError("Ingresa un CI/DNI válido.");
       return;
     }
     setLocalError(null);
@@ -319,35 +224,23 @@ function RegularizationModal({
   const handleClose = () => {
     if (isLoading) return;
     setDni("");
-    setAccountAddress("");
-    setResolutionStatus("pending");
     setLocalError(null);
     onClose();
   };
-
-  const resolutionMessage = getWalletResolutionMessage(
-    resolutionStatus,
-    accountAddress,
-  );
-  const isResolutionError =
-    resolutionStatus === "not_found" ||
-    resolutionStatus === "rate_limited" ||
-    resolutionStatus === "error";
 
   return (
     <Modal2
       isOpen={isOpen}
       onClose={handleClose}
-      title="Vincular wallet institucional"
+      title="Asociar mi cuenta"
       type="plain"
       size="md"
       closeOnEscape={!isLoading}
       className="sm:rounded-2xl max-sm:mt-auto max-sm:rounded-b-none"
     >
       <form className="space-y-5" onSubmit={handleSubmit}>
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Tu cuenta institucional necesita vincular la wallet creada en la
-          aplicación móvil antes de operar con TVD.
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          Ingresa tu CI/DNI para buscar y asociar automáticamente la wallet registrada para tu usuario.
         </div>
 
         <div>
@@ -362,8 +255,6 @@ function RegularizationModal({
             value={dni}
             onChange={(event) => {
               setDni(event.target.value);
-              setAccountAddress("");
-              setResolutionStatus("pending");
               setLocalError(null);
             }}
             placeholder="12345678"
@@ -371,41 +262,11 @@ function RegularizationModal({
             disabled={isLoading}
             autoComplete="off"
           />
-        </div>
-
-        <div>
-          <label
-            htmlFor="regularization-wallet"
-            className="mb-2 block text-sm font-medium text-slate-700"
-          >
-            Wallet registrada
-          </label>
-          <input
-            id="regularization-wallet"
-            value={accountAddress}
-            readOnly
-            placeholder={WALLET_PENDING_MESSAGE}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-xs text-slate-700 outline-none"
-          />
-          <p
-            className={`mt-2 text-sm font-medium ${
-              isResolutionError ? "text-red-600" : "text-slate-500"
-            }`}
-            role={isResolutionError ? "alert" : "status"}
-          >
-            {resolutionMessage}
-          </p>
           {localError ? (
             <p className="mt-2 text-sm font-medium text-red-600" role="alert">
               {localError}
             </p>
           ) : null}
-        </div>
-
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-          Institución activa: <span className="font-semibold">{tenantName}</span>.
-          La wallet debe pertenecer al usuario autenticado y no reemplaza una
-          wallet ya verificada.
         </div>
 
         {errorMessage ? (
@@ -428,13 +289,13 @@ function RegularizationModal({
           </button>
           <button
             type="submit"
-            disabled={isLoading || !accountAddress}
+            disabled={isLoading || !isDniValid}
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#459151] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#3a7a44] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isLoading ? (
               <ArrowPathIcon className="h-5 w-5 animate-spin" aria-hidden="true" />
             ) : null}
-            Vincular wallet
+            Buscar y asociar
           </button>
         </div>
       </form>
@@ -444,14 +305,12 @@ function RegularizationModal({
 
 function AddAccountModal({
   isOpen,
-  tenantName,
   isLoading,
   errorMessage,
   onClose,
   onSubmit,
 }: {
   isOpen: boolean;
-  tenantName: string;
   isLoading: boolean;
   errorMessage: string | null;
   onClose: () => void;
@@ -460,7 +319,6 @@ function AddAccountModal({
   const [resolveWallet] = useResolveInstitutionalWalletByDniMutation();
   const lastRequestedDniRef = useRef("");
   const [dni, setDni] = useState("");
-  const [accountAddress, setAccountAddress] = useState("");
   const [resolutionStatus, setResolutionStatus] =
     useState<WalletResolutionStatus>("pending");
   const [localError, setLocalError] = useState<string | null>(null);
@@ -468,7 +326,6 @@ function AddAccountModal({
   const isDniValid = DNI_PATTERN.test(normalizedDni);
 
   useEffect(() => {
-    setAccountAddress("");
     setLocalError(null);
 
     if (!isOpen) {
@@ -493,11 +350,9 @@ function AddAccountModal({
         .then((response) => {
           if (lastRequestedDniRef.current !== normalizedDni) return;
           if (response.registered && response.accountAddress) {
-            setAccountAddress(response.accountAddress);
             setResolutionStatus("found");
             return;
           }
-          setAccountAddress("");
           setResolutionStatus(
             response.reason === "WALLET_NOT_FOUND" ? "not_found" : "error",
           );
@@ -509,7 +364,6 @@ function AddAccountModal({
         })
         .catch((error) => {
           if (lastRequestedDniRef.current !== normalizedDni) return;
-          setAccountAddress("");
           const status = getWalletResolutionStatus(error);
           setResolutionStatus(status);
           const message = getErrorText(error).toLowerCase();
@@ -517,7 +371,7 @@ function AddAccountModal({
             setLocalError(PERSON_NOT_REGISTERED_MESSAGE);
             return;
           }
-          if (message.includes("billetera")) {
+          if (message.includes("billetera") || message.includes("wallet")) {
             setLocalError(PERSON_WITHOUT_WALLET_MESSAGE);
             return;
           }
@@ -538,15 +392,14 @@ function AddAccountModal({
       setLocalError("Ingresa un CI o carnet válido.");
       return;
     }
-    if (resolutionStatus !== "found" || !accountAddress) {
-      setLocalError("Primero debe resolverse la billetera registrada.");
+    if (resolutionStatus !== "found") {
+      setLocalError("Primero valida la cuenta con el CI/DNI ingresado.");
       return;
     }
     setLocalError(null);
     try {
       await onSubmit({ dni: normalizedDni });
       setDni("");
-      setAccountAddress("");
       setResolutionStatus("pending");
     } catch {
       // El mensaje seguro del backend se muestra en la vista del modal.
@@ -556,20 +409,19 @@ function AddAccountModal({
   const handleClose = () => {
     if (isLoading) return;
     setDni("");
-    setAccountAddress("");
     setResolutionStatus("pending");
     setLocalError(null);
     onClose();
   };
 
   const canSubmit =
-    isDniValid && resolutionStatus === "found" && Boolean(accountAddress) && !isLoading;
+    isDniValid && resolutionStatus === "found" && !isLoading;
 
   return (
     <Modal2
       isOpen={isOpen}
       onClose={handleClose}
-      title="Agregar cuenta"
+      title="Añadir cuenta"
       type="plain"
       size="md"
       closeOnEscape={!isLoading}
@@ -577,8 +429,7 @@ function AddAccountModal({
     >
       <form className="space-y-5" onSubmit={handleSubmit}>
         <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-          Institución activa: <span className="font-semibold">{tenantName}</span>.
-          La invitación no habilita acceso hasta completar revisión, firma y confirmación.
+          Ingresa el CI/DNI para validar la cuenta y usar el flujo de acceso disponible.
         </div>
 
         <div>
@@ -586,14 +437,13 @@ function AddAccountModal({
             htmlFor="invite-dni"
             className="mb-2 block text-sm font-medium text-slate-700"
           >
-            CI o carnet
+            CI/DNI
           </label>
           <input
             id="invite-dni"
             value={dni}
             onChange={(event) => {
               setDni(event.target.value);
-              setAccountAddress("");
               setResolutionStatus("pending");
               setLocalError(null);
             }}
@@ -606,13 +456,10 @@ function AddAccountModal({
 
         <div>
           <label className="mb-2 block text-sm font-medium text-slate-700">
-            Billetera registrada
+            Estado de la cuenta
           </label>
-          <div className="min-h-[46px] break-all rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-xs text-slate-700">
-            {accountAddress || WALLET_PENDING_MESSAGE}
-          </div>
           <p
-            className={`mt-2 text-sm font-medium ${
+            className={`rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium ${
               localError ? "text-red-600" : "text-slate-500"
             }`}
             role={localError ? "alert" : "status"}
@@ -621,8 +468,8 @@ function AddAccountModal({
               (resolutionStatus === "loading"
                 ? WALLET_LOADING_MESSAGE
                 : resolutionStatus === "found"
-                  ? "Billetera resuelta por el sistema de identidad."
-                  : "Ingresa el CI o carnet para resolver la persona.")}
+                  ? "Cuenta encontrada. Puedes continuar."
+                  : WALLET_PENDING_MESSAGE)}
           </p>
         </div>
 
@@ -654,7 +501,7 @@ function AddAccountModal({
             ) : (
               <UserPlusIcon className="h-5 w-5" aria-hidden="true" />
             )}
-            Agregar
+            Añadir cuenta
           </button>
         </div>
       </form>
@@ -715,7 +562,7 @@ function TransferPrimaryModal({
             </p>
           </div>
           <div>
-            <p className="text-slate-500">Billetera destino</p>
+            <p className="text-slate-500">Wallet destino</p>
             <p className="break-all font-mono text-xs font-semibold text-slate-900">
               {target.accountAddress}
             </p>
@@ -757,155 +604,12 @@ function TransferPrimaryModal({
   );
 }
 
-function EmailChangeModal({
-  isOpen,
-  currentEmail,
-  isLoading,
-  errorMessage,
-  onClose,
-  onSubmit,
-}: {
-  isOpen: boolean;
-  currentEmail: string;
-  isLoading: boolean;
-  errorMessage: string | null;
-  onClose: () => void;
-  onSubmit: (payload: { newEmail: string }) => Promise<void>;
-}) {
-  const [newEmail, setNewEmail] = useState("");
-  const [localError, setLocalError] = useState<string | null>(null);
-  const normalizedCurrentEmail = currentEmail.trim().toLowerCase();
-  const normalizedNewEmail = newEmail.trim().toLowerCase();
-  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const canSubmit =
-    Boolean(normalizedNewEmail) &&
-    emailPattern.test(normalizedNewEmail) &&
-    normalizedNewEmail !== normalizedCurrentEmail &&
-    !isLoading;
-
-  useEffect(() => {
-    if (!isOpen) {
-      setNewEmail("");
-      setLocalError(null);
-    }
-  }, [isOpen]);
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!emailPattern.test(normalizedNewEmail)) {
-      setLocalError("Ingresa un correo válido.");
-      return;
-    }
-    if (normalizedNewEmail === normalizedCurrentEmail) {
-      setLocalError("El nuevo correo debe ser distinto del correo actual.");
-      return;
-    }
-    setLocalError(null);
-    try {
-      await onSubmit({ newEmail: normalizedNewEmail });
-      setNewEmail("");
-    } catch {
-      // La mutación expone el mensaje seguro arriba.
-    }
-  };
-
-  return (
-    <Modal2
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Solicitar cambio de correo"
-      type="plain"
-      size="md"
-      closeOnEscape={!isLoading}
-      className="sm:rounded-2xl max-sm:mt-auto max-sm:rounded-b-none"
-    >
-      <form className="space-y-5" onSubmit={handleSubmit}>
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-          El cambio queda pendiente de revisión por Superadmin. No se modifica
-          tu contraseña, CI, wallet, roles ni instituciones.
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">
-            Correo actual
-          </label>
-          <div className="min-h-[46px] break-all rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800">
-            {currentEmail || "No informado"}
-          </div>
-        </div>
-
-        <div>
-          <label
-            htmlFor="admin-email-change-new-email"
-            className="mb-2 block text-sm font-medium text-slate-700"
-          >
-            Nuevo correo
-          </label>
-          <input
-            id="admin-email-change-new-email"
-            value={newEmail}
-            onChange={(event) => {
-              setNewEmail(event.target.value);
-              setLocalError(null);
-            }}
-            type="email"
-            placeholder="admin@institucion.bo"
-            className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#459151] focus:ring-2 focus:ring-[#459151]/20"
-            disabled={isLoading}
-            autoComplete="email"
-          />
-          {localError ? (
-            <p className="mt-2 text-sm font-medium text-red-600" role="alert">
-              {localError}
-            </p>
-          ) : null}
-        </div>
-
-        {errorMessage ? (
-          <div
-            className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-            role="alert"
-          >
-            {errorMessage}
-          </div>
-        ) : null}
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isLoading}
-            className="rounded-lg border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={!canSubmit}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#459151] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#3a7a44] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isLoading ? (
-              <ArrowPathIcon className="h-5 w-5 animate-spin" aria-hidden="true" />
-            ) : null}
-            Solicitar cambio
-          </button>
-        </div>
-      </form>
-    </Modal2>
-  );
-}
-
 export default function InstitutionalAccountPage() {
   const dispatch = useDispatch();
   const auth = useSelector(selectAuth);
   const tenantId = auth.activeContext?.tenantId ?? auth.user?.tenantId ?? null;
   const tenantName =
     auth.activeContext?.tenantName ?? auth.user?.tenantName ?? "Institución";
-  const tenantContextKey = [
-    auth.activeContext?.type ?? "",
-    tenantId ?? "",
-    auth.user?.id ?? "",
-  ].join(":");
 
   const {
     data: summary,
@@ -924,11 +628,13 @@ export default function InstitutionalAccountPage() {
   ] = useRegularizeMyInstitutionalWalletMutation();
   const {
     data: adminsResponse,
+    error: adminsError,
     isFetching: isAdminsFetching,
     refetch: refetchAdmins,
   } = useListTenantAdminsQuery(tenantId ?? "", { skip: !tenantId });
   const {
     data: invitations = [],
+    error: invitationsError,
     isFetching: isInvitationsFetching,
     refetch: refetchInvitations,
   } = useGetInstitutionalAdminInvitationsQuery(tenantId ?? "", {
@@ -936,6 +642,7 @@ export default function InstitutionalAccountPage() {
   });
   const {
     data: applications = [],
+    error: applicationsError,
     isFetching: isApplicationsFetching,
     refetch: refetchApplications,
   } = useGetInstitutionalApplicationsQuery(undefined, { skip: !tenantId });
@@ -952,24 +659,8 @@ export default function InstitutionalAccountPage() {
   ] = useTransferTenantPrimaryMutation();
   const [approveApplication] = useApproveInstitutionalApplicationMutation();
   const [rejectApplication] = useRejectInstitutionalApplicationMutation();
-  const [
-    createEmailChangeRequest,
-    {
-      isLoading: isRequestingEmailChange,
-      error: emailChangeError,
-      reset: resetEmailChangeRequest,
-    },
-  ] = useCreateAdminEmailChangeRequestMutation();
-  const visualBalance = useTvdVisualBalance(
-    summary?.wallet,
-    summary?.contractAddress,
-    summary?.chainId,
-    tenantContextKey,
-  );
-
   const [regularizationOpen, setRegularizationOpen] = useState(false);
   const [addAccountOpen, setAddAccountOpen] = useState(false);
-  const [emailChangeOpen, setEmailChangeOpen] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -1017,14 +708,25 @@ export default function InstitutionalAccountPage() {
       }),
     [applications, tenantId],
   );
-  const isInstitutionalDataLoading =
-    isAdminsFetching || isInvitationsFetching || isApplicationsFetching;
 
   const requiresWalletUpdate = useMemo(() => {
-    if (summary?.walletStatus === "VERIFIED") return false;
+    if (summary?.walletStatus !== "MISSING" && summary?.wallet) return false;
     if (summaryError) return isWalletUpdateRequiredError(summaryError);
+    if (summary?.walletStatus === "MISSING") return true;
     return false;
-  }, [summary?.walletStatus, summaryError]);
+  }, [summary?.wallet, summary?.walletStatus, summaryError]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("action") === "associate-account") {
+      setRegularizationOpen(true);
+      params.delete("action");
+      const query = params.toString();
+      const nextUrl = `${window.location.pathname}${query ? `?${query}` : ""}`;
+      window.history.replaceState(null, "", nextUrl);
+    }
+  }, []);
 
   const handleCopy = async () => {
     if (!summary?.wallet) return;
@@ -1046,11 +748,15 @@ export default function InstitutionalAccountPage() {
         walletStatus: response.walletStatus,
       }),
     );
-    setFeedback("Wallet institucional vinculada correctamente.");
+    setFeedback("Cuenta asociada correctamente.");
     setRegularizationOpen(false);
     resetRegularization();
-    await refetchSummary();
-    await visualBalance.refetch();
+    await Promise.all([
+      refetchSummary(),
+      refetchAdmins(),
+      refetchInvitations(),
+      refetchApplications(),
+    ]);
   };
 
   const handleCreateInvitation = async (payload: { dni: string }) => {
@@ -1061,18 +767,11 @@ export default function InstitutionalAccountPage() {
       setFeedback("Invitación creada. La cuenta queda Pendiente.");
       setAddAccountOpen(false);
       resetCreateInvitation();
-      await refetchInvitations();
+      await Promise.all([refetchInvitations(), refetchAdmins(), refetchApplications()]);
     } catch (error) {
       setActionError(getInvitationErrorMessage(error));
       throw error;
     }
-  };
-
-  const handleEmailChangeRequest = async (payload: { newEmail: string }) => {
-    await createEmailChangeRequest(payload).unwrap();
-    setFeedback("Cambio de correo solicitado. Queda pendiente de revisión.");
-    setEmailChangeOpen(false);
-    resetEmailChangeRequest();
   };
 
   const handleUpdateAdminStatus = async (admin: TenantAdminAssignment, active: boolean) => {
@@ -1090,7 +789,7 @@ export default function InstitutionalAccountPage() {
     setFeedback(
       active
         ? "Acceso habilitado. No se pidió firma ni operación en la red."
-        : "Acceso suspendido. La billetera permanece autorizada.",
+        : "Acceso suspendido. La wallet permanece autorizada.",
     );
   };
 
@@ -1129,10 +828,6 @@ export default function InstitutionalAccountPage() {
     }
   };
 
-  const balanceErrorMessage = visualBalance.error
-    ? "No pudimos consultar el saldo actual. Las operaciones seguirán validándose en backend."
-    : null;
-
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gray-50 px-4 py-8">
       <div className="mx-auto max-w-5xl">
@@ -1142,36 +837,8 @@ export default function InstitutionalAccountPage() {
               Cuenta institucional
             </h1>
             <p className="mt-2 max-w-2xl text-slate-500">
-              Operas con la wallet vinculada a tu usuario y contexto institucional activo.
+              Gestiona tu cuenta, administradores, invitaciones y solicitudes de acceso.
             </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {isPrimaryAdmin ? (
-              <button
-                type="button"
-                onClick={() => {
-                  resetCreateInvitation();
-                  setActionError(null);
-                  setAddAccountOpen(true);
-                }}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#459151] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#3a7a44]"
-              >
-                <UserPlusIcon className="h-5 w-5" aria-hidden="true" />
-                Agregar cuenta
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => void refetchSummary()}
-              disabled={isSummaryFetching}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <ArrowPathIcon
-                className={`h-5 w-5 ${isSummaryFetching ? "animate-spin" : ""}`}
-                aria-hidden="true"
-              />
-              Actualizar cuenta
-            </button>
           </div>
         </div>
 
@@ -1194,74 +861,29 @@ export default function InstitutionalAccountPage() {
         ) : null}
 
         <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                Institución activa
-              </p>
-              <h2 className="mt-1 text-2xl font-bold text-slate-900">{tenantName}</h2>
-              <p className="mt-2 text-sm text-slate-500">
-                Usuario: {auth.user?.name || auth.user?.email || "Administrador institucional"}
-              </p>
-              <p className="mt-1 text-sm text-slate-500">
-                Correo actual: {auth.user?.email || "No informado"}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  resetEmailChangeRequest();
-                  setEmailChangeOpen(true);
-                }}
-                className="inline-flex w-fit items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
-              >
-                Cambiar correo
-              </button>
-              <span className="inline-flex w-fit items-center gap-2 rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-[#2E6A38] ring-1 ring-green-200">
-                <ShieldCheckIcon className="h-4 w-4" aria-hidden="true" />
-                Institución activa
-              </span>
-            </div>
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">Mi cuenta</h2>
           </div>
 
           {isSummaryLoading ? (
             <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-              Cargando cuenta institucional...
+              Cargando cuenta...
             </div>
-          ) : summary ? (
+          ) : summary?.walletStatus !== "MISSING" && summary?.wallet ? (
             <div className="mt-6 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
               <div className="rounded-xl border border-slate-200 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-slate-500">
-                      Wallet activa
+                      Wallet asociada
                     </p>
-                    <p className="mt-2 break-all font-mono text-base font-bold text-slate-900">
-                      {summary.wallet}
-                    </p>
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="mt-2 font-mono text-base font-bold text-slate-900">
                       {shortWalletAddress(summary.wallet)}
                     </p>
                   </div>
                   <span className="inline-flex rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-[#2E6A38] ring-1 ring-green-200">
-                    Verificada
+                    Asociada
                   </span>
-                </div>
-
-                <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-                  <div className="rounded-lg bg-slate-50 px-3 py-2">
-                    <p className="text-slate-500">Relación institucional</p>
-                    <p className="break-all font-mono text-slate-800">
-                      {summary.assignmentId}
-                    </p>
-                  </div>
-                  <div className="rounded-lg bg-slate-50 px-3 py-2">
-                    <p className="text-slate-500">Estado</p>
-                    <p className="font-semibold text-slate-800">
-                      {summary.walletStatus}
-                    </p>
-                  </div>
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -1285,67 +907,80 @@ export default function InstitutionalAccountPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-slate-500">
-                      Saldo TVD visual
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      Lectura directa de blockchain, solo informativa.
+                      Saldo $TVD
                     </p>
                   </div>
                   <button
                     type="button"
-                    onClick={() => void visualBalance.refetch()}
-                    disabled={visualBalance.isLoading}
+                    onClick={() => void refetchSummary()}
+                    disabled={isSummaryFetching}
                     className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <ArrowPathIcon
-                      className={`h-4 w-4 ${
-                        visualBalance.isLoading ? "animate-spin" : ""
-                      }`}
+                      className={`h-4 w-4 ${isSummaryFetching ? "animate-spin" : ""}`}
                       aria-hidden="true"
                     />
                     Actualizar saldo
                   </button>
                 </div>
 
-                {visualBalance.isLoading ? (
+                {isSummaryFetching ? (
                   <div
                     className="mt-5 rounded-lg bg-slate-50 px-4 py-6 text-sm text-slate-500"
                     role="status"
                   >
-                    Consultando saldo en blockchain...
+                    Consultando saldo...
                   </div>
-                ) : visualBalance.data ? (
+                ) : summary.totalBalance ? (
                   <div className="mt-5 space-y-3">
                     <div>
                       <p className="text-3xl font-bold text-slate-900">
-                        {formatTvdDisplay(visualBalance.data.totalBalanceFormatted)} TVD
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        Última actualización:{" "}
-                        {new Date(visualBalance.data.readAt).toLocaleString("es-BO")}
+                        {formatTvdDisplay(summary.totalBalance.formatted)} TVD
                       </p>
                     </div>
                     <div className="grid gap-2 text-sm sm:grid-cols-2">
                       <div className="rounded-lg bg-slate-50 px-3 py-2">
                         <p className="text-slate-500">Líquido</p>
                         <p className="font-semibold text-slate-800">
-                          {formatTvdDisplay(visualBalance.data.liquidBalanceFormatted)} TVD
+                          {formatTvdDisplay(summary.liquidBalance?.formatted)} TVD
                         </p>
                       </div>
                       <div className="rounded-lg bg-slate-50 px-3 py-2">
                         <p className="text-slate-500">Asignado</p>
                         <p className="font-semibold text-slate-800">
-                          {formatTvdDisplay(visualBalance.data.assignedBalanceFormatted)} TVD
+                          {formatTvdDisplay(summary.assignedBalance?.formatted)} TVD
                         </p>
                       </div>
                     </div>
                   </div>
                 ) : (
                   <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                    {balanceErrorMessage ??
-                      "Configura la lectura pública TVD para consultar el saldo visual."}
+                    No pudimos consultar tu saldo en este momento.
                   </div>
                 )}
+              </div>
+            </div>
+          ) : requiresWalletUpdate || summary?.walletStatus === "MISSING" ? (
+            <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
+              <div className="flex items-start gap-3">
+                <ExclamationTriangleIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                <div>
+                  <p className="font-semibold">
+                    Tu cuenta todavía no tiene una wallet asociada.
+                  </p>
+                  <p className="mt-1">
+                    Ingresa tu CI/DNI para buscar y asociar automáticamente la wallet registrada para tu usuario.
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setRegularizationOpen(true)}
+                      className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-700"
+                    >
+                      Asociar mi cuenta
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           ) : (
@@ -1354,31 +989,15 @@ export default function InstitutionalAccountPage() {
                 <ExclamationTriangleIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
                 <div>
                   <p className="font-semibold">
-                    {getSummaryErrorMessage(summaryError)}
+                    No pudimos cargar la información.
                   </p>
-                  <p className="mt-1">
-                    {requiresWalletUpdate
-                      ? "La wallet debe estar registrada en la aplicación móvil y pertenecer al usuario autenticado."
-                      : "Puedes reintentar la carga del resumen sin cambiar tu configuración institucional."}
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {requiresWalletUpdate ? (
-                      <button
-                        type="button"
-                        onClick={() => setRegularizationOpen(true)}
-                        className="rounded-lg bg-[#459151] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#3a7a44]"
-                      >
-                        Regularizar wallet
-                      </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={() => void refetchSummary()}
-                      className="rounded-lg border border-amber-300 px-4 py-2 text-sm font-bold text-amber-900 transition hover:bg-amber-100"
-                    >
-                      Reintentar resumen
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void refetchSummary()}
+                    className="mt-4 rounded-lg border border-amber-300 px-4 py-2 text-sm font-bold text-amber-900 transition hover:bg-amber-100"
+                  >
+                    Volver a intentar
+                  </button>
                 </div>
               </div>
             </div>
@@ -1395,15 +1014,35 @@ export default function InstitutionalAccountPage() {
                     Cuentas activas y pendientes de esta institución.
                   </p>
                 </div>
-                <span className="inline-flex w-fit items-center gap-2 rounded-full bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600 ring-1 ring-slate-200">
-                  <UserGroupIcon className="h-4 w-4" aria-hidden="true" />
-                  {admins.length} cuenta{admins.length === 1 ? "" : "s"}
-                </span>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <span className="inline-flex w-fit items-center gap-2 rounded-full bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600 ring-1 ring-slate-200">
+                    <UserGroupIcon className="h-4 w-4" aria-hidden="true" />
+                    {admins.length} cuenta{admins.length === 1 ? "" : "s"}
+                  </span>
+                  {isPrimaryAdmin ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        resetCreateInvitation();
+                        setActionError(null);
+                        setAddAccountOpen(true);
+                      }}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#459151] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#3a7a44] sm:w-auto"
+                    >
+                      <UserPlusIcon className="h-4 w-4" aria-hidden="true" />
+                      + Añadir cuenta
+                    </button>
+                  ) : null}
+                </div>
               </div>
 
-              {isInstitutionalDataLoading ? (
+              {isAdminsFetching ? (
                 <div className="mt-4 rounded-lg bg-slate-50 px-4 py-5 text-sm text-slate-500">
                   Cargando cuentas institucionales...
+                </div>
+              ) : adminsError ? (
+                <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-5 text-sm text-amber-800">
+                  No pudimos cargar las cuentas. Inténtalo nuevamente.
                 </div>
               ) : admins.length ? (
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -1427,11 +1066,11 @@ export default function InstitutionalAccountPage() {
                       </div>
                       {admin.accountAddress ? (
                         <p className="mt-3 break-all font-mono text-xs text-slate-600">
-                          {admin.accountAddress}
+                          {shortWalletAddress(admin.accountAddress)}
                         </p>
                       ) : (
                         <p className="mt-3 text-sm text-amber-700">
-                          Billetera pendiente de registrar.
+                          Wallet pendiente.
                         </p>
                       )}
 
@@ -1488,7 +1127,7 @@ export default function InstitutionalAccountPage() {
                 </div>
               ) : (
                 <div className="mt-4 rounded-lg border border-dashed border-slate-200 px-4 py-5 text-sm text-slate-500">
-                  No hay cuentas visibles para esta institución.
+                  No hay otras cuentas asociadas a esta institución.
                 </div>
               )}
             </section>
@@ -1503,23 +1142,17 @@ export default function InstitutionalAccountPage() {
                     Historial de invitaciones enviadas por el administrador principal.
                   </p>
                 </div>
-                {isPrimaryAdmin ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      resetCreateInvitation();
-                      setActionError(null);
-                      setAddAccountOpen(true);
-                    }}
-                    className="inline-flex w-fit items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
-                  >
-                    <UserPlusIcon className="h-4 w-4" aria-hidden="true" />
-                    Agregar cuenta
-                  </button>
-                ) : null}
               </div>
 
-              {invitations.length ? (
+              {isInvitationsFetching ? (
+                <div className="mt-4 rounded-lg bg-slate-50 px-4 py-5 text-sm text-slate-500">
+                  Cargando invitaciones...
+                </div>
+              ) : invitationsError ? (
+                <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-5 text-sm text-amber-800">
+                  No pudimos cargar las invitaciones. Inténtalo nuevamente.
+                </div>
+              ) : invitations.length ? (
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   {invitations.map((invitation) => {
                     const isPending = invitation.status === "PENDING";
@@ -1599,7 +1232,15 @@ export default function InstitutionalAccountPage() {
                 </p>
               </div>
 
-              {tenantApplications.length ? (
+              {isApplicationsFetching ? (
+                <div className="mt-4 rounded-lg bg-slate-50 px-4 py-5 text-sm text-slate-500">
+                  Cargando solicitudes...
+                </div>
+              ) : applicationsError ? (
+                <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-5 text-sm text-amber-800">
+                  No pudimos cargar las solicitudes. Inténtalo nuevamente.
+                </div>
+              ) : tenantApplications.length ? (
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   {tenantApplications.map((application) => {
                     const canReview =
@@ -1668,20 +1309,18 @@ export default function InstitutionalAccountPage() {
                 </div>
               ) : (
                 <div className="mt-4 rounded-lg border border-dashed border-slate-200 px-4 py-5 text-sm text-slate-500">
-                  No hay solicitudes de acceso recibidas.
+                  No tienes solicitudes de acceso pendientes.
                 </div>
               )}
             </section>
           </div>
 
-          {summary?.walletStatus === "VERIFIED" ? (
+          {summary?.walletStatus !== "MISSING" && summary?.wallet ? (
             <div className="mt-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-[#2E6A38]">
               <div className="flex items-start gap-2">
                 <CheckCircleIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
                 <p>
-                  Esta cuenta opera únicamente con la wallet vinculada a tu usuario,
-                  assignment y tenant activo. Las validaciones autoritativas se
-                  realizan nuevamente en backend.
+                  Esta cuenta opera únicamente con la wallet asociada a tu usuario.
                 </p>
               </div>
             </div>
@@ -1691,7 +1330,6 @@ export default function InstitutionalAccountPage() {
 
       <RegularizationModal
         isOpen={regularizationOpen}
-        tenantName={tenantName}
         isLoading={isRegularizing}
         errorMessage={
           regularizationError
@@ -1706,7 +1344,6 @@ export default function InstitutionalAccountPage() {
       />
       <AddAccountModal
         isOpen={addAccountOpen}
-        tenantName={tenantName}
         isLoading={isCreatingInvitation}
         errorMessage={
           createInvitationError
@@ -1719,20 +1356,6 @@ export default function InstitutionalAccountPage() {
           setAddAccountOpen(false);
         }}
         onSubmit={handleCreateInvitation}
-      />
-      <EmailChangeModal
-        isOpen={emailChangeOpen}
-        currentEmail={auth.user?.email ?? ""}
-        isLoading={isRequestingEmailChange}
-        errorMessage={
-          emailChangeError ? getEmailChangeErrorMessage(emailChangeError) : null
-        }
-        onClose={() => {
-          if (isRequestingEmailChange) return;
-          resetEmailChangeRequest();
-          setEmailChangeOpen(false);
-        }}
-        onSubmit={handleEmailChangeRequest}
       />
       <TransferPrimaryModal
         isOpen={Boolean(transferTarget)}

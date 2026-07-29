@@ -200,8 +200,7 @@ export default function InstitutionalRecoveryPublicPage() {
                   id="institution-search-help"
                   className="mt-1 text-xs text-gray-500"
                 >
-                  Selecciona una institución activa del catálogo público. El ID
-                  técnico se enviará internamente al backend.
+                  Selecciona una institución activa para continuar con la solicitud.
                 </p>
                 <FieldError message={errors.institutionId} />
                 {institutionSearchStatus === "loading" ? (

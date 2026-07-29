@@ -56,7 +56,7 @@ export const isWalletUpdateRequiredError = (error: unknown) =>
 export const getSummaryErrorMessage = (error: unknown) => {
   const status = getErrorStatus(error);
   if (isWalletUpdateRequiredError(error)) {
-    return "Debes vincular tu wallet institucional.";
+    return "No tienes una wallet asociada.";
   }
   if (status === 401) return "Tu sesión expiró. Inicia sesión nuevamente.";
   if (status === 403) return "No existe un contexto institucional activo.";
@@ -67,11 +67,11 @@ export const getSummaryErrorMessage = (error: unknown) => {
 
 export const getRegularizationErrorMessage = (error: unknown) => {
   const status = getErrorStatus(error);
-  if (status === 400) return "La dirección de wallet no es válida.";
+  if (status === 400) return "Los datos ingresados no corresponden a una cuenta válida.";
   if (status === 401) return "Tu sesión expiró. Inicia sesión nuevamente.";
   if (status === 403) return "No cuentas con autorización para esta institución.";
   if (status === 404) return "No encontramos tu institución activa.";
-  if (status === 409) return "La wallet no está disponible para esta cuenta.";
-  if (status === 503) return "No pudimos validar la wallet. Intenta nuevamente.";
-  return "No pudimos regularizar la wallet.";
+  if (status === 409) return "La cuenta ya se encuentra asociada a otra institución.";
+  if (status === 503) return "No pudimos validar la cuenta en este momento. Inténtalo nuevamente.";
+  return "No pudimos asociar la cuenta en este momento. Inténtalo nuevamente.";
 };

@@ -472,7 +472,7 @@ export default function OperationalRechargePage() {
                 {visualBalance.isLoading
                   ? "Consultando..."
                   : visualBalance.data?.totalBalanceFormatted ??
-                    summary?.totalBalance.formatted ??
+                    summary?.totalBalance?.formatted ??
                     "No disponible"}
               </p>
               {visualBalance.error ? (

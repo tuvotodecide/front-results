@@ -109,7 +109,7 @@ describe("VotacionPrivateGuard", () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
-  it("redirects tenant admins without wallet to institutional account", async () => {
+  it("keeps tenant admins without wallet in the requested voting route", () => {
     renderWithAuthStore(
       <VotacionPrivateGuard>
         <div>private voting</div>
@@ -136,10 +136,8 @@ describe("VotacionPrivateGuard", () => {
       },
     );
 
-    await waitFor(() => {
-      expect(replace).toHaveBeenCalledWith("/votacion/cuenta-institucional");
-    });
-    expect(screen.queryByText("private voting")).not.toBeInTheDocument();
+    expect(screen.getByText("private voting")).toBeInTheDocument();
+    expect(replace).not.toHaveBeenCalled();
   });
 
   it("keeps the institutional account route available without wallet", () => {
