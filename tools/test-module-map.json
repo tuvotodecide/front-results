@@ -15,12 +15,23 @@
         "tests/unit/runtime-failure-reporting.test.ts"
       ]
     },
-    "auth-access": {
-      "name": "Authentication and administrative access - Security P0",
+    "matrix_03": {
+      "name": "MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin",
       "flows": [
-        "FRONT-B",
-        "AUTH",
-        "SECURITY_P0"
+        "MX-03",
+        "AUT-LOG",
+        "AUT-CRE",
+        "AUT-STA",
+        "AUT-EML",
+        "AUT-PWD",
+        "AUT-SES",
+        "AUT-GRD",
+        "AUT-ARE",
+        "AUT-SUP",
+        "AUT-APR",
+        "AUT-TER",
+        "AUT-HTTP",
+        "AUT-SEC"
       ],
       "files": [
         "tests/integration/auth-domain-password-pages.test.tsx",
@@ -32,33 +43,84 @@
         "tests/unit/auth-resultados.validation.test.ts",
         "tests/unit/auth-roles-navigation.test.ts",
         "tests/unit/middleware.test.ts",
-        "tests/unit/register-prefill.test.ts",
         "tests/unit/resolve-auth-resultados-redirect.test.ts",
         "tests/integration/auth-session-invalidation.test.tsx",
-        "tests/integration/superadmin-auth-entrypoints.test.tsx",
         "tests/integration/superadmin-guard.test.tsx",
-        "tests/integration/superadmin-navigation.test.tsx",
-        "tests/integration/superadmin-route-entrypoints.test.tsx",
-        "tests/integration/superadmin-screens.test.tsx",
         "tests/unit/dev-auth-routes.test.ts"
       ]
     },
-    "applications": {
-      "name": "Institutional applications and approvals",
+    "matrix_02": {
+      "name": "MX-02 | Gestión de instituciones, administradores y wallets | Frontend Admin",
       "flows": [
-        "FRONT-C",
-        "INSTITUTIONAL_APPLICATIONS"
+        "MX-02",
+        "D-NEW",
+        "D-REG",
+        "D-INV",
+        "D-REQ",
+        "D-APR",
+        "D-RETRY",
+        "D-PERM",
+        "D-LIST",
+        "D-DIS",
+        "D-REV",
+        "D-TRF",
+        "D-MAIL",
+        "D-STATE",
+        "D-COMPAT"
       ],
       "files": [
         "tests/integration/admin-tenant-account.test.tsx",
         "tests/integration/access-approvals.test.tsx",
         "tests/integration/institutional-recovery-admin.test.tsx",
         "tests/integration/admin-tenant-dashboard.test.tsx",
-        "tests/integration/admin-tenant-estimate-modal.test.tsx",
         "tests/integration/admin-tenant-no-regression.test.tsx",
-        "tests/integration/admin-tenant-recharge.test.tsx",
         "tests/integration/institutional-recovery-public.test.tsx",
         "tests/integration/register-votacion-institutional.test.tsx",
+        "tests/unit/institutional-recovery-ui.test.ts",
+        "tests/unit/register-prefill.test.ts"
+      ]
+    },
+    "matrix_04": {
+      "name": "MX-04 | Creación y configuración de votaciones | Frontend Admin",
+      "flows": [
+        "MX-04",
+        "ELE-LST",
+        "ELE-NEW",
+        "ELE-TIM",
+        "ELE-REF",
+        "ELE-ROL",
+        "ELE-OPT",
+        "ELE-CAN",
+        "ELE-IMG",
+        "ELE-PRV",
+        "ELE-RDY",
+        "ELE-EDT",
+        "ELE-CANCL",
+        "ELE-HTTP"
+      ],
+      "files": [
+        "tests/integration/election-dashboard-listing.test.tsx",
+        "tests/integration/election-config-cd-flow.test.tsx",
+        "tests/integration/election-config-review-redesign.test.tsx",
+        "tests/unit/election-config-images.test.tsx",
+        "tests/unit/election-configuration-cd.test.tsx",
+        "tests/unit/election-render-utils.test.ts",
+        "tests/unit/referendum-flow.test.tsx"
+      ]
+    },
+    "applications_remaining": {
+      "name": "Institutional applications residual tests outside MX-02",
+      "flows": [
+        "FRONT-C",
+        "INSTITUTIONAL_APPLICATIONS_REMAINING"
+      ],
+      "files": [
+        "tests/integration/admin-tenant-estimate-modal.test.tsx",
+        "tests/integration/admin-tenant-recharge.test.tsx",
+        "tests/integration/superadmin-auth-entrypoints.test.tsx",
+        "tests/integration/superadmin-navigation.test.tsx",
+        "tests/integration/superadmin-route-entrypoints.test.tsx",
+        "tests/integration/superadmin-screens.test.tsx",
         "tests/integration/superadmin-tvd-contracts-parameters.test.tsx",
         "tests/integration/superadmin-tvd-manual-assignment.test.tsx",
         "tests/integration/superadmin-tvd-operations.test.tsx",
@@ -66,7 +128,6 @@
         "tests/unit/admin-tvd-capacity-ui.test.ts",
         "tests/unit/admin-tvd-recharge-ui.test.ts",
         "tests/unit/admin-tvd-wallet-ui.test.ts",
-        "tests/unit/institutional-recovery-ui.test.ts",
         "tests/unit/superadmin-tvd-blockchain-utils.test.ts",
         "tests/unit/superadmin-tvd-manual-assignment-ui.test.ts",
         "tests/unit/tvd-wallet-lookup-ui.test.ts"
@@ -78,9 +139,7 @@
         "FRONT-D",
         "ELECTION_LISTING"
       ],
-      "files": [
-        "tests/unit/election-render-utils.test.ts"
-      ]
+      "files": []
     },
     "election-config": {
       "name": "Election creation and configuration",
@@ -89,10 +148,7 @@
         "BRS-F10"
       ],
       "files": [
-        "tests/integration/election-config-cd-flow.test.tsx",
         "tests/integration/election-config-components.test.tsx",
-        "tests/unit/election-configuration-cd.test.tsx",
-        "tests/integration/election-config-review-redesign.test.tsx",
         "tests/integration/election-tvd-capacity-review.test.tsx"
       ]
     },
@@ -102,9 +158,7 @@
         "FRONT-F",
         "BRS-F11"
       ],
-      "files": [
-        "tests/unit/referendum-flow.test.tsx"
-      ]
+      "files": []
     },
     "register": {
       "name": "Electoral register management",
@@ -191,12 +245,15 @@
     }
   },
   "cypress": {
-    "auth-access": {
-      "name": "Authentication and administrative access - Security P0",
+    "matrix_03": {
+      "name": "MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin",
       "flows": [
-        "FRONT-B",
-        "AUTH",
-        "SECURITY_P0"
+        "MX-03",
+        "AUT-LOG",
+        "AUT-STA",
+        "AUT-SES",
+        "AUT-GRD",
+        "AUT-OUT"
       ],
       "files": [
         "cypress/e2e/smoke/auth-and-guards.cy.ts"
@@ -206,14 +263,26 @@
         "cypress/legacy/votacion_publica_canonica.cy.ts"
       ]
     },
-    "applications": {
-      "name": "Institutional applications and approvals",
+    "matrix_02": {
+      "name": "MX-02 | Gestión de instituciones, administradores y wallets | Frontend Admin",
       "flows": [
-        "FRONT-C",
-        "INSTITUTIONAL_APPLICATIONS"
+        "MX-02",
+        "D-APR",
+        "D-REQ"
       ],
       "files": [
         "cypress/e2e/smoke/approvals.cy.ts"
+      ],
+      "manualFiles": []
+    },
+    "matrix_04": {
+      "name": "MX-04 | Creación y configuración de votaciones | Frontend Admin",
+      "flows": [
+        "MX-04",
+        "ELE-NEW"
+      ],
+      "files": [
+        "cypress/e2e/smoke/election-management.cy.ts"
       ],
       "manualFiles": []
     },
@@ -224,9 +293,7 @@
         "FRONT-E",
         "BRS-F10"
       ],
-      "files": [
-        "cypress/e2e/smoke/election-management.cy.ts"
-      ],
+      "files": [],
       "manualFiles": [
         "cypress/legacy/NavegacionGobernadorLP.cy.ts",
         "cypress/legacy/admin.vistas.cy.ts",

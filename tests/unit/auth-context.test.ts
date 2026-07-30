@@ -24,12 +24,12 @@ const baseState: AuthState = {
   user: null,
 };
 
-describe("auth multi-context", () => {
+describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | Contextos auth", () => {
   beforeEach(() => {
     localStorage.clear();
   });
 
-  it("activates a single default context after login", () => {
+  it("AUT-LOG-P0-002 | activa un único contexto por defecto después del login", () => {
     const state = authSlice.reducer(
       baseState,
       setAuth({
@@ -56,7 +56,7 @@ describe("auth multi-context", () => {
     expect(resolvePostLoginRedirect(state)).toBe("/votacion/elecciones");
   });
 
-  it("resolves multiple approved contexts by the entry domain", () => {
+  it("AUT-SES-P0-001 | resuelve múltiples contextos aprobados según dominio de entrada", () => {
     const state = authSlice.reducer(
       baseState,
       setAuth({
@@ -92,7 +92,7 @@ describe("auth multi-context", () => {
     });
   });
 
-  it("routes ACCESS_APPROVER only to approvals", () => {
+  it("AUT-LOG-P0-003 / AUT-APR-P0-001 | enruta ACCESS_APPROVER solo a aprobaciones", () => {
     const context = {
       type: "ACCESS_APPROVALS" as const,
       role: "ACCESS_APPROVER",
@@ -119,7 +119,7 @@ describe("auth multi-context", () => {
     });
   });
 
-  it("prioritizes approvals for ACCESS_APPROVER even when tenant access also exists", () => {
+  it("AUT-APR-P0-001 | prioriza aprobaciones para ACCESS_APPROVER aunque exista tenant", () => {
     const approvalsContext = {
       type: "ACCESS_APPROVALS" as const,
       role: "ACCESS_APPROVER",
@@ -145,7 +145,7 @@ describe("auth multi-context", () => {
     });
   });
 
-  it("denies a domain login when the user lacks that domain context", () => {
+  it("AUT-GRD-P0-002 | deniega login de dominio cuando falta el contexto", () => {
     expect(
       resolveDomainLogin(
         {
@@ -162,7 +162,7 @@ describe("auth multi-context", () => {
     });
   });
 
-  it("resolves pending territorial approval without a register CTA", () => {
+  it("AUT-STA-P0-002 | resuelve aprobación territorial pendiente sin CTA de registro", () => {
     expect(
       resolveDomainLogin(
         {
@@ -203,7 +203,7 @@ describe("auth multi-context", () => {
     expect(deniedNotice).not.toHaveProperty("registerPath");
   });
 
-  it("persists activeContext changes", () => {
+  it("AUT-SES-P0-001 | persiste cambios de activeContext", () => {
     const loggedIn = authSlice.reducer(
       baseState,
       setAuth({

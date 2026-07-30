@@ -12,12 +12,12 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-describe("SuperadminGuard", () => {
+describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | Superadmin guard", () => {
   beforeEach(() => {
     replaceMock.mockClear();
   });
 
-  it("permite usuarios SUPERADMIN", () => {
+  it("AUT-SUP-P0-001 / AUT-LOG-P0-004 | permite usuarios SUPERADMIN", () => {
     renderWithAuthStore(
       <SuperadminGuard>
         <p>Contenido superadmin</p>
@@ -40,7 +40,7 @@ describe("SuperadminGuard", () => {
     expect(replaceMock).not.toHaveBeenCalled();
   });
 
-  it("permite contexto GLOBAL_ADMIN aunque el rol activo no sea SUPERADMIN", () => {
+  it("AUT-SUP-P0-001 | permite contexto GLOBAL_ADMIN aunque el rol activo no sea SUPERADMIN", () => {
     renderWithAuthStore(
       <SuperadminGuard>
         <p>Contenido global</p>
@@ -67,7 +67,7 @@ describe("SuperadminGuard", () => {
     expect(screen.getByText("Contenido global")).toBeInTheDocument();
   });
 
-  it("permite sesión dev SUPERADMIN sin token real", () => {
+  it("AUT-SUP-P0-003 | permite sesión dev SUPERADMIN sin token real en modo dev", () => {
     renderWithAuthStore(
       <SuperadminGuard>
         <p>Contenido dev</p>
@@ -97,7 +97,7 @@ describe("SuperadminGuard", () => {
     expect(replaceMock).not.toHaveBeenCalled();
   });
 
-  it("bloquea TENANT_ADMIN sin contexto GLOBAL_ADMIN", () => {
+  it("AUT-SUP-P0-002 | bloquea TENANT_ADMIN sin contexto GLOBAL_ADMIN", () => {
     renderWithAuthStore(
       <SuperadminGuard>
         <p>Contenido privado</p>
@@ -120,7 +120,7 @@ describe("SuperadminGuard", () => {
     expect(screen.queryByText("Contenido privado")).not.toBeInTheDocument();
   });
 
-  it("bloquea ACCESS_APPROVER en /superadmin", () => {
+  it("AUT-ARE-P0-003 | bloquea ACCESS_APPROVER en /superadmin", () => {
     renderWithAuthStore(
       <SuperadminGuard>
         <p>Contenido aprobador</p>
@@ -142,7 +142,7 @@ describe("SuperadminGuard", () => {
     expect(screen.getByText("Acceso restringido")).toBeInTheDocument();
   });
 
-  it("redirige usuarios sin sesión al login de resultados", async () => {
+  it("AUT-GRD-P0-001 | redirige usuarios sin sesión al login de resultados", async () => {
     renderWithAuthStore(
       <SuperadminGuard>
         <p>Contenido privado</p>

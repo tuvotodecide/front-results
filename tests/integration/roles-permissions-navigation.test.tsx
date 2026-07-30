@@ -80,13 +80,13 @@ const renderSidebar = (authState: Partial<AuthState>) => {
   );
 };
 
-describe("roles, permissions and navigation", () => {
+describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | Roles y navegación", () => {
   beforeEach(() => {
     replace.mockReset();
     usePathname.mockReturnValue("/aprobaciones");
   });
 
-  it("redirects anonymous users away from approvals preserving the requested path", async () => {
+  it("AUT-GRD-P0-001 | redirige anónimos fuera de aprobaciones preservando la ruta solicitada", async () => {
     renderWithAuthStore(
       <AccessApprovalsGuard>
         <div>approvals private content</div>
@@ -99,7 +99,7 @@ describe("roles, permissions and navigation", () => {
     expect(screen.queryByText("approvals private content")).not.toBeInTheDocument();
   });
 
-  it("allows ACCESS_APPROVER contexts to enter approvals and activates the context", async () => {
+  it("AUT-APR-P0-001 | permite contexto ACCESS_APPROVER en aprobaciones y lo activa", async () => {
     const { store } = renderWithAuthStore(
       <AccessApprovalsGuard>
         <div>approvals private content</div>
@@ -138,7 +138,7 @@ describe("roles, permissions and navigation", () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
-  it("blocks authenticated users without approvals context or legacy approvals role", async () => {
+  it("AUT-APR-P0-001 / AUT-GRD-P0-002 | bloquea autenticados sin contexto de aprobaciones", async () => {
     renderWithAuthStore(
       <AccessApprovalsGuard>
         <div>approvals private content</div>
@@ -168,7 +168,7 @@ describe("roles, permissions and navigation", () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
-  it("shows admin navigation only for SUPERADMIN in the resultados sidebar", () => {
+  it("AUT-SUP-P0-001 / AUT-SUP-P0-002 | muestra navegación admin solo para SUPERADMIN", () => {
     renderSidebar({
       token: "token",
       accessToken: "token",
@@ -196,7 +196,7 @@ describe("roles, permissions and navigation", () => {
     expect(screen.getByRole("link", { name: /Configuraciones/ })).toBeInTheDocument();
   });
 
-  it("shows territorial report navigation only to approved MAYOR or GOVERNOR users", () => {
+  it("AUT-TER-P0-001 | muestra navegación territorial solo a MAYOR o GOVERNOR aprobados", () => {
     const { rerender } = renderSidebar({
       token: "token",
       accessToken: "token",

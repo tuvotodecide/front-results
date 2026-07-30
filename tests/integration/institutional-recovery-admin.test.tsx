@@ -193,12 +193,12 @@ const makeFetchMock = (
   return { fetchMock, captured };
 };
 
-describe("institutional recovery admin console", () => {
+describe("MX-02 | Gestión de instituciones, administradores y wallets | Frontend Admin | Recuperación administrativa", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it("lista solicitudes reales y consulta por estado sin mocks productivos", async () => {
+  it("D-MAIL-012 / D-LIST-005 | lista solicitudes reales y consulta por estado sin mocks productivos", async () => {
     const user = userEvent.setup();
     const { fetchMock, captured } = makeFetchMock();
     vi.stubGlobal("fetch", fetchMock);
@@ -229,7 +229,7 @@ describe("institutional recovery admin console", () => {
     expect(approvedListRequest?.headers.get("x-api-key")).toBeNull();
   });
 
-  it("muestra detalle con identidad preservada y aprueba con body minimo", async () => {
+  it("D-MAIL-003 / D-MAIL-013 | muestra detalle con identidad preservada y aprueba con body minimo", async () => {
     const user = userEvent.setup();
     const { captured, fetchMock } = makeFetchMock();
     vi.stubGlobal("fetch", fetchMock);
@@ -280,7 +280,7 @@ describe("institutional recovery admin console", () => {
     expect(await screen.findByText("Operación completada")).toBeInTheDocument();
   });
 
-  it("D-MAIL-003 aprueba cambio de correo administrativo con endpoint especifico y sin reset de contraseña", async () => {
+  it("D-MAIL-003 | aprueba cambio de correo administrativo con endpoint especifico y sin reset de contraseña", async () => {
     const user = userEvent.setup();
     const { captured, fetchMock } = makeFetchMock({
       detail: {
@@ -325,7 +325,7 @@ describe("institutional recovery admin console", () => {
     ).toBeInTheDocument();
   });
 
-  it("rechaza una solicitud sin modificar acceso ni enviar estado manual", async () => {
+  it("D-MAIL-014 | rechaza una solicitud sin modificar acceso ni enviar estado manual", async () => {
     const user = userEvent.setup();
     const { captured, fetchMock } = makeFetchMock();
     vi.stubGlobal("fetch", fetchMock);
@@ -355,7 +355,7 @@ describe("institutional recovery admin console", () => {
     ).toBeInTheDocument();
   });
 
-  it("bloquea aprobacion cuando backend reporta inconsistencia", async () => {
+  it("D-STATE-005 | bloquea aprobacion cuando backend reporta inconsistencia", async () => {
     const user = userEvent.setup();
     const { captured, fetchMock } = makeFetchMock({
       detail: {
@@ -376,7 +376,7 @@ describe("institutional recovery admin console", () => {
     expect(captured.approveBodies).toHaveLength(0);
   });
 
-  it("no permite resolver nuevamente una solicitud ya aprobada", async () => {
+  it("D-RETRY-004 | no permite resolver nuevamente una solicitud ya aprobada", async () => {
     const user = userEvent.setup();
     const { captured, fetchMock } = makeFetchMock();
     vi.stubGlobal("fetch", fetchMock);
@@ -392,7 +392,7 @@ describe("institutional recovery admin console", () => {
     expect(captured.rejectBodies).toHaveLength(0);
   });
 
-  it("maneja doble resolucion 409 con mensaje seguro", async () => {
+  it("D-RETRY-005 | maneja doble resolucion 409 con mensaje seguro", async () => {
     const user = userEvent.setup();
     const { fetchMock } = makeFetchMock({ approveStatus: 409 });
     vi.stubGlobal("fetch", fetchMock);

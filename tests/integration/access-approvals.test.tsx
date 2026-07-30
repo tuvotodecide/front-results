@@ -69,7 +69,7 @@ const renderApprovals = (role: "ACCESS_APPROVER" | "SUPERADMIN" = "ACCESS_APPROV
     },
   });
 
-describe("access approvals admin page", () => {
+describe("MX-02 | Gestión de instituciones, administradores y wallets | Frontend Admin | Aprobaciones", () => {
   beforeEach(() => {
     accessApprovalsMocks.applications = [...accessApprovalApplications];
     accessApprovalsMocks.details = Object.fromEntries(
@@ -84,7 +84,7 @@ describe("access approvals admin page", () => {
     accessApprovalsMocks.reopen.mockReset().mockResolvedValue(undefined);
   });
 
-  it("lists pending applications with tab counts and searchable visible data", async () => {
+  it("D-REQ-001 / D-REQ-002 / D-LIST-002 | lists pending applications with tab counts and searchable visible data", async () => {
     const user = userEvent.setup();
     renderApprovals();
 
@@ -104,7 +104,7 @@ describe("access approvals admin page", () => {
     expect(screen.getByText("No hay solicitudes institucionales pendientes.")).toBeInTheDocument();
   });
 
-  it("shows loading and empty states without backend data", () => {
+  it("D-REQ-003 / D-STATE-001 | shows loading and empty states without backend data", () => {
     accessApprovalsMocks.isLoading = true;
     accessApprovalsMocks.applications = [];
 
@@ -119,7 +119,7 @@ describe("access approvals admin page", () => {
     expect(screen.getByText("No hay solicitudes institucionales pendientes.")).toBeInTheDocument();
   });
 
-  it("shows a visible load error instead of treating backend failure as an empty list", () => {
+  it("D-REQ-004 / D-STATE-002 | shows a visible load error instead of treating backend failure as an empty list", () => {
     accessApprovalsMocks.isError = true;
     accessApprovalsMocks.applications = [];
 
@@ -133,7 +133,7 @@ describe("access approvals admin page", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("approves and rejects a pending application with the expected public payloads", async () => {
+  it("D-APR-001 / D-APR-003 / D-APR-006 | approves and rejects a pending application with the expected public payloads", async () => {
     const user = userEvent.setup();
     renderApprovals();
 
@@ -158,7 +158,7 @@ describe("access approvals admin page", () => {
     expect(screen.getByText("La solicitud institucional fue rechazada.")).toBeInTheDocument();
   });
 
-  it("muestra solicitudes aprobadas pendientes de confirmación como procesamiento sin acciones manuales", async () => {
+  it("D-APR-005 / D-SIGN-009 | muestra solicitudes aprobadas pendientes de confirmacion como procesamiento sin acciones manuales", async () => {
     accessApprovalsMocks.applications = [
       {
         id: "app-chain",
@@ -182,7 +182,7 @@ describe("access approvals admin page", () => {
     expect(screen.queryByRole("button", { name: "Rechazar registro" })).not.toBeInTheDocument();
   });
 
-  it("D-APR-002: muestra pendiente de autorización desde el teléfono sin acceso activo", async () => {
+  it("D-APR-002 | muestra pendiente de autorizacion desde el telefono sin acceso activo", async () => {
     accessApprovalsMocks.applications = [
       {
         id: "app-mobile",
@@ -208,7 +208,7 @@ describe("access approvals admin page", () => {
     expect(screen.queryByRole("button", { name: "Aprobar registro" })).not.toBeInTheDocument();
   });
 
-  it("D-APR-004: bloquea doble clic visible mientras la aprobación está en curso", async () => {
+  it("D-APR-004 | bloquea doble clic visible mientras la aprobacion esta en curso", async () => {
     accessApprovalsMocks.approveIsLoading = true;
     renderApprovals();
 
@@ -218,7 +218,7 @@ describe("access approvals admin page", () => {
     expect(screen.getByRole("button", { name: "Rechazar registro" })).toBeDisabled();
   });
 
-  it("revokes approved applications and reports API action errors visibly", async () => {
+  it("D-REV-001 / D-REV-002 / D-REV-005 | revokes approved applications and reports API action errors visibly", async () => {
     const user = userEvent.setup();
     accessApprovalsMocks.revoke.mockRejectedValueOnce(new Error("locked"));
 
@@ -238,7 +238,7 @@ describe("access approvals admin page", () => {
     ).toBeInTheDocument();
   });
 
-  it("only lets SUPERADMIN reopen rejected or revoked institutional applications", async () => {
+  it("D-PERM-001 / D-STATE-003 | only lets SUPERADMIN reopen rejected or revoked institutional applications", async () => {
     const user = userEvent.setup();
 
     const { unmount } = renderApprovals("ACCESS_APPROVER");
@@ -265,7 +265,7 @@ describe("access approvals admin page", () => {
     expect(screen.getByText("La solicitud institucional volvió a pendiente.")).toBeInTheDocument();
   });
 
-  it("keeps the selected application detail tied to the visible list item", async () => {
+  it("D-LIST-005 / D-COMPAT-001 | keeps the selected application detail tied to the visible list item", async () => {
     const user = userEvent.setup();
     renderApprovals();
 

@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { vi } from "vitest";
@@ -16,6 +16,7 @@ const openReviewMock = vi.fn();
 const activateElectionMock = vi.fn();
 const getShareUrlMock = vi.fn();
 const copyToClipboardMock = vi.fn();
+const updateScheduleMock = vi.fn();
 const useGetVotingEventTvdCapacityQueryMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/domains/votacion/navigation/compat-private", () => ({
@@ -278,8 +279,9 @@ describe("election config review redesign", () => {
       vi.fn(() => ({ unwrap: () => Promise.resolve({}) })),
       { isLoading: false },
     ] as any);
+    updateScheduleMock.mockReturnValue({ unwrap: () => Promise.resolve({}) });
     vi.mocked(votingEvents.useUpdateEventScheduleMutation).mockReturnValue([
-      vi.fn(() => ({ unwrap: () => Promise.resolve({}) })),
+      updateScheduleMock,
       { isLoading: false },
     ] as any);
     vi.mocked(votingEvents.useUpdateVotingEventMutation).mockReturnValue([
@@ -296,7 +298,7 @@ describe("election config review redesign", () => {
     ] as any);
   });
 
-  it("renderiza encabezado, estado real y acordeones principales", () => {
+  it("ELE-RDY-P1-001 renderiza encabezado, estado real y acordeones principales", () => {
     renderReview();
 
     expect(
@@ -365,7 +367,7 @@ describe("election config review redesign", () => {
     expect(screen.getAllByText("Plancha Verde").length).toBeGreaterThan(0);
   });
 
-  it("mantiene horarios, modal actual y avisos productivos", async () => {
+  it("ELE-TIM-P1-003 mantiene horarios, permite guardar cronograma y muestra avisos productivos", async () => {
     const user = userEvent.setup();
     renderReview();
 
@@ -381,7 +383,29 @@ describe("election config review redesign", () => {
     await user.click(screen.getByRole("button", { name: "Modificar horarios" }));
     expect(screen.getByText("Límite para modificar y publicar oficialmente")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Guardar horarios" })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+    const scheduleInputs = Array.from(
+      document.querySelectorAll<HTMLInputElement>('input[type="datetime-local"]'),
+    );
+    expect(scheduleInputs).toHaveLength(3);
+    await user.clear(scheduleInputs[0]!);
+    await user.type(scheduleInputs[0]!, "2026-04-18T19:00");
+    await user.clear(scheduleInputs[1]!);
+    await user.type(scheduleInputs[1]!, "2026-04-18T21:00");
+    await user.clear(scheduleInputs[2]!);
+    await user.type(scheduleInputs[2]!, "2026-04-18T22:00");
+    await user.click(screen.getByRole("button", { name: "Guardar horarios" }));
+
+    await waitFor(() => {
+      expect(updateScheduleMock).toHaveBeenCalledWith({
+        eventId: "evt-1",
+        data: {
+          votingStart: "2026-04-18T23:00:00.000Z",
+          votingEnd: "2026-04-19T01:00:00.000Z",
+          resultsPublishAt: "2026-04-19T02:00:00.000Z",
+        },
+      });
+    });
+    expect(refetchMock).toHaveBeenCalled();
 
     await user.click(screen.getByRole("button", { name: /Avisos importantes/i }));
     expect(
@@ -428,7 +452,7 @@ describe("election config review redesign", () => {
     });
   });
 
-  it("conserva acciones finales: volver, notificar y confirmar publicación", async () => {
+  it("ELE-RDY-P0-002 conserva acciones finales de revisión normal y refresca estado", async () => {
     const user = userEvent.setup();
     const firstRender = renderReview({
       votingEvent: makeVotingEvent({ state: "DRAFT", status: "DRAFT" }),
@@ -445,6 +469,7 @@ describe("election config review redesign", () => {
     );
     expect(openReviewMock).toHaveBeenCalledTimes(1);
     expect(screen.getByText("Votantes notificados")).toBeInTheDocument();
+    expect(refetchMock).toHaveBeenCalled();
 
     firstRender.unmount();
     renderReview();
@@ -620,7 +645,7 @@ describe("election config review redesign", () => {
     expect(activateElectionMock).not.toHaveBeenCalled();
   });
 
-  it("respeta estados bloqueados vencido, activo y finalizado", () => {
+  it("ELE-EDT-P0-002 respeta estados bloqueados vencido, activo y finalizado", () => {
     const { rerender } = renderReview({
       votingEvent: makeVotingEvent({
         state: "PUBLICATION_EXPIRED",
@@ -675,7 +700,7 @@ describe("election config review redesign", () => {
     expect(screen.getByRole("button", { name: "La votación ya finalizó" })).toBeDisabled();
   });
 
-  it("no toca entrypoints de status ni wizard de creación", async () => {
+  it("ELE-EDT-P1-003 / ELE-HTTP-P1-003 no toca entrypoints de status ni wizard de creación", async () => {
     const statusRoute = await import(
       "@/app/(votacion-private)/votacion/elecciones/[electionId]/status/page"
     );
@@ -687,9 +712,21 @@ describe("election config review redesign", () => {
     expect(createRoute.default).toBeTypeOf("function");
   });
 
-  it("mueve el warning de votantes a Avisos importantes y no duplica badge interno", async () => {
+  it("ELE-RDY-P0-003 mueve el warning de referéndum listo a avisos y conserva vista funcional", async () => {
     const user = userEvent.setup();
     renderReview({
+      votingEvent: makeVotingEvent({
+        isReferendum: true,
+        name: "Consulta 2026",
+        objective: "¿Aprueba la normativa?",
+      }),
+      ballotPreview: {
+        electionId: "evt-1",
+        electionTitle: "Consulta 2026",
+        electionObjective: "¿Aprueba la normativa?",
+        isReferendum: true,
+        parties: [{ id: "yes", electionId: "evt-1", name: "Sí", colorHex: "#459151", candidates: [] }],
+      } as any,
       publicationMissingIdentityCount: 2,
       reviewReadiness: makeReadiness({
         pending: ["padron_validation"],
@@ -716,5 +753,9 @@ describe("election config review redesign", () => {
     expect(
       screen.getByText(/Existen 2 votantes no registrados/i),
     ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Vista previa para votantes/i }));
+    const ballotPreviews = screen.getAllByTestId("ballot-preview");
+    expect(ballotPreviews[0]).toHaveTextContent("¿Aprueba la normativa?");
+    expect(ballotPreviews[0]).toHaveTextContent("Sí");
   });
 });

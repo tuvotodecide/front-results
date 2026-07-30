@@ -112,7 +112,7 @@ describe("referendum minimal flow", () => {
     ] as any);
   });
 
-  it("creates a normal election with isReferendum false by default", async () => {
+  it("ELE-REF-P0-001 creates a normal election with isReferendum false by default", async () => {
     const user = userEvent.setup();
     createElectionMock.mockResolvedValue({ id: "evt-normal" });
 
@@ -141,7 +141,7 @@ describe("referendum minimal flow", () => {
     });
   }, 10000);
 
-  it("creates a referendum and shows the irreversibility warning", async () => {
+  it("ELE-REF-P0-002 creates a referendum and shows the irreversibility warning", async () => {
     const user = userEvent.setup();
     createElectionMock.mockResolvedValue({ id: "evt-ref" });
     navigateMock.mockReset();
@@ -198,7 +198,7 @@ describe("referendum minimal flow", () => {
     );
   });
 
-  it("requires question marks in the referendum question", async () => {
+  it("ELE-REF-P0-002 requires question marks in the referendum question", async () => {
     const user = userEvent.setup();
 
     render(<CreateElectionWizard />);
@@ -218,7 +218,7 @@ describe("referendum minimal flow", () => {
     ).toBeInTheDocument();
   });
 
-  it("uses the referendum description as the ballot preview title and hides CONSULTA", () => {
+  it("ELE-PRV-P1-002 uses the referendum description as the ballot preview title and hides CONSULTA", () => {
     render(
       <BallotPreview
         parties={[referendumParty]}
@@ -234,7 +234,7 @@ describe("referendum minimal flow", () => {
     expect(screen.queryByText("CONSULTA:")).not.toBeInTheDocument();
   });
 
-  it("keeps the normal ballot preview unchanged when not referendum", () => {
+  it("ELE-PRV-P1-001 keeps the normal ballot preview unchanged when not referendum", () => {
     render(<BallotPreview parties={[referendumParty]} />);
 
     expect(screen.getByText("Elige a tu candidato")).toBeInTheDocument();
@@ -242,7 +242,7 @@ describe("referendum minimal flow", () => {
     expect(screen.getByText("CONSULTA:")).toBeInTheDocument();
   });
 
-  it("renders referendum parties as options without exposing the technical role", () => {
+  it("ELE-REF-P1-003 renders referendum parties as options without exposing the technical role", () => {
     render(<PartiesTable parties={[referendumParty]} isReferendum />);
 
     expect(screen.getByText("Sí")).toBeInTheDocument();
@@ -251,7 +251,7 @@ describe("referendum minimal flow", () => {
     expect(screen.queryByText("CONSULTA:")).not.toBeInTheDocument();
   });
 
-  it("redirects referendum cargos directly to options", async () => {
+  it("ELE-LST-P1-006 / ELE-REF-P0-002 redirects referendum cargos directly to options", async () => {
     navigateMock.mockReset();
     render(<ElectionConfigCargos />);
 
@@ -263,7 +263,7 @@ describe("referendum minimal flow", () => {
     });
   });
 
-  it("shows only options and padrón as visible tabs in referendum", () => {
+  it("ELE-REF-P0-002 shows only options and padrón as visible tabs in referendum", () => {
     render(
       <ConfigStepsTabs
         currentStep={2}
@@ -278,7 +278,7 @@ describe("referendum minimal flow", () => {
     expect(screen.queryByText("3. Padrón")).not.toBeInTheDocument();
   });
 
-  it("renders the referendum option modal without logo upload and with optional colors", () => {
+  it("ELE-REF-P1-003 renders the referendum option modal without logo upload and with optional colors", () => {
     render(
       <PartyModal
         isOpen

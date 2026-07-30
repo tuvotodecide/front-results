@@ -41,7 +41,7 @@ vi.mock("@/domains/auth-votacion/navigation/compat", () => ({
   useSearchParams: () => [mocks.searchParams],
 }));
 
-describe("domain auth password and email pages", () => {
+describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | Password y correo", () => {
   beforeEach(() => {
     mocks.navigate.mockReset();
     mocks.forgotPassword.mockReset();
@@ -51,7 +51,7 @@ describe("domain auth password and email pages", () => {
     mocks.searchParams = new URLSearchParams();
   });
 
-  it("requests password recovery from resultados and keeps resultados links", async () => {
+  it("AUT-PWD-P1-001 | solicita recuperación desde resultados y conserva enlaces de resultados", async () => {
     const user = userEvent.setup();
     mocks.forgotPassword.mockReturnValue({
       unwrap: vi.fn().mockResolvedValue({ ok: true }),
@@ -71,7 +71,7 @@ describe("domain auth password and email pages", () => {
     );
   });
 
-  it("resets password from resultados and returns to resultados login", async () => {
+  it("AUT-PWD-P0-006 | restablece contraseña desde resultados y vuelve al login de resultados", async () => {
     const user = userEvent.setup();
     mocks.searchParams = new URLSearchParams("token=resultados-token");
     mocks.resetPassword.mockReturnValue({
@@ -93,7 +93,7 @@ describe("domain auth password and email pages", () => {
     });
   });
 
-  it("verifies resultados email with the resultados verification endpoint", async () => {
+  it("AUT-EML-P1-001 | verifica correo de resultados con endpoint de resultados", async () => {
     mocks.searchParams = new URLSearchParams("token=resultados-verify");
     mocks.triggerVerify.mockReturnValue({
       unwrap: vi.fn().mockResolvedValue({ ok: true }),
@@ -111,7 +111,7 @@ describe("domain auth password and email pages", () => {
     );
   });
 
-  it("requests password recovery from votacion and keeps votacion links", async () => {
+  it("AUT-PWD-P1-001 | solicita recuperación desde votación y conserva enlaces de votación", async () => {
     const user = userEvent.setup();
     mocks.forgotPassword.mockReturnValue({
       unwrap: vi.fn().mockResolvedValue({ ok: true }),
@@ -131,7 +131,7 @@ describe("domain auth password and email pages", () => {
     );
   });
 
-  it("resets password from votacion and returns to votacion login", async () => {
+  it("AUT-PWD-P0-006 | restablece contraseña desde votación y vuelve al login de votación", async () => {
     const user = userEvent.setup();
     mocks.searchParams = new URLSearchParams("token=votacion-token");
     mocks.resetPassword.mockReturnValue({
@@ -153,7 +153,7 @@ describe("domain auth password and email pages", () => {
     });
   });
 
-  it("verifies institutional email with the votacion verification endpoint", async () => {
+  it("AUT-EML-P1-001 | verifica correo institucional con endpoint de votación", async () => {
     mocks.searchParams = new URLSearchParams("token=votacion-verify");
     mocks.verifyInstitutional.mockReturnValue({
       unwrap: vi.fn().mockResolvedValue({ ok: true }),

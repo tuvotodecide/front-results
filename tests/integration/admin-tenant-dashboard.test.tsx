@@ -161,20 +161,20 @@ const renderDashboard = (
   });
 };
 
-describe("Admin tenant dashboard", () => {
+describe("MX-02 | Gestión de instituciones, administradores y wallets | Frontend Admin | Dashboard institucional", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     navigateMock.mockReset();
   });
 
-  it("renderiza accesos reales, búsqueda y votaciones del backend mockeado", () => {
+  it("D-LIST-001 / D-PERM-004 | renderiza accesos reales, busqueda y votaciones del backend mockeado", () => {
     renderDashboard();
 
-    expect(screen.getByText("Saldo $TVD")).toBeInTheDocument();
-    expect(screen.getByText("100 $TVD")).toBeInTheDocument();
-    expect(screen.getByText("Wallet vinculada")).toBeInTheDocument();
+    expect(screen.getByText("SALDO $TVD")).toBeInTheDocument();
+    expect(screen.getByText("100")).toBeInTheDocument();
+    expect(screen.getByText("Wallet asociada")).toBeInTheDocument();
     expect(screen.getByText("0x123456...345678")).toBeInTheDocument();
-    expect(screen.getByText("Cuenta")).toBeInTheDocument();
+    expect(screen.getByText("CUENTA")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Mis Votaciones" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Nueva Votación" })).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Buscar votación...")).toBeInTheDocument();
@@ -187,7 +187,7 @@ describe("Admin tenant dashboard", () => {
     expect(screen.getAllByText(/Cierre:/i).length).toBeGreaterThan(0);
   });
 
-  it("filtra votaciones localmente por nombre y muestra estado vacío", async () => {
+  it("D-LIST-003 / D-STATE-001 | filtra votaciones localmente por nombre y muestra estado vacio", async () => {
     const user = userEvent.setup();
     renderDashboard();
 
@@ -202,15 +202,15 @@ describe("Admin tenant dashboard", () => {
     expect(screen.getByText("No encontramos votaciones con ese criterio.")).toBeInTheDocument();
   });
 
-  it("navega desde cuenta", async () => {
+  it("D-LIST-004 | navega desde cuenta", async () => {
     const user = userEvent.setup();
     renderDashboard();
 
-    await user.click(screen.getByRole("button", { name: "Ir a cuenta institucional" }));
+    await user.click(screen.getByRole("button", { name: "Abrir cuenta" }));
     expect(navigateMock).toHaveBeenCalledWith("/votacion/cuenta-institucional");
   });
 
-  it("mantiene votaciones visibles y alerta roja cuando no existe wallet vinculada", () => {
+  it("D-REG-003 / D-STATE-004 | mantiene votaciones visibles y alerta roja cuando no existe wallet vinculada", () => {
     renderDashboard(mockEvents, {
       data: {
         ...tvdSummaryWithWallet,
@@ -226,15 +226,15 @@ describe("Admin tenant dashboard", () => {
       refetch: vi.fn(),
     });
 
-    expect(screen.getAllByText("No tienes una wallet vinculada").length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: "Vincular mi wallet" })).toBeInTheDocument();
+    expect(screen.getAllByText("No tienes una wallet asociada").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Asociar mi cuenta" })).toBeInTheDocument();
     expect(screen.getByText("Elección de Presidente 2026")).toBeInTheDocument();
     expect(screen.queryByText("0 TVD")).not.toBeInTheDocument();
     expect(screen.queryByText(/wallet institucional/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Regularizar wallet/i)).not.toBeInTheDocument();
   });
 
-  it("mantiene votaciones visibles y permite reintentar cuando falla el saldo", async () => {
+  it("D-RETRY-006 | mantiene votaciones visibles y permite reintentar cuando falla el saldo", async () => {
     const refetchSummary = vi.fn();
     renderDashboard(mockEvents, {
       data: {
@@ -258,7 +258,7 @@ describe("Admin tenant dashboard", () => {
     expect(refetchSummary).toHaveBeenCalled();
   });
 
-  it("abre estimación antes de crear y cancelar no navega", async () => {
+  it("D-COMPAT-005 | abre estimacion antes de crear y cancelar no navega", async () => {
     const user = userEvent.setup();
     renderDashboard();
 

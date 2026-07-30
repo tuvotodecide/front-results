@@ -12,14 +12,14 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => useSearchParams(),
 }));
 
-describe("ResultadosPrivateGuard", () => {
+describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | Resultados guard", () => {
   beforeEach(() => {
     replace.mockReset();
     usePathname.mockReturnValue("/resultados/panel");
     useSearchParams.mockReturnValue(new URLSearchParams("view=full"));
   });
 
-  it("redirects anonymous users to canonical login preserving from", async () => {
+  it("AUT-GRD-P0-001 | redirige anónimos al login canónico conservando from", async () => {
     renderWithAuthStore(
       <ResultadosPrivateGuard>
         <div>private content</div>
@@ -34,7 +34,7 @@ describe("ResultadosPrivateGuard", () => {
     expect(screen.queryByText("private content")).not.toBeInTheDocument();
   });
 
-  it("redirects pending users to pendiente", async () => {
+  it("AUT-STA-P0-002 | redirige usuarios pendientes a la página pendiente", async () => {
     renderWithAuthStore(
       <ResultadosPrivateGuard>
         <div>private content</div>
@@ -57,7 +57,7 @@ describe("ResultadosPrivateGuard", () => {
     });
   });
 
-  it("redirects restricted roles away from admin routes", async () => {
+  it("AUT-GRD-P0-002 | redirige roles restringidos fuera de rutas admin", async () => {
     renderWithAuthStore(
       <ResultadosPrivateGuard>
         <div>private content</div>
@@ -84,7 +84,7 @@ describe("ResultadosPrivateGuard", () => {
     });
   });
 
-  it("shows a domain access notice for tenant contexts in resultados routes", async () => {
+  it("AUT-ARE-P0-001 | muestra aviso de dominio para contextos tenant en resultados", async () => {
     usePathname.mockReturnValue("/resultados/control-personal");
 
     renderWithAuthStore(
@@ -118,7 +118,7 @@ describe("ResultadosPrivateGuard", () => {
     expect(screen.getByText("Registrarme en resultados")).toBeInTheDocument();
   });
 
-  it("shows pending approval notice without register CTA for registered territorial users", async () => {
+  it("AUT-STA-P0-002 | muestra aviso pendiente sin CTA de registro para territorial registrado", async () => {
     usePathname.mockReturnValue("/resultados");
 
     renderWithAuthStore(
@@ -155,7 +155,7 @@ describe("ResultadosPrivateGuard", () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
-  it("renders children when the role is allowed", () => {
+  it("AUT-GRD-P0-002 | renderiza contenido cuando el rol está permitido", () => {
     renderWithAuthStore(
       <ResultadosPrivateGuard>
         <div>private content</div>

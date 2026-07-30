@@ -4,15 +4,15 @@ import {
 } from "@/domains/auth-resultados/screens/LoginResultadosPage";
 import { registerResultadosValidationSchema } from "@/domains/auth-resultados/screens/RegisterResultadosPage";
 
-describe("auth resultados validation", () => {
-  it("maps backend roles to frontend roles", () => {
+describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | Validación auth resultados", () => {
+  it("AUT-LOG-P0-002 | mapea roles backend a roles visuales frontend", () => {
     expect(mapBackendRole("ADMIN")).toBe("SUPERADMIN");
     expect(mapBackendRole("governor")).toBe("GOVERNOR");
     expect(mapBackendRole("ACCESS_APPROVER")).toBe("ACCESS_APPROVER");
     expect(mapBackendRole("otro")).toBe("publico");
   });
 
-  it("validates canonical resultados login payloads", async () => {
+  it("AUT-CRE-P0-001 | valida payloads canónicos de login resultados", async () => {
     await expect(
       loginResultadosValidationSchema.validate(
         { email: "bad-email", password: "123" },
@@ -36,7 +36,7 @@ describe("auth resultados validation", () => {
     });
   });
 
-  it("validates canonical resultados register payloads", async () => {
+  it("PERTENECE_A_OTRA_MATRIZ | valida payloads canónicos de registro resultados", async () => {
     await expect(
       registerResultadosValidationSchema.validate(
         {

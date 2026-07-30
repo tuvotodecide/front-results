@@ -12,12 +12,12 @@ const createUser = (
   ...overrides,
 });
 
-describe("resolveAuthResultadosRedirect", () => {
-  it("returns null when there is no active session", () => {
+describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | Redirect resultados", () => {
+  it("AUT-SES-P0-001 no redirige cuando no existe sesion activa", () => {
     expect(resolveAuthResultadosRedirect(null, null)).toBeNull();
   });
 
-  it("redirects pending and rejected users to state pages", () => {
+  it("AUT-GRD-P0-003 redirige usuarios pendientes y rechazados a paginas de estado", () => {
     expect(
       resolveAuthResultadosRedirect(createUser({ status: "PENDING" }), "token"),
     ).toBe("/resultados/pendiente");
@@ -27,7 +27,7 @@ describe("resolveAuthResultadosRedirect", () => {
     ).toBe("/resultados/rechazado");
   });
 
-  it("redirects public users and lets tenant users request resultados access", () => {
+  it("AUT-ARE-P0-001 permite resultados publico y no activa tenant sin contexto territorial", () => {
     expect(
       resolveAuthResultadosRedirect(createUser({ role: "publico" }), "token"),
     ).toBe("/resultados");
@@ -37,7 +37,7 @@ describe("resolveAuthResultadosRedirect", () => {
     ).toBeNull();
   });
 
-  it("builds scoped redirects for mayor and governor", () => {
+  it("AUT-TER-P0-001 construye retorno territorial solo con alcance del usuario autenticado", () => {
     expect(
       resolveAuthResultadosRedirect(
         createUser({

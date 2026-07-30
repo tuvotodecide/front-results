@@ -49,8 +49,8 @@ const detail: InstitutionalRecoveryDetail = {
   resolutionReason: null,
 };
 
-describe("institutional recovery UI helpers", () => {
-  it("normaliza correo y construye el body publico exacto", () => {
+describe("MX-02 | Gestión de instituciones, administradores y wallets | Frontend Admin | Helpers de recuperación", () => {
+  it("D-MAIL-002 | normaliza correo y construye el body publico exacto", () => {
     const validation = validateInstitutionalRecoveryPublicDraft(validDraft);
 
     expect(validation.isValid).toBe(true);
@@ -67,7 +67,7 @@ describe("institutional recovery UI helpers", () => {
     );
   });
 
-  it("rechaza campos vacios, correo invalido y confirmacion distinta", () => {
+  it("D-MAIL-005 | rechaza campos vacios, correo invalido y confirmacion distinta", () => {
     const emptyValidation = validateInstitutionalRecoveryPublicDraft(
       initialInstitutionalRecoveryPublicDraft,
     );
@@ -95,7 +95,7 @@ describe("institutional recovery UI helpers", () => {
     );
   });
 
-  it("mapea estados y errores sin exponer codigos tecnicos", () => {
+  it("D-MAIL-009 / D-MAIL-010 / D-MAIL-011 | mapea estados y errores sin exponer codigos tecnicos", () => {
     expect(recoveryStatusLabels).toEqual({
       PENDING: "Pendiente",
       APPROVED: "Aprobada",
@@ -112,7 +112,7 @@ describe("institutional recovery UI helpers", () => {
     );
   });
 
-  it("confirma identidad preservada antes de aprobar", () => {
+  it("D-MAIL-013 | confirma identidad preservada antes de aprobar", () => {
     expect(canApproveInstitutionalRecovery(detail)).toBe(true);
     expect(canApproveInstitutionalRecovery({ ...detail, warnings: ["NO_CANDIDATE"] })).toBe(
       false,
@@ -130,7 +130,7 @@ describe("institutional recovery UI helpers", () => {
     expect(normalizeOptionalRecoveryReason("   ")).toBeUndefined();
   });
 
-  it("consume una sola vez el motivo seguro de cierre por authVersion", () => {
+  it("D-RETRY-005 / D-STATE-005 | consume una sola vez el motivo seguro de cierre por authVersion", () => {
     persistAuthSessionEndReason(AUTH_VERSION_MISMATCH_CODE);
 
     const reason = consumeAuthSessionEndReason();

@@ -8,54 +8,68 @@ const createToken = (payload: Record<string, unknown>) => {
   return `${encode({ alg: "none", typ: "JWT" })}.${encode(payload)}.signature`;
 };
 
-describe("[FLOW:AUTH] Smoke de sesión y guards", () => {
+describe("[MX-03][FLOW:AUTH] Smoke de sesión y guards", () => {
   beforeEach(() => {
     cy.clearSession();
   });
 
-  it("redirige una ruta privada al login y permite entrar con login mock", () => {
+  it("[AUT-GRD-P0-001][AUT-LOG-P0-002] redirige ruta privada al login canonico y permite entrar con login territorial mock", () => {
     const accessToken = createToken({
-      sub: "super-smoke",
-      role: "SUPERADMIN",
+      sub: "mayor-smoke",
+      role: "MAYOR",
       active: true,
+      votingDepartmentId: "dep-smoke",
+      votingMunicipalityId: "mun-smoke",
       exp: Math.floor(Date.now() / 1000) + 3600,
     });
+
+    cy.visit("/resultados/control-personal");
+    cy.location("pathname").should("eq", "/resultados/login");
 
     cy.intercept("POST", "**/api/v1/auth/login", {
       statusCode: 200,
       body: {
         accessToken,
-        role: "SUPERADMIN",
+        role: "MAYOR",
         active: true,
-        availableContexts: [{ type: "GLOBAL_ADMIN" }],
-        defaultContext: { type: "GLOBAL_ADMIN" },
+        availableContexts: [
+          {
+            type: "TERRITORIAL",
+            role: "MAYOR",
+            votingDepartmentId: "dep-smoke",
+            votingMunicipalityId: "mun-smoke",
+          },
+        ],
+        requiresContextSelection: false,
+        defaultContext: {
+          type: "TERRITORIAL",
+          role: "MAYOR",
+          votingDepartmentId: "dep-smoke",
+          votingMunicipalityId: "mun-smoke",
+        },
+        accessStatus: null,
         user: {
-          id: "super-smoke",
-          email: "superadmin@smoke.test",
-          name: "Superadmin Smoke",
-          role: "SUPERADMIN"
-        }
-      }
+          id: "mayor-smoke",
+          email: "mayor@smoke.test",
+          name: "Mayor Smoke",
+          role: "MAYOR",
+        },
+      },
     }).as("login");
-    cy.intercept("GET", "**/api/v1/auth/profile*", {
-      statusCode: 200,
-      body: { id: "super-smoke", email: "superadmin@smoke.test" }
-    }).as("profile");
 
-    cy.visit("/resultados/login?from=%2Fresultados%2Fpanel");
-    cy.get('[data-cy="login-email"]').type("superadmin@smoke.test");
+    cy.visit("/resultados/login?from=%2Fresultados%2Fcontrol-personal");
+    cy.get('[data-cy="login-email"]').type("mayor@smoke.test");
     cy.get('[data-cy="login-password"]').type("12345678");
     cy.get('[data-cy="login-submit"]').click();
 
     cy.wait("@login").its("request.body").should("include", {
-      email: "superadmin@smoke.test",
-      password: "12345678"
+      email: "mayor@smoke.test",
+      password: "12345678",
     });
-    cy.location("pathname").should("eq", "/resultados/panel");
-    cy.contains("Panel de Control").should("be.visible");
+    cy.location("pathname").should("eq", "/resultados/control-personal");
   });
 
-  it("muestra pendiente con respuesta de sesión mock", () => {
+  it("[AUT-STA-P0-002] bloquea una cuenta territorial pendiente desde login y la envia a pendiente", () => {
     const pendingToken = createToken({
       sub: "pending-smoke",
       role: "MAYOR",
@@ -65,7 +79,17 @@ describe("[FLOW:AUTH] Smoke de sesión y guards", () => {
 
     cy.intercept("POST", "**/api/v1/auth/login", {
       statusCode: 200,
-      body: { accessToken: pendingToken, role: "MAYOR", active: false }
+      body: {
+        accessToken: pendingToken,
+        role: "MAYOR",
+        active: false,
+        user: {
+          id: "pending-smoke",
+          email: "pending@smoke.test",
+          name: "Pending Smoke",
+          role: "MAYOR",
+        },
+      },
     }).as("pendingLogin");
 
     cy.visit("/resultados/login");
@@ -77,7 +101,7 @@ describe("[FLOW:AUTH] Smoke de sesión y guards", () => {
     cy.contains("pendiente", { matchCase: false }).should("be.visible");
   });
 
-  it("limpia una sesión expirada y permite cerrar sesión desde el panel", () => {
+  it("[AUT-SES-P0-004][AUT-OUT-P0-001] limpia sesion expirada y permite cerrar sesion desde el panel", () => {
     const expiredToken = createToken({
       sub: "expired-smoke",
       role: "SUPERADMIN",

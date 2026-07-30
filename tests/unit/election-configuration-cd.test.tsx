@@ -34,9 +34,10 @@ vi.mock("@/components/Modal2", () => ({
 describe("election creation and configuration P0 components", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
   });
 
-  it("keeps creation disabled while required wizard fields are empty", async () => {
+  it("ELE-NEW-P0-002 mantiene deshabilitado el avance con campos requeridos vacíos", async () => {
     render(<CreateElectionWizard />);
 
     expect(screen.getByText("Crear Nueva Votación")).toBeInTheDocument();
@@ -47,7 +48,18 @@ describe("election creation and configuration P0 components", () => {
     });
   });
 
-  it("validates schedule order and does not submit invalid dates", async () => {
+  it("ELE-NEW-P1-005 cancela la creación desde el primer paso sin crear evento", async () => {
+    const user = userEvent.setup();
+
+    render(<CreateElectionWizard />);
+
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(navigateMock).toHaveBeenCalledWith("/votacion/elecciones");
+    expect(createElectionMock).not.toHaveBeenCalled();
+  });
+
+  it("ELE-TIM-P0-001 valida orden de fechas y no envía cronogramas inválidos", async () => {
     const user = userEvent.setup();
 
     render(<CreateElectionWizard />);
@@ -72,7 +84,34 @@ describe("election creation and configuration P0 components", () => {
     expect(createElectionMock).not.toHaveBeenCalled();
   }, 10000);
 
-  it("submits the create election payload and navigates to cargos for normal elections", async () => {
+  it("ELE-TIM-P1-002 recalcula la fecha mínima al recuperar foco", async () => {
+    const dateNowSpy = vi
+      .spyOn(Date, "now")
+      .mockReturnValue(new Date("2026-04-17T12:00:00.000Z").getTime());
+
+    render(<CreateElectionWizard />);
+
+    fireEvent.change(screen.getByLabelText("¿A qué institución pertenece?"), {
+      target: { value: "Eleccion normal" },
+    });
+    fireEvent.change(screen.getByLabelText("¿Cuál es el objetivo o descripción?"), {
+      target: { value: "Elegir representantes institucionales" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+
+    const startInput = await screen.findByLabelText("¿Cuándo abre la votación?");
+    expect(startInput).toHaveAttribute("min", expect.stringContaining("2026-04-17T20:00"));
+
+    dateNowSpy.mockReturnValue(new Date("2026-04-17T12:01:00.000Z").getTime());
+    window.dispatchEvent(new Event("focus"));
+
+    await waitFor(() => {
+      expect(startInput).toHaveAttribute("min", expect.stringContaining("2026-04-17T20:01"));
+    });
+    dateNowSpy.mockRestore();
+  });
+
+  it("ELE-NEW-P0-003 / ELE-NEW-P0-006 conserva datos, confirma una creación y navega a cargos", async () => {
     createElectionMock.mockResolvedValue({ id: "evt-created" });
 
     render(<CreateElectionWizard />);
@@ -86,6 +125,13 @@ describe("election creation and configuration P0 components", () => {
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Siguiente" })).toBeEnabled();
     });
+    fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("¿Cuándo abre la votación?")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Anterior" }));
+    expect(screen.getByDisplayValue("Eleccion normal")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Elegir representantes institucionales")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
     await waitFor(() => {
       expect(screen.getByLabelText("¿Cuándo abre la votación?")).toBeInTheDocument();
@@ -116,13 +162,51 @@ describe("election creation and configuration P0 components", () => {
         resultsDate: "2027-06-01T19:00",
       });
     });
+    expect(createElectionMock).toHaveBeenCalledTimes(1);
     expect(navigateMock).toHaveBeenCalledWith(
       "/votacion/elecciones/evt-created/config/cargos",
       { replace: true },
     );
   });
 
-  it("validates and submits a new cargo name", async () => {
+  it("ELE-NEW-P1-007 conserva el wizard y muestra error cuando falla la creación", async () => {
+    createElectionMock.mockRejectedValue(new Error("Nombre duplicado"));
+
+    render(<CreateElectionWizard />);
+
+    fireEvent.change(screen.getByLabelText("¿A qué institución pertenece?"), {
+      target: { value: "Eleccion normal" },
+    });
+    fireEvent.change(screen.getByLabelText("¿Cuál es el objetivo o descripción?"), {
+      target: { value: "Elegir representantes institucionales" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+    await screen.findByLabelText("¿Cuándo abre la votación?");
+
+    fireEvent.change(screen.getByLabelText("¿Cuándo abre la votación?"), {
+      target: { value: "2027-06-01T12:00" },
+    });
+    fireEvent.change(screen.getByLabelText("¿Cuándo cierra la votación?"), {
+      target: { value: "2027-06-01T18:00" },
+    });
+    fireEvent.change(screen.getByLabelText("¿Cuándo se muestran los resultados?"), {
+      target: { value: "2027-06-01T19:00" },
+    });
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "CREAR" })).toBeEnabled();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "CREAR" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Confirmar" }));
+
+    expect(await screen.findByText("Nombre duplicado")).toBeInTheDocument();
+    expect(screen.getByLabelText("¿Cuándo abre la votación?")).toBeInTheDocument();
+    expect(navigateMock).not.toHaveBeenCalledWith(
+      expect.stringContaining("/config/cargos"),
+      expect.anything(),
+    );
+  });
+
+  it("ELE-ROL-P0-001 valida nombre mínimo y guarda cargo nuevo", async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
 
     render(

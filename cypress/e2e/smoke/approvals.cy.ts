@@ -1,9 +1,9 @@
-describe("[FLOW:APPROVALS] Smoke de aprobaciones institucionales", () => {
+describe("MX-02 | Gestión de instituciones, administradores y wallets | Frontend Admin | Aceptación institucional", () => {
   beforeEach(() => {
     cy.clearSession();
   });
 
-  it("carga solicitudes, abre detalle y aprueba con payload representativo", () => {
+  it("D-REQ-001 / D-APR-001 | carga solicitudes, abre detalle y aprueba con payload representativo", () => {
     cy.fixture("approvals/applications.json").then((applications) => {
       cy.intercept("GET", "**/api/v1/institutional-admin-applications*", {
         statusCode: 200,
@@ -33,7 +33,7 @@ describe("[FLOW:APPROVALS] Smoke de aprobaciones institucionales", () => {
     cy.contains("La solicitud institucional fue aprobada.").should("be.visible");
   });
 
-  it("muestra error visible cuando la carga falla", () => {
+  it("D-REQ-004 / D-STATE-002 | muestra error visible cuando la carga falla", () => {
     cy.intercept("GET", "**/api/v1/institutional-admin-applications*", {
       statusCode: 500,
       body: { message: "backend no disponible" }

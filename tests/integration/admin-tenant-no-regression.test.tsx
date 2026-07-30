@@ -32,15 +32,15 @@ const createRequest = (pathname: string, cookies: Record<string, string> = {}) =
   });
 };
 
-describe("Admin tenant no regression", () => {
-  it("mantiene el wizard real de creación en /votacion/elecciones/new", () => {
+describe("MX-02 | Gestión de instituciones, administradores y wallets | Frontend Admin | Compatibilidad", () => {
+  it("D-COMPAT-006 | mantiene el wizard real de creacion en /votacion/elecciones/new", () => {
     render(<CreateElectionWizard />);
 
     expect(screen.getByText("Crear Nueva Votación")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Siguiente" })).toBeInTheDocument();
   });
 
-  it("agrega rutas mock al middleware sin quitar rutas productivas", () => {
+  it("D-COMPAT-007 | agrega rutas mock al middleware sin quitar rutas productivas", () => {
     expect(config.matcher).toContain("/votacion/recarga-operativa");
     expect(config.matcher).toContain("/votacion/cuenta-institucional");
     expect(config.matcher).toContain("/votacion/elecciones/new");
@@ -48,7 +48,7 @@ describe("Admin tenant no regression", () => {
     expect(config.matcher).toContain("/votacion/elecciones/:electionId/config/:path*");
   });
 
-  it("protege rutas nuevas igual que rutas privadas de votación", () => {
+  it("D-COMPAT-008 / D-PERM-005 | protege rutas nuevas igual que rutas privadas de votacion", () => {
     const anonymousResponse = handleVotacionAccess(createRequest("/votacion/recarga-operativa"));
     expect(anonymousResponse.headers.get("location")).toBe(
       "http://localhost/votacion/login",

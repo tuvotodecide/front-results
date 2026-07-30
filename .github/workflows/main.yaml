@@ -123,25 +123,25 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm test:module:general
 
-      - name: Run module tests - Authentication and administrative access
+      - name: MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin
         if: ${{ !cancelled() }}
-        run: pnpm test:module:auth-access
+        run: pnpm test:matrix:03
 
-      - name: Run module tests - Institutional applications and approvals
+      - name: MX-02 | Gestión de instituciones, administradores y wallets | Frontend Admin
+        if: ${{ !cancelled() }}
+        run: pnpm test:matrix:02
+
+      - name: Run module tests - Institutional applications residual outside MX-02
         if: ${{ !cancelled() }}
         run: pnpm test:module:applications
 
-      - name: Run module tests - Election dashboard and listing
+      - name: MX-04 | Creación y configuración de votaciones | Frontend Admin
         if: ${{ !cancelled() }}
-        run: pnpm test:module:election-dashboard
+        run: pnpm test:matrix:04
 
-      - name: Run module tests - Election creation and configuration
+      - name: Run module tests - Election creation and configuration residual outside MX-04
         if: ${{ !cancelled() }}
         run: pnpm test:module:election-config
-
-      - name: Run module tests - Positions, options, candidates and referendum
-        if: ${{ !cancelled() }}
-        run: pnpm test:module:election-options
 
       - name: Run module tests - Electoral register management
         if: ${{ !cancelled() }}
@@ -186,23 +186,23 @@ jobs:
           cat next-cypress.log
           exit 1
 
-      - name: Run Cypress tests - Authentication and administrative access
+      - name: MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | Cypress
         if: ${{ !cancelled() }}
         env:
           CYPRESS_BASE_URL: http://127.0.0.1:3000
-        run: pnpm cypress:module:auth-access
+        run: pnpm cypress:matrix:03
 
-      - name: Run Cypress tests - Institutional applications and approvals
+      - name: MX-02 | Aceptación institucional | Frontend Admin
         if: ${{ !cancelled() }}
         env:
           CYPRESS_BASE_URL: http://127.0.0.1:3000
-        run: pnpm cypress:module:applications
+        run: pnpm cypress:matrix:02
 
-      - name: Run Cypress tests - Election creation and configuration
+      - name: MX-04 | Creación y configuración de votaciones | Frontend Admin | Cypress
         if: ${{ !cancelled() }}
         env:
           CYPRESS_BASE_URL: http://127.0.0.1:3000
-        run: pnpm cypress:module:election-config
+        run: pnpm cypress:matrix:04
 
       - name: Run Cypress tests - Electoral register management
         if: ${{ !cancelled() }}

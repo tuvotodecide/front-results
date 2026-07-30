@@ -43,12 +43,12 @@ const fillValidForm = async (user: ReturnType<typeof userEvent.setup>) => {
   );
 };
 
-describe("institutional recovery public request", () => {
+describe("MX-02 | Gestión de instituciones, administradores y wallets | Frontend Admin | Recuperación pública", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it("envia la solicitud real con body minimo y respuesta no enumerativa", async () => {
+  it("D-MAIL-002 / D-MAIL-004 | envia la solicitud real con body minimo y respuesta no enumerativa", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const request = input instanceof Request ? input : new Request(input);
@@ -126,7 +126,7 @@ describe("institutional recovery public request", () => {
     }
   });
 
-  it("valida campos invalidos y no ejecuta request", async () => {
+  it("D-MAIL-005 | valida campos invalidos y no ejecuta request", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn(async (_input: RequestInfo | URL) =>
       jsonResponse({}),
@@ -164,7 +164,7 @@ describe("institutional recovery public request", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("maneja busqueda publica de instituciones con error, retry y datos sanitizados", async () => {
+  it("D-MAIL-006 / D-MAIL-007 | maneja busqueda publica de instituciones con error, retry y datos sanitizados", async () => {
     const user = userEvent.setup();
     const fetchMock = vi
       .fn<(input: RequestInfo | URL) => Promise<Response>>()
@@ -207,7 +207,7 @@ describe("institutional recovery public request", () => {
     expect(screen.queryByText("private@example.test")).not.toBeInTheDocument();
   });
 
-  it("evita doble submit mientras la solicitud esta en curso", async () => {
+  it("D-MAIL-008 / D-RETRY-003 | evita doble submit mientras la solicitud esta en curso", async () => {
     const user = userEvent.setup();
     let resolveRequest: (response: Response) => void = () => undefined;
     const pendingResponse = new Promise<Response>((resolve) => {
@@ -258,7 +258,7 @@ describe("institutional recovery public request", () => {
     expect(await screen.findByText("Solicitud enviada")).toBeInTheDocument();
   });
 
-  it("muestra error seguro para duplicado, rate limit o timeout", async () => {
+  it("D-MAIL-009 / D-MAIL-010 / D-MAIL-011 | muestra error seguro para duplicado, rate limit o timeout", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const request = input instanceof Request ? input : new Request(input);

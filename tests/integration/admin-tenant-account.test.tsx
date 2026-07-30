@@ -8,9 +8,11 @@ import { renderWithAuthStore } from "../utils/renderWithStore";
 
 const activeWallet = "0x1234567890abcdef1234567890abcdef12345678" as const;
 const secondWallet = "0x2222222222222222222222222222222222222222" as const;
+const activeWalletDisplay = "0x123456...345678" as const;
+const secondWalletDisplay = "0x222222...222222" as const;
 const PERSON_NOT_REGISTERED_MESSAGE =
-  "La persona debe registrarse primero en Tu Voto Decide.";
-const ALREADY_ADMIN_MESSAGE = "Esta persona ya administra la institución.";
+  "La persona no está registrada en Tu Voto Decide.";
+const ALREADY_ADMIN_MESSAGE = "Esta persona ya tiene una cuenta en la institución.";
 const DUPLICATE_INVITATION_MESSAGE =
   "Ya existe una invitación pendiente para esta persona.";
 
@@ -177,7 +179,7 @@ const setupFetch = (
   return fetchMock;
 };
 
-describe("Admin tenant institutional account", () => {
+describe("MX-02 | Gestión de instituciones, administradores y wallets | Frontend Admin | Cuenta institucional", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     Object.defineProperty(navigator, "clipboard", {
@@ -191,23 +193,23 @@ describe("Admin tenant institutional account", () => {
     vi.unstubAllGlobals();
   });
 
-  it("muestra una sola wallet activa del usuario autenticado y saldo del resumen real", async () => {
+  it("D-LIST-001 / D-PERM-002 / D-COMPAT-002 | muestra una sola wallet activa del usuario autenticado y saldo del resumen real", async () => {
     const fetchMock = setupFetch();
 
     renderWithAuthStore(<InstitutionalAccountPage />, tenantAuth());
 
-    expect((await screen.findAllByText(activeWallet)).length).toBeGreaterThan(0);
-    expect(screen.getByText("Colegio Médico")).toBeInTheDocument();
-    expect(screen.getByText("Verificada")).toBeInTheDocument();
+    expect((await screen.findAllByText(activeWalletDisplay)).length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { name: "Cuenta institucional" })).toBeInTheDocument();
+    expect(screen.getByText("Asociada")).toBeInTheDocument();
     expect(await screen.findByText("100 TVD")).toBeInTheDocument();
     expect(screen.getByText("80 TVD")).toBeInTheDocument();
     expect(screen.getByText("20 TVD")).toBeInTheDocument();
 
-    expect(screen.getAllByRole("button", { name: /Agregar cuenta/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: /Añadir cuenta/i }).length).toBeGreaterThan(0);
     expect(screen.queryByText("Cuenta administrativa")).not.toBeInTheDocument();
     expect(screen.queryByText("Cuenta operativa")).not.toBeInTheDocument();
     expect(screen.queryByText("Cuenta auxiliar")).not.toBeInTheDocument();
-    expect(screen.queryByText(secondWallet)).not.toBeInTheDocument();
+    expect(screen.queryByText(secondWalletDisplay)).not.toBeInTheDocument();
     expect(screen.queryByText("180 TVD")).not.toBeInTheDocument();
     expect(screen.queryByText("Cambiar correo")).not.toBeInTheDocument();
     expect(screen.queryByText("Correo actual")).not.toBeInTheDocument();
@@ -227,7 +229,7 @@ describe("Admin tenant institutional account", () => {
     }
   });
 
-  it("D-TRF-001/D-TRF-006/D-TRF-011: principal inicia transferencia y queda pendiente de firma", async () => {
+  it("D-TRF-001 / D-TRF-006 / D-TRF-011 | principal inicia transferencia y queda pendiente de firma", async () => {
     const user = userEvent.setup();
     const fetchMock = setupFetch((request) => {
       const url = new URL(request.url);
@@ -296,7 +298,7 @@ describe("Admin tenant institutional account", () => {
     expect(screen.getByText("Administrador principal")).toBeInTheDocument();
   });
 
-  it("permite copiar y reintentar saldo cuando falla la consulta", async () => {
+  it("D-RETRY-002 / D-STATE-004 | permite copiar y reintentar saldo cuando falla la consulta", async () => {
     const user = userEvent.setup();
     const fetchMock = setupFetch(() =>
       jsonResponse({
@@ -318,7 +320,7 @@ describe("Admin tenant institutional account", () => {
     expect(screen.getByText("Dirección copiada.")).toBeInTheDocument();
   });
 
-  it("muestra regularización heredada y resuelve wallet por DNI antes de enviar", async () => {
+  it("D-REG-004 / D-REG-005 / D-COMPAT-003 | muestra regularizacion heredada y delega validacion por DNI al backend", async () => {
     const user = userEvent.setup();
     setupFetch((request) => {
       const pathname = new URL(request.url).pathname;
@@ -326,8 +328,12 @@ describe("Admin tenant institutional account", () => {
         return jsonResponse({
           registered: false,
           accountAddress: null,
+          reason: "WALLET_NOT_FOUND",
           message: "No se encontró una billetera registrada para este carnet.",
         });
+      }
+      if (pathname.endsWith("/wallet-regularization")) {
+        return jsonResponse({ message: "wallet-not-found" }, 400);
       }
       if (pathname === "/api/v1/tvd/me/summary") {
         return jsonResponse({ code: "TVD_WALLET_NOT_VERIFIED" }, 400);
@@ -337,25 +343,28 @@ describe("Admin tenant institutional account", () => {
 
     renderWithAuthStore(<InstitutionalAccountPage />, tenantAuth());
 
-    await user.click(await screen.findByRole("button", { name: /Vincular mi wallet/i }));
+    await user.click(await screen.findByRole("button", { name: /Asociar mi cuenta/i }));
     expect(
-      screen.getByRole("dialog", { name: "Vincular mi wallet" }),
+      screen.getByRole("dialog", { name: "Asociar mi cuenta" }),
     ).toBeInTheDocument();
-    expect(screen.getAllByText(/aplicación móvil/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/wallet registrada para tu usuario/i).length).toBeGreaterThan(0);
     expect(screen.queryByLabelText("Wallet candidata")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Carnet de identidad")).toBeInTheDocument();
-    expect(screen.getByLabelText("Wallet registrada")).toHaveAttribute("readonly");
 
     await user.type(screen.getByLabelText("Carnet de identidad"), "12345678");
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Buscar y asociar" })).not.toBeDisabled(),
+    );
+    await user.click(screen.getByRole("button", { name: "Buscar y asociar" }));
     expect(
       await screen.findByText(
-        "No se encontró una billetera registrada para este carnet. Debe registrarse primero en la aplicación móvil.",
+        "Los datos ingresados no corresponden a una cuenta válida.",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Vincular wallet" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Buscar y asociar" })).not.toBeDisabled();
   });
 
-  it("regulariza con endpoint real, no envía campos autoritativos y refresca resumen", async () => {
+  it("D-REG-006 / D-REG-007 / D-REG-008 | regulariza con endpoint real, no envia campos autoritativos y refresca resumen", async () => {
     const user = userEvent.setup();
     const regularizedSummary = {
       ...summaryResponse,
@@ -372,9 +381,6 @@ describe("Admin tenant institutional account", () => {
           );
         });
         return regularizationCalls.length ? jsonResponse(regularizedSummary) : jsonResponse({ code: "TVD_WALLET_NOT_VERIFIED" }, 400);
-      }
-      if (pathname.endsWith("/resolve-by-dni")) {
-        return jsonResponse({ registered: true, accountAddress: secondWallet });
       }
       if (pathname.endsWith("/wallet-regularization")) {
         return jsonResponse({
@@ -398,10 +404,12 @@ describe("Admin tenant institutional account", () => {
 
     renderWithAuthStore(<InstitutionalAccountPage />, tenantAuth());
 
-    await user.click(await screen.findByRole("button", { name: /Vincular mi wallet/i }));
+    await user.click(await screen.findByRole("button", { name: /Asociar mi cuenta/i }));
     await user.type(screen.getByLabelText("Carnet de identidad"), "12345678");
-    expect(await screen.findByDisplayValue(secondWallet)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Vincular wallet" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Buscar y asociar" })).not.toBeDisabled(),
+    );
+    await user.click(screen.getByRole("button", { name: "Buscar y asociar" }));
 
     await waitFor(() => {
       expect(
@@ -413,23 +421,13 @@ describe("Admin tenant institutional account", () => {
       ).toBe(true);
     });
 
-    const resolveRequest = fetchMock.mock.calls
-      .map(([request]) => request)
-      .find(
-        (request) =>
+    expect(
+      fetchMock.mock.calls.some(
+        ([request]) =>
           request instanceof Request &&
           new URL(request.url).pathname.endsWith("/resolve-by-dni"),
-      );
-    expect(resolveRequest).toBeInstanceOf(Request);
-    if (resolveRequest instanceof Request) {
-      expect(new URL(resolveRequest.url).pathname).toBe(
-        "/api/v1/institutional-wallets/resolve-by-dni",
-      );
-      expect(JSON.parse(await resolveRequest.clone().text())).toEqual({
-        dni: "12345678",
-      });
-      expect(resolveRequest.headers.get("x-api-key")).toBeNull();
-    }
+      ),
+    ).toBe(false);
 
     const mutationRequest = fetchMock.mock.calls
       .map(([request]) => request)
@@ -454,18 +452,15 @@ describe("Admin tenant institutional account", () => {
     }
 
     expect(
-      await screen.findByText("Wallet vinculada correctamente."),
+      await screen.findByText("Cuenta asociada correctamente."),
     ).toBeInTheDocument();
-    expect(await screen.findByText(secondWallet)).toBeInTheDocument();
+    expect(await screen.findByText(secondWalletDisplay)).toBeInTheDocument();
   });
 
-  it("mapea conflictos y no permite reemplazar una wallet ya verificada desde la pantalla", async () => {
+  it("D-REG-009 / D-REG-010 | mapea conflictos y no permite reemplazar una wallet ya verificada desde la pantalla", async () => {
     const user = userEvent.setup();
     setupFetch((request) => {
       const pathname = new URL(request.url).pathname;
-      if (pathname.endsWith("/resolve-by-dni")) {
-        return jsonResponse({ registered: true, accountAddress: secondWallet });
-      }
       if (pathname.endsWith("/wallet-regularization")) {
         return jsonResponse({ message: "conflict" }, 409);
       }
@@ -477,18 +472,20 @@ describe("Admin tenant institutional account", () => {
 
     renderWithAuthStore(<InstitutionalAccountPage />, tenantAuth());
 
-    await user.click(await screen.findByRole("button", { name: /Vincular mi wallet/i }));
+    await user.click(await screen.findByRole("button", { name: /Asociar mi cuenta/i }));
     await user.type(screen.getByLabelText("Carnet de identidad"), "12345678");
-    expect(await screen.findByDisplayValue(secondWallet)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Vincular wallet" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Buscar y asociar" })).not.toBeDisabled(),
+    );
+    await user.click(screen.getByRole("button", { name: "Buscar y asociar" }));
 
     expect(
-      await screen.findByText("La wallet no está disponible para esta cuenta."),
+      await screen.findByText("La cuenta ya se encuentra asociada a otra institución."),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Cambiar wallet/i })).not.toBeInTheDocument();
   });
 
-  it("D-INV-001/D-INV-002/D-INV-012: agrega cuenta por CI, muestra billetera de lectura y deja invitación Pendiente", async () => {
+  it("D-INV-001 / D-INV-002 / D-INV-012 | agrega cuenta por CI validado y deja invitacion Pendiente", async () => {
     const user = userEvent.setup();
     const invitations: Array<Record<string, unknown>> = [];
     const fetchMock = setupFetch(async (request) => {
@@ -524,18 +521,18 @@ describe("Admin tenant institutional account", () => {
 
     renderWithAuthStore(<InstitutionalAccountPage />, tenantAuth());
 
-    await user.click((await screen.findAllByRole("button", { name: /Agregar cuenta/i }))[0]);
-    const dialog = screen.getByRole("dialog", { name: "Agregar cuenta" });
-    expect(within(dialog).getByLabelText("CI o carnet")).toBeInTheDocument();
+    await user.click((await screen.findAllByRole("button", { name: /Añadir cuenta/i }))[0]);
+    const dialog = screen.getByRole("dialog", { name: "Añadir cuenta" });
+    expect(within(dialog).getByLabelText("CI/DNI")).toBeInTheDocument();
     expect(within(dialog).queryByLabelText(/Dirección/i)).not.toBeInTheDocument();
     expect(within(dialog).queryByLabelText(/Correo/i)).not.toBeInTheDocument();
     expect(within(dialog).queryByLabelText(/Contraseña/i)).not.toBeInTheDocument();
     expect(within(dialog).queryByLabelText(/Billetera registrada/i)).not.toBeInTheDocument();
 
-    await user.type(within(dialog).getByLabelText("CI o carnet"), "12345678");
-    expect(await within(dialog).findByText(secondWallet)).toBeInTheDocument();
+    await user.type(within(dialog).getByLabelText("CI/DNI"), "12345678");
+    expect(await within(dialog).findByText("Cuenta encontrada. Puedes continuar.")).toBeInTheDocument();
     expect(within(dialog).queryByDisplayValue(secondWallet)).not.toBeInTheDocument();
-    await user.click(within(dialog).getByRole("button", { name: "Agregar" }));
+    await user.click(within(dialog).getByRole("button", { name: "Añadir cuenta" }));
 
     expect(await screen.findByText("Pendiente")).toBeInTheDocument();
     expect(screen.getByText("Cuenta existente")).toBeInTheDocument();
@@ -557,7 +554,7 @@ describe("Admin tenant institutional account", () => {
     }
   });
 
-  it("D-INV-003/D-INV-004/D-INV-005: bloquea persona inexistente, ya administradora e invitación vigente", async () => {
+  it("D-INV-003 / D-INV-004 / D-INV-005 | bloquea persona inexistente, ya administradora e invitacion vigente", async () => {
     const user = userEvent.setup();
     setupFetch(async (request) => {
       const url = new URL(request.url);
@@ -586,30 +583,30 @@ describe("Admin tenant institutional account", () => {
 
     renderWithAuthStore(<InstitutionalAccountPage />, tenantAuth());
 
-    await user.click((await screen.findAllByRole("button", { name: /Agregar cuenta/i }))[0]);
-    let dialog = screen.getByRole("dialog", { name: "Agregar cuenta" });
-    await user.type(within(dialog).getByLabelText("CI o carnet"), "0000000");
+    await user.click((await screen.findAllByRole("button", { name: /Añadir cuenta/i }))[0]);
+    let dialog = screen.getByRole("dialog", { name: "Añadir cuenta" });
+    await user.type(within(dialog).getByLabelText("CI/DNI"), "0000000");
     expect(
       await within(dialog).findByText(PERSON_NOT_REGISTERED_MESSAGE),
     ).toBeInTheDocument();
-    expect(within(dialog).getByRole("button", { name: "Agregar" })).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: "Añadir cuenta" })).toBeDisabled();
 
-    await user.clear(within(dialog).getByLabelText("CI o carnet"));
-    await user.type(within(dialog).getByLabelText("CI o carnet"), "2222222");
-    expect(await within(dialog).findByText(secondWallet)).toBeInTheDocument();
-    await user.click(within(dialog).getByRole("button", { name: "Agregar" }));
+    await user.clear(within(dialog).getByLabelText("CI/DNI"));
+    await user.type(within(dialog).getByLabelText("CI/DNI"), "2222222");
+    expect(await within(dialog).findByText("Cuenta encontrada. Puedes continuar.")).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Añadir cuenta" }));
     expect(await within(dialog).findByText(ALREADY_ADMIN_MESSAGE)).toBeInTheDocument();
 
-    await user.clear(within(dialog).getByLabelText("CI o carnet"));
-    await user.type(within(dialog).getByLabelText("CI o carnet"), "3333333");
+    await user.clear(within(dialog).getByLabelText("CI/DNI"));
+    await user.type(within(dialog).getByLabelText("CI/DNI"), "3333333");
     await waitFor(() =>
-      expect(within(dialog).getByRole("button", { name: "Agregar" })).not.toBeDisabled(),
+      expect(within(dialog).getByRole("button", { name: "Añadir cuenta" })).not.toBeDisabled(),
     );
-    await user.click(within(dialog).getByRole("button", { name: "Agregar" }));
+    await user.click(within(dialog).getByRole("button", { name: "Añadir cuenta" }));
     expect(await within(dialog).findByText(DUPLICATE_INVITATION_MESSAGE)).toBeInTheDocument();
   });
 
-  it("D-INV-006/D-INV-007/D-INV-008/D-INV-009/D-INV-010/D-INV-011: muestra estados de invitaciones, reenvía y cancela sin borrar historial", async () => {
+  it("D-INV-006 / D-INV-007 / D-INV-008 / D-INV-009 / D-INV-010 / D-INV-011 | muestra estados de invitaciones, reenvia y cancela sin borrar historial", async () => {
     const user = userEvent.setup();
     const invitations = [
       {
@@ -686,7 +683,7 @@ describe("Admin tenant institutional account", () => {
     expect(screen.getByText("Invitación Operativa")).toBeInTheDocument();
   });
 
-  it("D-REQ-002/D-REQ-003/D-REQ-005/D-APR-001/D-APR-002/D-APR-003/D-APR-004/D-APR-006: muestra solicitudes, aprueba pendiente de firma y rechaza sin acceso", async () => {
+  it("D-REQ-002 / D-REQ-003 / D-REQ-005 / D-APR-001 / D-APR-002 / D-APR-003 / D-APR-004 / D-APR-006 | muestra solicitudes, aprueba pendiente de firma y rechaza sin acceso", async () => {
     const user = userEvent.setup();
     const applications = [
       {
@@ -738,7 +735,7 @@ describe("Admin tenant institutional account", () => {
     expect(screen.getByText("Solicitud rechazada. No se creó firma pendiente.")).toBeInTheDocument();
   });
 
-  it("D-LIST-001/D-LIST-003/D-LIST-004/D-DIS-001/D-DIS-004/D-DIS-005/D-DIS-006/D-DIS-007: principal ve estados y suspende/reactiva sin firma", async () => {
+  it("D-LIST-001 / D-LIST-003 / D-LIST-004 / D-DIS-001 / D-DIS-004 / D-DIS-005 / D-DIS-006 / D-DIS-007 | principal ve estados y suspende o reactiva sin firma", async () => {
     const user = userEvent.setup();
     const adminRows = [
       {
@@ -830,7 +827,7 @@ describe("Admin tenant institutional account", () => {
     expect(activeCard).not.toBeNull();
     await user.click(within(activeCard as HTMLElement).getByRole("button", { name: "Suspender" }));
     await waitFor(() => expect(statusCalls.some((call) => call.url.includes("secondary-active/status") && call.body.active === false)).toBe(true));
-    expect(await screen.findByText("Acceso suspendido. La billetera permanece autorizada.")).toBeInTheDocument();
+    expect(await screen.findByText("Acceso suspendido. La wallet permanece autorizada.")).toBeInTheDocument();
 
     const suspendedCard = screen.getByText("Admin suspendida").closest("article");
     expect(suspendedCard).not.toBeNull();
@@ -839,7 +836,7 @@ describe("Admin tenant institutional account", () => {
     expect(await screen.findByText("Acceso habilitado. No se pidió firma ni operación en la red.")).toBeInTheDocument();
   });
 
-  it("D-REQ-006/D-REQ-007: un administrador secundario ve la cuenta pero no acciones exclusivas", async () => {
+  it("D-REQ-006 / D-REQ-007 / D-PERM-003 | un administrador secundario ve la cuenta pero no acciones exclusivas", async () => {
     const secondaryAdminsResponse = {
       ...adminsResponse,
       data: [
@@ -894,7 +891,7 @@ describe("Admin tenant institutional account", () => {
 
     expect(await screen.findByText("Pendiente sin acciones")).toBeInTheDocument();
     expect(screen.getByText("Solicitud sin acciones")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Agregar cuenta/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Añadir cuenta/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Reenviar" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Cancelar" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Aprobar" })).not.toBeInTheDocument();
@@ -903,7 +900,7 @@ describe("Admin tenant institutional account", () => {
     expect(screen.queryByRole("button", { name: "Reactivar" })).not.toBeInTheDocument();
   });
 
-  it("D-SIGN-009/D-SIGN-010/D-SIGN-011/D-SIGN-014: refleja estados móviles sin habilitar acceso antes de confirmación", async () => {
+  it("D-SIGN-009 / D-SIGN-010 / D-SIGN-011 / D-SIGN-014 | refleja estados moviles sin habilitar acceso antes de confirmacion", async () => {
     setupFetch((request) => {
       const url = new URL(request.url);
       if (url.pathname === "/api/v1/institutional-admin-applications") {
@@ -956,7 +953,7 @@ describe("Admin tenant institutional account", () => {
     expect(screen.getAllByText("Acceso habilitado").length).toBeGreaterThanOrEqual(1);
   });
 
-  it("no muestra datos del tenant anterior al cambiar de contexto", async () => {
+  it("D-MULTI-001 / D-COMPAT-004 | no muestra datos del tenant anterior al cambiar de contexto", async () => {
     const tenantBWallet = "0x4444444444444444444444444444444444444444";
     setupFetch((request) => {
       const pathname = new URL(request.url).pathname;
@@ -974,7 +971,7 @@ describe("Admin tenant institutional account", () => {
     });
 
     const first = renderWithAuthStore(<InstitutionalAccountPage />, tenantAuth());
-    expect((await screen.findAllByText(activeWallet)).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText(activeWalletDisplay)).length).toBeGreaterThan(0);
     first.unmount();
 
     renderWithAuthStore(
@@ -1002,8 +999,8 @@ describe("Admin tenant institutional account", () => {
       }),
     );
 
-    expect(await screen.findByText(tenantBWallet)).toBeInTheDocument();
-    expect(screen.queryByText(activeWallet)).not.toBeInTheDocument();
+    expect(await screen.findByText("0x444444...444444")).toBeInTheDocument();
+    expect(screen.queryByText(activeWalletDisplay)).not.toBeInTheDocument();
     expect(screen.queryByText("180 TVD")).not.toBeInTheDocument();
   });
 });

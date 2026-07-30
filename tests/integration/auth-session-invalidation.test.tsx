@@ -82,7 +82,7 @@ const buildStore = () =>
     },
   });
 
-describe("authVersion session invalidation", () => {
+describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | Invalidación de sesión", () => {
   beforeEach(() => {
     mocks.navigate.mockReset();
     mocks.searchParams = new URLSearchParams();
@@ -105,7 +105,7 @@ describe("authVersion session invalidation", () => {
     vi.unstubAllGlobals();
   });
 
-  it("limpia sesion y persiste un reason code no sensible ante AUTH_VERSION_MISMATCH", async () => {
+  it("AUT-SES-P0-006 | limpia sesión y persiste reason code no sensible ante AUTH_VERSION_MISMATCH", async () => {
     window.history.pushState({}, "", "/votacion/login");
     const store = buildStore();
 
@@ -128,7 +128,7 @@ describe("authVersion session invalidation", () => {
     expect(JSON.stringify(reason)).not.toContain("tenant-1");
   });
 
-  it("mantiene 401 comun sin mensaje especial de authVersion", async () => {
+  it("AUT-SES-P0-003 | mantiene 401 común sin mensaje especial de authVersion", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () =>
@@ -155,7 +155,7 @@ describe("authVersion session invalidation", () => {
     expect(consumeAuthSessionEndReason()).toBeNull();
   });
 
-  it("muestra el mensaje de cierre una sola vez en el login", () => {
+  it("AUT-SES-P1-007 | muestra el mensaje de cierre una sola vez en el login", () => {
     persistAuthSessionEndReason(AUTH_VERSION_MISMATCH_CODE);
 
     const { unmount } = renderWithAuthStore(<LoginVotacionPage />);

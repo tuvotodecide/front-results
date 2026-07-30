@@ -18,12 +18,12 @@ const createRequest = (cookies: Record<string, string> = {}) => {
   });
 };
 
-describe("dev auth route handlers", () => {
+describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | Dev auth", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
   });
 
-  it("crea sesión dev superadmin solo con flag habilitado", async () => {
+  it("AUT-SUP-P0-003 | crea sesión dev superadmin solo con flag habilitado", async () => {
     vi.stubEnv("ENABLE_DEV_AUTH", "true");
 
     const response = await loginDevSuperadmin();
@@ -43,7 +43,7 @@ describe("dev auth route handlers", () => {
     expect(JSON.stringify(body)).not.toContain("token");
   });
 
-  it("bloquea dev auth en producción", async () => {
+  it("AUT-SUP-P0-003 | bloquea dev auth en producción", async () => {
     vi.stubEnv("ENABLE_DEV_AUTH", "true");
     vi.stubEnv("NODE_ENV", "production");
 
@@ -53,7 +53,7 @@ describe("dev auth route handlers", () => {
     expect(response.headers.get("set-cookie")).toBeNull();
   });
 
-  it("dev session devuelve usuario mock seguro sin token", async () => {
+  it("AUT-SUP-P0-003 | dev session devuelve usuario mock seguro sin token", async () => {
     vi.stubEnv("ENABLE_DEV_AUTH", "true");
 
     const response = await getDevSession(
@@ -68,7 +68,7 @@ describe("dev auth route handlers", () => {
     expect(JSON.stringify(body)).not.toContain("refreshToken");
   });
 
-  it("dev session responde no autenticado sin cookie dev", async () => {
+  it("AUT-GRD-P0-001 | dev session responde no autenticado sin cookie dev", async () => {
     vi.stubEnv("ENABLE_DEV_AUTH", "true");
 
     const response = await getDevSession(createRequest());
@@ -79,7 +79,7 @@ describe("dev auth route handlers", () => {
     expect(JSON.stringify(body)).not.toContain("SUPERADMIN");
   });
 
-  it("dev session queda bloqueada si dev auth está deshabilitado", async () => {
+  it("AUT-SUP-P0-003 | dev session queda bloqueada si dev auth está deshabilitado", async () => {
     const response = await getDevSession(
       createRequest({ [DEV_AUTH_COOKIE]: DEV_AUTH_COOKIE_VALUE }),
     );
@@ -87,7 +87,7 @@ describe("dev auth route handlers", () => {
     expect(response.status).toBe(404);
   });
 
-  it("logout dev limpia la cookie dev", async () => {
+  it("AUT-OUT-P0-001 | logout dev limpia la cookie dev", async () => {
     vi.stubEnv("ENABLE_DEV_AUTH", "true");
 
     const response = await logoutDevSuperadmin();

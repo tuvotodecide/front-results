@@ -49,7 +49,7 @@ vi.mock("@/domains/auth-resultados/navigation/compat", () => ({
   useSearchParams: () => [currentSearchParams],
 }));
 
-describe("canonical auth resultados pages", () => {
+describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | Login resultados", () => {
   beforeEach(() => {
     navigate.mockReset();
     loginUser.mockReset();
@@ -68,7 +68,7 @@ describe("canonical auth resultados pages", () => {
     currentSearchParams = new URLSearchParams();
   });
 
-  it("validates the canonical resultados login form", async () => {
+  it("AUT-LOG-P1-001 / AUT-CRE-P0-001 | valida el formulario público y payload canónico de login resultados", async () => {
     const user = userEvent.setup();
     const { container } = renderWithAuthStore(<LoginResultadosPage />);
 
@@ -90,7 +90,7 @@ describe("canonical auth resultados pages", () => {
     );
   });
 
-  it("validates the canonical resultados register form", async () => {
+  it("PERTENECE_A_OTRA_MATRIZ | valida el formulario canónico de registro resultados", async () => {
     const user = userEvent.setup();
     const { container } = renderWithAuthStore(<RegisterResultadosPage />);
 
@@ -107,7 +107,7 @@ describe("canonical auth resultados pages", () => {
     );
   });
 
-  it("redirects to pendiente after a successful canonical registration", async () => {
+  it("PERTENECE_A_OTRA_MATRIZ | redirige a pendiente después de registro canónico exitoso", async () => {
     const user = userEvent.setup();
     createUser.mockReturnValue({
       unwrap: vi.fn().mockResolvedValue({ ok: true }),
@@ -147,7 +147,7 @@ describe("canonical auth resultados pages", () => {
     });
   });
 
-  it("syncs territorial pending approval in auth state immediately after registration", async () => {
+  it("AUT-STA-P0-002 | sincroniza estado pendiente territorial después de registro", async () => {
     const user = userEvent.setup();
     currentSearchParams = new URLSearchParams(
       "email=josetigre2000@gmail.com&name=Usuario&crossAccess=1",
@@ -202,7 +202,7 @@ describe("canonical auth resultados pages", () => {
     expect(localStorage.getItem("pendingReason")).toBe("SUPERADMIN_APPROVAL");
   });
 
-  it("prefills query values and keeps department loading enabled in cross access", async () => {
+  it("PERTENECE_A_OTRA_MATRIZ | precarga valores query y mantiene carga de departamento en acceso cruzado", async () => {
     currentSearchParams = new URLSearchParams(
       "email=josetigre2000@gmail.com&name=Usuario&crossAccess=1",
     );
@@ -239,7 +239,7 @@ describe("canonical auth resultados pages", () => {
     );
   });
 
-  it("shows pending approval from resultados login without voting CTA and with public home", async () => {
+  it("AUT-STA-P0-001 / AUT-STA-P0-002 | muestra aprobación pendiente desde login resultados sin CTA de votación", async () => {
     const { store } = renderWithAuthStore(<LoginResultadosPage />, {
       token: "token",
       accessToken: "token",
@@ -273,7 +273,7 @@ describe("canonical auth resultados pages", () => {
     expect(store.getState().auth.user).toBeNull();
   });
 
-  it("redirects access approvers back to approvals when login started from that route", async () => {
+  it("AUT-LOG-P0-003 | redirige ACCESS_APPROVER a aprobaciones cuando el login inició desde esa ruta", async () => {
     const user = userEvent.setup();
     currentSearchParams = new URLSearchParams("from=/aprobaciones");
     loginUser.mockReturnValue({
@@ -315,7 +315,7 @@ describe("canonical auth resultados pages", () => {
     });
   });
 
-  it("shows a visible session error when resultados login receives an unauthorized response", async () => {
+  it("AUT-UI-P1-001 / AUT-HTTP-P0-001 | muestra error visible de sesión ante respuesta no autorizada", async () => {
     const user = userEvent.setup();
     loginUser.mockReturnValue({
       unwrap: vi.fn().mockRejectedValue({

@@ -149,7 +149,7 @@ describe("election configuration C+D flow", () => {
     ] as any);
   });
 
-  it("creates, edits and deletes cargos with expected RTK payloads", async () => {
+  it("ELE-ROL-P0-001 / ELE-ROL-P1-002 / ELE-ROL-P0-004 / ELE-EDT-P0-001 crea, edita y elimina cargos con payloads RTK", async () => {
     const user = userEvent.setup();
 
     render(<ElectionConfigCargos />);
@@ -194,7 +194,7 @@ describe("election configuration C+D flow", () => {
     });
   });
 
-  it("shows cargo API errors without changing the product flow", async () => {
+  it("ELE-ROL-P0-003 / ELE-HTTP-P0-001 / ELE-HTTP-P0-002 muestra errores API de cargo sin cerrar el flujo", async () => {
     const user = userEvent.setup();
     createRoleMock.mockReturnValue(unwrapError("Cargo duplicado"));
 
@@ -205,15 +205,48 @@ describe("election configuration C+D flow", () => {
     await user.click(screen.getByRole("button", { name: "Guardar Cargo" }));
 
     expect(await screen.findAllByText("Cargo duplicado")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Guardar Cargo" })).toBeInTheDocument();
   });
 
-  it("edits, deletes and completes candidates for a plancha", async () => {
+  it("ELE-OPT-P0-001 / ELE-OPT-P1-002 / ELE-CAN-P0-001 / ELE-OPT-P1-004 crea, edita, completa candidatos y elimina plancha", async () => {
     const user = userEvent.setup();
+    createOptionMock.mockReturnValue(unwrapResult({
+      id: "option-green",
+      eventId: "evt-config",
+      name: "Lista Verde",
+      color: "#2E7D32",
+      colors: ["#2E7D32"],
+      logoUrl: "data:image/png;base64,logo-green",
+      active: true,
+      candidates: [],
+      createdAt: "2026-01-01T00:00:00.000Z",
+    }));
 
     render(<ElectionConfigPlanchas />);
 
     expect(screen.getByText("Paso 2 de 3: Agrega partidos y candidatos.")).toBeInTheDocument();
     expect(screen.getByText("Lista Azul")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Crear Partido" }));
+    await user.type(screen.getByPlaceholderText("Ej: Movimiento Futuro"), "Lista Verde");
+    const file = new File(["logo"], "logo.png", { type: "image/png" });
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await user.upload(fileInput, file);
+    await waitFor(() => {
+      expect(screen.getByAltText("Logo preview")).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: "Guardar y Continuar" }));
+
+    await waitFor(() => {
+      expect(createOptionMock).toHaveBeenCalledWith({
+        eventId: "evt-config",
+        data: expect.objectContaining({
+          name: "Lista Verde",
+          color: "#2E7D32",
+          colors: ["#2E7D32"],
+          logoUrl: expect.stringContaining("data:image/png"),
+        }),
+      });
+    });
 
     await user.click(screen.getAllByRole("button", { name: "Editar" })[0]!);
     const partyNameInput = screen.getByDisplayValue("Lista Azul");
@@ -274,7 +307,45 @@ describe("election configuration C+D flow", () => {
     });
   });
 
-  it("creates referendum options with automatic candidate payloads and without logo", async () => {
+  it("ELE-OPT-P0-003 muestra color inválido y error backend por opción duplicada sin cerrar modal", async () => {
+    const user = userEvent.setup();
+    createOptionMock.mockReturnValue(unwrapError("Ya existe una opcion con ese nombre en el evento"));
+
+    render(<ElectionConfigPlanchas />);
+
+    await user.click(screen.getByRole("button", { name: "Crear Partido" }));
+    await user.type(screen.getByPlaceholderText("Ej: Movimiento Futuro"), "Lista Azul");
+    await user.clear(screen.getByDisplayValue("#2E7D32"));
+    await user.type(screen.getByPlaceholderText("#000000"), "zzzzzz");
+    await user.click(screen.getByRole("button", { name: "Guardar y Continuar" }));
+
+    expect(screen.getByText("Formato de color inválido")).toBeInTheDocument();
+
+    await user.clear(screen.getByPlaceholderText("#000000"));
+    await user.type(screen.getByPlaceholderText("#000000"), "2E7D32");
+    const file = new File(["logo"], "logo.png", { type: "image/png" });
+    await user.upload(document.querySelector('input[type="file"]') as HTMLInputElement, file);
+    await user.click(screen.getByRole("button", { name: "Guardar y Continuar" }));
+
+    expect(await screen.findAllByText("Ya existe una opcion con ese nombre en el evento")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Guardar y Continuar" })).toBeInTheDocument();
+  });
+
+  it("ELE-CAN-P0-002 muestra error al guardar candidato con cargo inválido sin cerrar modal", async () => {
+    const user = userEvent.setup();
+    replaceCandidatesMock.mockReturnValue(unwrapError("roleName invalido en candidato: Tesoreria"));
+
+    render(<ElectionConfigPlanchas />);
+
+    await user.click(screen.getByText("Lista Azul"));
+    await user.click(screen.getByRole("button", { name: "Editar Candidatos" }));
+    await user.click(screen.getByRole("button", { name: "Guardar Candidatos" }));
+
+    expect(await screen.findAllByText("roleName invalido en candidato: Tesoreria")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Guardar Candidatos" })).toBeInTheDocument();
+  });
+
+  it("ELE-REF-P1-003 creates referendum options with automatic candidate payloads and without logo", async () => {
     const user = userEvent.setup();
     setupVotingEventMocks({
       event: referendumVotingEvent,

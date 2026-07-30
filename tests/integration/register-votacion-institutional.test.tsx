@@ -98,7 +98,7 @@ const selectExistingInstitution = async (container: HTMLElement) => {
   await user.click(await screen.findByRole("button", { name: "Colegio Activo" }));
 };
 
-describe("RegisterVotacionPage institutional wallet resolution", () => {
+describe("MX-02 | Gestión de instituciones, administradores y wallets | Frontend Admin | Registro institucional", () => {
   beforeEach(() => {
     navigate.mockReset();
     createInstitutionalAdminApplication.mockReset();
@@ -119,7 +119,7 @@ describe("RegisterVotacionPage institutional wallet resolution", () => {
     });
   });
 
-  it("resuelve wallet por DNI, la muestra completa y no la envía en el registro final", async () => {
+  it("D-NEW-001 / D-NEW-006 / D-NEW-007 | resuelve wallet por DNI, la muestra completa y no la envia en el registro final", async () => {
     const { container } = renderWithAuthStore(<RegisterVotacionPage />);
     await submitForm(container);
 
@@ -146,7 +146,7 @@ describe("RegisterVotacionPage institutional wallet resolution", () => {
     });
   });
 
-  it("muestra modos de institución, busca activas y envía institutionId para una solicitud existente", async () => {
+  it("D-NEW-002 / D-NEW-003 / D-NEW-004 | muestra modos de institucion, busca activas y envia institutionId para una solicitud existente", async () => {
     const { container } = renderWithAuthStore(<RegisterVotacionPage />);
     const user = await fillBaseFields(container);
 
@@ -186,7 +186,7 @@ describe("RegisterVotacionPage institutional wallet resolution", () => {
     );
   });
 
-  it("no permite texto arbitrario como institución existente", async () => {
+  it("D-NEW-005 | no permite texto arbitrario como institucion existente", async () => {
     const { container } = renderWithAuthStore(<RegisterVotacionPage />);
     const user = await fillBaseFields(container);
 
@@ -203,7 +203,7 @@ describe("RegisterVotacionPage institutional wallet resolution", () => {
     expect(createInstitutionalAdminApplication).not.toHaveBeenCalled();
   });
 
-  it("limpia valores ocultos al alternar entre institución nueva y existente", async () => {
+  it("D-NEW-008 / D-RETRY-001 | limpia valores ocultos al alternar entre institucion nueva y existente", async () => {
     const user = userEvent.setup();
     const { container } = renderWithAuthStore(<RegisterVotacionPage />);
 
@@ -233,7 +233,7 @@ describe("RegisterVotacionPage institutional wallet resolution", () => {
     expect(getInput(container, '[data-cy="register-tenant-name"]')).toHaveValue("");
   });
 
-  it("muestra mensajes controlados del catálogo público", async () => {
+  it("D-NEW-009 / D-NEW-010 | muestra mensajes controlados del catalogo publico", async () => {
     const user = userEvent.setup();
     listPublicInstitutionalTenants.mockReturnValueOnce({
       unwrap: vi.fn().mockResolvedValue({
@@ -273,10 +273,22 @@ describe("RegisterVotacionPage institutional wallet resolution", () => {
   });
 
   it.each([
-    "Ya tienes una solicitud pendiente para esta institución.",
-    "Ya administras esta institución.",
-    "La institución seleccionada no está disponible.",
-  ])("muestra error de registro para institución existente: %s", async (message) => {
+    [
+      "D-REQ-004",
+      "mantiene pendiente la solicitud duplicada",
+      "Ya tienes una solicitud pendiente para esta institución.",
+    ],
+    [
+      "D-COMPAT-001",
+      "detecta administrador institucional existente",
+      "Ya administras esta institución.",
+    ],
+    [
+      "D-STATE-002",
+      "rechaza institución no disponible",
+      "La institución seleccionada no está disponible.",
+    ],
+  ])("%s | %s", async (_id, _scenario, message) => {
     createInstitutionalAdminApplication.mockReturnValueOnce({
       unwrap: vi.fn().mockRejectedValue({ data: { message } }),
     });
@@ -289,7 +301,7 @@ describe("RegisterVotacionPage institutional wallet resolution", () => {
     expect(await screen.findByText(message)).toBeInTheDocument();
   });
 
-  it("bloquea el envío cuando el CI o DNI no corresponde a una persona registrada", async () => {
+  it("D-NEW-011 | bloquea el envio cuando el CI o DNI no corresponde a una persona registrada", async () => {
     const user = userEvent.setup();
     resolveInstitutionalWalletByDni.mockReturnValue({
       unwrap: vi.fn().mockResolvedValue({
@@ -310,7 +322,7 @@ describe("RegisterVotacionPage institutional wallet resolution", () => {
     expect(createInstitutionalAdminApplication).not.toHaveBeenCalled();
   });
 
-  it("bloquea el envío cuando la persona registrada no tiene billetera", async () => {
+  it("D-NEW-012 | bloquea el envio cuando la persona registrada no tiene billetera", async () => {
     const user = userEvent.setup();
     resolveInstitutionalWalletByDni.mockReturnValue({
       unwrap: vi.fn().mockResolvedValue({
@@ -333,7 +345,7 @@ describe("RegisterVotacionPage institutional wallet resolution", () => {
     expect(createInstitutionalAdminApplication).not.toHaveBeenCalled();
   });
 
-  it("muestra conflicto de correo ocupado y no finaliza el registro", async () => {
+  it("D-NEW-013 / D-MAIL-001 | muestra conflicto de correo ocupado y no finaliza el registro", async () => {
     createInstitutionalAdminApplication.mockReturnValueOnce({
       unwrap: vi.fn().mockRejectedValue({
         data: { message: "El email o DNI ya está asociado a otro usuario" },
@@ -350,7 +362,7 @@ describe("RegisterVotacionPage institutional wallet resolution", () => {
     });
   });
 
-  it("limpia la wallet anterior cuando cambia el DNI", async () => {
+  it("D-REG-001 / D-REG-002 | limpia la wallet anterior cuando cambia el DNI", async () => {
     const user = userEvent.setup();
     resolveInstitutionalWalletByDni
       .mockReturnValueOnce(successfulResolve(wallet))
@@ -369,7 +381,7 @@ describe("RegisterVotacionPage institutional wallet resolution", () => {
     expect(await screen.findByDisplayValue(secondWallet)).toBeInTheDocument();
   });
 
-  it("muestra mensaje seguro cuando el endpoint responde rate limit", async () => {
+  it("D-NEW-014 | muestra mensaje seguro cuando el endpoint responde rate limit", async () => {
     const user = userEvent.setup();
     resolveInstitutionalWalletByDni.mockReturnValue({
       unwrap: vi.fn().mockRejectedValue({ status: 429 }),
@@ -387,7 +399,7 @@ describe("RegisterVotacionPage institutional wallet resolution", () => {
     expect(screen.getByRole("button", { name: "Registrarse" })).toBeDisabled();
   });
 
-  it("muestra mensaje controlado cuando falla la consulta de wallet", async () => {
+  it("D-NEW-015 / D-REG-003 | muestra mensaje controlado cuando falla la consulta de wallet", async () => {
     const user = userEvent.setup();
     resolveInstitutionalWalletByDni.mockReturnValue({
       unwrap: vi.fn().mockRejectedValue({ status: "FETCH_ERROR" }),

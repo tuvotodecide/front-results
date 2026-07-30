@@ -36,12 +36,12 @@ const createRequest = (
   });
 };
 
-describe("middleware access rules", () => {
+describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | Middleware", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
   });
 
-  it("normalizes roles and statuses", () => {
+  it("AUT-LOG-P0-002 | normaliza roles y estados de sesión", () => {
     expect(normalizeRole("ALCALDE")).toBe("MAYOR");
     expect(normalizeRole("tenantadmin")).toBe("TENANT_ADMIN");
     expect(normalizeRole("ADMIN")).toBe("SUPERADMIN");
@@ -53,7 +53,7 @@ describe("middleware access rules", () => {
     expect(normalizeStatus(undefined, "false")).toBe("PENDING");
   });
 
-  it("marks expired tokens as invalid", () => {
+  it("AUT-SES-P0-004 | marca tokens expirados como inválidos", () => {
     const expiredToken = createToken({
       exp: Math.floor(Date.now() / 1000) - 60,
     });
@@ -62,7 +62,7 @@ describe("middleware access rules", () => {
     expect(isExpired(null)).toBe(true);
   });
 
-  it("redirects resultados admin paths to canonical login when there is no valid session", () => {
+  it("AUT-GRD-P0-001 | redirige rutas admin resultados al login canónico sin sesión válida", () => {
     const response = middleware(createRequest("/resultados/panel"));
 
     expect(response.headers.get("location")).toBe(
@@ -70,7 +70,7 @@ describe("middleware access rules", () => {
     );
   });
 
-  it("redirects pending resultados users to pendiente", () => {
+  it("AUT-STA-P0-002 | redirige usuarios resultados pendientes a pendiente", () => {
     const token = createToken({
       exp: Math.floor(Date.now() / 1000) + 3600,
       role: "SUPERADMIN",
@@ -91,7 +91,7 @@ describe("middleware access rules", () => {
     );
   });
 
-  it("prevents mayor users from entering resultados admin routes", () => {
+  it("AUT-GRD-P0-002 / AUT-TER-P0-001 | impide a MAYOR entrar a rutas admin resultados", () => {
     const token = createToken({
       exp: Math.floor(Date.now() / 1000) + 3600,
       role: "MAYOR",
@@ -110,7 +110,7 @@ describe("middleware access rules", () => {
     expect(response.headers.get("location")).toBe("http://localhost/resultados");
   });
 
-  it("redirects global superadmin users away from resultados admin routes", () => {
+  it("AUT-ARE-P0-004 | redirige SUPERADMIN global fuera de rutas admin resultados", () => {
     const token = createToken({
       exp: Math.floor(Date.now() / 1000) + 3600,
       role: "SUPERADMIN",
@@ -130,7 +130,7 @@ describe("middleware access rules", () => {
     expect(response.headers.get("location")).toBe("http://localhost/superadmin");
   });
 
-  it("allows superadmin users into superadmin routes", () => {
+  it("AUT-SUP-P0-001 | permite usuarios SUPERADMIN en rutas superadmin", () => {
     const token = createToken({
       exp: Math.floor(Date.now() / 1000) + 3600,
       role: "SUPERADMIN",
@@ -150,7 +150,7 @@ describe("middleware access rules", () => {
     expect(response.headers.get("x-middleware-next")).toBe("1");
   });
 
-  it("allows GLOBAL_ADMIN context into superadmin routes", () => {
+  it("AUT-SUP-P0-001 | permite contexto GLOBAL_ADMIN en rutas superadmin", () => {
     const token = createToken({
       exp: Math.floor(Date.now() / 1000) + 3600,
       role: "SUPERADMIN",
@@ -170,7 +170,7 @@ describe("middleware access rules", () => {
     expect(response.headers.get("x-middleware-next")).toBe("1");
   });
 
-  it("allows dev superadmin cookie into superadmin routes only when dev auth is enabled", () => {
+  it("AUT-SUP-P0-003 | permite cookie dev superadmin solo con dev auth habilitado", () => {
     vi.stubEnv("ENABLE_DEV_AUTH", "true");
 
     const response = handleSuperadminAccess(
@@ -182,7 +182,7 @@ describe("middleware access rules", () => {
     expect(response.headers.get("x-middleware-next")).toBe("1");
   });
 
-  it("redirects global superadmin users away from private voting routes", () => {
+  it("AUT-ARE-P0-004 | redirige SUPERADMIN global fuera de rutas privadas de votación", () => {
     const token = createToken({
       exp: Math.floor(Date.now() / 1000) + 3600,
       role: "SUPERADMIN",
@@ -202,7 +202,7 @@ describe("middleware access rules", () => {
     expect(response.headers.get("location")).toBe("http://localhost/superadmin");
   });
 
-  it("does not allow dev superadmin cookie when dev auth is disabled", () => {
+  it("AUT-SUP-P0-003 | bloquea cookie dev superadmin cuando dev auth está deshabilitado", () => {
     const response = handleSuperadminAccess(
       createRequest("/superadmin", {
         [DEV_AUTH_COOKIE]: DEV_AUTH_COOKIE_VALUE,
@@ -214,7 +214,7 @@ describe("middleware access rules", () => {
     );
   });
 
-  it("blocks non-superadmin users from superadmin routes", () => {
+  it("AUT-SUP-P0-002 / AUT-ARE-P0-003 | bloquea usuarios no superadmin en rutas superadmin", () => {
     const token = createToken({
       exp: Math.floor(Date.now() / 1000) + 3600,
       role: "ACCESS_APPROVER",
@@ -234,7 +234,7 @@ describe("middleware access rules", () => {
     expect(response.headers.get("location")).toBe("http://localhost/resultados");
   });
 
-  it("redirects anonymous superadmin access to resultados login", () => {
+  it("AUT-GRD-P0-001 | redirige acceso anónimo superadmin al login resultados", () => {
     const response = middleware(createRequest("/superadmin/tvd/asignacion"));
 
     expect(response.headers.get("location")).toBe(
@@ -242,7 +242,7 @@ describe("middleware access rules", () => {
     );
   });
 
-  it("lets non-tenant voting users reach the client guard for the domain notice", () => {
+  it("AUT-ARE-P0-002 | deja usuarios no tenant de votación llegar al guard cliente", () => {
     const token = createToken({
       exp: Math.floor(Date.now() / 1000) + 3600,
       role: "publico",
@@ -261,7 +261,7 @@ describe("middleware access rules", () => {
     expect(response.headers.get("x-middleware-next")).toBe("1");
   });
 
-  it("allows tenant admin users into canonical voting routes", () => {
+  it("AUT-ARE-P0-002 | permite tenant admin en rutas canónicas de votación", () => {
     const token = createToken({
       exp: Math.floor(Date.now() / 1000) + 3600,
       role: "TENANT_ADMIN",
@@ -280,7 +280,7 @@ describe("middleware access rules", () => {
     expect(response.headers.get("x-middleware-next")).toBe("1");
   });
 
-  it("lets access approvers reach voting routes so the client guard can show the domain notice", () => {
+  it("AUT-ARE-P0-002 | deja ACCESS_APPROVER llegar a votación para aviso de dominio", () => {
     const token = createToken({
       exp: Math.floor(Date.now() / 1000) + 3600,
       role: "ACCESS_APPROVER",

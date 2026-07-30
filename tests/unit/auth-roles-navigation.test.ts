@@ -21,7 +21,7 @@ const baseState: AuthState = {
   user: null,
 };
 
-describe("auth roles and navigation", () => {
+describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | Roles y redirección", () => {
   beforeEach(() => {
     localStorage.clear();
     document.cookie
@@ -33,7 +33,7 @@ describe("auth roles and navigation", () => {
       });
   });
 
-  it("keeps ACCESS_APPROVER inside approvals even when a requested route belongs to another domain", () => {
+  it("AUT-APR-P0-001 mantiene ACCESS_APPROVER en aprobaciones aunque el retorno apunte a otro dominio", () => {
     const auth = {
       ...baseState,
       token,
@@ -69,7 +69,7 @@ describe("auth roles and navigation", () => {
     expect(resolvePostLoginRedirect(auth, "/aprobaciones")).toBe("/aprobaciones");
   });
 
-  it("routes global superadmin sessions to /superadmin", () => {
+  it("AUT-SUP-P0-001 / AUT-LOG-P0-004 / AUT-SEC-P0-001 | enruta SUPERADMIN a /superadmin e ignora returnUrl externo", () => {
     const auth = {
       ...baseState,
       token,
@@ -106,9 +106,15 @@ describe("auth roles and navigation", () => {
     expect(resolvePostLoginRedirect(auth, "/superadmin/tvd/contrato")).toBe(
       "/superadmin/tvd/contrato",
     );
+    expect(resolvePostLoginRedirect(auth, "https://evil.test/superadmin")).toBe(
+      "/superadmin",
+    );
+    expect(resolvePostLoginRedirect(auth, "//evil.test/superadmin")).toBe(
+      "/superadmin",
+    );
   });
 
-  it("clears auth state and browser session keys on logout", () => {
+  it("AUT-OUT-P0-001 limpia estado local y cookies reales al cerrar sesion", () => {
     localStorage.setItem("token", "token");
     localStorage.setItem("user", "{}");
     localStorage.setItem("selectedElectionId", "election-1");
@@ -145,6 +151,11 @@ describe("auth roles and navigation", () => {
       }),
     );
 
+    expect(document.cookie).toContain("tvd_auth_token=");
+    expect(document.cookie).toContain("tvd_auth_role=");
+    expect(document.cookie).toContain("tvd_auth_active=");
+    expect(document.cookie).toContain("tvd_auth_context=");
+
     const loggedOut = authSlice.reducer(loggedIn, logOut());
 
     expect(loggedOut).toMatchObject({
@@ -169,5 +180,10 @@ describe("auth roles and navigation", () => {
     ].forEach((key) => {
       expect(localStorage.getItem(key)).toBeNull();
     });
+    expect(document.cookie).not.toContain("tvd_auth_token=");
+    expect(document.cookie).not.toContain("tvd_auth_role=");
+    expect(document.cookie).not.toContain("tvd_auth_status=");
+    expect(document.cookie).not.toContain("tvd_auth_active=");
+    expect(document.cookie).not.toContain("tvd_auth_context=");
   });
 });

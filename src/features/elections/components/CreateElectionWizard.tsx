@@ -384,7 +384,14 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                   </div>
 
                   {/* Botón Siguiente */}
-                  <div className="flex justify-center pt-4">
+                  <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
+                    <button
+                      type="button"
+                      onClick={handleBack}
+                      className="px-12 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Cancelar
+                    </button>
                     <button
                       type="submit"
                       disabled={!isValid}

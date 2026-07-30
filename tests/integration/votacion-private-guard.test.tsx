@@ -10,13 +10,13 @@ vi.mock("next/navigation", () => ({
   usePathname: () => pathname,
 }));
 
-describe("VotacionPrivateGuard", () => {
+describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | Votación guard", () => {
   beforeEach(() => {
     replace.mockReset();
     pathname = "/votacion";
   });
 
-  it("redirects anonymous users to canonical voting login", async () => {
+  it("AUT-GRD-P0-001 | redirige anónimos al login canónico de votación", async () => {
     renderWithAuthStore(
       <VotacionPrivateGuard>
         <div>private voting</div>
@@ -28,7 +28,7 @@ describe("VotacionPrivateGuard", () => {
     });
   });
 
-  it("redirects rejected users to rechazado", async () => {
+  it("AUT-STA-P0-002 | redirige usuarios rechazados a rechazado", async () => {
     renderWithAuthStore(
       <VotacionPrivateGuard>
         <div>private voting</div>
@@ -51,7 +51,7 @@ describe("VotacionPrivateGuard", () => {
     });
   });
 
-  it("shows a domain access notice for authenticated non-tenant contexts", async () => {
+  it("AUT-ARE-P0-002 | muestra aviso de dominio para autenticados sin contexto tenant", async () => {
     renderWithAuthStore(
       <VotacionPrivateGuard>
         <div>private voting</div>
@@ -82,7 +82,7 @@ describe("VotacionPrivateGuard", () => {
     expect(screen.getByText("Registrarme en votación")).toBeInTheDocument();
   });
 
-  it("renders children for tenant contexts", () => {
+  it("AUT-GRD-P0-002 | renderiza contenido para contextos tenant permitidos", () => {
     renderWithAuthStore(
       <VotacionPrivateGuard>
         <div>private voting</div>
@@ -109,7 +109,7 @@ describe("VotacionPrivateGuard", () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
-  it("keeps tenant admins without wallet in the requested voting route", () => {
+  it("AUT-ARE-P0-002 | mantiene tenant admin sin wallet en la ruta de votación solicitada", () => {
     renderWithAuthStore(
       <VotacionPrivateGuard>
         <div>private voting</div>
@@ -140,7 +140,7 @@ describe("VotacionPrivateGuard", () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
-  it("keeps the institutional account route available without wallet", () => {
+  it("AUT-ARE-P0-002 | mantiene disponible cuenta institucional sin wallet", () => {
     pathname = "/votacion/cuenta-institucional";
 
     renderWithAuthStore(
