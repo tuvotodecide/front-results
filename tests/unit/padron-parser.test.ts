@@ -16,21 +16,21 @@ const makeFile = (content: string, name = "padron.csv") => {
   return file;
 };
 
-describe("padron csv parser", () => {
-  it("parses enabled values consistently", () => {
+describe("MX-05 | Padrón, staging, elegibilidad y archivos | Frontend", () => {
+  it("PAD-CSV-P1-001 | interpreta valores de habilitación legacy de forma consistente", () => {
     expect(parseEnabledCell("sí")).toEqual({ valid: true, enabled: true });
     expect(parseEnabledCell("no")).toEqual({ valid: true, enabled: false });
     expect(parseEnabledCell("tal vez")).toEqual({ valid: false, enabled: false });
   });
 
-  it("rejects empty and malformed csv files", async () => {
+  it("PAD-CSV-P1-001 | rechaza CSV vacío o con encabezados incompatibles", async () => {
     await expect(parsePadronCsv(makeFile(""))).rejects.toThrow("El CSV está vacío");
     await expect(
       parsePadronCsv(makeFile("nombre,habilitado\nJuan,si")),
     ).rejects.toThrow('El CSV debe tener la primera columna "dni" o "carnet"');
   });
 
-  it("marks duplicates, invalid ids and invalid enabled cells", async () => {
+  it("PAD-DUP-P0-001 / PAD-NRM-P0-001 | marca duplicados, carnets inválidos y celdas inválidas", async () => {
     const result = await parsePadronCsv(
       makeFile(
         [
@@ -54,7 +54,37 @@ describe("padron csv parser", () => {
     ]);
   });
 
-  it("revalidates rows after local corrections and exports normalized csv", () => {
+  it("PAD-NRM-P0-001 | normaliza mayúsculas y espacios sin aceptar puntos ni guiones", async () => {
+    const result = await parsePadronCsv(
+      makeFile(
+        [
+          "carnet,habilitado",
+          " abc123 ,si",
+          "ABC 123,no",
+          "123.456,si",
+          "123-456,si",
+          "ABCDE,si",
+        ].join("\n"),
+      ),
+    );
+
+    expect(result.voters.map((row: Voter) => row.carnet)).toEqual([
+      "ABC123",
+      "ABC 123",
+      "123.456",
+      "123-456",
+      "ABCDE",
+    ]);
+    expect(result.voters.map((row: Voter) => row.invalidReason)).toEqual([
+      undefined,
+      "duplicate",
+      "invalid_format",
+      "invalid_format",
+      undefined,
+    ]);
+  });
+
+  it("PAD-DUP-P0-002 | revalida filas corregidas y exporta CSV normalizado", () => {
     const rows: Voter[] = [
       {
         id: "1",

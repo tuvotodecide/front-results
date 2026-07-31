@@ -11,6 +11,8 @@ export const tvdAdminOperationStatuses = [
   "PROCESSING",
   "CONFIRMED",
   "FAILED",
+  "FAILED_TERMINAL",
+  "BLOCKED_CONFIGURATION",
   "CANCELLED",
   "NEEDS_REVIEW",
 ] as const;
@@ -38,6 +40,8 @@ export const tvdAdminOperationStatusLabels: Record<
   PROCESSING: "En proceso",
   CONFIRMED: "Confirmada",
   FAILED: "Fallida",
+  FAILED_TERMINAL: "No completada",
+  BLOCKED_CONFIGURATION: "Requiere revisión",
   CANCELLED: "Cancelada",
   NEEDS_REVIEW: "Requiere revisión",
 };

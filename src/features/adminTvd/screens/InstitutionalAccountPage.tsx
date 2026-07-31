@@ -5,7 +5,6 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   ArrowPathIcon,
   CheckCircleIcon,
-  ClipboardDocumentIcon,
   ExclamationTriangleIcon,
   PaperAirplaneIcon,
   ShieldCheckIcon,
@@ -40,9 +39,7 @@ import {
   useGetMyTvdSummaryQuery,
   useRegularizeMyInstitutionalWalletMutation,
 } from "@/store/tvd";
-import { copyTextToClipboard } from "../services/clipboard";
 import {
-  formatTvdDisplay,
   getRegularizationErrorMessage,
   isWalletUpdateRequiredError,
   shortWalletAddress,
@@ -64,7 +61,7 @@ const WALLET_RATE_LIMIT_MESSAGE =
 const PERSON_NOT_REGISTERED_MESSAGE =
   "La persona no está registrada en Tu Voto Decide.";
 const PERSON_WITHOUT_WALLET_MESSAGE =
-  "No se encontró una wallet registrada para esta persona.";
+  "No se encontró una cuenta registrada para esta persona.";
 const ALREADY_ADMIN_MESSAGE = "Esta persona ya tiene una cuenta en la institución.";
 const DUPLICATE_INVITATION_MESSAGE =
   "Ya existe una invitación pendiente para esta persona.";
@@ -150,16 +147,29 @@ const applicationStatusLabel = (status?: InstitutionalApplication["status"]) => 
 };
 
 const adminStatusLabel = (admin: TenantAdminAssignment) => {
-  if (!admin.active && admin.status === "PENDING") return "Pendiente";
   if (!admin.active && admin.status === "SUSPENDED") return "Acceso suspendido";
   if (admin.active) return "Acceso habilitado";
   if (admin.status === "REVOKED") return "Acceso eliminado";
   if (admin.status === "REJECTED") return "Rechazada";
-  return "Pendiente";
+  return "No habilitado";
 };
 
+const normalizeAdminMatchValue = (value?: string | null) =>
+  String(value ?? "").trim().toLowerCase();
+
+const isApprovedActiveAdmin = (admin: TenantAdminAssignment) =>
+  admin.active && admin.status === "APPROVED";
+
+const isPrimaryInstitutionalRole = (role?: string | null) =>
+  String(role ?? "").trim().toUpperCase() === "PRIMARY";
+
+const getAdminDni = (admin: TenantAdminAssignment) =>
+  (admin as TenantAdminAssignment & { dni?: string | null }).dni;
+
 const roleLabel = (role?: string) =>
-  role === "PRIMARY" ? "Administrador principal" : "Administrador de la institución";
+  isPrimaryInstitutionalRole(role)
+    ? "Administrador principal"
+    : "Administrador de la institución";
 
 const formatDate = (value?: string | null) => {
   if (!value) return "Sin fecha";
@@ -217,7 +227,7 @@ function RegularizationModal({
     try {
       await onSubmit({ dni: normalizedDni });
     } catch {
-      // The mutation state renders the safe backend error message.
+      // The mutation state renders the safe service error message.
     }
   };
 
@@ -240,7 +250,7 @@ function RegularizationModal({
     >
       <form className="space-y-5" onSubmit={handleSubmit}>
         <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-          Ingresa tu CI/DNI para buscar y asociar automáticamente la wallet registrada para tu usuario.
+          Ingresa tu CI/DNI para buscar y asociar automáticamente la cuenta registrada para tu usuario.
         </div>
 
         <div>
@@ -402,7 +412,7 @@ function AddAccountModal({
       setDni("");
       setResolutionStatus("pending");
     } catch {
-      // El mensaje seguro del backend se muestra en la vista del modal.
+      // El mensaje seguro del servicio se muestra en la vista del modal.
     }
   };
 
@@ -421,7 +431,7 @@ function AddAccountModal({
     <Modal2
       isOpen={isOpen}
       onClose={handleClose}
-      title="Añadir cuenta"
+      title="Invitar administrador"
       type="plain"
       size="md"
       closeOnEscape={!isLoading}
@@ -501,7 +511,7 @@ function AddAccountModal({
             ) : (
               <UserPlusIcon className="h-5 w-5" aria-hidden="true" />
             )}
-            Añadir cuenta
+            Invitar administrador
           </button>
         </div>
       </form>
@@ -542,7 +552,7 @@ function TransferPrimaryModal({
       <div className="space-y-5">
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           La transferencia requerirá confirmación desde tu teléfono. Los roles no cambian
-          hasta que la red confirme la operación.
+          hasta completar la confirmación.
         </div>
         <div className="grid gap-3 text-sm">
           <div>
@@ -562,7 +572,7 @@ function TransferPrimaryModal({
             </p>
           </div>
           <div>
-            <p className="text-slate-500">Wallet destino</p>
+            <p className="text-slate-500">Cuenta destino</p>
             <p className="break-all font-mono text-xs font-semibold text-slate-900">
               {target.accountAddress}
             </p>
@@ -614,7 +624,6 @@ export default function InstitutionalAccountPage() {
   const {
     data: summary,
     error: summaryError,
-    isFetching: isSummaryFetching,
     isLoading: isSummaryLoading,
     refetch: refetchSummary,
   } = useGetMyTvdSummaryQuery({ tenantId }, { skip: !tenantId });
@@ -645,7 +654,10 @@ export default function InstitutionalAccountPage() {
     error: applicationsError,
     isFetching: isApplicationsFetching,
     refetch: refetchApplications,
-  } = useGetInstitutionalApplicationsQuery(undefined, { skip: !tenantId });
+  } = useGetInstitutionalApplicationsQuery(
+    tenantId ? { tenantId } : undefined,
+    { skip: !tenantId },
+  );
   const [
     createInvitation,
     { isLoading: isCreatingInvitation, error: createInvitationError, reset: resetCreateInvitation },
@@ -662,51 +674,97 @@ export default function InstitutionalAccountPage() {
   const [regularizationOpen, setRegularizationOpen] = useState(false);
   const [addAccountOpen, setAddAccountOpen] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [pendingActionKey, setPendingActionKey] = useState<string | null>(null);
   const [transferTarget, setTransferTarget] =
     useState<TenantAdminAssignment | null>(null);
 
   const admins = adminsResponse?.data ?? [];
+  const effectiveAdmins = useMemo(
+    () =>
+      admins.filter(
+        (admin) => isApprovedActiveAdmin(admin),
+      ),
+    [admins],
+  );
+  const currentTenantAdmin = useMemo(
+    () => {
+      const userId = normalizeAdminMatchValue(auth.user?.id);
+      const membershipId = normalizeAdminMatchValue(auth.activeContext?.membershipId);
+      const email = normalizeAdminMatchValue(auth.user?.email);
+      const dni = normalizeAdminMatchValue(auth.user?.dni);
+      const activeTenantId = normalizeAdminMatchValue(tenantId);
+
+      return effectiveAdmins.find((admin) => {
+        if (activeTenantId && normalizeAdminMatchValue(admin.tenantId) !== activeTenantId) {
+          return false;
+        }
+
+        return (
+          (userId && normalizeAdminMatchValue(admin.userId) === userId) ||
+          (membershipId && normalizeAdminMatchValue(admin.assignmentId) === membershipId) ||
+          (email && normalizeAdminMatchValue(admin.email) === email) ||
+          (dni && normalizeAdminMatchValue(getAdminDni(admin)) === dni)
+        );
+      }) ?? null;
+    },
+    [
+      auth.activeContext?.membershipId,
+      auth.user?.dni,
+      auth.user?.email,
+      auth.user?.id,
+      effectiveAdmins,
+      tenantId,
+    ],
+  );
   const isPrimaryAdmin = useMemo(
     () =>
-      admins.some(
-        (admin) =>
-          String(admin.userId) === String(auth.user?.id ?? "") &&
-          admin.institutionalRole === "PRIMARY" &&
-          admin.status === "APPROVED" &&
-          admin.active,
+      Boolean(
+        currentTenantAdmin &&
+          isApprovedActiveAdmin(currentTenantAdmin) &&
+          isPrimaryInstitutionalRole(currentTenantAdmin.institutionalRole),
       ),
-    [admins, auth.user?.id],
+    [currentTenantAdmin],
   );
   const currentPrimary = useMemo(
     () =>
-      admins.find(
+      effectiveAdmins.find(
         (admin) =>
-          admin.institutionalRole === "PRIMARY" &&
-          admin.status === "APPROVED" &&
-          admin.active,
+          isPrimaryInstitutionalRole(admin.institutionalRole) &&
+          isApprovedActiveAdmin(admin),
       ) ?? null,
-    [admins],
+    [effectiveAdmins],
   );
+  const effectiveAdminKeys = useMemo(() => {
+    const keys = new Set<string>();
+    effectiveAdmins.forEach((admin) => {
+      [
+        admin.userId,
+        admin.email,
+        getAdminDni(admin),
+        admin.accountAddress,
+      ].forEach((value) => {
+        const normalized = String(value ?? "").trim().toLowerCase();
+        if (normalized) keys.add(normalized);
+      });
+    });
+    return keys;
+  }, [effectiveAdmins]);
   const tenantApplications = useMemo(
     () =>
       applications.filter((application) => {
         if (!tenantId || application.tenantId !== tenantId) return false;
-        return [
-          "PENDING_APPROVAL",
-          "PENDING_MOBILE_AUTHORIZATION",
-          "MOBILE_AUTHORIZATION_EXPIRED",
-          "PENDING_CHAIN_CONFIRMATION",
-          "CHAIN_RETRY_PENDING",
-          "RECONCILIATION_PENDING",
-          "CHAIN_FAILED",
-          "APPROVED",
-          "REJECTED",
-        ].includes(application.status ?? "PENDING_APPROVAL");
+        if ((application.status ?? "PENDING_APPROVAL") !== "PENDING_APPROVAL") {
+          return false;
+        }
+        const candidateKeys = [
+          application.userId,
+          application.email,
+          application.dni,
+        ].map((value) => String(value ?? "").trim().toLowerCase());
+        return !candidateKeys.some((key) => key && effectiveAdminKeys.has(key));
       }),
-    [applications, tenantId],
+    [applications, effectiveAdminKeys, tenantId],
   );
 
   const requiresWalletUpdate = useMemo(() => {
@@ -727,12 +785,6 @@ export default function InstitutionalAccountPage() {
       window.history.replaceState(null, "", nextUrl);
     }
   }, []);
-
-  const handleCopy = async () => {
-    if (!summary?.wallet) return;
-    const copied = await copyTextToClipboard(summary.wallet);
-    setCopyFeedback(copied ? "Dirección copiada." : "No se pudo copiar la dirección.");
-  };
 
   const handleRegularize = async (payload: { dni: string }) => {
     if (!tenantId) return;
@@ -861,115 +913,20 @@ export default function InstitutionalAccountPage() {
         ) : null}
 
         <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">Mi cuenta</h2>
-          </div>
-
           {isSummaryLoading ? (
-            <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
               Cargando cuenta...
             </div>
-          ) : summary?.walletStatus !== "MISSING" && summary?.wallet ? (
-            <div className="mt-6 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-              <div className="rounded-xl border border-slate-200 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-500">
-                      Wallet asociada
-                    </p>
-                    <p className="mt-2 font-mono text-base font-bold text-slate-900">
-                      {shortWalletAddress(summary.wallet)}
-                    </p>
-                  </div>
-                  <span className="inline-flex rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-[#2E6A38] ring-1 ring-green-200">
-                    Asociada
-                  </span>
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => void handleCopy()}
-                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
-                  >
-                    <ClipboardDocumentIcon className="h-4 w-4" aria-hidden="true" />
-                    Copiar
-                  </button>
-                </div>
-                {copyFeedback ? (
-                  <p className="mt-2 text-sm font-medium text-[#2E6A38]">
-                    {copyFeedback}
-                  </p>
-                ) : null}
-              </div>
-
-              <div className="rounded-xl border border-slate-200 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-500">
-                      Saldo $TVD
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => void refetchSummary()}
-                    disabled={isSummaryFetching}
-                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <ArrowPathIcon
-                      className={`h-4 w-4 ${isSummaryFetching ? "animate-spin" : ""}`}
-                      aria-hidden="true"
-                    />
-                    Actualizar saldo
-                  </button>
-                </div>
-
-                {isSummaryFetching ? (
-                  <div
-                    className="mt-5 rounded-lg bg-slate-50 px-4 py-6 text-sm text-slate-500"
-                    role="status"
-                  >
-                    Consultando saldo...
-                  </div>
-                ) : summary.totalBalance ? (
-                  <div className="mt-5 space-y-3">
-                    <div>
-                      <p className="text-3xl font-bold text-slate-900">
-                        {formatTvdDisplay(summary.totalBalance.formatted)} TVD
-                      </p>
-                    </div>
-                    <div className="grid gap-2 text-sm sm:grid-cols-2">
-                      <div className="rounded-lg bg-slate-50 px-3 py-2">
-                        <p className="text-slate-500">Líquido</p>
-                        <p className="font-semibold text-slate-800">
-                          {formatTvdDisplay(summary.liquidBalance?.formatted)} TVD
-                        </p>
-                      </div>
-                      <div className="rounded-lg bg-slate-50 px-3 py-2">
-                        <p className="text-slate-500">Asignado</p>
-                        <p className="font-semibold text-slate-800">
-                          {formatTvdDisplay(summary.assignedBalance?.formatted)} TVD
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                    No pudimos consultar tu saldo en este momento.
-                  </div>
-                )}
-              </div>
-            </div>
           ) : requiresWalletUpdate || summary?.walletStatus === "MISSING" ? (
-            <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
               <div className="flex items-start gap-3">
                 <ExclamationTriangleIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
                 <div>
                   <p className="font-semibold">
-                    Tu cuenta todavía no tiene una wallet asociada.
+                    Tu cuenta todavía no está asociada.
                   </p>
                   <p className="mt-1">
-                    Ingresa tu CI/DNI para buscar y asociar automáticamente la wallet registrada para tu usuario.
+                    Ingresa tu CI/DNI para buscar y asociar automáticamente la cuenta registrada para tu usuario.
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     <button
@@ -983,8 +940,8 @@ export default function InstitutionalAccountPage() {
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
+          ) : summaryError ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
               <div className="flex items-start gap-3">
                 <ExclamationTriangleIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
                 <div>
@@ -1001,7 +958,7 @@ export default function InstitutionalAccountPage() {
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
 
           <div className="mt-6 space-y-5">
             <section className="rounded-xl border border-slate-200 p-4">
@@ -1011,13 +968,13 @@ export default function InstitutionalAccountPage() {
                     Administradores y cuentas
                   </h2>
                   <p className="mt-1 text-sm text-slate-500">
-                    Cuentas activas y pendientes de esta institución.
+                    Cuentas habilitadas para gestionar esta institución.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   <span className="inline-flex w-fit items-center gap-2 rounded-full bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600 ring-1 ring-slate-200">
                     <UserGroupIcon className="h-4 w-4" aria-hidden="true" />
-                    {admins.length} cuenta{admins.length === 1 ? "" : "s"}
+                    {effectiveAdmins.length} cuenta{effectiveAdmins.length === 1 ? "" : "s"}
                   </span>
                   {isPrimaryAdmin ? (
                     <button
@@ -1030,7 +987,7 @@ export default function InstitutionalAccountPage() {
                       className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#459151] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#3a7a44] sm:w-auto"
                     >
                       <UserPlusIcon className="h-4 w-4" aria-hidden="true" />
-                      + Añadir cuenta
+                      Añadir administrador
                     </button>
                   ) : null}
                 </div>
@@ -1044,9 +1001,9 @@ export default function InstitutionalAccountPage() {
                 <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-5 text-sm text-amber-800">
                   No pudimos cargar las cuentas. Inténtalo nuevamente.
                 </div>
-              ) : admins.length ? (
+              ) : effectiveAdmins.length ? (
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  {admins.map((admin) => (
+                  {effectiveAdmins.map((admin) => (
                     <article
                       key={admin.assignmentId ?? `${admin.tenantId}-${admin.userId}`}
                       className="rounded-xl border border-slate-200 bg-slate-50 p-4"
@@ -1070,13 +1027,13 @@ export default function InstitutionalAccountPage() {
                         </p>
                       ) : (
                         <p className="mt-3 text-sm text-amber-700">
-                          Wallet pendiente.
+                          Cuenta pendiente.
                         </p>
                       )}
 
                       {isPrimaryAdmin &&
                       admin.assignmentId &&
-                      admin.institutionalRole === "SECONDARY" ? (
+                      !isPrimaryInstitutionalRole(admin.institutionalRole) ? (
                         <div className="mt-4 flex flex-wrap gap-2">
                           {admin.active && admin.status === "APPROVED" ? (
                             <button
@@ -1314,17 +1271,6 @@ export default function InstitutionalAccountPage() {
               )}
             </section>
           </div>
-
-          {summary?.walletStatus !== "MISSING" && summary?.wallet ? (
-            <div className="mt-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-[#2E6A38]">
-              <div className="flex items-start gap-2">
-                <CheckCircleIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
-                <p>
-                  Esta cuenta opera únicamente con la wallet asociada a tu usuario.
-                </p>
-              </div>
-            </div>
-          ) : null}
         </section>
       </div>
 

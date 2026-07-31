@@ -28,12 +28,14 @@ import {
   formatDateTime,
   generatePaymentIdempotencyKey,
   getAccreditationStatusMessage,
+  getAccreditationStatusLabel,
   getPaymentId,
+  getPaymentStatusLabel,
   getPaymentStatusMessage,
   getQrImageSource,
   downloadQrPng,
+  isQrExpired,
   isValidQrPngImage,
-  isAccreditationTerminal,
   shouldPollPayment,
   validateBobAmount,
   validateRechargeDescription,
@@ -47,6 +49,7 @@ type PaymentAttempt = {
 };
 
 const parseAmount = (value: string | null) => value?.trim() ?? "";
+const RECHARGE_DESCRIPTION = "Recarga operativa";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -60,7 +63,7 @@ const getSafeApiMessage = (error: unknown, fallback: string) => {
       return "Los datos del intento cambiaron. Inicia una nueva generación de QR.";
     }
     if (code === "TVD_WALLET_NOT_VERIFIED") {
-      return "Debes vincular tu wallet institucional antes de recargar.";
+      return "Debes asociar tu cuenta institucional antes de recargar.";
     }
     if (code === "TVD_ASSIGNMENT_NOT_FOUND") {
       return "No existe un contexto institucional operativo.";
@@ -80,7 +83,7 @@ const getSafeApiMessage = (error: unknown, fallback: string) => {
   if (status === 403) return "No tienes permisos para realizar esta operación.";
   if (status === 409) return "Los datos del intento cambiaron. Inicia un nuevo intento.";
   if (typeof status === "number" && status >= 500) {
-    return "Backend temporalmente no disponible. Reintenta en unos segundos.";
+    return "El servicio no está disponible temporalmente. Reintenta en unos segundos.";
   }
   return fallback;
 };
@@ -102,16 +105,10 @@ const getPaymentAmount = (
   payment: MyTvdPaymentResponse | PublicQrPaymentResponse | null,
 ) => payment?.amount ?? null;
 
-const getPaymentQuoteTokenAmount = (
-  payment: MyTvdPaymentResponse | PublicQrPaymentResponse | null,
-) => payment?.tvdQuote?.tokenAmount ?? null;
-
 export default function OperationalRechargePage() {
   const auth = useSelector(selectAuth);
   const [searchParams] = useSearchParams();
   const tenantId = auth.activeContext?.tenantId ?? auth.user?.tenantId ?? null;
-  const tenantName =
-    auth.activeContext?.tenantName ?? auth.user?.tenantName ?? "Institución";
   const tenantContextKey = [
     auth.activeContext?.type ?? "",
     tenantId ?? "",
@@ -120,7 +117,6 @@ export default function OperationalRechargePage() {
 
   const [step, setStep] = useState<1 | 2>(1);
   const [amount, setAmount] = useState(() => parseAmount(searchParams.get("monto")));
-  const [description, setDescription] = useState("Recarga operativa");
   const [debouncedAmount, setDebouncedAmount] = useState<string | null>(null);
   const [attempt, setAttempt] = useState<PaymentAttempt | null>(null);
   const [createdPayment, setCreatedPayment] =
@@ -128,6 +124,7 @@ export default function OperationalRechargePage() {
   const [qrImageSource, setQrImageSource] = useState<string | null>(null);
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [pollingEnabled, setPollingEnabled] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const [feedback, setFeedback] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const previousContextKey = useRef(tenantContextKey);
@@ -152,8 +149,8 @@ export default function OperationalRechargePage() {
 
   const amountValidation = useMemo(() => validateBobAmount(amount), [amount]);
   const descriptionValidation = useMemo(
-    () => validateRechargeDescription(description),
-    [description],
+    () => validateRechargeDescription(RECHARGE_DESCRIPTION),
+    [],
   );
   const currentPayload = useMemo(() => {
     if (!amountValidation.valid || !descriptionValidation.valid) return null;
@@ -202,6 +199,8 @@ export default function OperationalRechargePage() {
     skip: !paymentId,
     pollingInterval: pollingEnabled ? 5000 : 0,
     refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
   });
   const historyQuery = useListMyTvdPaymentsQuery(
     { page: 1, limit: 5 },
@@ -216,6 +215,7 @@ export default function OperationalRechargePage() {
 
   const activePayment = paymentQuery.data ?? createdPayment;
   const activeAccreditationStatus = getAccreditationStatus(activePayment);
+  const activeQrExpired = isQrExpired(activePayment, nowMs);
   const activePaymentQrImage =
     activePayment && "qrImage" in activePayment ? activePayment.qrImage : createdPayment?.qrImage;
   const activeQrImageSource = getQrImageSource(activePaymentQrImage);
@@ -243,7 +243,8 @@ export default function OperationalRechargePage() {
   const canDownloadQr =
     Boolean(activePaymentQrImage) &&
     Boolean(activeQrImageSource) &&
-    activePayment?.status === "QR_ACTIVE";
+    activePayment?.status === "QR_ACTIVE" &&
+    !activeQrExpired;
   const canRegenerateQr =
     activeRegenerationStatus === "REGENERABLE" &&
     !regenerateQrState.isLoading &&
@@ -256,10 +257,39 @@ export default function OperationalRechargePage() {
   }, [activeQrImageSource]);
 
   useEffect(() => {
-    if (activePayment && !paymentShouldPoll) {
+    if (!activePayment?.qrExpiresAt || activePayment.status !== "QR_ACTIVE") return;
+    const timer = window.setInterval(() => setNowMs(Date.now()), 30000);
+    return () => window.clearInterval(timer);
+  }, [activePayment?.qrExpiresAt, activePayment?.status]);
+
+  useEffect(() => {
+    if (paymentId || createdPayment || step !== 1) return;
+    const recoverablePayment = historyQuery.data?.items.find((payment) => {
+      if (isQrExpired(payment, Date.now())) return true;
+      if (shouldPollPayment(payment)) return true;
+      if (
+        payment.status === "PAYMENT_CONFIRMED" &&
+        payment.accreditationStatus === "CONFIRMED"
+      ) {
+        return true;
+      }
+      return payment.status === "EXPIRED";
+    });
+    if (!recoverablePayment) return;
+    const nextPaymentId = getPaymentId(recoverablePayment);
+    if (!nextPaymentId) return;
+    setPaymentId(nextPaymentId);
+    setCreatedPayment(null);
+    setQrImageSource(getQrImageSource(recoverablePayment.qrImage));
+    setPollingEnabled(shouldPollPayment(recoverablePayment));
+    setStep(2);
+  }, [createdPayment, historyQuery.data?.items, paymentId, step]);
+
+  useEffect(() => {
+    if (activePayment && (!paymentShouldPoll || activeQrExpired)) {
       setPollingEnabled(false);
     }
-  }, [activePayment, paymentShouldPoll]);
+  }, [activePayment, activeQrExpired, paymentShouldPoll]);
 
   useEffect(() => {
     if (activeAccreditationStatus === "CONFIRMED") {
@@ -279,12 +309,8 @@ export default function OperationalRechargePage() {
       setFormError("Ingresa un monto válido en BOB.");
       return;
     }
-    if (!descriptionValidation.valid) {
-      setFormError(descriptionValidation.message);
-      return;
-    }
     if (summary?.walletStatus !== "VERIFIED") {
-      setFormError("Debes vincular tu wallet institucional antes de recargar.");
+      setFormError("Debes asociar tu cuenta institucional antes de recargar.");
       return;
     }
     if (!quote || !quoteMatchesCurrent) {
@@ -328,8 +354,11 @@ export default function OperationalRechargePage() {
     setQrImageSource(null);
     setPaymentId(null);
     setPollingEnabled(false);
+    setAmount("");
+    setDebouncedAmount(null);
     setFeedback(null);
     setFormError(null);
+    regeneratedPaymentIdsRef.current.clear();
   };
 
   const handleCopyReference = async () => {
@@ -401,7 +430,7 @@ export default function OperationalRechargePage() {
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Recarga operativa</h1>
             <p className="mt-1 text-sm text-slate-500">
-              Genera un QR en BOB para recargar TVD en tu wallet institucional activa.
+              Genera un QR en BOB para recargar TVD en tu cuenta.
             </p>
           </div>
           <button
@@ -437,7 +466,7 @@ export default function OperationalRechargePage() {
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {getSafeApiMessage(
               summaryError,
-              "No pudimos cargar tu cuenta TVD institucional.",
+              "No pudimos cargar tu cuenta TVD.",
             )}
           </div>
         ) : null}
@@ -447,42 +476,6 @@ export default function OperationalRechargePage() {
             {feedback}
           </div>
         ) : null}
-
-        <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="grid gap-4 md:grid-cols-3">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                Institución
-              </p>
-              <p className="mt-1 font-semibold text-slate-900">{tenantName}</p>
-            </div>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                Wallet activa
-              </p>
-              <p className="mt-1 break-all font-mono text-sm font-semibold text-slate-900">
-                {summary?.wallet ?? "No disponible"}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                Saldo visual TVD
-              </p>
-              <p className="mt-1 text-lg font-bold text-[#2E6A38]">
-                {visualBalance.isLoading
-                  ? "Consultando..."
-                  : visualBalance.data?.totalBalanceFormatted ??
-                    summary?.totalBalance?.formatted ??
-                    "No disponible"}
-              </p>
-              {visualBalance.error ? (
-                <p className="mt-1 text-xs text-amber-700">
-                  No pudimos consultar el saldo actual. Backend validará las operaciones.
-                </p>
-              ) : null}
-            </div>
-          </div>
-        </section>
 
         {step === 1 ? (
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
@@ -522,34 +515,9 @@ export default function OperationalRechargePage() {
                     role={amountValidation.valid ? undefined : "alert"}
                   >
                     {amountValidation.valid
-                      ? "Backend recalculará y congelará la cotización real al crear el QR."
+                      ? "El monto se confirmará al generar el QR."
                       : amountValidation.message}
                   </p>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="recharge-description"
-                    className="block text-sm font-semibold text-slate-700"
-                  >
-                    Descripción
-                  </label>
-                  <input
-                    id="recharge-description"
-                    value={description}
-                    onChange={(event) => {
-                      setDescription(event.target.value);
-                      setFormError(null);
-                      if (attempt) setAttempt(null);
-                    }}
-                    maxLength={60}
-                    className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#459151] focus:ring-2 focus:ring-[#459151]/15"
-                  />
-                  {!descriptionValidation.valid ? (
-                    <p className="mt-2 text-sm font-medium text-red-600" role="alert">
-                      {descriptionValidation.message}
-                    </p>
-                  ) : null}
                 </div>
 
                 {formError ? (
@@ -578,7 +546,7 @@ export default function OperationalRechargePage() {
 
               <aside className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <p className="text-xs font-bold uppercase tracking-wide text-[#2E6A38]">
-                  Cotización BOB/TVD
+                  Cotización
                 </p>
                 {isQuoteFetching ? (
                   <p className="mt-4 text-sm text-slate-600">Calculando cotización...</p>
@@ -603,11 +571,11 @@ export default function OperationalRechargePage() {
                 {quote && quoteMatchesCurrent ? (
                   <dl className="mt-4 space-y-3 text-sm">
                     <div>
-                      <dt className="text-slate-500">Monto fiat</dt>
+                      <dt className="text-slate-500">Monto en bolivianos</dt>
                       <dd className="font-bold text-slate-900">Bs. {quote.fiatAmount}</dd>
                     </div>
                     <div>
-                      <dt className="text-slate-500">TVD estimados</dt>
+                      <dt className="text-slate-500">TVD que recibirás</dt>
                       <dd className="text-2xl font-bold text-[#2E6A38]">
                         {quote.estimatedTvd} TVD
                       </dd>
@@ -615,13 +583,7 @@ export default function OperationalRechargePage() {
                     <div>
                       <dt className="text-slate-500">Tasa</dt>
                       <dd className="font-semibold text-slate-900">
-                        Bs. {quote.bobPerToken} por TVD
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-slate-500">Versión</dt>
-                      <dd className="font-semibold text-slate-900">
-                        {quote.exchangeRateVersion}
+                        1 TVD = {quote.bobPerToken} Bs.
                       </dd>
                     </div>
                   </dl>
@@ -636,96 +598,113 @@ export default function OperationalRechargePage() {
         ) : null}
 
         {step === 2 && activePayment ? (
-          <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm sm:p-7">
-              {qrImageSource && activePayment.status === "QR_ACTIVE" ? (
-                <img
-                  src={qrImageSource}
-                  alt="Código QR para pagar la recarga TVD"
-                  className="mx-auto h-56 w-56 rounded-xl border border-slate-200 bg-white p-3"
-                />
-              ) : (
-                <div className="mx-auto flex h-56 w-56 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                  QR no disponible para este estado.
-                </div>
-              )}
-
-              <p className="mt-4 text-sm text-slate-500">Expira</p>
-              <p className="mt-1 font-semibold text-slate-900">
-                {formatDateTime(activePayment.qrExpiresAt)}
-              </p>
-
-              {canDownloadQr ? (
-                <button
-                  type="button"
-                  onClick={handleDownloadQr}
-                  className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
-                >
-                  <ArrowDownTrayIcon className="h-5 w-5" aria-hidden="true" />
-                  Descargar QR
-                </button>
-              ) : activePaymentQrImage && !isValidQrPngImage(activePaymentQrImage) ? (
-                <p className="mt-4 text-sm font-medium text-amber-700">
-                  La imagen QR no es válida para descarga.
-                </p>
-              ) : null}
-
-              <h2 className="mt-5 text-lg font-bold text-slate-900">
-                Escanea el QR desde tu banca móvil
-              </h2>
-              <p className="mt-2 text-sm text-slate-500">
-                El webhook de Red Enlace confirmará el pago directamente con Backend Results.
-              </p>
-
-              <div className="mt-5 grid gap-3 text-left text-sm">
-                <div className="flex justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3">
-                  <span className="text-slate-500">Monto</span>
-                  <strong className="text-slate-900">
-                    Bs. {getPaymentAmount(activePayment) ?? "No disponible"}
-                  </strong>
-                </div>
-                <div className="flex justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3">
-                  <span className="text-slate-500">TVD estimados</span>
-                  <strong className="text-[#2E6A38]">
-                    {getPaymentQuoteTokenAmount(activePayment) ?? "No disponible"}
-                  </strong>
-                </div>
-                <div className="rounded-xl bg-slate-50 px-4 py-3">
-                  <span className="text-slate-500">Referencia</span>
-                  <div className="mt-1 flex items-center justify-between gap-3">
-                    <strong className="break-all font-mono text-slate-900">
-                      {getPaymentReference(activePayment) ?? "No disponible"}
-                    </strong>
-                    <button
-                      type="button"
-                      onClick={() => void handleCopyReference()}
-                      className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50"
-                    >
-                      <ClipboardDocumentIcon className="h-4 w-4" aria-hidden="true" />
-                      Copiar
-                    </button>
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm sm:p-8">
+            <div className="mx-auto max-w-xl">
+              {activeQrExpired ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-6 text-left text-amber-900">
+                  <div className="flex gap-3">
+                    <ExclamationTriangleIcon
+                      className="h-6 w-6 shrink-0 text-amber-700"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <h2 className="text-lg font-bold">QR vencido</h2>
+                      <p className="mt-1 text-sm">
+                        El QR venció. Genera una nueva recarga para continuar.
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              ) : (
+                <>
+                  {qrImageSource && activePayment.status === "QR_ACTIVE" ? (
+                    <img
+                      src={qrImageSource}
+                      alt="Código QR para pagar la recarga TVD"
+                      className="mx-auto h-80 w-80 rounded-2xl border border-slate-200 bg-white p-3 sm:h-96 sm:w-96"
+                    />
+                  ) : null}
 
-            <aside className="space-y-4">
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                  Estado del pago
-                </p>
-                <div className="mt-3 flex items-start gap-3">
-                  {activePayment.status === "PAYMENT_CONFIRMED" ? (
-                    <CheckCircleIcon className="h-6 w-6 text-[#2E6A38]" />
+                  <div className="mt-5">
+                    <p className="text-sm font-semibold text-slate-500">
+                      Monto a pagar
+                    </p>
+                    <p className="mt-1 text-3xl font-bold text-slate-900">
+                      Bs. {getPaymentAmount(activePayment) ?? "No disponible"}
+                    </p>
+                  </div>
+
+                  {canDownloadQr ? (
+                    <button
+                      type="button"
+                      onClick={handleDownloadQr}
+                      className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                    >
+                      <ArrowDownTrayIcon className="h-5 w-5" aria-hidden="true" />
+                      Descargar QR
+                    </button>
+                  ) : activePaymentQrImage && !isValidQrPngImage(activePaymentQrImage) ? (
+                    <p className="mt-4 text-sm font-medium text-amber-700">
+                      La imagen QR no es válida para descarga.
+                    </p>
+                  ) : null}
+
+                  {activePayment.status === "QR_ACTIVE" ? (
+                    <>
+                      <h2 className="mt-5 text-lg font-bold text-slate-900">
+                        Escanea el QR desde tu banca móvil
+                      </h2>
+
+                      <p className="mt-2 text-sm text-slate-500">
+                        Mantén esta pantalla abierta. Actualizaremos el estado automáticamente.
+                      </p>
+                    </>
+                  ) : null}
+
+                  <div className="mt-5 grid gap-3 text-left text-sm">
+                    <div className="rounded-xl bg-slate-50 px-4 py-3">
+                      <span className="text-slate-500">Referencia</span>
+                      <div className="mt-1 flex items-center justify-between gap-3">
+                        <strong className="break-all font-mono text-slate-900">
+                          {getPaymentReference(activePayment) ?? "No disponible"}
+                        </strong>
+                        <button
+                          type="button"
+                          onClick={() => void handleCopyReference()}
+                          className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                        >
+                          <ClipboardDocumentIcon className="h-4 w-4" aria-hidden="true" />
+                          Copiar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left">
+                <div className="flex items-start gap-3">
+                  {activeAccreditationStatus === "CONFIRMED" ? (
+                    <CheckCircleIcon className="h-6 w-6 shrink-0 text-[#2E6A38]" />
                   ) : paymentQuery.isFetching && paymentShouldPoll ? (
-                    <ArrowPathIcon className="h-6 w-6 animate-spin text-slate-500" />
+                    <ArrowPathIcon className="h-6 w-6 shrink-0 animate-spin text-slate-500" />
+                  ) : activePayment.status === "PAYMENT_CONFIRMED" ? (
+                    <ArrowPathIcon className="h-6 w-6 shrink-0 animate-spin text-slate-500" />
                   ) : (
-                    <ExclamationTriangleIcon className="h-6 w-6 text-amber-600" />
+                    <ExclamationTriangleIcon className="h-6 w-6 shrink-0 text-amber-600" />
                   )}
                   <div>
-                    <p className="font-bold text-slate-900">{activePayment.status}</p>
+                    <p className="font-bold text-slate-900">
+                      {getAccreditationStatusLabel(
+                        activePayment.status,
+                        activeAccreditationStatus,
+                      )}
+                    </p>
                     <p className="mt-1 text-sm text-slate-600">
-                      {getPaymentStatusMessage(activePayment.status)}
+                      {activePayment.status === "PAYMENT_CONFIRMED"
+                        ? getAccreditationStatusMessage(
+                            activePayment.status,
+                            activeAccreditationStatus,
+                          )
+                        : getPaymentStatusMessage(activePayment.status)}
                     </p>
                   </div>
                 </div>
@@ -743,6 +722,11 @@ export default function OperationalRechargePage() {
                       Reintentar
                     </button>
                   </div>
+                ) : null}
+                {"txHash" in activePayment && activePayment.txHash ? (
+                  <p className="mt-3 break-all font-mono text-xs text-slate-500">
+                    {activePayment.txHash}
+                  </p>
                 ) : null}
                 {activeRegenerationStatus === "RECONCILIATION_REQUIRED" ? (
                   <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
@@ -778,48 +762,18 @@ export default function OperationalRechargePage() {
                     {regenerateQrState.isLoading ? "Regenerando..." : "Regenerar QR"}
                   </button>
                 ) : null}
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                  Acreditación TVD
-                </p>
-                <div className="mt-3 flex items-start gap-3">
-                  {activeAccreditationStatus === "CONFIRMED" ? (
-                    <CheckCircleIcon className="h-6 w-6 text-[#2E6A38]" />
-                  ) : activePayment.status === "PAYMENT_CONFIRMED" &&
-                    !isAccreditationTerminal(activeAccreditationStatus) ? (
-                    <ArrowPathIcon className="h-6 w-6 animate-spin text-slate-500" />
-                  ) : (
-                    <ExclamationTriangleIcon className="h-6 w-6 text-amber-600" />
-                  )}
-                  <div>
-                    <p className="font-bold text-slate-900">
-                      {activeAccreditationStatus ?? "PENDIENTE"}
-                    </p>
-                    <p className="mt-1 text-sm text-slate-600">
-                      {getAccreditationStatusMessage(
-                        activePayment.status,
-                        activeAccreditationStatus,
-                      )}
-                    </p>
-                    {"txHash" in activePayment && activePayment.txHash ? (
-                      <p className="mt-2 break-all font-mono text-xs text-slate-500">
-                        {activePayment.txHash}
-                      </p>
-                    ) : null}
                   </div>
-                </div>
-              </div>
+                </>
+              )}
 
               <button
                 type="button"
                 onClick={handleNewRecharge}
-                className="inline-flex w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 sm:w-auto"
               >
                 Nueva recarga
               </button>
-            </aside>
+            </div>
           </section>
         ) : null}
 
@@ -864,9 +818,16 @@ export default function OperationalRechargePage() {
                       <td className="px-3 py-3 font-semibold text-slate-900">
                         Bs. {payment.amount}
                       </td>
-                      <td className="px-3 py-3 text-slate-700">{payment.status}</td>
                       <td className="px-3 py-3 text-slate-700">
-                        {payment.accreditationStatus ?? "PENDIENTE"}
+                        {isQrExpired(payment, nowMs)
+                          ? "QR vencido"
+                          : getPaymentStatusLabel(payment.status)}
+                      </td>
+                      <td className="px-3 py-3 text-slate-700">
+                        {getAccreditationStatusLabel(
+                          payment.status,
+                          payment.accreditationStatus,
+                        )}
                       </td>
                     </tr>
                   ))}

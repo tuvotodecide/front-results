@@ -227,7 +227,7 @@ describe("useElectionPublish", () => {
     expect(result.current.publicationPadronCount).toBe(0);
   });
 
-  it("creates an official publication request without calling the legacy confirm endpoint", async () => {
+  it("TVD-PUB-P0-006 | creates an official publication request without calling the legacy confirm endpoint", async () => {
     const legacyConfirm = vi.fn();
     const createRequest = vi.fn().mockReturnValue({
       unwrap: vi.fn().mockResolvedValue({
@@ -265,7 +265,7 @@ describe("useElectionPublish", () => {
     expect(refetchOfficialPublication).toHaveBeenCalled();
   });
 
-  it("refetches official publication state when request creation fails", async () => {
+  it("TVD-PUB-P0-005 TVD-PUB-P0-007 | refetches official publication state when request creation fails", async () => {
     const createRequest = vi.fn().mockReturnValue({
       unwrap: vi.fn().mockRejectedValue(new Error("preparation failed")),
     });
@@ -309,7 +309,7 @@ describe("useElectionPublish", () => {
     expect(refetchOfficialPublication).toHaveBeenCalledTimes(1);
   });
 
-  it("exposes active official publication request state for polling UI", () => {
+  it("TVD-PUB-P0-008 TVD-UI-P1-001 | exposes active official publication request state for polling UI", () => {
     vi.mocked(votingEvents.useGetActiveOfficialPublicationRequestQuery).mockReturnValue({
       data: {
         request: {
@@ -337,7 +337,7 @@ describe("useElectionPublish", () => {
     expect(result.current.officialPublicationMessage).toMatch(/blockchain/i);
   });
 
-  it("maps official publication statuses to the current admin copy", () => {
+  it("TVD-PUB-P0-011 TVD-UI-P1-003 | maps official publication statuses to the current admin copy", () => {
     expect(getOfficialPublicationStatusMessage("SUBMITTED")).toBe(
       "Firmado correctamente. Esperando confirmación en blockchain.",
     );
@@ -358,7 +358,7 @@ describe("useElectionPublish", () => {
     );
   });
 
-  it("exposes failed retryable latest attempt without treating it as active", () => {
+  it("TVD-PUB-P0-012 TVD-UI-P1-002 | exposes failed retryable latest attempt without treating it as active", () => {
     vi.useFakeTimers();
     const refetchOfficialPublication = vi.fn();
     vi.mocked(votingEvents.useGetActiveOfficialPublicationRequestQuery).mockReturnValue({
@@ -402,7 +402,7 @@ describe("useElectionPublish", () => {
     vi.useRealTimers();
   });
 
-  it("polls active official publication requests every five seconds", () => {
+  it("TVD-PUB-P0-013 | polls active official publication requests every five seconds", () => {
     vi.useFakeTimers();
     const refetchOfficialPublication = vi.fn();
     vi.mocked(votingEvents.useGetActiveOfficialPublicationRequestQuery).mockReturnValue({
@@ -434,7 +434,7 @@ describe("useElectionPublish", () => {
     expect(refetchOfficialPublication).toHaveBeenCalledTimes(1);
   });
 
-  it("cancels cancelable official publication requests through the new endpoint", async () => {
+  it("TVD-PUB-P0-009 | cancels cancelable official publication requests through the new endpoint", async () => {
     const cancelRequest = vi.fn().mockReturnValue({
       unwrap: vi.fn().mockResolvedValue({
         request: { requestId: "opr-1", eventId: "evt-1", status: "CANCELLED" },

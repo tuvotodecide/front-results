@@ -1,14 +1,14 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowPathIcon,
+  BanknotesIcon,
   ClipboardDocumentIcon,
   IdentificationIcon,
 } from '@heroicons/react/24/outline';
 import { useNavigate } from '@/domains/votacion/navigation/compat-private';
 import { useSelector } from 'react-redux';
-import { useDeleteVotingEventMutation, useDisableVotingEventMutation, useGetVotingEventsQuery } from '../../store/votingEvents';
+import { useGetVotingEventsQuery } from '../../store/votingEvents';
 import { selectTenantId, selectIsLoggedIn } from '../../store/auth/authSlice';
-import Modal2 from '../../components/Modal2';
 import type { VotingEvent } from '../../store/votingEvents/types';
 import { formatDateTimeForUi, hasDraftAlreadyStarted, useClientNow } from '../electionConfig/renderUtils';
 import EstimateVotersModal from '../adminTvd/components/EstimateVotersModal';
@@ -18,7 +18,6 @@ import { copyTextToClipboard } from '../adminTvd/services/clipboard';
 import {
   formatTvdDisplay,
   isWalletUpdateRequiredError,
-  shortWalletAddress,
 } from '../adminTvd/utils/institutionalWalletUi';
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
@@ -47,11 +46,6 @@ const statusColors: Record<string, string> = {
   RESULTS_PUBLISHED: 'bg-violet-100 text-violet-700',
   DISABLED: 'bg-gray-200 text-gray-500',
 };
-
-const canDeleteEvent = (event: VotingEvent) =>
-  ['DRAFT', 'READY_FOR_REVIEW', 'PUBLICATION_EXPIRED'].includes(event.status);
-const canDisableEvent = (event: VotingEvent) =>
-  event.status === 'OFFICIALLY_PUBLISHED';
 
 const isInOfficialPublicationReminderWindow = (
   event: VotingEvent,
@@ -82,15 +76,17 @@ const isInOfficialPublicationReminderWindow = (
 const hasLinkedWallet = (summary: TvdMySummaryResponse | undefined) =>
   summary?.walletStatus !== 'MISSING' && Boolean(summary?.wallet);
 
+const shortenMiddleAddress = (address: string) => {
+  const normalized = address.trim();
+  if (normalized.length <= 22) return normalized;
+  return `${normalized.slice(0, 10)}...${normalized.slice(-8)}`;
+};
+
 const ElectionsPage: React.FC = () => {
   const navigate = useNavigate();
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const tenantId = useSelector(selectTenantId);
   const nowMs = useClientNow();
-  const [deleteVotingEvent, { isLoading: deleting }] = useDeleteVotingEventMutation();
-  const [disableVotingEvent, { isLoading: disabling }] = useDisableVotingEventMutation();
-  const [deleteConfirm, setDeleteConfirm] = useState<VotingEvent | null>(null);
-  const [disableConfirm, setDisableConfirm] = useState<VotingEvent | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showEstimateModal, setShowEstimateModal] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
@@ -150,6 +146,12 @@ const ElectionsPage: React.FC = () => {
     setCopyFeedback(copied ? 'Dirección copiada.' : 'No pudimos copiar la dirección.');
   };
 
+  useEffect(() => {
+    if (!copyFeedback) return;
+    const timer = window.setTimeout(() => setCopyFeedback(null), 2200);
+    return () => window.clearTimeout(timer);
+  }, [copyFeedback]);
+
   const goToAccount = (action?: 'associate-account') => {
     navigate(
       action
@@ -181,26 +183,6 @@ const ElectionsPage: React.FC = () => {
       navigate(`/votacion/elecciones/${event.id}/config/review`);
     }
   };
-
-  const handleDeleteElection = async () => {
-    if (!deleteConfirm) return;
-    try {
-      await deleteVotingEvent(deleteConfirm.id).unwrap();
-      setDeleteConfirm(null);
-    } catch (error) {
-      console.error('Error eliminando votación:', error);
-    }
-  };
-
-  const handleDisableElection = async () => {
-    if (!disableConfirm) return;
-    try {
-      await disableVotingEvent(disableConfirm.id).unwrap();
-      setDisableConfirm(null);
-    } catch (error) {
-      console.error('Error deshabilitando votación:', error);
-    }
-  }
 
   // Si no está logueado, redirigir a login
   if (!isLoggedIn) {
@@ -257,70 +239,99 @@ const ElectionsPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-8 grid gap-4 lg:grid-cols-2">
-          <section className="min-h-[132px] rounded-xl border border-amber-200 bg-white px-5 py-4 shadow-sm">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-bold uppercase text-slate-400 tracking-wide">
-                  SALDO $TVD
+        {copyFeedback ? (
+          <div
+            role="status"
+            className="fixed bottom-4 right-4 z-50 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-lg"
+          >
+            {copyFeedback}
+          </div>
+        ) : null}
+
+        <div className="mb-7 grid items-stretch gap-4 lg:grid-cols-2">
+          <section
+            role="link"
+            tabIndex={0}
+            onClick={() => navigate('/votacion/recarga-operativa')}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                navigate('/votacion/recarga-operativa');
+              }
+            }}
+            className="flex min-h-[108px] cursor-pointer items-center rounded-xl border border-[#cfe6d3] bg-[#fbfffb] px-5 py-4 shadow-sm transition hover:-translate-y-0.5 hover:border-[#459151] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#459151]/25"
+          >
+            <div className="flex w-full items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#2E6A38]/70">
+                  Saldo
                 </p>
                 {isTvdSummaryLoading || isTvdSummaryFetching ? (
-                  <div className="mt-3 h-9 w-28 animate-pulse rounded bg-slate-100" />
+                  <div className="mt-2 h-9 w-28 animate-pulse rounded bg-green-100/70" />
                 ) : walletLinked && formattedTvdBalance ? (
-                  <p className="mt-2 text-3xl font-bold text-slate-900">
-                    {formatTvdDisplay(formattedTvdBalance)}
+                  <p className="mt-1 flex flex-wrap items-baseline gap-2 text-3xl font-extrabold leading-tight text-[#2E6A38] sm:text-4xl">
+                    <span>{formatTvdDisplay(formattedTvdBalance)}</span>
+                    <span className="text-base font-extrabold sm:text-lg">$TVD</span>
                   </p>
                 ) : walletMissing ? (
-                  <div className="mt-4 text-sm text-red-700" role="alert">
-                    <p className="font-semibold">No tienes una wallet asociada</p>
-                    <p className="mt-1 leading-5">
-                      Completa la asociación con tu CI/DNI. El sistema buscará automáticamente la wallet registrada para tu usuario.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => goToAccount('associate-account')}
-                      className="mt-3 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-700"
-                    >
-                      Asociar mi cuenta
-                    </button>
-                  </div>
+                  <p className="mt-2 text-sm font-semibold text-red-700" role="alert">
+                    Cuenta pendiente
+                  </p>
                 ) : balanceUnavailable ? (
-                  <p className="mt-3 text-sm font-semibold text-amber-800">
-                    No pudimos consultar tu saldo en este momento.
+                  <p className="mt-2 text-sm font-semibold text-amber-800">
+                    Saldo no disponible
                   </p>
                 ) : (
-                  <p className="mt-3 text-sm text-slate-500">
-                    Saldo no disponible.
+                  <p className="mt-2 text-sm text-slate-500">
+                    Saldo no disponible
                   </p>
                 )}
               </div>
               {balanceUnavailable ? (
                 <button
                   type="button"
-                  onClick={() => void refetchTvdSummary()}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    void refetchTvdSummary();
+                  }}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-amber-200 text-amber-700 transition hover:bg-amber-50"
                   aria-label="Volver a intentar"
                 >
                   <ArrowPathIcon className="h-4 w-4" aria-hidden="true" />
                 </button>
-              ) : null}
+              ) : (
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#EFF7F0] text-[#2E6A38]">
+                  <BanknotesIcon className="h-7 w-7" aria-hidden="true" />
+                </span>
+              )}
             </div>
           </section>
 
-          <section className="flex min-h-[132px] w-full items-start justify-between rounded-xl border border-slate-200 bg-white px-5 py-4 text-left shadow-sm">
-            <div className="min-w-0">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                CUENTA
+          <section
+            role="link"
+            tabIndex={0}
+            onClick={() => goToAccount()}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                goToAccount();
+              }
+            }}
+            className="flex min-h-[108px] w-full cursor-pointer items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50/30 px-5 py-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-amber-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-amber-300/40"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold uppercase tracking-wide text-amber-700/70">
+                Cuenta
               </p>
               {isTvdSummaryLoading || isTvdSummaryFetching ? (
-                <div className="mt-3 h-6 w-36 animate-pulse rounded bg-slate-100" />
+                <div className="mt-2 h-7 w-44 animate-pulse rounded bg-amber-100" />
               ) : walletLinked && tvdSummary?.wallet ? (
-                <>
-                  <p className="mt-3 font-mono text-sm font-bold text-slate-900">
-                    {shortWalletAddress(tvdSummary.wallet)}
-                  </p>
-                  <p className="mt-1 text-xs font-semibold text-[#2E6A38]">
-                    Wallet asociada
+                <div className="mt-2 flex min-w-0 items-center gap-2">
+                  <p
+                    className="min-w-0 max-w-full truncate font-mono text-base font-bold leading-6 text-slate-900 sm:text-lg"
+                    title={tvdSummary.wallet}
+                  >
+                    {shortenMiddleAddress(tvdSummary.wallet)}
                   </p>
                   <button
                     type="button"
@@ -328,32 +339,20 @@ const ElectionsPage: React.FC = () => {
                       event.stopPropagation();
                       void handleCopyWallet();
                     }}
-                    className="mt-3 inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
+                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-amber-200 bg-white text-amber-700 transition hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-300/60"
+                    aria-label="Copiar dirección"
                   >
                     <ClipboardDocumentIcon className="h-4 w-4" aria-hidden="true" />
-                    Copiar dirección
                   </button>
-                  {copyFeedback ? (
-                    <p className="mt-2 text-xs font-medium text-[#2E6A38]">
-                      {copyFeedback}
-                    </p>
-                  ) : null}
-                </>
+                </div>
               ) : (
-                <p className="mt-3 text-sm font-semibold text-slate-700">
-                  Gestionar cuentas
+                <p className="mt-2 text-sm font-semibold text-slate-700">
+                  Cuenta pendiente
                 </p>
               )}
-              <button
-                type="button"
-                onClick={() => goToAccount()}
-                className="mt-3 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
-              >
-                Abrir cuenta
-              </button>
             </div>
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EFF7F0] text-[#2E6A38]">
-              <IdentificationIcon className="h-5 w-5" aria-hidden="true" />
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+              <IdentificationIcon className="h-6 w-6" aria-hidden="true" />
             </span>
           </section>
         </div>
@@ -492,37 +491,11 @@ const ElectionsPage: React.FC = () => {
                   <p>
                     <span className="font-medium">Cierre:</span> {formatDateTimeForUi(event.votingEnd)}
                   </p>
-                  {canDeleteEvent(event) && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteConfirm(event);
-                      }}
-                      disabled={deleting}
-                      className="inline-flex items-center rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50"
-                    >
-                      Eliminar
-                    </button>
-                  )}
-                  {canDisableEvent(event) && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDisableConfirm(event);
-                      }}
-                      disabled={deleting}
-                      className="inline-flex items-center rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50"
-                    >
-                      Deshabilitar
-                    </button>
-                  )}
                 </div>
               </div>
               {startAlreadyExpired && (
                 <p className="mt-4 text-sm text-amber-800">
-                  Esta votación ya alcanzó su hora de inicio sin estar lista. No debería seguir configurándose; elimínala y crea una nueva.
+                  Esta votación ya alcanzó su hora de inicio sin estar lista. Crea una nueva votación para continuar.
                 </p>
               )}
               {publicationReminderActive && event.publishDeadline && (
@@ -540,79 +513,6 @@ const ElectionsPage: React.FC = () => {
           })}
         </div>
       </div>
-
-      <Modal2
-        isOpen={!!deleteConfirm || !!disableConfirm}
-        onClose={() => {
-          setDeleteConfirm(null);
-          setDisableConfirm(null);
-        }}
-        title={disableConfirm ? "Deshabilitar votación" : "Eliminar votación"}
-        size="sm"
-        type="plain"
-      >
-        <div className="space-y-5">
-          <div className="rounded-2xl border border-red-100 bg-red-50/70 p-4">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-red-100 text-red-600">
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86l-7.5 13A1 1 0 003.65 18h16.7a1 1 0 00.86-1.5l-7.5-13a1 1 0 00-1.72 0z" />
-                </svg>
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-slate-900">
-                  {disableConfirm
-                    ? `¿Estás seguro de deshabilitar la votación "${disableConfirm.name}"?`
-                    : `¿Estás seguro de eliminar la votación "${deleteConfirm?.name}"?`}
-                </p>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  {disableConfirm
-                    ? "Los votantes ya no verán esta votación ni podrán votar, pero la configuración y resultados se mantendrán accesibles para el organizador."
-                    : "Esta acción eliminará la votación y no se puede deshacer."}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col-reverse gap-3 pt-1 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              onClick={() => {
-                setDeleteConfirm(null);
-                setDisableConfirm(null);
-              }}
-              disabled={deleting}
-              className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50"
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (disableConfirm) {
-                  handleDisableElection();
-                } else {
-                  handleDeleteElection();
-                }
-              }}
-              disabled={deleting || disabling}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 disabled:opacity-50"
-            >
-              {deleting || disabling ? (
-                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-              ) : (
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              )}
-              <span>{deleting ? 'Eliminando...' : disabling ? 'Deshabilitando...' : disableConfirm ? 'Deshabilitar' : 'Eliminar'}</span>
-            </button>
-          </div>
-        </div>
-      </Modal2>
 
       <EstimateVotersModal
         isOpen={showEstimateModal}

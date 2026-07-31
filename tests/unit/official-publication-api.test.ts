@@ -41,7 +41,7 @@ describe("official publication admin API", () => {
     vi.unstubAllGlobals();
   });
 
-  it("creates or recovers an official publication request with only eventId in the path", async () => {
+  it("TVD-PUB-P0-006 TVD-PUB-P0-007 | creates or recovers an official publication request with only eventId in the path", async () => {
     vi.mocked(fetch).mockResolvedValue(
       jsonResponse({
         created: true,
@@ -81,7 +81,7 @@ describe("official publication admin API", () => {
     expect(result.data?.request?.requestId).toBe("opr-1");
   });
 
-  it("consults the active request and supports request:null", async () => {
+  it("TVD-PUB-P0-008 | consults the active request and supports request:null", async () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse({ request: null }));
     const store = createApiStore();
 
@@ -99,7 +99,7 @@ describe("official publication admin API", () => {
     expect(result.data?.request).toBeNull();
   });
 
-  it("accepts created:false when another tab already created the active request", async () => {
+  it("TVD-PUB-P0-007 | accepts created:false when another tab already created the active request", async () => {
     vi.mocked(fetch).mockResolvedValue(
       jsonResponse({
         created: false,
@@ -122,7 +122,7 @@ describe("official publication admin API", () => {
     expect(result.data?.request?.requestId).toBe("opr-existing");
   });
 
-  it("consults by requestId and cancels with a safe reason code", async () => {
+  it("TVD-PUB-P0-009 | consults by requestId and cancels with a safe reason code", async () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(jsonResponse({ request: { requestId: "opr-1", eventId: "evt-1", status: "CLAIMED" } }))
       .mockResolvedValueOnce(jsonResponse({ request: { requestId: "opr-1", eventId: "evt-1", status: "CANCELLED" } }))
@@ -155,7 +155,7 @@ describe("official publication admin API", () => {
     });
   });
 
-  it("surfaces 422, 409 and 410 as API errors without fabricating requests", async () => {
+  it("TVD-PUB-P0-002 TVD-PUB-P0-003 TVD-PUB-P0-012 | surfaces 422, 409 and 410 as API errors without fabricating requests", async () => {
     for (const status of [422, 409, 410]) {
       vi.mocked(fetch).mockResolvedValueOnce(
         jsonResponse({ code: "OFFICIAL_PUBLICATION_ERROR" }, status),

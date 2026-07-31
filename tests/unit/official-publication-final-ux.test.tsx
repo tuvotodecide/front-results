@@ -58,7 +58,7 @@ describe("official publication final frontend UX", () => {
         data: { code: "OFFICIAL_PUBLICATION_VOTE_MANAGER_NOT_OPERATOR" },
       }),
     ).toBe(
-      "Configuración contractual pendiente. No solicites firma móvil ni recarga hasta corregir infraestructura.",
+      "La publicación no está disponible en este momento. Intenta nuevamente más tarde.",
     );
   });
 });

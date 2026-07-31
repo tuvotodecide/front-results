@@ -126,47 +126,31 @@ export default function EstimateVotersModal({
                 </strong>
               </div>
               <div className="flex items-center justify-between">
-                <span>Saldo validado por backend</span>
+                <span>Saldo disponible</span>
                 <strong>{formatTvdCapacityAmount(capacity.availableTokens)}</strong>
               </div>
-              <div className="flex items-center justify-between">
-                <span>Faltante</span>
-                <strong>
-                  {formatTvdCapacityAmount(capacity.estimatedMissingTokens)}
-                </strong>
-              </div>
+              {!capacity.hasEstimatedCapacity ? (
+                <div className="flex items-center justify-between">
+                  <span>Faltante</span>
+                  <strong>
+                    {formatTvdCapacityAmount(capacity.estimatedMissingTokens)}
+                  </strong>
+                </div>
+              ) : null}
             </div>
           ) : (
             <div className="flex items-center justify-between pt-3">
-              <span>Validación backend</span>
+              <span>Disponibilidad</span>
               <strong className="text-slate-500">Pendiente</strong>
             </div>
           )}
         </div>
-
-        {capacity?.hasEstimatedCapacity ? (
-          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-            La wallet tiene capacidad estimada para esta elección.
-          </div>
-        ) : null}
-
-        {capacity && !capacity.hasEstimatedCapacity ? (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            El saldo actual no cubre la estimación. Puedes crear el borrador y
-            recargar antes de publicar.
-          </div>
-        ) : null}
 
         {error ? (
           <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {getCapacityRequestErrorMessage(error)}
           </div>
         ) : null}
-
-        <p className="text-xs leading-5 text-slate-500">
-          Esta estimación es informativa. El padrón real se validará nuevamente
-          antes de avanzar a publicación.
-        </p>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <button
@@ -180,12 +164,14 @@ export default function EstimateVotersModal({
           {capacity ? (
             <button
               type="button"
-              onClick={handleContinue}
+              onClick={
+                capacity.hasEstimatedCapacity
+                  ? handleContinue
+                  : () => onRecharge(capacity)
+              }
               className="rounded-lg bg-[#459151] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#3a7a44]"
             >
-              {capacity.hasEstimatedCapacity
-                ? "Crear borrador"
-                : "Crear borrador de todos modos"}
+              {capacity.hasEstimatedCapacity ? "Crear votación" : "Recargar tokens"}
             </button>
           ) : (
             <button
@@ -202,10 +188,10 @@ export default function EstimateVotersModal({
         {capacity && !capacity.hasEstimatedCapacity ? (
           <button
             type="button"
-            onClick={() => onRecharge(capacity)}
-            className="w-full rounded-lg border border-[#459151]/20 bg-[#EFF7F0] px-4 py-3 text-sm font-semibold text-[#2E6A38] transition hover:bg-[#E4F3E7]"
+            onClick={handleContinue}
+            className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
-            Ir a recarga operativa
+            Crear borrador
           </button>
         ) : null}
       </div>

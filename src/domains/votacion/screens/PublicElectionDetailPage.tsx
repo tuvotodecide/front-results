@@ -134,27 +134,6 @@ const StatusCard: React.FC<{ status: PublicElectionDetail["status"] }> = ({ stat
   </div>
 );
 
-const ParticipationCheckCard: React.FC<{ onOpenModal: () => void }> = ({ onOpenModal }) => (
-  <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-    <div className="flex h-full flex-col justify-between gap-4">
-      <div>
-        <h3 className="font-semibold text-slate-800">Verificar participación</h3>
-        <p className="mt-2 text-sm text-slate-500">
-          Consulta si un CI ya votó en esta elección.
-        </p>
-      </div>
-      <button
-        type="button"
-        onClick={onOpenModal}
-        className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
-      >
-        <SearchIcon className="w-5 h-5" />
-        Verificar CI
-      </button>
-    </div>
-  </div>
-);
-
 const WinnerCard: React.FC<{ candidate: Candidate; isReferendum?: boolean }> = ({
   candidate,
   isReferendum = false,
@@ -280,20 +259,6 @@ const BlankVotesCard: React.FC<{
   </div>
 );
 
-const NoResultsCard: React.FC<{ isReferendum?: boolean }> = ({ isReferendum = false }) => (
-  <div className="bg-slate-50 border border-slate-200 rounded-xl p-8 shadow-sm text-center">
-    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-      <ClockIcon className="w-8 h-8 text-slate-400" />
-    </div>
-    <h3 className="font-semibold text-slate-700 mb-2">Aún no hay resultados disponibles</h3>
-    <p className="text-sm text-slate-500">
-      {isReferendum
-        ? "El referéndum aún no ha comenzado. Los resultados estarán disponibles una vez finalice el proceso."
-        : "La votación aún no ha comenzado. Los resultados estarán disponibles una vez finalice el proceso."}
-    </p>
-  </div>
-);
-
 const CandidateRow: React.FC<{
   candidate: Candidate;
   isLeading?: boolean;
@@ -413,7 +378,6 @@ const PublicElectionDetailPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showPadronModal, setShowPadronModal] = useState(false);
-  const [showParticipationModal, setShowParticipationModal] = useState(false);
 
   useEffect(() => {
     const loadElection = async () => {
@@ -477,6 +441,7 @@ const PublicElectionDetailPage: React.FC = () => {
   const hasResults = Boolean(
     election.results && getNonBlankCandidates(election.results.candidates).length > 0,
   );
+  const showOfficialResults = election.status === "FINISHED" && hasResults;
   const tiedCandidates = election.results ? getTopCandidates(election.results.candidates) : [];
   const hasTie = tiedCandidates.length > 1;
   const blankVotesCandidate = election.results?.candidates.find((candidate) => candidate.id === "blank") ?? null;
@@ -512,13 +477,12 @@ const PublicElectionDetailPage: React.FC = () => {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <ScheduleCard schedule={election.schedule} />
           <StatusCard status={election.status} />
-          <ParticipationCheckCard onOpenModal={() => setShowParticipationModal(true)} />
         </div>
 
-        {election.status === "FINISHED" && hasResults && (
+        {showOfficialResults && (
           <>
             {(hasTie || winnerCandidate) && (
               <div className="mb-6">
@@ -546,44 +510,13 @@ const PublicElectionDetailPage: React.FC = () => {
           </>
         )}
 
-        {election.status === "FINISHED" && !hasResults && (
-          <NoResultsCard isReferendum={election.isReferendum} />
-        )}
-
         {election.status === "LIVE" && (
-          <>
-            <div className="mb-6">
-              <LiveVotingCard isReferendum={election.isReferendum} />
-            </div>
-            {hasResults ? (
-              <>
-                <VoteDistributionSection
-                  candidates={election.results!.candidates}
-                  winnerId={null}
-                  tiedCandidateIds={tiedCandidates.length > 1 ? tiedCandidates.map((candidate) => candidate.id) : []}
-                  isPreliminary
-                  isReferendum={election.isReferendum}
-                />
-                {blankVotesCandidate && (
-                  <div className="mt-6">
-                    <BlankVotesCard
-                      votes={blankVotesCandidate.votes}
-                      percent={blankVotesCandidate.percent}
-                      isPreliminary
-                    />
-                  </div>
-                )}
-              </>
-            ) : (
-              <NoResultsCard isReferendum={election.isReferendum} />
-            )}
-          </>
+          <div className="mb-6">
+            <LiveVotingCard isReferendum={election.isReferendum} />
+          </div>
         )}
 
-        {election.status === "UPCOMING" && (
-          <NoResultsCard isReferendum={election.isReferendum} />
-        )}
-
+        {!showOfficialResults ? (
         <div className="mt-8 space-y-5">
           <div>
             {election.isReferendum ? (
@@ -674,6 +607,7 @@ const PublicElectionDetailPage: React.FC = () => {
             </div>
           )}
         </div>
+        ) : null}
 
         {election.publicEligibilityEnabled && (
           <PadronCheckSection onOpenModal={() => setShowPadronModal(true)} />
@@ -684,12 +618,6 @@ const PublicElectionDetailPage: React.FC = () => {
         isOpen={showPadronModal}
         onClose={() => setShowPadronModal(false)}
         eventId={electionId}
-      />
-      <PadronCheckModal
-        isOpen={showParticipationModal}
-        onClose={() => setShowParticipationModal(false)}
-        eventId={electionId}
-        mode="participation"
       />
     </div>
   );

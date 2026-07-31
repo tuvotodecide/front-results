@@ -6,6 +6,7 @@ import {
   Check,
   CheckCircle2,
   Clipboard,
+  ExternalLink,
   Loader2,
   RefreshCw,
 } from "lucide-react";
@@ -29,12 +30,15 @@ import {
   extractTvdManualAssignmentFromError,
   getTvdManualAssignmentErrorMessage,
   getTvdManualAssignmentStatusMessage,
-  getTvdManualAssignmentWalletLabel,
   isTvdManualAssignmentTerminalStatus,
   normalizeTvdTokenAmount,
   validateTvdManualAssignmentAmount,
   validateTvdManualAssignmentReason,
 } from "../utils/tvdManualAssignment";
+import {
+  buildExplorerTxUrl,
+  getKnownBaseNetwork,
+} from "@/shared/tvd/tvdBlockchainFormatters";
 
 type AssignmentStep = 1 | 2 | 3;
 
@@ -122,9 +126,6 @@ const Stepper = ({ currentStep }: { currentStep: AssignmentStep }) => (
   </ol>
 );
 
-const shortId = (value: string) =>
-  value.length > 12 ? `${value.slice(0, 6)}...${value.slice(-4)}` : value;
-
 const statusTone = (
   status: TvdManualAssignmentResponse["status"],
 ): "success" | "warning" | "danger" | "neutral" => {
@@ -136,6 +137,13 @@ const statusTone = (
 
 const isSelectableWallet = (wallet: TvdAdminInstitutionWallet) =>
   wallet.eligible && Boolean(wallet.wallet);
+
+const shortenMiddle = (value?: string | null, start = 10, end = 8) => {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) return "";
+  if (normalized.length <= start + end + 3) return normalized;
+  return `${normalized.slice(0, start)}...${normalized.slice(-end)}`;
+};
 
 export default function TvdManualAssignmentPage() {
   const [step, setStep] = useState<AssignmentStep>(1);
@@ -156,7 +164,7 @@ export default function TvdManualAssignmentPage() {
   const institutionsQuery = useListTvdAdminInstitutionsQuery({
     search: search.trim() || undefined,
     page: 1,
-    limit: 20,
+    limit: 10,
   });
   const walletsQuery = useListTvdAdminInstitutionWalletsQuery(
     selectedInstitution?.tenantId ?? "",
@@ -318,123 +326,143 @@ export default function TvdManualAssignmentPage() {
     }
   };
 
-  const selectedWalletLabel = selectedWallet
-    ? getTvdManualAssignmentWalletLabel(selectedWallet)
-    : "";
   const hasInstitutionsError = Boolean(institutionsQuery.error);
   const hasWalletsError = Boolean(walletsQuery.error);
 
   const assignmentStatusMessage = assignmentResult
     ? getTvdManualAssignmentStatusMessage(assignmentResult.status)
     : "";
-  const resultPanel = assignmentResult ? (
-      <div className="mx-auto max-w-xl rounded-2xl border border-[#dfe6df] bg-white p-6 shadow-sm">
-        <div className="flex items-start gap-4">
-          <span
-            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${
-              assignmentResult.status === "CONFIRMED"
-                ? "bg-[#e7f2e8] text-[#287c36]"
-                : assignmentResult.status === "FAILED"
-                  ? "bg-[#fff1ef] text-[#b42318]"
-                  : "bg-[#fff8e8] text-[#a45400]"
-            }`}
-          >
-            {assignmentResult.status === "CONFIRMED" ? (
-              <CheckCircle2 className="h-6 w-6" />
-            ) : assignmentResult.status === "FAILED" ? (
-              <AlertCircle className="h-6 w-6" />
-            ) : (
-              <Loader2 className="h-6 w-6 animate-spin" />
-            )}
-          </span>
-          <div className="min-w-0 flex-1">
-            <h2 className="font-semibold text-[#3f3f3f]">{assignmentStatusMessage}</h2>
-            <p className="mt-1 text-sm text-[#747474]">
-              Backend Results procesa y valida esta asignación. El navegador no firma ni envía transacciones.
-            </p>
-            {detailQuery.error ? (
-              <div className="mt-3 rounded-lg border border-[#f0b4aa] bg-[#fff1ef] px-4 py-3 text-sm text-[#b42318]">
-                {getTvdManualAssignmentErrorMessage(detailQuery.error)}
-              </div>
-            ) : null}
+  if (assignmentResult) {
+    const canRetryStatus =
+      assignmentResult.status === "FAILED" &&
+      assignmentResult.failureCategory === "RETRYABLE";
+    const txExplorerUrl = buildExplorerTxUrl(
+      getKnownBaseNetwork(assignmentResult.chainId).explorerBaseUrl,
+      assignmentResult.txHash,
+    );
+    return (
+      <section>
+        <SuperadminPageHeader
+          title="Resultado de asignación"
+          subtitle="Resumen de la operación"
+        />
+        <div className="mx-auto max-w-xl rounded-2xl border border-[#dfe6df] bg-white p-6 shadow-sm">
+          <div className="flex items-start gap-4">
+            <span
+              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${
+                assignmentResult.status === "CONFIRMED"
+                  ? "bg-[#e7f2e8] text-[#287c36]"
+                  : assignmentResult.status === "FAILED"
+                    ? "bg-[#fff1ef] text-[#b42318]"
+                    : "bg-[#fff8e8] text-[#a45400]"
+              }`}
+            >
+              {assignmentResult.status === "CONFIRMED" ? (
+                <CheckCircle2 className="h-6 w-6" />
+              ) : assignmentResult.status === "FAILED" ? (
+                <AlertCircle className="h-6 w-6" />
+              ) : (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              )}
+            </span>
+            <div className="min-w-0 flex-1">
+              <h2 className="font-semibold text-[#3f3f3f]">{assignmentStatusMessage}</h2>
+              {detailQuery.error ? (
+                <div className="mt-3 rounded-lg border border-[#f0b4aa] bg-[#fff1ef] px-4 py-3 text-sm text-[#b42318]">
+                  {getTvdManualAssignmentErrorMessage(detailQuery.error)}
+                </div>
+              ) : null}
+            </div>
           </div>
-        </div>
 
-        <dl className="mt-5 rounded-lg bg-[#f7f8f7] p-4 text-sm">
-          <div className="flex justify-between gap-4 border-b border-[#e4e8e4] py-2">
-            <dt className="text-[#777]">Acreditación</dt>
-            <dd className="break-all text-right font-mono text-xs text-[#333]">
-              {assignmentResult.id}
-            </dd>
-          </div>
-          <div className="flex justify-between gap-4 border-b border-[#e4e8e4] py-2">
-            <dt className="text-[#777]">Estado</dt>
-            <dd>
-              <StatusPill
-                label={assignmentResult.status}
-                tone={statusTone(assignmentResult.status)}
-              />
-            </dd>
-          </div>
-          <div className="flex justify-between gap-4 border-b border-[#e4e8e4] py-2">
-            <dt className="text-[#777]">Institución</dt>
-            <dd className="text-right font-medium text-[#333]">
-              {selectedInstitution?.name ?? assignmentResult.tenantId}
-            </dd>
-          </div>
-          <div className="flex justify-between gap-4 border-b border-[#e4e8e4] py-2">
-            <dt className="text-[#777]">Wallet destino</dt>
-            <dd className="break-all text-right font-mono text-xs text-[#333]">
-              {assignmentResult.targetWallet}
-            </dd>
-          </div>
-          <div className="flex justify-between gap-4 border-b border-[#e4e8e4] py-2">
-            <dt className="text-[#777]">Monto</dt>
-            <dd className="font-semibold text-[#287c36]">
-              {assignmentResult.tokenAmount} TVD
-            </dd>
-          </div>
-          <div className="flex justify-between gap-4 border-b border-[#e4e8e4] py-2">
-            <dt className="text-[#777]">Motivo</dt>
-            <dd className="text-right text-[#333]">{assignmentResult.reason}</dd>
-          </div>
-          {assignmentResult.txHash ? (
-            <div className="flex justify-between gap-4 py-2">
-              <dt className="text-[#777]">txHash</dt>
-              <dd className="break-all text-right font-mono text-xs text-[#287c36]">
-                {assignmentResult.txHash}
+          <dl className="mt-5 rounded-lg bg-[#f7f8f7] p-4 text-sm">
+            <div className="grid gap-1 border-b border-[#e4e8e4] py-2 sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:items-center sm:gap-4">
+              <dt className="text-[#777]">Estado</dt>
+              <dd className="min-w-0 sm:text-right">
+                <StatusPill
+                  label={assignmentStatusMessage}
+                  tone={statusTone(assignmentResult.status)}
+                />
               </dd>
             </div>
-          ) : null}
-        </dl>
+            <div className="grid gap-1 border-b border-[#e4e8e4] py-2 sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:items-center sm:gap-4">
+              <dt className="text-[#777]">Institución</dt>
+              <dd className="min-w-0 truncate font-medium text-[#333] sm:text-right" title={selectedInstitution?.name ?? undefined}>
+                {selectedInstitution?.name ?? "No disponible"}
+              </dd>
+            </div>
+            <div className="grid gap-1 border-b border-[#e4e8e4] py-2 sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:items-center sm:gap-4">
+              <dt className="text-[#777]">Wallet destino</dt>
+              <dd
+                className="min-w-0 truncate font-mono text-xs text-[#333] sm:text-right"
+                title={assignmentResult.targetWallet}
+              >
+                {shortenMiddle(assignmentResult.targetWallet, 10, 8)}
+              </dd>
+            </div>
+            <div className="grid gap-1 border-b border-[#e4e8e4] py-2 sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:items-center sm:gap-4">
+              <dt className="text-[#777]">Monto</dt>
+              <dd className="min-w-0 font-semibold text-[#287c36] sm:text-right">
+                {assignmentResult.tokenAmount} TVD
+              </dd>
+            </div>
+            <div className="grid gap-1 border-b border-[#e4e8e4] py-2 sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:items-start sm:gap-4">
+              <dt className="text-[#777]">Motivo</dt>
+              <dd className="min-w-0 text-[#333] sm:text-right">{assignmentResult.reason}</dd>
+            </div>
+            {assignmentResult.txHash ? (
+              <div className="grid gap-2 py-2 sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:items-center sm:gap-4">
+                <dt className="whitespace-nowrap text-[#777]">Tx Hash</dt>
+                <dd className="flex min-w-0 flex-col gap-2 sm:items-end">
+                  <span
+                    className="max-w-full truncate font-mono text-xs font-semibold text-[#287c36]"
+                    title={assignmentResult.txHash}
+                  >
+                    {shortenMiddle(assignmentResult.txHash, 10, 8)}
+                  </span>
+                  <span className="flex flex-wrap gap-2 sm:justify-end">
+                    <CopyButton value={assignmentResult.txHash} label="Copiar" />
+                    {txExplorerUrl ? (
+                      <a
+                        href={txExplorerUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-md border border-[#dfe6df] px-2.5 py-1.5 text-xs font-medium text-[#4b4b4b] transition-colors hover:border-[#287c36] hover:text-[#287c36]"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        Ver en BaseScan
+                      </a>
+                    ) : null}
+                  </span>
+                </dd>
+              </div>
+            ) : null}
+          </dl>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          {assignmentResult.txHash ? (
-            <CopyButton value={assignmentResult.txHash} label="Copiar txHash" />
-          ) : (
-            <span className="rounded-md border border-[#dfe3df] px-4 py-2 text-center text-sm text-[#777]">
-              Sin txHash aún
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={() => void detailQuery.refetch()}
-            disabled={detailQuery.isFetching}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-[#dfe3df] px-4 py-2 text-sm font-medium text-[#444] transition-colors hover:bg-[#f7f8f7] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <RefreshCw className={`h-4 w-4 ${detailQuery.isFetching ? "animate-spin" : ""}`} />
-            Reintentar estado
-          </button>
-          <button
-            type="button"
-            onClick={resetWizard}
-            className="rounded-md bg-[#287c36] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#1f642b]"
-          >
-            Nueva asignación
-          </button>
+          <div className="mt-5 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+            {canRetryStatus ? (
+              <button
+                type="button"
+                onClick={() => void detailQuery.refetch()}
+                disabled={detailQuery.isFetching}
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-[#dfe3df] px-4 py-2 text-sm font-medium text-[#444] transition-colors hover:bg-[#f7f8f7] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <RefreshCw className={`h-4 w-4 ${detailQuery.isFetching ? "animate-spin" : ""}`} />
+                Actualizar
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={resetWizard}
+              className="inline-flex items-center justify-center rounded-md bg-[#287c36] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#1f642b] sm:w-auto"
+            >
+              Volver a asignaciones
+            </button>
+          </div>
         </div>
-      </div>
-  ) : null;
+      </section>
+    );
+  }
 
   return (
     <section>
@@ -442,7 +470,7 @@ export default function TvdManualAssignmentPage() {
         title="Asignación de TVD"
         subtitle={
           step === 3
-            ? "Revisa y solicita la asignación real en Backend Results"
+            ? "Revisa los datos antes de asignar"
             : "Asignar TVD a una wallet institucional verificada"
         }
       />
@@ -518,7 +546,9 @@ export default function TvdManualAssignmentPage() {
                         {institution.name}
                       </span>
                       <span className="mt-1 block text-xs text-[#777]">
-                        {institution.assignmentsCount} assignment(s) · {institution.eligibleWalletsCount} wallet(s) disponible(s)
+                        {institution.eligibleWalletsCount === 1
+                          ? "1 wallet disponible"
+                          : `${institution.eligibleWalletsCount} wallets disponibles`}
                       </span>
                     </span>
                     <StatusPill
@@ -536,8 +566,8 @@ export default function TvdManualAssignmentPage() {
 
       {step === 2 && selectedInstitution ? (
         <div className="mx-auto max-w-2xl overflow-hidden rounded-2xl border border-[#dfe6df] bg-white shadow-sm">
-          <h2 className="border-b border-[#e8ece8] px-5 py-4 font-semibold text-[#3f3f3f]">
-            2. Wallet institucional y datos de asignación
+            <h2 className="border-b border-[#e8ece8] px-5 py-4 font-semibold text-[#3f3f3f]">
+            2. Wallet y datos de asignación
           </h2>
           <div className="space-y-5 p-5">
             <div className="rounded-lg border border-[#dfe3df] bg-[#f7f8f7] p-4">
@@ -569,7 +599,7 @@ export default function TvdManualAssignmentPage() {
 
             {!walletsQuery.isFetching && !hasWalletsError && walletItems.length === 0 ? (
               <div className="rounded-lg border border-[#dfe3df] bg-[#f7f8f7] px-4 py-3 text-sm text-[#666]">
-                Esta institución no tiene assignments con wallet registrada.
+                Esta institución no tiene wallets registradas.
               </div>
             ) : null}
 
@@ -581,7 +611,7 @@ export default function TvdManualAssignmentPage() {
 
             <fieldset className="space-y-3">
               <legend className="text-sm font-medium text-[#3f3f3f]">
-                Seleccionar admin/wallet <span className="text-[#b42318]">*</span>
+                Seleccionar wallet <span className="text-[#b42318]">*</span>
               </legend>
               {walletItems.map((wallet) => {
                 const selectable = isSelectableWallet(wallet);
@@ -600,20 +630,15 @@ export default function TvdManualAssignmentPage() {
                     }`}
                   >
                     <span className="min-w-0">
-                      <span className="block text-sm font-medium text-[#3f3f3f]">
-                        {getTvdManualAssignmentWalletLabel(wallet)}
-                      </span>
-                      <span className="mt-1 block break-all font-mono text-xs text-[#555]">
-                        {wallet.wallet ?? "Sin wallet"}
-                      </span>
-                      <span className="mt-1 block text-xs text-[#777]">
-                        Assignment {shortId(wallet.assignmentId)} · Estado {wallet.status}
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="block break-all font-mono text-xs text-[#555]">
+                          {wallet.wallet ?? "Sin wallet"}
+                        </span>
                       </span>
                     </span>
-                    <StatusPill
-                      label={selectable ? "Elegible" : "No elegible"}
-                      tone={selectable ? "success" : "warning"}
-                    />
+                    {selectable ? (
+                      <StatusPill label="Elegible" tone="success" />
+                    ) : null}
                   </button>
                 );
               })}
@@ -643,7 +668,7 @@ export default function TvdManualAssignmentPage() {
 
             <label className="block">
               <span className="text-sm font-medium text-[#3f3f3f]">
-                Motivo auditado <span className="text-[#b42318]">*</span>
+                Motivo <span className="text-[#b42318]">*</span>
               </span>
               <textarea
                 value={reason}
@@ -675,7 +700,7 @@ export default function TvdManualAssignmentPage() {
                 disabled={walletsQuery.isFetching || hasWalletsError}
                 className="w-full rounded-lg bg-[#287c36] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#1f642b] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Revisar operación
+                Continuar
               </button>
             </div>
           </div>
@@ -696,10 +721,6 @@ export default function TvdManualAssignmentPage() {
                 </dd>
               </div>
               <div className="flex justify-between gap-4 border-b border-[#e8ece8] py-3">
-                <dt className="text-[#777]">Administrador</dt>
-                <dd className="text-right text-[#333]">{selectedWalletLabel}</dd>
-              </div>
-              <div className="flex justify-between gap-4 border-b border-[#e8ece8] py-3">
                 <dt className="text-[#777]">Wallet destino</dt>
                 <dd className="break-all text-right font-mono text-xs text-[#333]">
                   {selectedWallet.wallet}
@@ -718,19 +739,12 @@ export default function TvdManualAssignmentPage() {
             </dl>
           </div>
 
-          <div className="rounded-lg border border-[#f3ca72] bg-[#fff8e8] px-4 py-4 text-sm text-[#a45400]">
-            Esta operación solicitará una asignación real de TVD a la wallet seleccionada. El procesamiento y la validación on-chain serán realizados por Backend Results.
-          </div>
-
           {operationError ? (
             <div className="rounded-lg border border-[#f0b4aa] bg-[#fff1ef] px-4 py-3 text-sm text-[#b42318]" role="alert">
               {operationError}
             </div>
           ) : null}
 
-          {resultPanel}
-
-          {!assignmentResult ? (
             <div className="grid gap-3 sm:grid-cols-2">
               <button
                 type="button"
@@ -751,10 +765,9 @@ export default function TvdManualAssignmentPage() {
                 ) : (
                   <Clipboard className="h-4 w-4" />
                 )}
-                Solicitar asignación
+                Asignar
               </button>
             </div>
-          ) : null}
         </div>
       ) : null}
     </section>

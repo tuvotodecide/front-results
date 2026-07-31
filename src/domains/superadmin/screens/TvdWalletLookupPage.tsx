@@ -1,17 +1,17 @@
 "use client";
 
 import { FormEvent, useRef, useState } from "react";
-import { RefreshCw, Search, ShieldAlert, WalletCards } from "lucide-react";
+import { ExternalLink, RefreshCw, Search, ShieldAlert, WalletCards } from "lucide-react";
 import CopyButton from "../components/CopyButton";
 import SuperadminPageHeader from "../components/SuperadminPageHeader";
 import { useLazyLookupTvdAdminWalletQuery } from "@/store/tvd";
 import type { TvdWalletLookupResponse } from "@/store/tvd";
 import {
-  getReasonCodeLabel,
   getWalletLookupErrorMessage,
-  getWalletLookupFeedback,
   validateWalletLookupAddress,
 } from "../utils/tvdWalletLookup";
+import { buildExplorerAddressUrl } from "@/shared/tvd/tvdBlockchainFormatters";
+import { getTvdBlockchainReadConfig } from "@/shared/tvd/tvdBlockchainConfig";
 
 const toneClasses = {
   success: "border-[#b8d9bd] bg-[#eef8ef] text-[#287c36]",
@@ -20,139 +20,90 @@ const toneClasses = {
   neutral: "border-[#d8dde3] bg-[#f7f8fa] text-[#4b5563]",
 } as const;
 
-const booleanLabel = (value: boolean | null) => {
-  if (value === null) return "No disponible";
-  return value ? "Sí" : "No";
-};
-
-const formatDate = (value: string | null) => {
-  if (!value) return "No disponible";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString("es-BO", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
 function WalletLookupResult({
   result,
+  onRetry,
+  retrying,
 }: {
   result: TvdWalletLookupResponse;
+  onRetry: () => void;
+  retrying: boolean;
 }) {
-  const feedback = getWalletLookupFeedback(result);
+  const belongs = result.associationStatus === "ASSOCIATED";
+  const explorerUrl = buildExplorerAddressUrl(
+    getTvdBlockchainReadConfig().explorerBaseUrl,
+    result.accountAddress,
+  );
+  const balanceAvailable = result.balance?.status === "AVAILABLE";
 
   return (
-    <article className="mt-5 overflow-hidden rounded-2xl border border-[#dfe6df] bg-white shadow-sm">
+    <article className="mt-5 mx-auto max-w-2xl overflow-hidden rounded-2xl border border-[#dfe6df] bg-white shadow-sm">
       <div className="flex flex-col gap-3 border-b border-[#e8ece8] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-[#3f3f3f]">
-            Detalle de wallet
-          </h2>
-          <p className="mt-1 text-sm text-[#777]">{feedback.description}</p>
-        </div>
+        <h2 className="text-lg font-semibold text-[#3f3f3f]">
+          Detalle de billetera
+        </h2>
         <span
-          className={`rounded-full border px-4 py-1 text-sm font-medium ${toneClasses[feedback.tone]}`}
+          className={`rounded-full border px-4 py-1 text-sm font-medium ${
+            belongs ? toneClasses.success : toneClasses.neutral
+          }`}
         >
-          {feedback.title}
+          {belongs ? "Sí pertenece" : "No pertenece"}
         </span>
       </div>
 
-      <div className="space-y-5 p-5">
-        <div className="grid gap-3 border-b border-[#e8ece8] pb-4 sm:grid-cols-[1fr_auto] sm:items-center">
+      <div className="divide-y divide-[#e8ece8] px-5">
+        <div className="grid gap-3 py-4 sm:grid-cols-[1fr_auto] sm:items-center">
           <div>
-            <p className="text-xs text-[#777]">Dirección normalizada</p>
+            <p className="text-xs text-[#777]">Dirección</p>
             <p className="mt-1 break-all font-mono text-sm text-[#444]">
               {result.accountAddress}
             </p>
           </div>
-          <CopyButton value={result.accountAddress} label="Copiar" />
+          <div className="flex flex-wrap gap-2">
+            <CopyButton value={result.accountAddress} label="Copiar" />
+            {explorerUrl ? (
+              <a
+                href={explorerUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-[#dfe3df] px-3 py-2 text-xs font-medium text-[#444] hover:border-[#287c36] hover:text-[#287c36]"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Explorar
+              </a>
+            ) : null}
+          </div>
         </div>
-
-        <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border border-[#e8ece8] p-3">
-            <dt className="text-xs text-[#777]">Registro Identity</dt>
-            <dd className="mt-1 text-sm font-semibold text-[#444]">
-              {result.identityStatus}
-            </dd>
-          </div>
-          <div className="rounded-xl border border-[#e8ece8] p-3">
-            <dt className="text-xs text-[#777]">Asociación Results</dt>
-            <dd className="mt-1 text-sm font-semibold text-[#444]">
-              {result.associationStatus}
-            </dd>
-          </div>
-          <div className="rounded-xl border border-[#e8ece8] p-3">
-            <dt className="text-xs text-[#777]">Puede utilizarse</dt>
-            <dd className="mt-1 text-sm font-semibold text-[#444]">
-              {result.canUse ? "Sí" : "No"}
-            </dd>
-          </div>
-          <div className="rounded-xl border border-[#e8ece8] p-3">
-            <dt className="text-xs text-[#777]">Resultado</dt>
-            <dd className="mt-1 text-sm font-semibold text-[#444]">
-              {getReasonCodeLabel(result.reasonCode)}
-            </dd>
-          </div>
-        </dl>
-
-        <section>
-          <h3 className="text-sm font-semibold text-[#444]">
-            Asociaciones institucionales
-          </h3>
-          {result.associations.length === 0 ? (
-            <div className="mt-3 rounded-xl border border-dashed border-[#d8dde3] bg-[#fafafa] p-4 text-sm text-[#777]">
-              No hay asociaciones institucionales locales para esta wallet.
-            </div>
+        <div className="grid gap-2 py-4 sm:grid-cols-[1fr_auto] sm:items-center">
+          <p className="text-xs text-[#777]">Saldo</p>
+          {balanceAvailable ? (
+            <p className="font-semibold text-[#287c36]">
+              {result.balance.formatted} $TVD
+            </p>
           ) : (
-            <div className="mt-3 overflow-x-auto rounded-xl border border-[#e8ece8]">
-              <table className="min-w-full divide-y divide-[#e8ece8] text-left text-sm">
-                <thead className="bg-[#f8faf8] text-xs uppercase text-[#777]">
-                  <tr>
-                    <th className="px-4 py-3 font-semibold">Institución</th>
-                    <th className="px-4 py-3 font-semibold">Assignment</th>
-                    <th className="px-4 py-3 font-semibold">Rol</th>
-                    <th className="px-4 py-3 font-semibold">Activa</th>
-                    <th className="px-4 py-3 font-semibold">Wallet</th>
-                    <th className="px-4 py-3 font-semibold">Verificada</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#e8ece8]">
-                  {result.associations.map((association) => (
-                    <tr key={association.assignmentId}>
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-[#444]">
-                          {association.tenantName}
-                        </p>
-                        <p className="mt-1 font-mono text-xs text-[#777]">
-                          {association.tenantId}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3 text-[#555]">
-                        {association.assignmentStatus ?? "No disponible"}
-                      </td>
-                      <td className="px-4 py-3 text-[#555]">
-                        {association.institutionalRole ?? "No disponible"}
-                      </td>
-                      <td className="px-4 py-3 text-[#555]">
-                        {booleanLabel(association.assignmentActive)}
-                      </td>
-                      <td className="px-4 py-3 text-[#555]">
-                        {association.walletStatus}
-                      </td>
-                      <td className="px-4 py-3 text-[#555]">
-                        {formatDate(association.walletVerifiedAt)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <button
+              type="button"
+              onClick={onRetry}
+              disabled={retrying}
+              className="inline-flex items-center gap-2 rounded-md border border-[#f3d48d] px-3 py-2 text-xs font-semibold text-[#8a5a00] hover:bg-[#fff8e8] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${retrying ? "animate-spin" : ""}`}
+              />
+              Reintentar
+            </button>
           )}
-        </section>
+        </div>
+        {explorerUrl ? (
+          <a
+            href={explorerUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex py-4 text-sm font-semibold text-[#287c36] underline-offset-2 hover:underline"
+          >
+            Ver en explorer
+          </a>
+        ) : null}
       </div>
     </article>
   );
@@ -273,8 +224,7 @@ export default function TvdWalletLookupPage() {
         <div className="mt-5 flex min-h-[140px] flex-col items-center justify-center rounded-2xl border border-[#dfe6df] bg-white p-6 text-center shadow-sm">
           <WalletCards className="h-9 w-9 text-[#777]" />
           <p className="mt-4 text-sm text-[#777]">
-            Ingresa una dirección de wallet para verificar su registro y
-            asociaciones institucionales.
+            Ingresa una dirección de wallet para consultar el detalle.
           </p>
         </div>
       ) : null}
@@ -316,7 +266,11 @@ export default function TvdWalletLookupPage() {
       ) : null}
 
       {!isLoading && hasCurrentResult && lookupState.data ? (
-        <WalletLookupResult result={lookupState.data} />
+        <WalletLookupResult
+          result={lookupState.data}
+          onRetry={retryLookup}
+          retrying={isLoading}
+        />
       ) : null}
     </section>
   );

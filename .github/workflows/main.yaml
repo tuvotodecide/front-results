@@ -143,9 +143,17 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm test:module:election-config
 
-      - name: Run module tests - Electoral register management
+      - name: MX-05 | Padrón, staging, elegibilidad y archivos | Frontend
+        if: ${{ !cancelled() }}
+        run: pnpm test:matrix:05
+
+      - name: Run module tests - Electoral register residual outside MX-05
         if: ${{ !cancelled() }}
         run: pnpm test:module:register
+
+      - name: MX-06 | TVD, QR, acreditación y publicación | Frontend Admin
+        if: ${{ !cancelled() }}
+        run: pnpm test:matrix:06
 
       - name: Run module tests - Election review and official publication
         if: ${{ !cancelled() }}
@@ -204,11 +212,17 @@ jobs:
           CYPRESS_BASE_URL: http://127.0.0.1:3000
         run: pnpm cypress:matrix:04
 
-      - name: Run Cypress tests - Electoral register management
+      - name: MX-05 | Padrón, staging, elegibilidad y archivos | Frontend | Cypress
         if: ${{ !cancelled() }}
         env:
           CYPRESS_BASE_URL: http://127.0.0.1:3000
-        run: pnpm cypress:module:register
+        run: pnpm cypress:matrix:05
+
+      - name: MX-06 | TVD, QR, acreditación y publicación | Frontend Admin | Cypress
+        if: ${{ !cancelled() }}
+        env:
+          CYPRESS_BASE_URL: http://127.0.0.1:3000
+        run: pnpm cypress:matrix:06
 
       - name: Run Cypress tests - Election review and official publication
         if: ${{ !cancelled() }}

@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import CopyButton from "../components/CopyButton";
 import SuperadminPageHeader from "../components/SuperadminPageHeader";
 import { useTvdContractsReadModel } from "../hooks/useSuperadminTvdReadModel";
@@ -67,7 +67,7 @@ const StatusBanner = ({
   if (isLoading) {
     return (
       <div className="rounded-lg border border-[#dfe6df] bg-white px-4 py-3 text-sm text-[#555]">
-        Cargando datos blockchain...
+        Cargando datos...
       </div>
     );
   }
@@ -106,16 +106,15 @@ const StatusBanner = ({
 
 export default function TvdContractPage() {
   const { data, isLoading, error, retry } = useTvdContractsReadModel();
+  const showData = Boolean(data) && !isLoading;
   const tvdAddress = data?.tvdToken.address ?? null;
   const tvdTxHash = data?.tvdToken.txHash ?? null;
   const deploymentDate =
     data?.tvdToken.deploymentDate.isoDate
       ? formatDateTimeForUi(data.tvdToken.deploymentDate.isoDate)
       : (data?.tvdToken.deploymentDate.message ?? "No disponible");
-  const networkLabel =
-    data?.network.chainId ? `${data.network.name} (chainId ${data.network.chainId})` : "Configuración incompleta";
+  const networkLabel = data?.network.name ?? "Configuración incompleta";
   const multisigAddress = data?.multisig.address ?? null;
-  const multisigOwners = data?.multisig.owners ?? [];
 
   return (
     <section>
@@ -126,12 +125,23 @@ export default function TvdContractPage() {
 
       <div className="space-y-5">
         <StatusBanner isLoading={isLoading} status={data?.status} error={error} onRetry={retry} />
-        {data?.network.chainStatus === "error" ? (
+        {isLoading ? (
+          <div className="rounded-2xl border border-[#dfe6df] bg-white p-5 shadow-sm">
+            <div className="h-5 w-48 animate-pulse rounded bg-[#edf0ed]" />
+            <div className="mt-4 space-y-3">
+              <div className="h-12 animate-pulse rounded-lg bg-[#f2f4f2]" />
+              <div className="h-12 animate-pulse rounded-lg bg-[#f2f4f2]" />
+              <div className="h-12 animate-pulse rounded-lg bg-[#f2f4f2]" />
+            </div>
+          </div>
+        ) : null}
+        {showData && data?.network.chainStatus === "error" ? (
           <div className="rounded-lg border border-[#f3ca72] bg-[#fff8e8] px-4 py-3 text-sm text-[#a45400]">
             {data.network.chainMessage}
           </div>
         ) : null}
 
+        {showData ? (
         <article className="overflow-hidden rounded-2xl border border-[#dfe6df] bg-white shadow-sm">
           <h2 className="border-b border-[#e8ece8] px-5 py-4 font-semibold text-[#3f3f3f]">
             Estado del contrato
@@ -161,75 +171,35 @@ export default function TvdContractPage() {
           />
           <InfoRow label="Fecha de registro" value={deploymentDate} />
         </article>
+        ) : null}
 
+        {showData ? (
         <article className="overflow-hidden rounded-2xl border border-[#dfe6df] bg-white shadow-sm">
           <h2 className="border-b border-[#e8ece8] px-5 py-4 font-semibold text-[#3f3f3f]">
-            Personas autorizadas
+            Contrato multisig
           </h2>
           <InfoRow
-            label="Dirección de la cuenta"
-            value={truncateAddress(multisigAddress)}
+            label="Dirección"
+            value={multisigAddress ? truncateAddress(multisigAddress) : "No disponible"}
             fullValue={multisigAddress}
-            action={<ExplorerButton href={data?.multisig.explorerUrl ?? null} />}
+            action={
+              multisigAddress ? (
+                <div className="flex flex-wrap gap-2">
+                  <CopyButton value={multisigAddress} label="Copiar" />
+                  <ExplorerButton href={data?.multisig.explorerUrl ?? null} />
+                </div>
+              ) : null
+            }
           />
-          <InfoRow
-            label="Umbral de aprobación"
-            value={data?.multisig.thresholdLabel ?? "Dato pendiente/no encontrado"}
-          />
-          {data?.multisig.warning ? (
-            <div className="flex items-start gap-2 border-b border-[#e8ece8] bg-[#fff8e8] px-4 py-3 text-sm text-[#a45400]">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              {data.multisig.warning}
+          {!multisigAddress ? (
+            <div className="border-t border-[#e8ece8] px-4 py-3 text-sm text-[#747474]">
+              No se encontró una dirección multisig disponible.
             </div>
           ) : null}
-          <div className="px-4 py-3">
-            <p className="mb-3 text-xs text-[#7a7a7a]">
-              Firmantes autorizados
-              {typeof data?.multisig.ownersCount === "number"
-                ? ` (${data.multisig.ownersCount})`
-                : ""}
-            </p>
-            <div className="space-y-2">
-              {data?.multisig.readStatus === "error" ? (
-                <p className="rounded-lg border border-[#f3ca72] bg-[#fff8e8] px-3 py-2 text-sm text-[#a45400]">
-                  {data.multisig.errorMessage ?? "Error al consultar la blockchain"}
-                  <button
-                    type="button"
-                    onClick={retry}
-                    className="ml-3 rounded-md border border-[#d7952f] px-2 py-1 text-xs font-semibold"
-                  >
-                    Reintentar
-                  </button>
-                </p>
-              ) : null}
-              {multisigOwners.length === 0 &&
-              data?.multisig.readStatus !== "error" ? (
-                <p className="rounded-lg border border-[#edf0ed] px-3 py-2 text-sm text-[#747474]">
-                  No hay firmantes configurados.
-                </p>
-              ) : null}
-              {multisigOwners.map((signer, index) => (
-                <div
-                  key={signer.address}
-                  className="grid gap-2 rounded-lg border border-[#edf0ed] p-3 sm:grid-cols-[1fr_auto] sm:items-center"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-[#3f3f3f]">
-                      Firmante {index + 1}
-                    </p>
-                    <p className="break-all font-mono text-xs text-[#555]" title={signer.address}>
-                      {truncateAddress(signer.address)}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <ExplorerButton href={signer.explorerUrl} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </article>
+        ) : null}
 
+        {showData ? (
         <article className="overflow-hidden rounded-2xl border border-[#dfe6df] bg-white shadow-sm">
           <div className="border-b border-[#e8ece8] px-5 py-4">
             <h2 className="font-semibold text-[#3f3f3f]">
@@ -306,7 +276,8 @@ export default function TvdContractPage() {
             </table>
           </div>
         </article>
-        {data?.updatedAt ? (
+        ) : null}
+        {showData && data?.updatedAt ? (
           <p className="text-xs text-[#747474]">
             Última actualización: {formatDateTimeForUi(data.updatedAt)}
           </p>

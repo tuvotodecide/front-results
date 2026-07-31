@@ -41,11 +41,14 @@ const ELECTORAL_CREDITS_ABI = [
 ];
 const VOTE_MANAGER_ABI = ["function rewardByVote() view returns (uint256)"];
 const INCENTIVE_CAMPAIGNS_ABI = [
+  "function isPaused() view returns (bool)",
   "function campaignsCount() view returns (uint256)",
   "function campaignCount() view returns (uint256)",
   "function campaigns(uint256) view returns (tuple(uint256 incentivePerWallet,uint256 startTime,uint256 duration,bool paused,uint256 maxWallets,uint256 registeredWallets,address fundingWallet))",
   "function campaign(uint256) view returns (tuple(uint256 incentivePerWallet,uint256 startTime,uint256 duration,bool paused,uint256 maxWallets,uint256 registeredWallets,address fundingWallet))",
 ];
+const BASE_SEPOLIA_INITIAL_CAMPAIGN_ADDRESS =
+  "0x78D7215D20EB2e2DD1F80400E3A9228B0E7166d5";
 
 const toNullableString = (value: unknown) => {
   if (typeof value !== "string") return null;
@@ -157,6 +160,11 @@ const emptyEconomicValue = (
   status,
   message,
 });
+
+const createTvdProvider = (config: ReturnType<typeof getTvdServerBlockchainConfig>) =>
+  new JsonRpcProvider(config.rpcUrl, config.chainId ?? undefined, {
+    batchMaxCount: 1,
+  });
 
 export const summarizeTvdReadStatus = (
   primaryConfigured: boolean,
@@ -442,7 +450,7 @@ export const readTvdContractsOverview = async (
     };
   }
 
-  const provider = new JsonRpcProvider(config.rpcUrl, config.chainId ?? undefined);
+  const provider = createTvdProvider(config);
   const network = { ...config };
 
   try {
@@ -644,9 +652,13 @@ export const readTvdEconomicParameters = async (
     contracts.electoralCredits?.address,
   );
   const voteManagerAddress = normalizeAddress(contracts.voteManager?.address);
-  const incentiveCampaignsAddress = normalizeAddress(
+  const configuredIncentiveCampaignsAddress = normalizeAddress(
     contracts.incentiveCampaigns?.address,
   );
+  const incentiveCampaignsAddress =
+    config.chainId === 84532
+      ? BASE_SEPOLIA_INITIAL_CAMPAIGN_ADDRESS
+      : configuredIncentiveCampaignsAddress;
 
   const baseContracts = {
     tvdToken: addressInfo(
@@ -692,7 +704,7 @@ export const readTvdEconomicParameters = async (
       fields: [],
     },
     contracts: baseContracts,
-    updatedAt: new Date().toISOString(),
+    updatedAt: null,
     issues,
   };
 
@@ -703,7 +715,7 @@ export const readTvdEconomicParameters = async (
     return unavailable;
   }
 
-  const provider = new JsonRpcProvider(config.rpcUrl, config.chainId ?? undefined);
+  const provider = createTvdProvider(config);
   const decimals = await readTokenDecimals(provider, tvdAddress).catch(() => null);
   if (decimals === null) {
     issues.push({
@@ -796,6 +808,13 @@ export const readTvdEconomicParameters = async (
     });
   }
 
+  const hasSuccessfulRead =
+    decimals !== null ||
+    tvdPerCredit.status === "available" ||
+    burn.status === "available" ||
+    rewardByVote.status === "available" ||
+    campaign.status === "available";
+
   return {
     status: summarizeTvdReadStatus(Boolean(tvdAddress), issues),
     network: config,
@@ -805,7 +824,7 @@ export const readTvdEconomicParameters = async (
     rewardByVote,
     campaign,
     contracts: baseContracts,
-    updatedAt: new Date().toISOString(),
+    updatedAt: hasSuccessfulRead ? new Date().toISOString() : null,
     issues,
   };
 };
@@ -916,6 +935,16 @@ const readCampaign = async (
   decimals: number | null,
 ) => {
   const contract = new Contract(address, INCENTIVE_CAMPAIGNS_ABI, provider);
+  const paused = await contract.isPaused().catch(() => null);
+  if (typeof paused === "boolean") {
+    return {
+      status: "available" as TvdReadStatus,
+      message: paused ? "Campaña cerrada" : "Campaña abierta",
+      count: null,
+      fields: [{ label: "Estado", value: paused ? "Cerrada" : "Abierta" }],
+    };
+  }
+
   const count = await readFirstAvailable<bigint>([
     () => contract.campaignsCount(),
     () => contract.campaignCount(),

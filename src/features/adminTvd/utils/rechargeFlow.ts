@@ -157,6 +157,16 @@ export const isPaymentTerminal = (status?: PaymentStatus | string | null) =>
   status === "BLOCKED_BY_INFRASTRUCTURE" ||
   status === "MANUAL_REVIEW";
 
+export const isQrExpired = (
+  payment: MyTvdPaymentResponse | PublicQrPaymentResponse | null | undefined,
+  nowMs: number,
+) => {
+  if (!payment?.qrExpiresAt) return false;
+  if (payment.status === "PAYMENT_CONFIRMED") return false;
+  const expiresAtMs = new Date(payment.qrExpiresAt).getTime();
+  return Number.isFinite(expiresAtMs) && expiresAtMs <= nowMs;
+};
+
 export const isAccreditationTerminal = (
   status?: TokenAccreditationStatus | string | null,
 ) =>
@@ -195,7 +205,7 @@ export const getPaymentStatusMessage = (status?: PaymentStatus | string | null) 
     case "PROVIDER_STATUS_UNRESOLVED":
       return "Estamos verificando el estado del QR anterior.";
     case "PROVIDER_ERROR":
-      return "Red Enlace no devolvió un estado concluyente. Seguiremos verificando.";
+      return "No recibimos un estado concluyente. Seguiremos verificando.";
     case "MISMATCH":
     case "MANUAL_REVIEW":
       return "El pago requiere revisión antes de continuar.";
@@ -206,35 +216,85 @@ export const getPaymentStatusMessage = (status?: PaymentStatus | string | null) 
   }
 };
 
+export const getPaymentStatusLabel = (status?: PaymentStatus | string | null) => {
+  switch (status) {
+    case "CREATED":
+    case "QR_REQUESTING":
+    case "QR_ACTIVE":
+      return "Pendiente de pago";
+    case "PAYMENT_CONFIRMED":
+      return "Pago confirmado";
+    case "EXPIRED":
+      return "QR vencido";
+    case "CANCELLED":
+    case "FAILED":
+      return "No completado";
+    case "MISMATCH":
+    case "MANUAL_REVIEW":
+    case "PROVIDER_STATUS_UNRESOLVED":
+    case "PROVIDER_ERROR":
+    case "RECONCILIATION_PENDING":
+      return "Requiere revisión";
+    case "BLOCKED_BY_INFRASTRUCTURE":
+      return "No completado";
+    default:
+      return "Pendiente de pago";
+  }
+};
+
+export const getAccreditationStatusLabel = (
+  paymentStatus?: PaymentStatus | string | null,
+  accreditationStatus?: TokenAccreditationStatus | string | null,
+) => {
+  if (paymentStatus !== "PAYMENT_CONFIRMED") return "Pendiente de pago";
+  switch (accreditationStatus) {
+    case "PENDING":
+    case "SUBMITTING":
+    case "SUBMITTED":
+    case "FAILED":
+    case null:
+    case undefined:
+      return "Procesando tokens";
+    case "CONFIRMED":
+      return "Tokens recibidos";
+    case "NEEDS_REVIEW":
+    case "FAILED_TERMINAL":
+    case "BLOCKED_CONFIGURATION":
+      return "Requiere revisión";
+    default:
+      return "Procesando tokens";
+  }
+};
+
 export const getAccreditationStatusMessage = (
   paymentStatus?: PaymentStatus | string | null,
   accreditationStatus?: TokenAccreditationStatus | string | null,
 ) => {
   if (paymentStatus !== "PAYMENT_CONFIRMED") {
-    return "La acreditación TVD comenzará cuando el pago sea confirmado.";
+    return "Los tokens se procesarán cuando el pago sea confirmado.";
   }
   switch (accreditationStatus) {
     case "PENDING":
-      return "Pago recibido; acreditación TVD en proceso.";
+      return "Pago recibido; tokens en proceso.";
     case "SUBMITTING":
-      return "Preparando acreditación TVD.";
+      return "Preparando entrega de tokens.";
     case "SUBMITTED":
-      return "Transacción TVD enviada.";
+      return "Entrega de tokens en proceso.";
     case "CONFIRMED":
       return "TVD acreditados correctamente.";
     case "BLOCKED_CONFIGURATION":
-      return "Acreditación bloqueada por configuración. El pago se conserva y el proceso continuará cuando infraestructura corrija la causa.";
+      return "Pago recibido; la entrega requiere revisión.";
     case "NEEDS_REVIEW":
-      return "Pago recibido; la acreditación requiere intervención técnica sin corrección manual de dinero.";
+      return "Pago recibido; la entrega requiere revisión.";
     case "FAILED":
-      return "Pago recibido; estamos recuperando la acreditación.";
+      return "Pago recibido; seguimos procesando los tokens.";
     case "FAILED_TERMINAL":
-      return "Pago recibido; la evidencia blockchain bloqueó la confirmación automática.";
+      return "Pago recibido; la entrega requiere revisión.";
     case null:
     case undefined:
-      return "Pago recibido; acreditación pendiente de creación.";
+      return "Pago recibido; tokens pendientes de procesamiento.";
     default:
-      return "Pago recibido; revisa el estado de acreditación.";
+      return "Pago recibido; revisa el estado de los tokens.";
   }
 };
 

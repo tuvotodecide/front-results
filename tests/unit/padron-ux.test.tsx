@@ -1,11 +1,11 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import PadronDropzone from "@/features/electionConfig/components/PadronDropzone";
 import LoadedPadronView from "@/features/electionConfig/components/LoadedPadronView";
 
-describe("padron UX helpers", () => {
-  it("shows a compact visual guide under the dropzone", () => {
+describe("MX-05 | Padrón, staging, elegibilidad y archivos | Frontend", () => {
+  it("PAD-UI-P1-001 | muestra guía compacta y entrada manual del padrón", () => {
     render(<PadronDropzone onFileSelect={vi.fn()} onManualStart={vi.fn()} />);
 
     expect(screen.getByText("¿No conoces el formato?")).toBeInTheDocument();
@@ -23,7 +23,7 @@ describe("padron UX helpers", () => {
     ).toBeInTheDocument();
   });
 
-  it("opens a compact help modal with the expected padron guidance", async () => {
+  it("PAD-UI-P1-001 | abre el modal de ejemplo con la guía esperada", async () => {
     const user = userEvent.setup();
 
     render(<PadronDropzone onFileSelect={vi.fn()} onManualStart={vi.fn()} />);
@@ -44,7 +44,7 @@ describe("padron UX helpers", () => {
     expect(screen.getByText(/evita imágenes borrosas o con sombras/i)).toBeInTheDocument();
   });
 
-  it("shows the PDF export button without affecting the loaded table actions", async () => {
+  it("PAD-DWN-P1-001 | muestra acción de descarga PDF sin alterar la tabla cargada", async () => {
     const user = userEvent.setup();
     const downloadPdfMock = vi.fn();
 
@@ -89,7 +89,7 @@ describe("padron UX helpers", () => {
     expect(screen.getByText("Registros cargados")).toBeInTheDocument();
   });
 
-  it("keeps the padron table visible in read-only mode without habilitar actions", () => {
+  it("PAD-STA-P0-003 | mantiene la tabla visible en modo solo lectura sin acciones", () => {
     render(
       <LoadedPadronView
         file={{
@@ -134,7 +134,7 @@ describe("padron UX helpers", () => {
     expect(screen.queryByRole("button", { name: /eliminar archivo/i })).not.toBeInTheDocument();
   });
 
-  it("shows habilitar in limited post-publication mode when the action is enabled", () => {
+  it("PAD-STA-P1-002 | muestra habilitar en modo limitado sin permitir alta nueva", () => {
     render(
       <LoadedPadronView
         file={{
@@ -172,5 +172,38 @@ describe("padron UX helpers", () => {
     expect(screen.getByText("1234567")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Habilitar" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /agregar registro/i })).not.toBeInTheDocument();
+  });
+
+  it("PAD-UPL-P0-001 | rechaza un archivo con extensión inválida antes de enviarlo", () => {
+    const onFileSelect = vi.fn();
+    const { container } = render(
+      <PadronDropzone onFileSelect={onFileSelect} onManualStart={vi.fn()} />,
+    );
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+
+    fireEvent.change(input, {
+      target: {
+        files: [new File(["padron"], "padron.txt", { type: "text/plain" })],
+      },
+    });
+
+    expect(onFileSelect).not.toHaveBeenCalled();
+    expect(screen.getByText("PDF o imagen: JPG, JPEG, PNG o WEBP")).toBeInTheDocument();
+  });
+
+  it("PAD-UPL-P0-001 | acepta un PDF permitido desde el selector", () => {
+    const onFileSelect = vi.fn();
+    const { container } = render(
+      <PadronDropzone onFileSelect={onFileSelect} onManualStart={vi.fn()} />,
+    );
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+
+    fireEvent.change(input, {
+      target: {
+        files: [new File(["%PDF"], "padron.pdf", { type: "application/pdf" })],
+      },
+    });
+
+    expect(onFileSelect).toHaveBeenCalledWith(expect.objectContaining({ name: "padron.pdf" }));
   });
 });

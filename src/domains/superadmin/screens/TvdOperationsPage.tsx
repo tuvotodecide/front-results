@@ -19,6 +19,7 @@ import {
   type TvdAdminOperationsSummary,
   type TvdInstitutionOption,
 } from "@/store/tvd";
+import { getTvdOperationMetadata } from "@/shared/tvd/tvdOperationMetadata";
 
 const PAGE_SIZE = 20;
 const ALL_INSTITUTIONS = "";
@@ -28,6 +29,11 @@ const ALL_STATUSES = "";
 const formatTvdAmount = (value: string | null) => {
   const amount = String(value ?? "").trim();
   return amount ? `${amount} $TVD` : "Monto no disponible";
+};
+
+const getDisplayOperationLabel = (label: string) => {
+  const metadata = getTvdOperationMetadata(label);
+  return metadata.category === "unknown" ? label : metadata.label;
 };
 
 const parseRangeDate = (value: string) => {
@@ -133,11 +139,18 @@ const OperationMobileCard = ({
   operation: TvdAdminOperation;
 }) => (
   <article className="rounded-2xl border border-[#dfe6df] bg-white p-4 shadow-sm">
-    <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2">
+      <div className="space-y-1">
+        <span className="text-[#777]">Tx Hash</span>
+        <p className="break-all font-mono text-xs text-[#555]">
+          {operation.txHash ?? "Operación aún no confirmada"}
+        </p>
+      </div>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
+          <p className="text-xs text-[#777]">Tipo de operación</p>
           <p className="text-sm font-semibold text-[#3f3f3f]">
-            {operation.operationLabel}
+            {getDisplayOperationLabel(operation.operationLabel)}
           </p>
           <p className="mt-1 text-sm text-[#666]">
             {operation.institutionName}
@@ -161,17 +174,11 @@ const OperationMobileCard = ({
             {formatOperationDate(operation.date)}
           </span>
         </div>
-        <div className="space-y-1">
-          <span className="text-[#777]">Código de transacción</span>
-          <p className="break-all font-mono text-xs text-[#555]">
-            {operation.txHash ?? "Operación aún no confirmada"}
-          </p>
-        </div>
       </div>
 
       <div className="grid gap-2 pt-1 sm:grid-cols-2">
         {operation.txHash ? (
-          <CopyButton value={operation.txHash} label="Copiar código" />
+          <CopyButton value={operation.txHash} label="Copiar" />
         ) : null}
         {operation.explorerUrl ? (
           <a
@@ -470,33 +477,18 @@ export default function TvdOperationsPage() {
           <table className="min-w-[900px] w-full text-left text-sm">
             <thead className="bg-[#f7f7f7] text-xs uppercase text-[#777]">
               <tr>
+                <th className="px-5 py-4">Tx Hash</th>
                 <th className="px-5 py-4">Tipo de operación</th>
                 <th className="px-5 py-4">Institución</th>
                 <th className="px-5 py-4">Estado</th>
                 <th className="px-5 py-4">Monto</th>
                 <th className="px-5 py-4">Fecha</th>
-                <th className="px-5 py-4">Código de transacción</th>
                 <th className="px-5 py-4">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {operations.map((operation) => (
                 <tr key={operation.id} className="border-t border-[#e8ece8]">
-                  <td className="px-5 py-4 text-[#555]">
-                    {operation.operationLabel}
-                  </td>
-                  <td className="px-5 py-4 text-[#555]">
-                    {operation.institutionName}
-                  </td>
-                  <td className="px-5 py-4 text-[#555]">
-                    {operation.statusLabel}
-                  </td>
-                  <td className="px-5 py-4 font-mono text-[#287c36]">
-                    {formatTvdAmount(operation.amount)}
-                  </td>
-                  <td className="px-5 py-4 text-[#777]">
-                    {formatOperationDate(operation.date)}
-                  </td>
                   <td className="px-5 py-4">
                     {operation.txHash ? (
                       <div className="flex items-center gap-2">
@@ -510,6 +502,21 @@ export default function TvdOperationsPage() {
                         Operación aún no confirmada
                       </span>
                     )}
+                  </td>
+                  <td className="px-5 py-4 text-[#555]">
+                    {getDisplayOperationLabel(operation.operationLabel)}
+                  </td>
+                  <td className="px-5 py-4 text-[#555]">
+                    {operation.institutionName}
+                  </td>
+                  <td className="px-5 py-4 text-[#555]">
+                    {operation.statusLabel}
+                  </td>
+                  <td className="px-5 py-4 font-mono text-[#287c36]">
+                    {formatTvdAmount(operation.amount)}
+                  </td>
+                  <td className="px-5 py-4 text-[#777]">
+                    {formatOperationDate(operation.date)}
                   </td>
                   <td className="px-5 py-4">
                     {operation.explorerUrl ? (

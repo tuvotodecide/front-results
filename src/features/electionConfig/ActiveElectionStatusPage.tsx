@@ -75,16 +75,12 @@ import {
   buildPresentialKioskPath,
   DEFAULT_KIOSK_STATION_ID,
 } from "@/domains/votacion/kiosk/constants";
-import { getRuntimeEnv } from "@/shared/system/runtimeEnv";
 import { useElectionTvdUsage } from "./data/useElectionTvdUsage";
 import { publicElectionRepository } from "@/features/publicElectionDetail/data/PublicElectionRepository.api";
 import type {
   Candidate,
   PublicElectionDetail,
 } from "@/features/publicElectionDetail/types";
-
-const SMART_CONTRACT_URL =
-  getRuntimeEnv('VITE_PUBLIC_SMART_CONTRACT_URL', 'NEXT_PUBLIC_SMART_CONTRACT_URL');
 
 const roleToPosition = (role: EventRole): Position => ({
   id: role.id,
@@ -260,7 +256,7 @@ const MORE_OPTIONS: Array<{ id: StatusMoreView; label: string; description: stri
   {
     id: "tvd",
     label: "Uso $TVD",
-    description: "Resumen económico mock de la votación.",
+    description: "Resumen económico de la votación.",
   },
   {
     id: "analytics",
@@ -361,20 +357,24 @@ const getLifecycleDescriptionUi = (
   lifecycle: string,
   isReferendum: boolean,
 ) => {
-  const subject = isReferendum ? "referendum" : "eleccion";
+  const subject = isReferendum ? "referéndum" : "elección";
+  const article = isReferendum ? "El" : "La";
+  const activeWord = isReferendum ? "activo" : "activa";
+  const publishedWord = isReferendum ? "publicado" : "publicada";
+  const notifiedWord = isReferendum ? "notificado" : "notificada";
   const descriptions: Record<string, string> = {
-    ACTIVE: `La ${subject} esta activa. Consulta la informacion publica de esta votacion.`,
-    CLOSED: "La votacion finalizo. Consulta la informacion publica de esta eleccion.",
-    RESULTS: "La votacion finalizo. Consulta la informacion publica de esta eleccion.",
+    ACTIVE: `${article} ${subject} está ${activeWord}. Consulta la información pública de esta votación.`,
+    CLOSED: "La votación finalizó. Consulta la información pública de esta elección.",
+    RESULTS: "La votación finalizó. Consulta la información pública de esta elección.",
     RESULTS_PUBLISHED:
-      "La votacion finalizo. Consulta la informacion publica de esta eleccion.",
-    OFFICIALLY_PUBLISHED: `La ${subject} fue publicada oficialmente y espera el inicio de votacion.`,
-    PUBLISHED: `La ${subject} fue notificada y espera confirmacion oficial.`,
-    READY_FOR_REVIEW: `La ${subject} esta en revision previa.`,
-    PUBLICATION_EXPIRED: `La ventana de publicacion de la ${subject} vencio.`,
+      "La votación finalizó. Consulta la información pública de esta elección.",
+    OFFICIALLY_PUBLISHED: `${article} ${subject} fue ${publishedWord} oficialmente y espera el inicio de votación.`,
+    PUBLISHED: `${article} ${subject} fue ${notifiedWord} y espera confirmación oficial.`,
+    READY_FOR_REVIEW: `${article} ${subject} está en revisión previa.`,
+    PUBLICATION_EXPIRED: `La ventana de publicación de ${article.toLowerCase()} ${subject} venció.`,
   };
 
-  return descriptions[lifecycle] ?? `Consulta el estado y la configuracion de esta ${subject}.`;
+  return descriptions[lifecycle] ?? `Consulta el estado y la configuración de esta votación.`;
 };
 
 const CardShell: React.FC<{
@@ -441,21 +441,6 @@ const MoreOptionButton: React.FC<{
     </span>
     <ChevronRightIcon className="h-4 w-4 text-gray-300" aria-hidden="true" />
   </button>
-);
-
-const TvdAmountCard: React.FC<{
-  label: string;
-  amount: { tvd: string; bs: string };
-}> = ({ label, amount }) => (
-  <div className="flex items-start justify-between gap-4 border-b border-gray-100 py-4 last:border-b-0">
-    <p className="text-sm font-semibold text-gray-600">
-      {label}
-    </p>
-    <div className="text-right">
-      <p className="text-base font-bold text-gray-900">{amount.tvd}</p>
-      <p className="mt-1 text-sm font-medium text-gray-500">{amount.bs}</p>
-    </div>
-  </div>
 );
 
 const abbreviateHash = (value: string) =>
@@ -1280,7 +1265,9 @@ const ActiveElectionStatusPage: React.FC = () => {
                 </button>
               </div>
               <div className="divide-y divide-gray-100">
-                {MORE_OPTIONS_UI.map((option) => (
+                {MORE_OPTIONS_UI.filter(
+                  (option) => option.id !== "kiosk" || presentialKioskEnabled,
+                ).map((option) => (
                   <MoreOptionButton
                     key={option.id}
                     option={option}
@@ -1358,18 +1345,6 @@ const ActiveElectionStatusPage: React.FC = () => {
                 <p className="font-semibold text-gray-800">
                   No hay resultados oficiales para mostrar.
                 </p>
-                <p className="mt-2 text-sm text-gray-500">
-                  Cuando estén disponibles, aparecerán aquí sin cambiar de ruta.
-                </p>
-                {publicElectionUrl ? (
-                  <button
-                    type="button"
-                    onClick={handleOpenPublicElection}
-                    className="mt-4 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-[#459151]"
-                  >
-                    Abrir resultados públicos
-                  </button>
-                ) : null}
               </div>
             )}
           </section>
@@ -1570,7 +1545,7 @@ const ActiveElectionStatusPage: React.FC = () => {
                 </CardShell>
               ) : null}
 
-              {activeMoreView === "kiosk" ? (
+              {activeMoreView === "kiosk" && presentialKioskEnabled ? (
                 <CardShell title="Punto presencial QR">
                   <div className="mx-auto w-full max-w-xl space-y-4">
                     <p className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
@@ -1607,21 +1582,62 @@ const ActiveElectionStatusPage: React.FC = () => {
                         Integridad verificable
                       </p>
                       <h3 className="mt-2 text-2xl font-bold text-gray-900">
-                        Contrato inteligente publico
+                        Registro de la votación
                       </h3>
-                      <p className="mt-2 text-sm leading-6 text-gray-600">
-                        Revisa el contrato publico en BaseScan para contrastar la informacion de la votacion y sus resultados.
-                      </p>
                     </div>
-                    <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-900">
-                      <p className="font-semibold">Manual rapido en BaseScan</p>
-                      <ol className="mt-3 list-decimal space-y-2 pl-5">
-                        <li>Copiar ID de eleccion.</li>
-                        <li>Abrir contrato inteligente.</li>
-                        <li>Entrar a <strong>Contract &gt; Read Contract</strong>.</li>
-                        <li>Buscar <strong>getVoteInfo</strong> y usar <strong>Query / Read</strong>.</li>
-                        <li>Buscar <strong>getVoteResults</strong> para contrastar resultados.</li>
-                      </ol>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {[
+                        {
+                          label: "Contrato identificado",
+                          done: Boolean(tvdUsage.creditsContractAddress),
+                        },
+                        {
+                          label: "Elección registrada",
+                          done: tvdUsage.registrationVerified,
+                        },
+                        {
+                          label: "Estado consultado",
+                          done: tvdUsage.statusChecked,
+                        },
+                        {
+                          label: "Transacción verificada",
+                          done: Boolean(tvdUsage.publicationTxHash),
+                        },
+                      ].map((step) => (
+                        <div
+                          key={step.label}
+                          className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3"
+                        >
+                          <p className="text-sm font-semibold text-gray-900">
+                            {step.label}
+                          </p>
+                          <span
+                            className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                              step.done
+                                ? "bg-green-100 text-green-700"
+                                : "bg-gray-100 text-gray-500"
+                            }`}
+                          >
+                            {step.done ? "Verificado" : "No disponible"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                      <p className="text-sm text-gray-500">
+                        Contrato de créditos electorales
+                      </p>
+                      <p className="mt-1 break-all font-mono text-sm font-semibold text-gray-900">
+                        {tvdUsage.creditsContractAddress ?? "No disponible"}
+                      </p>
+                      <p className="mt-2 text-sm text-gray-500">
+                        Red: {tvdUsage.networkName}
+                      </p>
+                      {tvdUsage.publicationTxHash ? (
+                        <p className="mt-2 break-all font-mono text-xs text-gray-500">
+                          {tvdUsage.publicationTxHash}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="flex flex-col gap-2 sm:flex-row">
                       <button
@@ -1631,20 +1647,30 @@ const ActiveElectionStatusPage: React.FC = () => {
                       >
                         Copiar ID
                       </button>
-                      {SMART_CONTRACT_URL ? (
+                      {tvdUsage.creditsContractUrl ? (
                         <a
-                          href={SMART_CONTRACT_URL}
+                          href={tvdUsage.creditsContractUrl}
                           target="_blank"
                           rel="noreferrer"
                           className="rounded-xl bg-[#2E7D32] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#256b2b]"
                         >
-                          Ver contrato inteligente
+                          Ver en BaseScan
                         </a>
                       ) : (
                         <span className="rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-500">
-                          Contrato no configurado
+                          Registro no disponible
                         </span>
                       )}
+                      {tvdUsage.publicationTxUrl ? (
+                        <a
+                          href={tvdUsage.publicationTxUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-xl border border-gray-300 px-5 py-3 text-center text-sm font-semibold text-gray-700 transition hover:border-[#459151]"
+                        >
+                          Ver transacción
+                        </a>
+                      ) : null}
                     </div>
                     {electionIdCopyMessage ? (
                       <p className="text-sm text-gray-500">{electionIdCopyMessage}</p>
@@ -1673,22 +1699,48 @@ const ActiveElectionStatusPage: React.FC = () => {
               {activeMoreView === "tvd" ? (
                 <CardShell title="Uso $TVD">
                   <div className="space-y-5">
-                    <div className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-medium text-violet-800">
-                      {tvdUsage.closingNotice}
-                    </div>
-                    <div className="rounded-2xl border border-gray-100 bg-white px-4 py-1 shadow-sm">
-                      <TvdAmountCard label="Reservado" amount={tvdUsage.reserved} />
-                      <TvdAmountCard label="Consumido" amount={tvdUsage.consumed} />
-                      <TvdAmountCard label="Liberado/devuelto" amount={tvdUsage.released} />
-                      <div className="flex items-start justify-between gap-4 py-4">
-                        <p className="text-sm font-semibold text-gray-600">
-                          Estado actual
-                        </p>
-                        <p className="text-right text-base font-bold text-gray-900">
-                          {tvdUsage.currentStatus}
-                        </p>
+                    {tvdUsage.error ? (
+                      <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+                        {tvdUsage.error}
                       </div>
-                    </div>
+                    ) : null}
+                    {tvdUsage.isLoading && tvdUsage.fields.length === 0 ? (
+                      <div className="rounded-2xl border border-gray-100 bg-white p-5 text-sm text-gray-500 shadow-sm">
+                        Consultando uso de TVD...
+                      </div>
+                    ) : null}
+                    {tvdUsage.fields.length > 0 ? (
+                      <div>
+                        <div className="rounded-2xl border border-gray-100 bg-white px-4 py-1 shadow-sm">
+                          {tvdUsage.fields.map((field) => (
+                            <FieldRow
+                              key={field.label}
+                              label={field.label}
+                              value={
+                                <span
+                                  className={
+                                    field.value.startsWith("0x")
+                                      ? "break-all font-mono text-xs"
+                                      : undefined
+                                  }
+                                >
+                                  {field.value}
+                                </span>
+                              }
+                            />
+                          ))}
+                        </div>
+                        {tvdUsage.fields.some(
+                          (field) =>
+                            field.label === "Liquidación completada" &&
+                            field.value === "No",
+                        ) ? (
+                          <p className="mt-3 text-sm text-gray-500">
+                            La liquidación se completa al finalizar la elección.
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
                     {tvdCopyMessage ? (
                       <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
                         {tvdCopyMessage}
@@ -1711,17 +1763,20 @@ const ActiveElectionStatusPage: React.FC = () => {
                       </button>
                       {tvdOperationsOpen ? (
                         <div className="space-y-3 border-t border-gray-200 p-4">
-                          {tvdUsage.operations.map((operation) => (
+                          {tvdUsage.operations.length ? tvdUsage.operations.map((operation) => (
                             <article key={operation.id} className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
                               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                 <div>
                                   <p className="font-semibold text-gray-900">{operation.type}</p>
                                   <p className="mt-1 text-sm text-gray-500">
-                                    {operation.date} - {operation.amount} / {operation.amountBs}
+                                    {operation.date}
+                                    {operation.amount ? ` - ${operation.amount}` : ""}
                                   </p>
-                                  <p className="mt-1 font-mono text-xs text-gray-500">
-                                    {abbreviateHash(operation.txHash)}
-                                  </p>
+                                  {operation.txHash ? (
+                                    <p className="mt-1 font-mono text-xs text-gray-500">
+                                      {abbreviateHash(operation.txHash)}
+                                    </p>
+                                  ) : null}
                                 </div>
                                 <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
                                   <span className="w-fit rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
@@ -1732,6 +1787,7 @@ const ActiveElectionStatusPage: React.FC = () => {
                                       type="button"
                                       aria-label={`Copiar txHash ${operation.type}`}
                                       onClick={async () => {
+                                        if (!operation.txHash) return;
                                         const copied = await copyTextToClipboard(operation.txHash);
                                         setTvdCopyMessage(
                                           copied
@@ -1739,26 +1795,33 @@ const ActiveElectionStatusPage: React.FC = () => {
                                             : "No se pudo copiar el txHash.",
                                         );
                                       }}
+                                      disabled={!operation.txHash}
                                       className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 transition hover:border-[#459151] hover:text-[#2E6A38]"
                                     >
                                       <ClipboardDocumentIcon className="h-4 w-4" aria-hidden="true" />
                                       Copiar
                                     </button>
-                                    <a
-                                      href={operation.explorerUrl}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      aria-label={`Abrir explorer ${operation.type}`}
-                                      className="inline-flex items-center gap-1.5 rounded-lg bg-[#2E7D32] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#256b2b]"
-                                    >
-                                      <ArrowTopRightOnSquareIcon className="h-4 w-4" aria-hidden="true" />
-                                      Explorer
-                                    </a>
+                                    {operation.explorerUrl ? (
+                                      <a
+                                        href={operation.explorerUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        aria-label={`Abrir ${operation.type} en BaseScan`}
+                                        className="inline-flex items-center gap-1.5 rounded-lg bg-[#2E7D32] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#256b2b]"
+                                      >
+                                        <ArrowTopRightOnSquareIcon className="h-4 w-4" aria-hidden="true" />
+                                        Ver en BaseScan
+                                      </a>
+                                    ) : null}
                                   </div>
                                 </div>
                               </div>
                             </article>
-                          ))}
+                          )) : (
+                            <p className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-500">
+                              No hay operaciones asociadas para mostrar.
+                            </p>
+                          )}
                         </div>
                       ) : null}
                     </div>

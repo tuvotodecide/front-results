@@ -2,8 +2,8 @@ import {
   isBlockingGeminiObservation,
 } from "@/features/electionConfig/data/padronGeminiClient";
 
-describe("padron Gemini observations", () => {
-  it("does not block informational header/noise observations", () => {
+describe("MX-05 | Padrón, staging, elegibilidad y archivos | Frontend", () => {
+  it("PAD-PRC-P0-001 | permite observaciones informativas de Gemini", () => {
     expect(
       isBlockingGeminiObservation({
         code: "GEMINI_OBSERVATION",
@@ -23,7 +23,7 @@ describe("padron Gemini observations", () => {
     ).toBe(false);
   });
 
-  it("keeps blocking actionable Gemini observations tied to a specific record", () => {
+  it("PAD-PRC-P0-001 / PAD-VAL-P0-001 | conserva observaciones accionables como bloqueantes", () => {
     expect(
       isBlockingGeminiObservation({
         code: "GEMINI_OBSERVATION",
@@ -34,7 +34,7 @@ describe("padron Gemini observations", () => {
     ).toBe(true);
   });
 
-  it("keeps backend validation errors as blocking", () => {
+  it("PAD-DUP-P0-001 / PAD-VAL-P0-001 | mantiene errores backend y duplicados como bloqueantes", () => {
     expect(
       isBlockingGeminiObservation({
         code: "DUPLICATE_ROW",

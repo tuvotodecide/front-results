@@ -53,12 +53,12 @@ const mockPadronConfig = () => {
   }).as("padronVotersSummary");
 };
 
-describe("[FLOW:PADRON] Smoke de importación y staging", () => {
+describe("MX-05 | Padrón, staging, elegibilidad y archivos | Frontend | Cypress", () => {
   beforeEach(() => {
     cy.clearSession();
   });
 
-  it("muestra staging procesado y confirma el padrón con respuesta mock", () => {
+  it("PAD-CFM-P0-001 / PAD-STG-P0-001 | muestra staging procesado y confirma el padrón con respuesta mock", () => {
     mockPadronConfig();
     cy.intercept("POST", "**/api/v1/voting/events/event-smoke/padron/staging/confirm", {
       statusCode: 200,
@@ -82,7 +82,7 @@ describe("[FLOW:PADRON] Smoke de importación y staging", () => {
     cy.location("pathname").should("eq", "/votacion/elecciones/event-smoke/config/review");
   });
 
-  it("muestra error visible de carga del padrón", () => {
+  it("PAD-ACC-P0-001 / PAD-PRC-P0-003 | muestra error visible de carga del padrón", () => {
     mockPadronConfig();
     cy.intercept("GET", "**/api/v1/voting/events/event-smoke/padron/summary", {
       statusCode: 500,

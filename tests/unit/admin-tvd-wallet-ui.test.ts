@@ -53,16 +53,16 @@ describe("admin TVD wallet UI helpers", () => {
 
     expect(isWalletUpdateRequiredError(error)).toBe(true);
     expect(getSummaryErrorMessage(error)).toBe(
-      "Debes vincular tu wallet institucional.",
+      "No tienes una wallet asociada.",
     );
   });
 
   it("mapea errores seguros de regularización", () => {
     expect(getRegularizationErrorMessage({ status: 409, data: {} })).toBe(
-      "La wallet no está disponible para esta cuenta.",
+      "La cuenta ya se encuentra asociada a otra institución.",
     );
     expect(getRegularizationErrorMessage({ status: 503, data: {} })).toBe(
-      "No pudimos validar la wallet. Intenta nuevamente.",
+      "No pudimos validar la cuenta en este momento. Inténtalo nuevamente.",
     );
   });
 });
@@ -80,7 +80,7 @@ describe("admin TVD visual blockchain balance", () => {
     vi.stubEnv("VITE_TVD_DECIMALS", "18");
   });
 
-  it("lee balanceOf y assignedBalance para la wallet activa y suma con bigint", async () => {
+  it("TVD-RES-P0-004 TVD-PUB-P0-003 TVD-PUB-P0-004 | lee balanceOf y assignedBalance para la wallet activa y suma con bigint", async () => {
     const { readTvdOnChainBalance } = await import(
       "@/features/adminTvd/services/tvdOnChainBalance"
     );
@@ -115,7 +115,7 @@ describe("admin TVD visual blockchain balance", () => {
     );
   });
 
-  it("rechaza configuración incompleta sin llamar RPC", async () => {
+  it("TVD-PUB-P0-005 TVD-SEC-P0-002 | rechaza configuración incompleta sin llamar RPC", async () => {
     vi.stubEnv("VITE_TVD_TOKEN_ADDRESS", "");
     const { readTvdOnChainBalance } = await import(
       "@/features/adminTvd/services/tvdOnChainBalance"

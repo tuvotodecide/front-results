@@ -10,3 +10,5 @@ export * from "./tvdManualAssignmentsEndpoints";
 export * from "./tvdManualAssignmentsTypes";
 export * from "./tvdAdminOperationsEndpoints";
 export * from "./tvdAdminOperationsTypes";
+export * from "./tvdExchangeRatesEndpoints";
+export * from "./tvdExchangeRatesTypes";

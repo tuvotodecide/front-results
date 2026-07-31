@@ -285,7 +285,7 @@ describe("Admin tenant operational recharge", () => {
         vi.unstubAllGlobals();
   });
 
-  it("consulta cotizacion real y no muestra paquetes ni saldo mock", async () => {
+  it("TVD-QR-P0-001 | consulta cotizacion real y no muestra paquetes ni saldo mock", async () => {
     const user = userEvent.setup();
     renderRechargePage();
 
@@ -306,7 +306,7 @@ describe("Admin tenant operational recharge", () => {
     ).toBe(true);
   });
 
-  it("bloquea montos invalidos antes de consultar cotizacion o crear QR", async () => {
+  it("TVD-QR-P0-003 | bloquea montos invalidos antes de consultar cotizacion o crear QR", async () => {
     const user = userEvent.setup();
     renderRechargePage();
 
@@ -324,7 +324,7 @@ describe("Admin tenant operational recharge", () => {
     ).toBeInTheDocument();
   });
 
-  it("crea QR real con Idempotency-Key y no envia wallet, tasa, glosa ni x-api-key", async () => {
+  it("TVD-QR-P0-002 TVD-QR-P0-004 TVD-SEC-P0-002 | crea QR real con Idempotency-Key y no envia wallet, tasa, glosa ni x-api-key", async () => {
     const user = userEvent.setup();
     paymentDetailQueue.push(activePaymentDetailResponse);
     renderRechargePage();
@@ -356,7 +356,7 @@ describe("Admin tenant operational recharge", () => {
     expect(body.glosa).toBeUndefined();
   });
 
-  it("muestra Descargar QR debajo de la imagen y no llama backend al descargar", async () => {
+  it("TVD-QR-P1-005 | muestra Descargar QR debajo de la imagen y no llama backend al descargar", async () => {
     const user = userEvent.setup();
     const click = vi.fn();
     const remove = vi.fn();
@@ -400,7 +400,7 @@ describe("Admin tenant operational recharge", () => {
     appendChild.mockRestore();
   });
 
-  it("regenera QR solo cuando backend autoriza y usa endpoint con Idempotency-Key", async () => {
+  it("TVD-QR-P0-010 | regenera QR solo cuando backend autoriza y usa endpoint con Idempotency-Key", async () => {
     const user = userEvent.setup();
     paymentDetailQueue.push(expiredPaymentDetailResponse);
     renderRechargePage();
@@ -425,7 +425,7 @@ describe("Admin tenant operational recharge", () => {
     expect(regeneratePosts[0].body).toBe("");
   });
 
-  it("bloquea regeneracion visual cuando backend exige conciliacion", async () => {
+  it("TVD-QR-P0-009 TVD-QR-P0-010 | bloquea regeneracion visual cuando backend exige conciliacion", async () => {
     const user = userEvent.setup();
     paymentDetailQueue.push(ambiguousPaymentDetailResponse);
     renderRechargePage();
@@ -443,7 +443,7 @@ describe("Admin tenant operational recharge", () => {
     expect(screen.queryByRole("button", { name: /Regenerar QR/i })).not.toBeInTheDocument();
   });
 
-  it("limpia QR, quote y polling visual al cambiar de tenant activo", async () => {
+  it("TVD-QR-P0-001 TVD-UI-P1-002 | limpia QR, quote y polling visual al cambiar de tenant activo", async () => {
     const user = userEvent.setup();
     paymentDetailQueue.push(activePaymentDetailResponse);
     const rendered = renderRechargePage();
@@ -474,7 +474,7 @@ describe("Admin tenant operational recharge", () => {
     expect(screen.getByRole("button", { name: /Generar QR/i })).toBeDisabled();
   });
 
-  it("muestra pago confirmado y acreditacion pendiente como estados separados", async () => {
+  it("TVD-QR-P0-006 TVD-RES-P0-001 TVD-UI-P1-001 | muestra pago confirmado y acreditacion pendiente como estados separados", async () => {
     const user = userEvent.setup();
     paymentDetailQueue.push(confirmedPaymentResponse);
     renderRechargePage();
@@ -491,7 +491,7 @@ describe("Admin tenant operational recharge", () => {
     expect(screen.queryByText("Pago fallido")).not.toBeInTheDocument();
   });
 
-  it("detiene polling visual y muestra bloqueo de configuracion de acreditacion", async () => {
+  it("TVD-RES-P0-003 TVD-UI-P1-002 | detiene polling visual y muestra bloqueo de configuracion de acreditacion", async () => {
     const user = userEvent.setup();
     paymentDetailQueue.push(blockedAccreditationResponse);
     renderRechargePage();
@@ -507,7 +507,7 @@ describe("Admin tenant operational recharge", () => {
     expect(paymentDetailQueue).toHaveLength(0);
   });
 
-  it("actualiza saldo visual al confirmar acreditacion y permite copiar referencia", async () => {
+  it("TVD-RES-P0-002 TVD-RES-P0-004 TVD-UI-P1-003 | actualiza saldo visual al confirmar acreditacion y permite copiar referencia", async () => {
     const user = userEvent.setup();
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", {

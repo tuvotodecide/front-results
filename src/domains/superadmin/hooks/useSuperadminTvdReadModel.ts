@@ -38,6 +38,7 @@ const useTvdBlockchainReadModel = <T,>(
 ) => {
   const contractsQuery = useGetHistoryContractsQuery();
   const [state, setState] = useState<FetchState<T>>(initialState<T>);
+  const [reloadToken, setReloadToken] = useState(0);
   const contracts = contractsQuery.data?.data ?? null;
 
   useEffect(() => {
@@ -96,9 +97,16 @@ const useTvdBlockchainReadModel = <T,>(
     contractsQuery.isFetching,
     contractsQuery.isLoading,
     reader,
+    reloadToken,
   ]);
 
-  return state;
+  return {
+    ...state,
+    retry: () => {
+      void contractsQuery.refetch();
+      setReloadToken((current) => current + 1);
+    },
+  };
 };
 
 export const useTvdContractsReadModel = () =>

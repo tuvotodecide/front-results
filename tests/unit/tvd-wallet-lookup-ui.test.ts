@@ -59,7 +59,7 @@ describe("tvd wallet lookup UI helpers", () => {
     });
   });
 
-  it("mapea errores HTTP a mensajes seguros", () => {
+  it("TVD-SEC-P0-001 TVD-SEC-P0-002 | mapea errores HTTP a mensajes seguros", () => {
     expect(getWalletLookupErrorMessage({ status: 403, data: {} })).toBe(
       "No tienes permisos para consultar wallets globalmente.",
     );
@@ -69,5 +69,15 @@ describe("tvd wallet lookup UI helpers", () => {
     expect(getWalletLookupErrorMessage({ status: 500, data: {} })).toBe(
       "El servicio no está disponible. Intenta nuevamente.",
     );
+    const copy = getWalletLookupErrorMessage({
+      status: 503,
+      data: {
+        message: "identity-secret-key Authorization Bearer rpc-password payloadQr",
+      },
+    });
+    expect(copy).not.toContain("identity-secret-key");
+    expect(copy).not.toContain("Authorization");
+    expect(copy).not.toContain("rpc-password");
+    expect(copy).not.toContain("payloadQr");
   });
 });

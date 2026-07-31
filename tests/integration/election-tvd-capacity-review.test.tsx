@@ -80,7 +80,7 @@ describe("voting event TVD capacity endpoint", () => {
     vi.unstubAllGlobals();
   });
 
-  it("consulta capacidad definitiva por eventId sin enviar wallet, saldo ni participantCount", async () => {
+  it("TVD-PUB-P0-001 TVD-PUB-P0-003 TVD-PUB-P0-004 TVD-PUB-P0-005 | consulta capacidad definitiva por eventId sin enviar wallet, saldo ni participantCount", async () => {
     renderWithAuthStore(<CapacityProbe eventId="evt-1" />, {
       token: "jwt-token",
       accessToken: "jwt-token",

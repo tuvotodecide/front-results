@@ -754,7 +754,7 @@ describe("publication deadlines UX", () => {
     consoleErrorMock.mockRestore();
   });
 
-  it("shows persistent official publication request progress and blocks duplicate publication", async () => {
+  it("TVD-PUB-P0-008 TVD-PUB-P0-013 TVD-UI-P1-001 | shows persistent official publication request progress and blocks duplicate publication", async () => {
     const user = userEvent.setup();
     useElectionPublishMock.mockReturnValue({
       votingEvent: readyForReviewEvent,
@@ -812,7 +812,7 @@ describe("publication deadlines UX", () => {
     ).toBeEnabled();
   });
 
-  it("shows retry action for failed retryable official publication attempts", async () => {
+  it("TVD-PUB-P0-012 TVD-UI-P1-002 | shows retry action for failed retryable official publication attempts", async () => {
     const user = userEvent.setup();
     const activateElectionMock = vi.fn();
     useElectionPublishMock.mockReturnValue({

@@ -43,7 +43,6 @@ import { useGetVotingEventTvdCapacityQuery } from "../../store/tvd";
 import {
   formatTvdCapacityAmount,
   getCapacityRequestErrorMessage,
-  getTvdCapacityReasonMessage,
   isTvdCapacityRechargeable,
 } from "../adminTvd/utils/tvdCapacityUi";
 
@@ -737,17 +736,6 @@ const ElectionConfigReview: React.FC = () => {
 
   const tvdCapacityContent = (
     <div className="space-y-4">
-      <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
-        <p className="font-semibold text-slate-900">
-          Validación definitiva por padrón vigente
-        </p>
-        <p className="mt-1 text-xs leading-5 text-slate-500">
-          Se revisan los participantes habilitados reales y la capacidad de la
-          wallet institucional activa. Esta validación no publica, no reserva y
-          no consume TVD.
-        </p>
-      </div>
-
       {!officialPublicationState ? (
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
           La capacidad definitiva se valida cuando la elección está lista para
@@ -777,13 +765,13 @@ const ElectionConfigReview: React.FC = () => {
       ) : null}
 
       {tvdCapacity ? (
-        <div
-          className={`rounded-lg border p-4 text-sm shadow-sm ${
-            tvdCapacity.canPublish
-              ? "border-green-200 bg-green-50 text-green-800"
-              : "border-amber-200 bg-amber-50 text-amber-900"
-          }`}
-        >
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 shadow-sm">
+          <p className="text-base font-bold text-amber-950">
+            Falta saldo para publicar
+          </p>
+          <p className="mt-1">
+            Recarga $TVD para cubrir a todos los participantes habilitados.
+          </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <p className="text-xs font-semibold uppercase text-slate-500">
@@ -819,43 +807,14 @@ const ElectionConfigReview: React.FC = () => {
             </div>
           </div>
 
-          <div className="mt-4 rounded-lg bg-white/70 px-4 py-3">
-            <p className="font-semibold">
-              {tvdCapacity.canPublish
-                ? "La wallet tiene capacidad para el padrón actual."
-                : tvdCapacity.reasonCode === "INSUFFICIENT_TVD_BALANCE"
-                  ? "No tienes suficientes TVD para publicar esta votación."
-                  : getTvdCapacityReasonMessage(tvdCapacity.reasonCode)}
-            </p>
-            {!tvdCapacity.canPublish ? (
-              <p className="mt-1">
-                TVD requeridos: {formatTvdCapacityAmount(tvdCapacity.requiredTokens)}.
-                TVD disponibles: {formatTvdCapacityAmount(tvdCapacity.availableTokens)}.
-              </p>
-            ) : (
-              <p className="mt-1">
-                Este resultado solo confirma capacidad. La publicación oficial
-                sigue siendo un paso separado.
-              </p>
-            )}
-          </div>
-
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-            <button
-              type="button"
-              onClick={() => void refetchTvdCapacity()}
-              disabled={tvdCapacityFetching}
-              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
-            >
-              {tvdCapacityFetching ? "Validando..." : "Reintentar validación"}
-            </button>
             {isTvdCapacityRechargeable(tvdCapacity.reasonCode) ? (
               <button
                 type="button"
                 onClick={handleGoToRecharge}
-                className="rounded-lg border border-[#459151]/20 bg-white px-4 py-2 text-sm font-semibold text-[#2E6A38] transition hover:bg-[#EFF7F0]"
+                className="rounded-lg bg-[#459151] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#3a7a44]"
               >
-                Ir a recarga
+                Recargar tokens
               </button>
             ) : null}
           </div>
@@ -1028,9 +987,11 @@ const ElectionConfigReview: React.FC = () => {
                 {warningsContent}
               </ReviewAccordionSection>
 
-              <ReviewAccordionSection title="Capacidad TVD" defaultOpen>
-                {tvdCapacityContent}
-              </ReviewAccordionSection>
+              {tvdCapacityLoading || tvdCapacityError || (tvdCapacity && !tvdCapacity.canPublish) ? (
+                <ReviewAccordionSection title="Capacidad TVD" defaultOpen>
+                  {tvdCapacityContent}
+                </ReviewAccordionSection>
+              ) : null}
 
               <ReviewAccordionSection title="Configuración adicional">
                 {additionalConfigContent}

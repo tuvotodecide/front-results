@@ -177,7 +177,7 @@ describe("Superadmin TVD manual assignment", () => {
     vi.unstubAllGlobals();
   });
 
-  it("lista instituciones y wallets reales, crea con Idempotency-Key y sigue el detalle", async () => {
+  it("TVD-ASSIGN-P0-001 TVD-ASSIGN-P0-004 | lista instituciones y wallets reales, crea con Idempotency-Key y sigue el detalle", async () => {
     const user = userEvent.setup();
     const captured: CapturedRequest[] = [];
     const fetchMock = createFetchMock(captured);
@@ -237,7 +237,7 @@ describe("Superadmin TVD manual assignment", () => {
     ).toBe(true);
   });
 
-  it("bloquea datos inválidos, wallets no elegibles y no envía wallet manual", async () => {
+  it("TVD-ASSIGN-P0-002 TVD-ASSIGN-P0-003 | bloquea datos inválidos, wallets no elegibles y no envía wallet manual", async () => {
     const user = userEvent.setup();
     const captured: CapturedRequest[] = [];
     vi.stubGlobal("fetch", createFetchMock(captured));
@@ -267,7 +267,7 @@ describe("Superadmin TVD manual assignment", () => {
     ).toBe(false);
   });
 
-  it("muestra errores seguros y permite reintentar listas", async () => {
+  it("TVD-ASSIGN-P0-005 | muestra errores seguros y permite reintentar listas", async () => {
     const user = userEvent.setup();
     const fetchMock = vi
       .fn()
@@ -282,7 +282,7 @@ describe("Superadmin TVD manual assignment", () => {
     expect(await screen.findByText("Tribunal Supremo Electoral")).toBeInTheDocument();
   });
 
-  it("maneja NEEDS_REVIEW devuelto por backend sin inventar txHash", async () => {
+  it("TVD-ASSIGN-P0-005 TVD-SEC-P0-002 | maneja NEEDS_REVIEW devuelto por backend sin inventar txHash", async () => {
     const user = userEvent.setup();
     const needsReview: TvdManualAssignmentResponse = {
       ...pendingAssignment,

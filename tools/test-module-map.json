@@ -121,16 +121,10 @@
         "tests/integration/superadmin-navigation.test.tsx",
         "tests/integration/superadmin-route-entrypoints.test.tsx",
         "tests/integration/superadmin-screens.test.tsx",
+        "tests/integration/superadmin-wallet-lookup.test.tsx",
         "tests/integration/superadmin-tvd-contracts-parameters.test.tsx",
         "tests/integration/superadmin-tvd-manual-assignment.test.tsx",
-        "tests/integration/superadmin-tvd-operations.test.tsx",
-        "tests/integration/superadmin-wallet-lookup.test.tsx",
-        "tests/unit/admin-tvd-capacity-ui.test.ts",
-        "tests/unit/admin-tvd-recharge-ui.test.ts",
-        "tests/unit/admin-tvd-wallet-ui.test.ts",
-        "tests/unit/superadmin-tvd-blockchain-utils.test.ts",
-        "tests/unit/superadmin-tvd-manual-assignment-ui.test.ts",
-        "tests/unit/tvd-wallet-lookup-ui.test.ts"
+        "tests/integration/superadmin-tvd-operations.test.tsx"
       ]
     },
     "election-dashboard": {
@@ -148,8 +142,7 @@
         "BRS-F10"
       ],
       "files": [
-        "tests/integration/election-config-components.test.tsx",
-        "tests/integration/election-tvd-capacity-review.test.tsx"
+        "tests/integration/election-config-components.test.tsx"
       ]
     },
     "election-options": {
@@ -160,19 +153,42 @@
       ],
       "files": []
     },
-    "register": {
-      "name": "Electoral register management",
+    "matrix_05": {
+      "name": "MX-05 | Padrón, staging, elegibilidad y archivos | Frontend",
       "flows": [
-        "FRONT-G",
-        "BRS-F12",
-        "BRS-F13"
+        "MX-05",
+        "PAD-ACC",
+        "PAD-LST",
+        "PAD-UPL",
+        "PAD-FIL",
+        "PAD-PRC",
+        "PAD-STG",
+        "PAD-NRM",
+        "PAD-DUP",
+        "PAD-EDT",
+        "PAD-DEL",
+        "PAD-CFM",
+        "PAD-DWN",
+        "PAD-ELG",
+        "PAD-STA",
+        "PAD-SEC"
       ],
       "files": [
         "tests/integration/election-padron-flow.test.tsx",
         "tests/unit/padron-gemini-observations.test.ts",
         "tests/unit/padron-parser.test.ts",
-        "tests/unit/padron-participation-check.test.tsx",
+        "tests/unit/padron-eligibility-check.test.tsx",
         "tests/unit/padron-ux.test.tsx"
+      ]
+    },
+    "register_remaining": {
+      "name": "Electoral register residual tests outside MX-05",
+      "flows": [
+        "FRONT-G",
+        "PARTICIPATION_CHECK_REMAINING"
+      ],
+      "files": [
+        "tests/unit/padron-participation-check.test.tsx"
       ]
     },
     "publication": {
@@ -183,9 +199,30 @@
       ],
       "files": [
         "tests/unit/election-publication-ux.test.tsx",
+        "tests/unit/official-publication-coverage-registry.test.ts"
+      ]
+    },
+    "matrix_06": {
+      "name": "MX-06 | TVD, QR, acreditación y publicación | Frontend Admin",
+      "flows": [
+        "MX-06",
+        "TVD-ASSIGN",
+        "TVD-QR",
+        "TVD-RES",
+        "TVD-PUB",
+        "TVD-SEC",
+        "TVD-UI"
+      ],
+      "files": [
+        "tests/integration/election-tvd-capacity-review.test.tsx",
+        "tests/unit/admin-tvd-recharge-ui.test.ts",
+        "tests/unit/admin-tvd-capacity-ui.test.ts",
+        "tests/unit/admin-tvd-wallet-ui.test.ts",
+        "tests/unit/superadmin-tvd-manual-assignment-ui.test.ts",
+        "tests/unit/superadmin-tvd-blockchain-utils.test.ts",
+        "tests/unit/tvd-wallet-lookup-ui.test.ts",
         "tests/unit/use-election-publish.test.tsx",
         "tests/unit/official-publication-api.test.ts",
-        "tests/unit/official-publication-coverage-registry.test.ts",
         "tests/unit/official-publication-final-ux.test.tsx"
       ]
     },
@@ -300,16 +337,27 @@
         "cypress/legacy/flujo_principal.cy.ts"
       ]
     },
-    "register": {
-      "name": "Electoral register management",
+    "matrix_05": {
+      "name": "MX-05 | Padrón, staging, elegibilidad y archivos | Frontend",
       "flows": [
-        "FRONT-G",
-        "BRS-F12",
-        "BRS-F13"
+        "MX-05",
+        "PAD-CFM",
+        "PAD-STG",
+        "PAD-ACC",
+        "PAD-PRC"
       ],
       "files": [
         "cypress/e2e/smoke/padron.cy.ts"
       ],
+      "manualFiles": []
+    },
+    "register_remaining": {
+      "name": "Electoral register Cypress residual outside MX-05",
+      "flows": [
+        "FRONT-G",
+        "REGISTER_LEGACY_REMAINING"
+      ],
+      "files": [],
       "manualFiles": [
         "cypress/legacy/Registro.real.cy.ts",
         "cypress/staging/registro_admin_e2e.cy.ts"
@@ -323,11 +371,21 @@
         "BRS-F18"
       ],
       "files": [
-        "cypress/e2e/smoke/publication-status.cy.ts"
       ],
       "manualFiles": [
         "cypress/legacy/votacion_privada_flujo_canonico.cy.ts"
       ]
+    },
+    "matrix_06": {
+      "name": "MX-06 | TVD, QR, acreditación y publicación | Frontend Admin",
+      "flows": [
+        "MX-06",
+        "TVD-UI-P2-004"
+      ],
+      "files": [
+        "cypress/e2e/smoke/publication-status.cy.ts"
+      ],
+      "manualFiles": []
     },
     "results": {
       "name": "Election results and public view",

@@ -44,7 +44,7 @@ export const getTvdCapacityReasonMessage = (
     case "PADRON_EMPTY":
       return "No hay participantes habilitados en el padrón vigente.";
     case null:
-      return "La wallet tiene capacidad TVD para el cálculo actual.";
+      return "Hay saldo suficiente para el cálculo actual.";
     default:
       return "No pudimos determinar el estado de capacidad TVD.";
   }
@@ -86,7 +86,7 @@ export const getCapacityRequestErrorMessage = (error: unknown) => {
       code === "ELECTORAL_CREDITS_CONFIGURATION_INCOMPLETE" ||
       code === "OFFICIAL_PUBLICATION_IMPLEMENTATION_MISMATCH"
     ) {
-      return "Configuración contractual pendiente. No solicites firma móvil ni recarga hasta corregir infraestructura.";
+      return "La publicación no está disponible en este momento. Intenta nuevamente más tarde.";
     }
     return "No se pudo validar la disponibilidad de TVD. Intenta nuevamente.";
   }

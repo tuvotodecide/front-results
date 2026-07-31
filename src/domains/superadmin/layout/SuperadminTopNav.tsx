@@ -18,6 +18,13 @@ import {
 } from "lucide-react";
 import tuvotoDecideImage from "@/assets/tuvotodecide.webp";
 import { logOut, selectAuth } from "@/store/auth/authSlice";
+import { apiSlice } from "@/store/apiSlice";
+import { clearSelectedElection } from "@/store/election/electionSlice";
+import { resetResults } from "@/store/resultados/resultadosSlice";
+import {
+  emitNavigationStart,
+  resolveLogoutDestination,
+} from "@/shared/system/navigationFeedback";
 import type { SuperadminNavItem } from "../types";
 
 const tvdItems: SuperadminNavItem[] = [
@@ -124,11 +131,14 @@ export default function SuperadminTopNav() {
   const dispatch = useDispatch();
   const logoAsset = tuvotoDecideImage as string | { src: string };
   const logoSrc = typeof logoAsset === "string" ? logoAsset : logoAsset.src;
-  const userLabel = auth.user?.name || auth.user?.email || "SUPERADMIN";
 
   const logout = () => {
     dispatch(logOut());
-    window.location.replace("/resultados/login");
+    dispatch(resetResults());
+    dispatch(clearSelectedElection());
+    dispatch(apiSlice.util.resetApiState());
+    emitNavigationStart();
+    window.location.replace(resolveLogoutDestination(pathname));
   };
 
   const linkClass = (href: string) =>
@@ -178,8 +188,7 @@ export default function SuperadminTopNav() {
                 type="button"
                 onClick={async () => {
                   await fetch("/api/dev/auth/logout", { method: "POST" });
-                  dispatch(logOut());
-                  window.location.assign("/dev/superadmin-login");
+                  logout();
                 }}
                 className="rounded-full border border-[#dfe3df] px-3 py-1.5 text-xs font-semibold text-[#555] transition-colors hover:bg-[#f7f8f7]"
               >
@@ -188,9 +197,6 @@ export default function SuperadminTopNav() {
             </>
           ) : (
             <>
-              <span className="inline-flex max-w-[220px] items-center rounded-full bg-[#edf6ef] px-3 py-1.5 text-xs font-semibold text-[#287c36]">
-                <span className="truncate">{userLabel}</span>
-              </span>
               <button
                 type="button"
                 data-cy="logout-button"

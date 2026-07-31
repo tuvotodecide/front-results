@@ -12,10 +12,7 @@ import * as Yup from "yup";
 import tuvotoDecideImage from "../../../assets/tuvotodecide.webp";
 import { useCreateInstitutionalAdminApplicationMutation } from "../../../store/auth/authEndpoints";
 import { useResolveInstitutionalWalletByDniMutation } from "@/store/institutionalWallets";
-import {
-  useLazyListPublicInstitutionalTenantsQuery,
-  type PublicInstitutionTenant,
-} from "@/store/institutionalTenants";
+import PublicInstitutionAutocomplete from "../components/PublicInstitutionAutocomplete";
 import { Link, useNavigate, useSearchParams } from "../navigation/compat";
 import LoadingButton from "../../../components/LoadingButton";
 import Modal2 from "../../../components/Modal2";
@@ -57,7 +54,6 @@ type WalletResolutionStatus =
 
 const DNI_PATTERN = /^[A-Za-z0-9-]{5,20}$/;
 
-const WALLET_PENDING_MESSAGE = "Wallet pendiente de consultar";
 const WALLET_LOADING_MESSAGE = "Buscando billetera registrada...";
 const WALLET_NOT_FOUND_MESSAGE =
   "Debe crear o registrar primero su billetera en Tu Voto Decide.";
@@ -67,12 +63,6 @@ const WALLET_RATE_LIMIT_MESSAGE =
   "Se realizaron demasiados intentos. Intente nuevamente más tarde.";
 const WALLET_LOOKUP_ERROR_MESSAGE =
   "No fue posible consultar la billetera en este momento. Intente nuevamente.";
-const INSTITUTION_CATALOG_LOADING_MESSAGE = "Cargando instituciones...";
-const INSTITUTION_CATALOG_ERROR_MESSAGE =
-  "No fue posible cargar las instituciones. Intente nuevamente.";
-const INSTITUTION_CATALOG_EMPTY_MESSAGE =
-  "No hay instituciones disponibles en este momento.";
-
 const getLogoSrc = () => {
   const logoAsset = tuvotoDecideImage as string | { src: string };
   return typeof logoAsset === "string" ? logoAsset : logoAsset.src;
@@ -127,7 +117,7 @@ const buildValidationSchema = (requiresPassword: boolean) =>
       .required(),
     institutionId: Yup.string().when("institutionMode", {
       is: "existing",
-      then: (schema) => schema.trim().required("Selecciona una institución activa"),
+      then: (schema) => schema.trim().required("Selecciona una institución."),
       otherwise: (schema) => schema.trim().notRequired(),
     }),
     tenantName: Yup.string().when("institutionMode", {
@@ -172,7 +162,7 @@ const getWalletResolutionMessage = (
   if (status === "wallet_not_found") return WALLET_NOT_FOUND_MESSAGE;
   if (status === "rate_limited") return WALLET_RATE_LIMIT_MESSAGE;
   if (status === "error") return WALLET_LOOKUP_ERROR_MESSAGE;
-  return WALLET_PENDING_MESSAGE;
+  return "";
 };
 
 function WalletResolutionField({
@@ -245,23 +235,25 @@ function WalletResolutionField({
   return (
     <div className="flex flex-col">
       <label className="text-sm font-semibold text-gray-700 mb-1 ml-1">
-        Wallet institucional
+        Wallet
       </label>
       <input
         data-cy="register-account-address"
         value={accountAddress}
         readOnly
-        placeholder={WALLET_PENDING_MESSAGE}
+        placeholder=""
         className="w-full px-4 py-2.5 border border-gray-300 rounded-xl bg-gray-50 font-mono text-xs text-gray-700 outline-none"
       />
-      <p
-        className={`mt-1 ml-1 text-xs font-medium ${
-          isErrorState ? "text-red-600" : "text-gray-500"
-        }`}
-        role={isErrorState ? "alert" : "status"}
-      >
-        {statusMessage}
-      </p>
+      {statusMessage ? (
+        <p
+          className={`mt-1 ml-1 text-xs font-medium ${
+            isErrorState ? "text-red-600" : "text-gray-500"
+          }`}
+          role={isErrorState ? "alert" : "status"}
+        >
+          {statusMessage}
+        </p>
+      ) : null}
       <ErrorMessage
         name="accountAddress"
         component="div"
@@ -284,82 +276,14 @@ function InstitutionModeSelector({
   onInstitutionIdChange: (institutionId: string) => void;
   onTenantNameChange: (tenantName: string) => void;
 }) {
-  const [institutionSearch, setInstitutionSearch] = useState("");
-  const [institutionOptions, setInstitutionOptions] = useState<
-    PublicInstitutionTenant[]
-  >([]);
-  const [institutionSearchStatus, setInstitutionSearchStatus] = useState<
-    "idle" | "loading" | "success" | "error"
-  >("idle");
-  const [listPublicInstitutions] = useLazyListPublicInstitutionalTenantsQuery();
-  const searchSequenceRef = useRef(0);
-  const selectedInstitution =
-    institutionOptions.find(
-      (institution) => institution.institutionId === institutionId,
-    ) ?? null;
-
   const selectMode = (nextMode: VotingFormValues["institutionMode"]) => {
     onModeChange(nextMode);
     if (nextMode === "new") {
       onInstitutionIdChange("");
-      setInstitutionSearch("");
-      setInstitutionOptions([]);
-      setInstitutionSearchStatus("idle");
       return;
     }
     onTenantNameChange("");
   };
-
-  const updateInstitutionSearch = (value: string) => {
-    searchSequenceRef.current += 1;
-    setInstitutionSearch(value);
-    setInstitutionOptions([]);
-    setInstitutionSearchStatus("idle");
-    if (selectedInstitution && value !== selectedInstitution.institutionName) {
-      onInstitutionIdChange("");
-    }
-  };
-
-  const runInstitutionSearch = async () => {
-    const search = institutionSearch.trim().replace(/\s+/g, " ");
-    if (search.length < 2) {
-      setInstitutionOptions([]);
-      setInstitutionSearchStatus("success");
-      return;
-    }
-
-    const sequence = searchSequenceRef.current + 1;
-    searchSequenceRef.current = sequence;
-    setInstitutionSearchStatus("loading");
-    setInstitutionOptions([]);
-    onInstitutionIdChange("");
-
-    try {
-      const response = await listPublicInstitutions({
-        search,
-        page: 1,
-        limit: 10,
-      }).unwrap();
-      if (sequence !== searchSequenceRef.current) return;
-      setInstitutionOptions(response.items);
-      setInstitutionSearchStatus("success");
-    } catch {
-      if (sequence !== searchSequenceRef.current) return;
-      setInstitutionOptions([]);
-      setInstitutionSearchStatus("error");
-    }
-  };
-
-  const selectInstitution = (institution: PublicInstitutionTenant) => {
-    onInstitutionIdChange(institution.institutionId);
-    setInstitutionSearch(institution.institutionName);
-    setInstitutionSearchStatus("success");
-  };
-
-  const showEmptyMessage =
-    institutionSearchStatus === "success" &&
-    institutionSearch.trim().length >= 2 &&
-    institutionOptions.length === 0;
 
   return (
     <div className="space-y-3">
@@ -392,75 +316,19 @@ function InstitutionModeSelector({
 
       {mode === "existing" ? (
         <div className="flex flex-col">
-          <label className="text-sm font-semibold text-gray-700 mb-1 ml-1">
-            Institución
-          </label>
-          <div className="flex gap-2">
-            <input
-              data-cy="register-institution-search"
-              value={institutionSearch}
-              onChange={(event) => updateInstitutionSearch(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  void runInstitutionSearch();
-                }
-              }}
-              placeholder="Buscar institución activa"
-              className="min-w-0 flex-1 px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#459151] focus:border-transparent outline-none transition-all"
-            />
-            <button
-              type="button"
-              onClick={() => void runInstitutionSearch()}
-              className="shrink-0 rounded-xl bg-[#459151] px-4 py-2 text-sm font-bold text-white"
-            >
-              Buscar
-            </button>
-          </div>
-          {institutionSearchStatus === "loading" ? (
-            <p className="mt-1 ml-1 text-xs font-medium text-gray-500" role="status">
-              {INSTITUTION_CATALOG_LOADING_MESSAGE}
-            </p>
-          ) : null}
-          {institutionSearchStatus === "error" ? (
-            <p className="mt-1 ml-1 text-xs font-medium text-red-600" role="alert">
-              {INSTITUTION_CATALOG_ERROR_MESSAGE}
-            </p>
-          ) : null}
-          {showEmptyMessage ? (
-            <p className="mt-1 ml-1 text-xs font-medium text-gray-500" role="status">
-              {INSTITUTION_CATALOG_EMPTY_MESSAGE}
-            </p>
-          ) : null}
-          {institutionOptions.length > 0 ? (
-            <div className="mt-2 max-h-40 overflow-auto rounded-xl border border-gray-200 bg-white">
-              {institutionOptions.map((institution) => (
-                <button
-                  key={institution.institutionId}
-                  type="button"
-                  data-cy="register-institution-option"
-                  onClick={() => selectInstitution(institution)}
-                  className={`block w-full px-4 py-2 text-left text-sm transition-all hover:bg-green-50 ${
-                    institution.institutionId === institutionId
-                      ? "bg-green-50 font-semibold text-[#276331]"
-                      : "text-gray-700"
-                  }`}
-                >
-                  {institution.institutionName}
-                </button>
-              ))}
-            </div>
-          ) : null}
-          {institutionId ? (
-            <p className="mt-1 ml-1 text-xs font-medium text-[#459151]" role="status">
-              Institución seleccionada: {selectedInstitution?.institutionName ?? institutionSearch}
-            </p>
-          ) : null}
-          <ErrorMessage
-            name="institutionId"
-            component="div"
-            className="text-xs text-red-500 mt-1 ml-1 font-medium"
+          <PublicInstitutionAutocomplete
+            id="register-institution-search"
+            dataCy="register-institution-search"
+            value={institutionId}
+            onChange={onInstitutionIdChange}
           />
+          <ErrorMessage name="institutionId">
+            {(message) => (
+              <p className="text-xs text-red-500 mt-1 ml-1 font-medium" role="alert">
+                {message}
+              </p>
+            )}
+          </ErrorMessage>
         </div>
       ) : (
         <div className="flex flex-col">

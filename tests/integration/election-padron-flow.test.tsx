@@ -180,7 +180,7 @@ const mockAnalyzePadronWithGemini = (draft: any) => {
   });
 };
 
-describe("padron flow integration", () => {
+describe("MX-05 | Padrón, staging, elegibilidad y archivos | Frontend", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     navigateMock.mockReset();
@@ -363,7 +363,7 @@ describe("padron flow integration", () => {
     vi.mocked(votingEvents.useCreateEventNewsMutation).mockReturnValue(noopMutation as any);
   });
 
-  it("allows finalize when the active draft only has identities missing outside the current page", () => {
+  it("PAD-ACC-P0-001 / PAD-ROW-P0-002 | permite finalizar con identidades faltantes fuera de la página actual", () => {
     render(<ElectionConfigPadron />);
 
     expect(
@@ -374,19 +374,28 @@ describe("padron flow integration", () => {
     expect(screen.getByRole("button", { name: /finalizar configuración/i })).toBeEnabled();
   });
 
-  it("shows the autosaved active draft as the current padron source in status before publication", () => {
+  it("PAD-STG-P0-001 / PAD-RPL-P1-001 | muestra el borrador activo autosalvado como fuente vigente antes de publicación", () => {
     renderWithAuthStore(<ActiveElectionStatusPage />, {
       tenantId: "tenant-1",
       active: true,
       role: "ADMIN",
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Paso 3" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Mas" }));
+    fireEvent.click(screen.getByRole("button", { name: /padron y consulta/i }));
 
-    expect(screen.getByText("Borrador de padrón")).toBeInTheDocument();
+    expect(screen.getByText("Padron y participacion")).toBeInTheDocument();
+    expect(votingEvents.useGetPadronStagingQuery).toHaveBeenCalledWith(
+      { eventId: "evt-1", page: 1, limit: 20 },
+      expect.objectContaining({ skip: false }),
+    );
+    expect(votingEvents.useGetPadronVotersQuery).toHaveBeenCalledWith(
+      { eventId: "evt-1", page: 1, limit: 20 },
+      expect.objectContaining({ skip: true }),
+    );
   });
 
-  it("shows the PDF export action once the official padron is already published", () => {
+  it("PAD-LST-P0-001 / PAD-STA-P0-003 | muestra descarga cuando existe padrón oficial publicado", () => {
     vi.mocked(votingEvents.useGetVotingEventQuery).mockReturnValue({
       data: { ...baseEvent, state: "OFFICIALLY_PUBLISHED", status: "OFFICIALLY_PUBLISHED" },
       isLoading: false,
@@ -418,7 +427,7 @@ describe("padron flow integration", () => {
     ).toBeInTheDocument();
   });
 
-  it("downloads the official padron PDF with the expected event and version payload", async () => {
+  it("PAD-DWN-P1-001 | descarga el PDF oficial con eventId y versionId esperados", async () => {
     const createObjectUrlMock = vi.fn(() => "blob:padron-pdf");
     const revokeObjectUrlMock = vi.fn();
     const clickMock = vi.fn();
@@ -470,7 +479,7 @@ describe("padron flow integration", () => {
     expect(revokeObjectUrlMock).toHaveBeenCalledWith("blob:padron-pdf");
   });
 
-  it("shows a visible error when the official padron PDF download fails", async () => {
+  it("PAD-ACC-P0-001 | muestra error visible cuando falla la descarga del padrón", async () => {
     downloadPadronPdfMock.mockReturnValue({
       unwrap: vi.fn().mockRejectedValue({ data: { message: "PDF no disponible" } }),
     });
@@ -505,7 +514,7 @@ describe("padron flow integration", () => {
     expect(await screen.findByText("PDF no disponible")).toBeInTheDocument();
   });
 
-  it("keeps Gemini in the main upload flow and allows informative observations", async () => {
+  it("PAD-PRC-P0-001 / PAD-PRC-P0-002 | procesa Gemini informativo y persiste staging", async () => {
     mockAnalyzePadronWithGemini({
       fileName: "padron.pdf",
       uploadedAt: "2026-04-16T12:00:00.000Z",
@@ -566,7 +575,7 @@ describe("padron flow integration", () => {
     expect(addPadronStagingEntryMock).toHaveBeenCalledTimes(1);
   });
 
-  it("shows the API error when Gemini succeeds but backend import fails", async () => {
+  it("PAD-FIL-P0-001 / PAD-PRC-P0-003 | muestra error del backend sin crear staging local falso", async () => {
     mockAnalyzePadronWithGemini({
       fileName: "padron.pdf",
       uploadedAt: "2026-04-16T12:00:00.000Z",
@@ -608,7 +617,7 @@ describe("padron flow integration", () => {
     expect(addPadronStagingEntryMock).not.toHaveBeenCalled();
   });
 
-  it("stops before staging when Gemini finds actionable observations", async () => {
+  it("PAD-PRC-P0-001 / PAD-VAL-P0-001 | detiene staging ante observaciones bloqueantes", async () => {
     mockAnalyzePadronWithGemini({
       fileName: "padron.pdf",
       uploadedAt: "2026-04-16T12:00:00.000Z",
@@ -657,7 +666,7 @@ describe("padron flow integration", () => {
     expect(uploadPadronSourceMock).not.toHaveBeenCalled();
   });
 
-  it("persists Gemini records into staging when the backend import returns an empty draft", async () => {
+  it("PAD-PRC-P0-002 / PAD-STG-P0-001 | persiste registros Gemini en staging cuando el import queda vacío", async () => {
     mockAnalyzePadronWithGemini({
       fileName: "padron.pdf",
       uploadedAt: "2026-04-16T12:00:00.000Z",
@@ -726,7 +735,7 @@ describe("padron flow integration", () => {
     });
   });
 
-  it("bulk deletes selected staging rows with the expected payload", async () => {
+  it("PAD-DEL-P0-001 / PAD-CON-P1-001 | elimina filas seleccionadas con payload único", async () => {
     vi.mocked(votingEvents.useGetPadronWorkflowSummaryQuery).mockReturnValue({
       data: {
         eventId: "evt-1",

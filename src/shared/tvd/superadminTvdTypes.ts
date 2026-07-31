@@ -97,7 +97,7 @@ export type TvdContractsReadModel = {
       message: string | null;
     };
   }>;
-  updatedAt: string;
+  updatedAt: string | null;
   issues: TvdReadIssue[];
 };
 
@@ -134,6 +134,6 @@ export type TvdParametersReadModel = {
     voteManager: TvdAddressInfo;
     incentiveCampaigns: TvdAddressInfo;
   };
-  updatedAt: string;
+  updatedAt: string | null;
   issues: TvdReadIssue[];
 };

@@ -76,7 +76,7 @@ export const getTvdManualAssignmentStatusMessage = (
 ) => {
   switch (status) {
     case "PENDING":
-      return "Asignación registrada. Esperando procesamiento.";
+      return "Asignación registrada.";
     case "SUBMITTING":
       return "Preparando la asignación TVD.";
     case "SUBMITTED":
@@ -132,16 +132,16 @@ export const getTvdManualAssignmentErrorMessage = (error: unknown) => {
     return "No se encontró la institución seleccionada.";
   }
   if (code === "TVD_ASSIGNMENT_NOT_FOUND") {
-    return "No se encontró el administrador institucional seleccionado.";
+    return "No se encontró la wallet seleccionada.";
   }
   if (code === "TVD_ASSIGNMENT_TENANT_MISMATCH") {
-    return "El administrador no pertenece a la institución seleccionada.";
+    return "La wallet no pertenece a la institución seleccionada.";
   }
   if (
     code === "TVD_ASSIGNMENT_INACTIVE" ||
     code === "TVD_ASSIGNMENT_NOT_APPROVED"
   ) {
-    return "El administrador institucional no está habilitado para recibir TVD.";
+    return "La wallet no está habilitada para recibir TVD.";
   }
   if (code === "TVD_WALLET_MISSING" || code === "TVD_WALLET_NOT_VERIFIED") {
     return "La wallet seleccionada no está verificada.";

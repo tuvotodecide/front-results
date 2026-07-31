@@ -130,7 +130,7 @@ export const accessApprovalsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getInstitutionalApplications: builder.query<
       InstitutionalApplication[],
-      { status?: string } | void
+      { status?: string; tenantId?: string } | void
     >({
       query: (params) => ({
         url: "/institutional-admin-applications",

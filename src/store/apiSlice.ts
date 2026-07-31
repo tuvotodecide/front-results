@@ -166,6 +166,7 @@ export const apiSlice = createApi({
     "TvdPayment",
     "TvdAccreditations",
     "TvdEventCapacity",
+    "TvdExchangeRates",
     "InstitutionalRecoveryRequests",
     "InstitutionalRecoveryRequest",
   ],

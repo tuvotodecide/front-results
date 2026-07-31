@@ -39,7 +39,7 @@ const makePayment = (
 });
 
 describe("admin TVD recharge utilities", () => {
-  it("valida y normaliza montos BOB sin usar floats como autoridad", () => {
+  it("TVD-QR-P0-001 | valida y normaliza montos BOB sin usar floats como autoridad", () => {
     expect(validateBobAmount("10")).toEqual({
       valid: true,
       amount: "10.00",
@@ -57,7 +57,7 @@ describe("admin TVD recharge utilities", () => {
     expect(validateBobAmount("  ")).toMatchObject({ valid: false });
   });
 
-  it("valida descripcion y genera fingerprint sin incluir wallet ni tasa", () => {
+  it("TVD-QR-P0-004 | valida descripcion y genera fingerprint sin incluir wallet ni tasa", () => {
     expect(validateRechargeDescription("")).toEqual({
       valid: true,
       description: "Recarga operativa",
@@ -74,7 +74,7 @@ describe("admin TVD recharge utilities", () => {
     ).toBe("BOB:10.50:Recarga operativa");
   });
 
-  it("genera Idempotency-Key estable con randomUUID cuando existe", () => {
+  it("TVD-QR-P0-004 | genera Idempotency-Key estable con randomUUID cuando existe", () => {
     const randomUUID = vi.fn(() => "uuid-123");
     vi.stubGlobal("crypto", { randomUUID });
 
@@ -84,7 +84,7 @@ describe("admin TVD recharge utilities", () => {
     vi.unstubAllGlobals();
   });
 
-  it("normaliza imagen QR base64 sin construir una glosa ni payload falso", () => {
+  it("TVD-QR-P0-002 | normaliza imagen QR base64 sin construir una glosa ni payload falso", () => {
     expect(getQrImageSource("iVBORw0KGgo=")).toBe("data:image/png;base64,iVBORw0KGgo=");
     expect(getQrImageSource("data:image/png;base64,abc")).toBe(
       null,
@@ -96,7 +96,7 @@ describe("admin TVD recharge utilities", () => {
     expect(getQrImageSource(null)).toBeNull();
   });
 
-  it("valida y descarga solo QR PNG con nombre seguro", () => {
+  it("TVD-QR-P1-005 | valida y descarga solo QR PNG con nombre seguro", () => {
     expect(isValidQrPngImage("iVBORw0KGgo=")).toBe(true);
     expect(isValidQrPngImage("R0lGODlh")).toBe(false);
     expect(buildQrDownloadFilename("123/456:secret")).toBe(
@@ -139,7 +139,7 @@ describe("admin TVD recharge utilities", () => {
     vi.unstubAllGlobals();
   });
 
-  it("separa estados terminales de pago y acreditacion", () => {
+  it("TVD-QR-P0-006 TVD-RES-P0-001 TVD-UI-P1-001 | separa estados terminales de pago y acreditacion", () => {
     expect(shouldPollPayment(makePayment("QR_ACTIVE"))).toBe(true);
     expect(shouldPollPayment(makePayment("EXPIRED"))).toBe(false);
     expect(shouldPollPayment(makePayment("PAYMENT_CONFIRMED", "PENDING"))).toBe(
@@ -151,13 +151,24 @@ describe("admin TVD recharge utilities", () => {
     expect(isAccreditationTerminal("NEEDS_REVIEW")).toBe(true);
   });
 
-  it("mapea mensajes sin marcar un pago confirmado como fallo de recarga", () => {
+  it("TVD-UI-P1-002 TVD-UI-P1-003 TVD-SEC-P0-002 | mapea mensajes seguros sin marcar pago confirmado como fallo de recarga", () => {
     expect(getPaymentStatusMessage("PAYMENT_CONFIRMED")).toContain("Pago recibido");
     expect(getAccreditationStatusMessage("PAYMENT_CONFIRMED", "PENDING")).toContain(
-      "acreditación TVD en proceso",
+      "tokens en proceso",
     );
     expect(getAccreditationStatusMessage("PAYMENT_CONFIRMED", "NEEDS_REVIEW")).toContain(
       "requiere revisión",
     );
+    const visibleCopy = [
+      getPaymentStatusMessage("QR_ACTIVE"),
+      getPaymentStatusMessage("PAYMENT_CONFIRMED"),
+      getAccreditationStatusMessage("PAYMENT_CONFIRMED", "PENDING"),
+      getAccreditationStatusMessage("PAYMENT_CONFIRMED", "CONFIRMED"),
+      getAccreditationStatusMessage("PAYMENT_CONFIRMED", "NEEDS_REVIEW"),
+    ].join(" ");
+    expect(visibleCopy).not.toContain("privateKey");
+    expect(visibleCopy).not.toContain("Authorization");
+    expect(visibleCopy).not.toContain("rpc.example");
+    expect(visibleCopy).not.toContain("payloadQr");
   });
 });

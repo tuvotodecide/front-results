@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  AlertCircle,
   CheckCircle2,
   ChevronDown,
   Eye,
@@ -16,7 +15,6 @@ import {
   canApproveInstitutionalRecovery,
   formatRecoveryDate,
   getAdminRecoveryErrorMessage,
-  maskRecoveryWallet,
   normalizeOptionalRecoveryReason,
   recoveryStatusLabels,
   recoveryStatusOptions,
@@ -225,8 +223,8 @@ export default function InstitutionalRecoveryAdminPage() {
       setActionMessage({
         kind: "success",
         text: selectedIsEmailChange
-          ? "Cambio de correo aprobado. Las sesiones anteriores quedaron invalidadas y la contraseña existente se conserva."
-          : "Recuperación aprobada. Las sesiones anteriores quedarán invalidadas y se enviarán instrucciones al nuevo correo.",
+          ? "Cambio de correo aprobado."
+          : "Recuperación aprobada.",
       });
       await refetchList();
       closeDetail();
@@ -468,37 +466,15 @@ export default function InstitutionalRecoveryAdminPage() {
               />
               <DetailField label="Nuevo correo" value={selected.newEmail} />
               <DetailField
-                label="Usuario preservado"
-                value={detailedSelected?.candidateUserId}
-              />
-              <DetailField
-                label="Assignment preservado"
-                value={detailedSelected?.candidateAssignmentId}
-              />
-              <DetailField
-                label="Wallet preservada"
-                value={maskRecoveryWallet(detailedSelected?.accountAddress ?? null)}
-              />
-              <DetailField
-                label="Rol preservado"
-                value={detailedSelected?.institutionalRole}
-              />
-              <DetailField
-                label="Teléfono"
-                value={selected.phoneNumber}
-              />
-              <DetailField
-                label="Teléfono de verificación"
-                value={selected.supervisorPhoneNumber}
-              />
-              <DetailField
                 label="Fecha solicitud"
                 value={formatRecoveryDate(selected.requestedAt)}
               />
-              <DetailField
-                label="Fecha resolución"
-                value={formatRecoveryDate(selected.resolvedAt)}
-              />
+              {selected.resolvedAt ? (
+                <DetailField
+                  label="Fecha resolución"
+                  value={formatRecoveryDate(selected.resolvedAt)}
+                />
+              ) : null}
             </div>
 
             {detailedSelected?.resolutionReason ? (
@@ -507,19 +483,6 @@ export default function InstitutionalRecoveryAdminPage() {
                   Motivo registrado
                 </p>
                 <p className="mt-1">{detailedSelected.resolutionReason}</p>
-              </div>
-            ) : null}
-
-            {detailedSelected && detailedSelected.warnings.length > 0 ? (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                <p className="font-semibold">
-                  Los datos del administrador cambiaron o no son consistentes.
-                </p>
-                <ul className="mt-2 list-disc space-y-1 pl-5">
-                  {detailedSelected.warnings.map((warning) => (
-                    <li key={warning}>{warning}</li>
-                  ))}
-                </ul>
               </div>
             ) : null}
 
@@ -535,17 +498,6 @@ export default function InstitutionalRecoveryAdminPage() {
                 disabled={!hasOpenPendingDetail || actionBusy}
               />
             </label>
-
-            <div className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-              <AlertCircle className="mt-0.5 h-4 w-4 flex-none" />
-              <p>
-                Esta operación cambia únicamente el correo del mismo
-                administrador. Usuario, institución, assignment, wallet y rol
-                permanecen sin cambios. Al aprobar, las sesiones anteriores se
-                cerrarán y el administrador seguirá usando su contraseña
-                existente con el nuevo correo.
-              </p>
-            </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
               <button
@@ -582,9 +534,7 @@ export default function InstitutionalRecoveryAdminPage() {
             <CheckCircle2 className="h-8 w-8 text-[#287c36]" />
           </div>
           <p className="text-sm text-[#777]">
-            Se actualizará únicamente el correo del mismo administrador
-            institucional. La wallet, el rol y el assignment permanecerán sin
-            cambios.
+            Confirma la aprobación del cambio de correo solicitado.
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <button

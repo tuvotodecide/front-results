@@ -6,7 +6,7 @@ import {
 } from "@/features/adminTvd/utils/tvdCapacityUi";
 
 describe("admin TVD capacity UI helpers", () => {
-  it("acepta participantes estimados como entero positivo normalizado", () => {
+  it("TVD-PUB-P0-003 TVD-PUB-P0-004 | acepta participantes estimados como entero positivo normalizado", () => {
     expect(validateEstimatedParticipants(" 10 ")).toEqual({
       valid: true,
       value: "10",
@@ -17,7 +17,7 @@ describe("admin TVD capacity UI helpers", () => {
     });
   });
 
-  it("rechaza valores vacios, cero, negativos, decimales, texto y notacion cientifica", () => {
+  it("TVD-PUB-P0-002 | rechaza valores vacios, cero, negativos, decimales, texto y notacion cientifica", () => {
     for (const value of ["", "   ", "0", "-1", "1.5", "abc", "1e3"]) {
       expect(validateEstimatedParticipants(value)).toEqual({
         valid: false,
@@ -26,9 +26,9 @@ describe("admin TVD capacity UI helpers", () => {
     }
   });
 
-  it("mapea reason codes reales sin exponer codigos como mensaje principal", () => {
+  it("TVD-PUB-P0-001 TVD-PUB-P0-005 | mapea reason codes reales sin exponer codigos como mensaje principal", () => {
     expect(getTvdCapacityReasonMessage(null)).toBe(
-      "La wallet tiene capacidad TVD para el cálculo actual.",
+      "Hay saldo suficiente para el cálculo actual.",
     );
     expect(getTvdCapacityReasonMessage("INSUFFICIENT_TVD_BALANCE")).toBe(
       "Faltan TVD para cubrir esta elección.",
@@ -41,7 +41,7 @@ describe("admin TVD capacity UI helpers", () => {
     );
   });
 
-  it("traduce errores HTTP a mensajes seguros", () => {
+  it("TVD-PUB-P0-006 TVD-UI-P1-002 | traduce errores HTTP a mensajes seguros", () => {
     expect(getCapacityRequestErrorMessage({ status: 401, data: {} })).toBe(
       "Tu sesión expiró. Inicia sesión nuevamente.",
     );
@@ -60,14 +60,14 @@ describe("admin TVD capacity UI helpers", () => {
         data: { code: "OFFICIAL_PUBLICATION_VOTE_MANAGER_NOT_OPERATOR" },
       }),
     ).toBe(
-      "Configuración contractual pendiente. No solicites firma móvil ni recarga hasta corregir infraestructura.",
+      "La publicación no está disponible en este momento. Intenta nuevamente más tarde.",
     );
     expect(getCapacityRequestErrorMessage({ status: "FETCH_ERROR", data: {} })).toBe(
       "No se pudo validar la disponibilidad de TVD. Intenta nuevamente.",
     );
   });
 
-  it("ofrece QR solo cuando el bloqueo real es saldo insuficiente", () => {
+  it("TVD-PUB-P0-003 | ofrece QR solo cuando el bloqueo real es saldo insuficiente", () => {
     expect(isTvdCapacityRechargeable("INSUFFICIENT_TVD_BALANCE")).toBe(true);
     expect(isTvdCapacityRechargeable("PADRON_PROCESSING")).toBe(false);
     expect(isTvdCapacityRechargeable(null)).toBe(false);
