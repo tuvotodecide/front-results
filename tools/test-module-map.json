@@ -225,6 +225,21 @@
         "tests/unit/official-publication-coverage-registry.test.ts"
       ]
     },
+    "matrix_09": {
+      "name": "MX-09 | Votación presencial mediante kiosco y QR | Frontend Admin",
+      "flows": [
+        "MX-09",
+        "KIO-HAB",
+        "KIO-QR",
+        "KIO-CON",
+        "KIO-SEC",
+        "KIO-UX"
+      ],
+      "files": [
+        "tests/unit/kiosk-constants.test.ts",
+        "tests/unit/presential-kiosk-matrix.test.ts"
+      ]
+    },
     "active-election": {
       "name": "Active election status and ballot",
       "flows": [
@@ -232,7 +247,6 @@
         "BRS-F17"
       ],
       "files": [
-        "tests/unit/kiosk-constants.test.ts",
         "tests/integration/election-status-more-menu.test.tsx",
         "tests/integration/election-status-news-blockchain-tvd.test.tsx",
         "tests/integration/election-status-no-regression.test.tsx",

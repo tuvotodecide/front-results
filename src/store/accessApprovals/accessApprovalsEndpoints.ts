@@ -26,6 +26,16 @@ export interface InstitutionalApplication {
   tenantName?: string;
   tenantId?: string;
   status?: ApprovalStatus;
+  functionalStatus?: string;
+  chainStatus?: string | null;
+  chainAttempts?: number;
+  chainNextRetryAt?: string | null;
+  chainLastError?: string | null;
+  chainTxHash?: string | null;
+  chainConfirmedAt?: string | null;
+  outcome?: "APPROVED" | "PENDING" | "RETRYABLE_FAILURE" | "FINAL_FAILURE" | string;
+  retryable?: boolean;
+  message?: string;
   reason?: string | null;
   createdAt?: string;
   updatedAt?: string;
@@ -77,21 +87,34 @@ const unwrapList = <T,>(response: any): T[] => {
   return [];
 };
 
-const normalizeInstitutional = (raw: any): InstitutionalApplication => ({
-  id: String(raw?.id ?? raw?._id ?? raw?.applicationId ?? ""),
-  applicationId: raw?.applicationId ? String(raw.applicationId) : undefined,
-  userId: raw?.userId ? String(raw.userId) : undefined,
-  dni: raw?.dni ?? undefined,
-  name: raw?.name ?? raw?.fullName,
-  email: raw?.email,
-  institutionName: raw?.institutionName ?? raw?.tenantName,
-  tenantName: raw?.tenantName ?? raw?.institutionName,
-  tenantId: raw?.tenantId ? String(raw.tenantId) : undefined,
-  status: raw?.status,
-  reason: raw?.reason ?? null,
-  createdAt: raw?.createdAt,
-  updatedAt: raw?.updatedAt,
-});
+const normalizeInstitutional = (raw: any): InstitutionalApplication => {
+  const source = raw?.application ?? raw;
+  return {
+    id: String(source?.id ?? source?._id ?? source?.applicationId ?? ""),
+    applicationId: source?.applicationId ? String(source.applicationId) : undefined,
+    userId: source?.userId ? String(source.userId) : undefined,
+    dni: source?.dni ?? undefined,
+    name: source?.name ?? source?.fullName,
+    email: source?.email,
+    institutionName: source?.institutionName ?? source?.tenantName,
+    tenantName: source?.tenantName ?? source?.institutionName,
+    tenantId: source?.tenantId ? String(source.tenantId) : undefined,
+    status: source?.status,
+    functionalStatus: source?.functionalStatus,
+    chainStatus: source?.chainStatus ?? null,
+    chainAttempts: source?.chainAttempts ?? 0,
+    chainNextRetryAt: source?.chainNextRetryAt ?? null,
+    chainLastError: source?.chainLastError ?? null,
+    chainTxHash: source?.chainTxHash ?? null,
+    chainConfirmedAt: source?.chainConfirmedAt ?? null,
+    outcome: raw?.outcome ?? source?.outcome,
+    retryable: raw?.retryable ?? source?.retryable,
+    message: raw?.message ?? source?.message,
+    reason: source?.reason ?? null,
+    createdAt: source?.createdAt,
+    updatedAt: source?.updatedAt,
+  };
+};
 
 const normalizeInvitation = (raw: any): InstitutionalAdminInvitation => ({
   id: String(raw?.id ?? raw?._id ?? ""),

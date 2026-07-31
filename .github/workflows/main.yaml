@@ -116,6 +116,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm test:matrix:06
 
+      - name: MX-09 | Votación presencial mediante kiosco y QR | Frontend Admin
+        if: ${{ !cancelled() }}
+        run: pnpm test:matrix:09
+
       - name: Run module tests - Institutional applications residual outside MX-02
         if: ${{ !cancelled() }}
         run: pnpm test:module:applications

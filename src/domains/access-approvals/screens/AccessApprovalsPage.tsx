@@ -16,7 +16,7 @@ import {
 } from "@/store/accessApprovals";
 
 type InstitutionalTab = "pending" | "approved" | "rejected";
-type FeedbackState = { kind: "success" | "error"; message: string } | null;
+type FeedbackState = { kind: "success" | "warning" | "error"; message: string } | null;
 type ActionTone = "primary" | "danger" | "secondary";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -69,15 +69,36 @@ const isRetryableAuthorizationStatus = (status?: ApprovalStatus) =>
   status === "RECONCILIATION_PENDING" ||
   status === "CHAIN_RETRY_PENDING";
 
-const approvalResultMessage = (status?: ApprovalStatus) => {
-  if (status === "APPROVED") return "La autorización institucional fue completada.";
-  if (isRetryableAuthorizationStatus(status)) {
-    return "La aprobación fue iniciada y sigue esperando confirmación de autorización.";
+const canRetryAuthorization = (row?: InstitutionalApplication | null) =>
+  isRetryableAuthorizationStatus(row?.status) ||
+  (row?.status === "CHAIN_FAILED" && !row.chainTxHash && row.retryable !== false);
+
+const actionFeedbackForResult = (result: unknown): NonNullable<FeedbackState> => {
+  const row = result as InstitutionalApplication | undefined;
+  const message = row?.message?.trim();
+  if (row?.outcome === "APPROVED" || row?.status === "APPROVED") {
+    return { kind: "success", message: message || "La autorización fue completada correctamente." };
   }
-  if (status === "PENDING_MOBILE_AUTHORIZATION") {
-    return "La solicitud quedó pendiente de autorización desde el teléfono.";
+  if (row?.outcome === "RETRYABLE_FAILURE") {
+    return {
+      kind: "warning",
+      message:
+        message || "No pudimos completar la autorización. Corrige la causa e inténtalo nuevamente.",
+    };
   }
-  return "La aprobación fue procesada. Se actualizó el estado de la solicitud.";
+  if (row?.outcome === "FINAL_FAILURE" || row?.status === "CHAIN_FAILED") {
+    return { kind: "error", message: message || "No fue posible completar la autorización." };
+  }
+  if (row?.outcome === "PENDING" || isRetryableAuthorizationStatus(row?.status)) {
+    return {
+      kind: "warning",
+      message: message || "La operación fue enviada y está pendiente de confirmación.",
+    };
+  }
+  if (row?.status === "PENDING_MOBILE_AUTHORIZATION") {
+    return { kind: "warning", message: "La solicitud quedó pendiente de autorización desde el teléfono." };
+  }
+  return { kind: "success", message: message || "La operación fue procesada." };
 };
 
 const getActionErrorMessage = (error: unknown) => {
@@ -93,6 +114,33 @@ const getActionErrorMessage = (error: unknown) => {
   }
   return "No se pudo completar la acción. Revisa el estado actual y vuelve a intentarlo.";
 };
+
+const chainStatusLabel = (status?: string | null) => {
+  switch (status) {
+    case "PENDING_SEND":
+      return "Pendiente de envío";
+    case "SENT":
+      return "Enviada";
+    case "RETRY_PENDING":
+      return "Reintento pendiente";
+    case "CONFIRMED":
+      return "Confirmada";
+    case "FAILED":
+      return "Fallido";
+    default:
+      return status || "No informado";
+  }
+};
+
+const hasChainDetails = (row?: InstitutionalApplication | null) =>
+  Boolean(
+    row &&
+      (row.chainStatus ||
+        row.chainAttempts ||
+        row.chainTxHash ||
+        row.chainLastError ||
+        row.chainNextRetryAt),
+  );
 
 const isStaleProcessing = (row?: InstitutionalApplication | null) => {
   if (!row || !isProcessingStatus(row.status) || (!row.updatedAt && !row.createdAt)) {
@@ -271,17 +319,19 @@ export default function AccessApprovalsPage() {
   const roleLabel = ROLE_LABELS[String(auth.user?.role ?? "")] ?? "Aprobador";
 
   const runAction = async (
-    message: string | ((result: unknown) => string),
+    message: string | ((result: unknown) => string | NonNullable<FeedbackState>),
     action: () => Promise<unknown>,
   ) => {
     setFeedback(null);
 
     try {
       const result = await action();
-      setFeedback({
-        kind: "success",
-        message: typeof message === "function" ? message(result) : message,
-      });
+      const nextFeedback = typeof message === "function" ? message(result) : message;
+      setFeedback(
+        typeof nextFeedback === "string"
+          ? { kind: "success", message: nextFeedback }
+          : nextFeedback,
+      );
     } catch (error) {
       setFeedback({
         kind: "error",
@@ -304,8 +354,7 @@ export default function AccessApprovalsPage() {
             tone: "primary" as const,
             onClick: () =>
               runAction(
-                (result) =>
-                  approvalResultMessage((result as InstitutionalApplication | undefined)?.status),
+                actionFeedbackForResult,
                 () => approveInstitutional(selected.id).unwrap(),
               ),
           },
@@ -345,7 +394,7 @@ export default function AccessApprovalsPage() {
                 },
               ]
             : []
-          : isRetryableAuthorizationStatus(selected?.status)
+          : canRetryAuthorization(selected)
             ? [
                 {
                   key: "retry-authorization",
@@ -353,10 +402,7 @@ export default function AccessApprovalsPage() {
                   tone: "secondary" as const,
                   onClick: () =>
                     runAction(
-                      (result) =>
-                        approvalResultMessage(
-                          (result as InstitutionalApplication | undefined)?.status,
-                        ),
+                      actionFeedbackForResult,
                       () => retryInstitutionalAuthorization(selected.id).unwrap(),
                     ),
                 },
@@ -400,6 +446,8 @@ export default function AccessApprovalsPage() {
             className={`rounded-2xl border px-4 py-3 text-sm shadow-[0_6px_18px_rgba(15,23,42,0.04)] ${
               feedback.kind === "success"
                 ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                : feedback.kind === "warning"
+                  ? "border-amber-200 bg-amber-50 text-amber-900"
                 : "border-red-200 bg-red-50 text-red-800"
             }`}
           >
@@ -575,6 +623,28 @@ export default function AccessApprovalsPage() {
                           <InfoLine label="Observación registrada" value={selected.reason} />
                         ) : null}
                       </div>
+                      {hasChainDetails(selected) ? (
+                        <div className="rounded-xl border border-[#e5e7eb] bg-[#fbfcfd] px-4 py-4">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400">
+                            Autorización en red
+                          </p>
+                          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                            <InfoLine label="Estado de red" value={chainStatusLabel(selected.chainStatus)} />
+                            <InfoLine label="Intentos" value={String(selected.chainAttempts ?? 0)} />
+                            <InfoLine label="TxHash" value={selected.chainTxHash || "No generado"} />
+                            <InfoLine label="Último intento" value={formatDate(selected.updatedAt)} />
+                            {selected.chainNextRetryAt ? (
+                              <InfoLine
+                                label="Próximo reintento"
+                                value={formatDate(selected.chainNextRetryAt)}
+                              />
+                            ) : null}
+                            {selected.chainLastError ? (
+                              <InfoLine label="Detalle" value={selected.chainLastError} />
+                            ) : null}
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
 

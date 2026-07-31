@@ -48,6 +48,7 @@
     "test:matrix:04": "node tools/run-module-tests.mjs vitest matrix_04",
     "test:matrix:05": "node tools/run-module-tests.mjs vitest matrix_05",
     "test:matrix:06": "node tools/run-module-tests.mjs vitest matrix_06",
+    "test:matrix:09": "node tools/run-module-tests.mjs vitest matrix_09",
     "test:module:applications": "node tools/run-module-tests.mjs vitest applications_remaining",
     "test:module:applications-remaining": "node tools/run-module-tests.mjs vitest applications_remaining",
     "test:module:election-dashboard": "node tools/run-module-tests.mjs vitest election-dashboard",
