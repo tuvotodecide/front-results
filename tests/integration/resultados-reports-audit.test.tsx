@@ -1,9 +1,6 @@
 import { act, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import ResultadosGeneralesPage from "@/domains/resultados/screens/ResultadosGeneralesPage";
-import AuditAndMatchPage from "@/domains/resultados/screens/AuditAndMatchPage";
-import PersonalParticipationPage from "@/domains/resultados/screens/PersonalParticipationPage";
 import {
   auditSummary,
   countedTables,

@@ -314,7 +314,6 @@ describe("election config review redesign", () => {
       "Vista previa para votantes",
       "Horarios",
       "Avisos importantes",
-      "Capacidad TVD",
       "Configuración adicional",
     ]) {
       expect(
@@ -512,17 +511,16 @@ describe("election config review redesign", () => {
 
     renderReview();
 
-    expect(
-      screen.getByText("No tienes suficientes TVD para publicar esta votación."),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/TVD requeridos: 25 TVD\. TVD disponibles: 20 TVD\./i),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Falta saldo para publicar")).toBeInTheDocument();
+    expect(screen.getByText("TVD requeridos")).toBeInTheDocument();
+    expect(screen.getByText("25 TVD")).toBeInTheDocument();
+    expect(screen.getByText("TVD disponibles")).toBeInTheDocument();
+    expect(screen.getByText("20 TVD")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /Confirmar publicación oficial/i }),
     ).toBeDisabled();
 
-    await user.click(screen.getAllByRole("button", { name: "Ir a recarga" })[0]!);
+    await user.click(screen.getByRole("button", { name: "Recargar tokens" }));
     expect(navigateMock).toHaveBeenCalledWith("/votacion/recarga-operativa");
     expect(activateElectionMock).not.toHaveBeenCalled();
   });
@@ -558,8 +556,8 @@ describe("election config review redesign", () => {
     const { rerender } = renderReview();
 
     expect(
-      screen.getByText("La wallet tiene capacidad para el padrón actual."),
-    ).toBeInTheDocument();
+      screen.getByRole("button", { name: /Confirmar publicación oficial/i }),
+    ).toBeEnabled();
 
     useGetVotingEventTvdCapacityQueryMock.mockReturnValue({
       data: undefined,
@@ -571,9 +569,6 @@ describe("election config review redesign", () => {
     rerender(<ElectionConfigReview />);
 
     expect(screen.getByText("Validando capacidad TVD...")).toBeInTheDocument();
-    expect(
-      screen.queryByText("La wallet tiene capacidad para el padrón actual."),
-    ).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /Confirmar publicación oficial/i }),
     ).toBeDisabled();
@@ -589,14 +584,6 @@ describe("election config review redesign", () => {
         refetchOnMountOrArgChange: true,
       }),
     );
-    expect(
-      screen.getByText("La wallet tiene capacidad para el padrón actual."),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Este resultado solo confirma capacidad. La publicación oficial sigue siendo un paso separado.",
-      ),
-    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /Confirmar publicación oficial/i }),
     ).toBeEnabled();
@@ -632,16 +619,14 @@ describe("election config review redesign", () => {
 
     renderReview();
 
-    expect(screen.getByText("El padrón todavía está procesándose.")).toBeInTheDocument();
+    expect(screen.getByText("Falta saldo para publicar")).toBeInTheDocument();
+    expect(screen.getByText("Participantes habilitados")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /Confirmar publicación oficial/i }),
     ).toBeDisabled();
 
-    await user.click(
-      screen.getByRole("button", { name: "Reintentar validación" }),
-    );
-    expect(refetchCapacityMock).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole("button", { name: "Ir a recarga" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Recargar tokens" })).not.toBeInTheDocument();
+    expect(refetchCapacityMock).not.toHaveBeenCalled();
     expect(activateElectionMock).not.toHaveBeenCalled();
   });
 

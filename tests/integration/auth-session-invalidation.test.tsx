@@ -86,6 +86,7 @@ describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | 
   beforeEach(() => {
     mocks.navigate.mockReset();
     mocks.searchParams = new URLSearchParams();
+    window.sessionStorage.clear();
     vi.stubGlobal(
       "fetch",
       vi.fn(async () =>
@@ -115,6 +116,8 @@ describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | 
       )
       .unwrap()
       .catch(() => undefined);
+
+    expect(fetch).toHaveBeenCalledTimes(1);
 
     const state = store.getState();
     expect(state.auth.token).toBeNull();
@@ -152,6 +155,8 @@ describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | 
       .catch(() => undefined);
 
     expect(store.getState().auth.token).toBeNull();
+    expect(store.getState().auth.activeContext).toBeNull();
+    expect(store.getState().auth.tenantId).toBeNull();
     expect(consumeAuthSessionEndReason()).toBeNull();
   });
 

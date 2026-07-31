@@ -69,7 +69,7 @@ describe("Election status more menu", () => {
     await clickMoreOption(user, "Uso $TVD");
 
     expect(screen.getByRole("heading", { name: "Uso $TVD" })).toBeInTheDocument();
-    expect(screen.getByText("Reservado")).toBeInTheDocument();
+    expect(screen.getByText("500 $TVD")).toBeInTheDocument();
   });
 
   it("selecciona Analiticas", async () => {
@@ -105,7 +105,7 @@ describe("Election status more menu", () => {
     await user.click(screen.getByRole("tab", { name: "Mas" }));
     await clickMoreOption(user, "Verificacion blockchain");
     expect(screen.getByRole("heading", { name: "Integridad verificable" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Contrato inteligente publico" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Registro de la votación" })).toBeInTheDocument();
 
     user = userEvent.setup();
     await user.click(screen.getByRole("tab", { name: "Mas" }));

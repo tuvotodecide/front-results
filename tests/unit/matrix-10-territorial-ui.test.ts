@@ -1,16 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-type TerritorialRow = {
-  id: string;
-  name: string;
-  role: "GOVERNOR" | "MAYOR";
-  status: string;
-  departmentName?: string | null;
-  municipalityName?: string | null;
-  createdAt?: string;
-  updatedAt?: string;
-};
-
 type TerritoryPayload = {
   name: string;
   active?: boolean;

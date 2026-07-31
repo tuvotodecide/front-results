@@ -128,9 +128,8 @@ describe("Admin tenant estimate and insufficient balance modals", () => {
 
     expect(await screen.findByText("10 TVD")).toBeInTheDocument();
     expect(screen.getByText("20 TVD")).toBeInTheDocument();
-    expect(
-      screen.getByText("La wallet tiene capacidad estimada para esta elección."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("TVD requeridos")).toBeInTheDocument();
+    expect(screen.getByText("Saldo disponible")).toBeInTheDocument();
 
     const posts = fetchCalls.filter((call) =>
       call.url.endsWith("/tvd/me/estimated-capacity"),
@@ -145,7 +144,7 @@ describe("Admin tenant estimate and insufficient balance modals", () => {
     expect(body.availableTokens).toBeUndefined();
     expect(body.canPublish).toBeUndefined();
 
-    await user.click(screen.getByRole("button", { name: "Crear borrador" }));
+    await user.click(screen.getByRole("button", { name: "Crear votación" }));
     expect(onContinue).toHaveBeenCalledWith(capacityResponse);
   });
 
@@ -184,16 +183,16 @@ describe("Admin tenant estimate and insufficient balance modals", () => {
     );
     await user.click(screen.getByRole("button", { name: "Validar capacidad" }));
 
-    expect(
-      await screen.findByText(/El saldo actual no cubre la estimación/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("TVD requeridos")).toBeInTheDocument();
+    expect(screen.getByText("Saldo disponible")).toBeInTheDocument();
+    expect(screen.getByText("Faltante")).toBeInTheDocument();
     expect(screen.getByText("30 TVD")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Ir a recarga operativa" }));
+    await user.click(screen.getByRole("button", { name: "Recargar tokens" }));
     expect(onRecharge).toHaveBeenCalledWith(insufficientCapacityResponse);
 
     await user.click(
-      screen.getByRole("button", { name: "Crear borrador de todos modos" }),
+      screen.getByRole("button", { name: "Crear borrador" }),
     );
     expect(onContinue).toHaveBeenCalledWith(insufficientCapacityResponse);
   });
@@ -230,7 +229,7 @@ describe("Admin tenant estimate and insufficient balance modals", () => {
     await user.click(screen.getByRole("button", { name: "Validar capacidad" }));
 
     await waitFor(() => {
-      expect(screen.getByText("La wallet tiene capacidad estimada para esta elección.")).toBeInTheDocument();
+      expect(screen.getByText("TVD requeridos")).toBeInTheDocument();
     });
   });
 
@@ -266,7 +265,7 @@ describe("Admin tenant estimate and insufficient balance modals", () => {
 
     resolveCapacity(jsonResponse(capacityResponse));
     expect(
-      await screen.findByText("La wallet tiene capacidad estimada para esta elección."),
+      await screen.findByText("TVD requeridos"),
     ).toBeInTheDocument();
   });
 
@@ -306,7 +305,7 @@ describe("Admin tenant estimate and insufficient balance modals", () => {
     resolveFirstCapacity(jsonResponse(capacityResponse));
     await waitFor(() => {
       expect(
-        screen.queryByText("La wallet tiene capacidad estimada para esta elección."),
+        screen.queryByText("TVD requeridos"),
       ).not.toBeInTheDocument();
     });
 
@@ -315,7 +314,7 @@ describe("Admin tenant estimate and insufficient balance modals", () => {
     );
 
     expect(
-      await screen.findByText(/El saldo actual no cubre la estimación/i),
+      await screen.findByText("Faltante"),
     ).toBeInTheDocument();
     expect(screen.getByText("50")).toBeInTheDocument();
   });

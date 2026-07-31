@@ -8,8 +8,9 @@ import { renderWithAuthStore } from "../utils/renderWithStore";
 
 const activeWallet = "0x1234567890abcdef1234567890abcdef12345678" as const;
 const secondWallet = "0x2222222222222222222222222222222222222222" as const;
-const activeWalletDisplay = "0x123456...345678" as const;
-const secondWalletDisplay = "0x222222...222222" as const;
+const walletDisplay = (wallet: string) => `${wallet.slice(0, 8)}...${wallet.slice(-6)}`;
+const activeWalletDisplay = walletDisplay(activeWallet);
+const secondWalletDisplay = walletDisplay(secondWallet);
 const PERSON_NOT_REGISTERED_MESSAGE =
   "La persona no está registrada en Tu Voto Decide.";
 const ALREADY_ADMIN_MESSAGE = "Esta persona ya tiene una cuenta en la institución.";
@@ -599,7 +600,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     renderWithAuthStore(<InstitutionalAccountPage />, tenantAuth());
 
     await user.click((await screen.findAllByRole("button", { name: /Añadir administrador/i }))[0]);
-    let dialog = screen.getByRole("dialog", { name: "Invitar administrador" });
+    const dialog = screen.getByRole("dialog", { name: "Invitar administrador" });
     await user.type(within(dialog).getByLabelText("CI/DNI"), "0000000");
     expect(
       await within(dialog).findByText(PERSON_NOT_REGISTERED_MESSAGE),

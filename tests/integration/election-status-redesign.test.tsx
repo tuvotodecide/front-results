@@ -18,7 +18,7 @@ describe("Election status redesign", () => {
 
     expect(screen.getByRole("heading", { name: "Elección de Diputados" })).toBeInTheDocument();
     expect(screen.getAllByText("Resultados oficiales publicados").length).toBeGreaterThan(0);
-    expect(screen.getByText(/La votacion finalizo/i)).toBeInTheDocument();
+    expect(screen.getByText(/La votación finalizó/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /Copiar enlace publico/i }));
 
@@ -94,9 +94,7 @@ describe("Election status redesign", () => {
     expect(
       await screen.findByText("No hay resultados oficiales para mostrar."),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Abrir resultados públicos" }),
-    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Abrir resultados públicos" })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("tab", { name: "Papeleta" }));
     const ballot = screen.getByRole("heading", { name: "Papeleta y opciones" }).closest("section");

@@ -70,6 +70,26 @@ vi.mock("@/store/votingEvents", () => ({
   useUpdateEventScheduleMutation: vi.fn(),
 }));
 
+vi.mock("@/store/contracts/contractsEndpoints", () => ({
+  useGetHistoryContractsQuery: () => ({
+    data: { data: [], total: 0 },
+    isLoading: false,
+    isFetching: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
+}));
+
+vi.mock("@/store/history/historyEndpoints", () => ({
+  useListHistoryOperationsQuery: () => ({
+    data: { data: [], total: 0 },
+    isLoading: false,
+    isFetching: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
+}));
+
 describe("participation analytics flow", () => {
   const downloadReport = vi.fn();
   const baseVotingEvent = {
@@ -181,7 +201,8 @@ describe("participation analytics flow", () => {
       tenantId: "tenant-1",
     });
 
-    await userEvent.click(screen.getByRole("button", { name: "Analíticas" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Mas" }));
+    await userEvent.click(screen.getByRole("button", { name: /Analiticas/i }));
 
     await waitFor(() => {
       expect(votingEvents.useGetParticipationAnalyticsQuery).toHaveBeenCalledWith(
@@ -191,10 +212,12 @@ describe("participation analytics flow", () => {
     });
     expect(screen.getAllByText("Elección de Diputados").length).toBeGreaterThan(0);
     expect(screen.getByText("Habilitados")).toBeInTheDocument();
-    expect(screen.getByText("70%")).toBeInTheDocument();
-    expect(screen.getAllByText("Pendientes").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("70%").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Ausentismo").length).toBeGreaterThanOrEqual(1);
 
     await userEvent.click(screen.getByRole("button", { name: "Descargar reporte" }));
+    expect(await screen.findByTestId("participation-analytics-capture")).toBeInTheDocument();
+    await userEvent.click(screen.getAllByRole("button", { name: "Descargar reporte" }).at(-1)!);
 
     await waitFor(() => {
       expect(captureElementAsPng).toHaveBeenCalledWith(
@@ -232,7 +255,7 @@ describe("participation analytics flow", () => {
       },
     });
 
-    expect(screen.getByRole("button", { name: "Analíticas" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Mas" })).toBeInTheDocument();
   });
 
   it("oculta Analíticas para contexto tenant de otra institución", () => {
@@ -276,7 +299,7 @@ describe("participation analytics flow", () => {
       tenantId: "tenant-1",
     });
 
-    expect(screen.getByRole("button", { name: "Analíticas" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Mas" })).toBeInTheDocument();
   });
 
   it("muestra error controlado si falla analytics dentro del modal", async () => {
@@ -294,9 +317,10 @@ describe("participation analytics flow", () => {
       tenantId: "tenant-1",
     });
 
-    await userEvent.click(screen.getByRole("button", { name: "Analíticas" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Mas" }));
+    await userEvent.click(screen.getByRole("button", { name: /Analiticas/i }));
 
-    expect(screen.getByText("No autorizado")).toBeInTheDocument();
+    expect(screen.getByText("No se pudieron cargar las estadisticas.")).toBeInTheDocument();
   });
 
   it("muestra fecha de publicación cuando backend reporta resultados publicados", async () => {
@@ -323,11 +347,12 @@ describe("participation analytics flow", () => {
       tenantId: "tenant-1",
     });
 
-    await userEvent.click(screen.getByRole("button", { name: "Analíticas" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Mas" }));
+    await userEvent.click(screen.getByRole("button", { name: /Analiticas/i }));
 
     expect(screen.getByText("Resultados publicados")).toBeInTheDocument();
-    expect(screen.getByText("Fecha publicación")).toBeInTheDocument();
-    expect(screen.getAllByText("No participaron").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText("Fecha publicacion")).toBeInTheDocument();
+    expect(screen.getAllByText("Ausentes").length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText("Pendientes")).not.toBeInTheDocument();
   });
 
@@ -355,9 +380,10 @@ describe("participation analytics flow", () => {
       tenantId: "tenant-1",
     });
 
-    await userEvent.click(screen.getByRole("button", { name: "Analíticas" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Mas" }));
+    await userEvent.click(screen.getByRole("button", { name: /Analiticas/i }));
 
-    expect(screen.getAllByText("No participaron").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("Ausentes").length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText("Pendientes")).not.toBeInTheDocument();
   });
 });

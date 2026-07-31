@@ -403,7 +403,13 @@ export default function AccessApprovalsPage() {
                   onClick: () =>
                     runAction(
                       actionFeedbackForResult,
-                      () => retryInstitutionalAuthorization(selected.id).unwrap(),
+                      () => {
+                        if (!selected) {
+                          return Promise.reject(new Error("No se encontró la solicitud seleccionada."));
+                        }
+
+                        return retryInstitutionalAuthorization(selected.id).unwrap();
+                      },
                     ),
                 },
               ]

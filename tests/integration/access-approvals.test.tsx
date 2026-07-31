@@ -12,6 +12,7 @@ const accessApprovalsMocks = vi.hoisted(() => ({
   reject: vi.fn(),
   revoke: vi.fn(),
   reopen: vi.fn(),
+  retry: vi.fn(),
   isError: false,
   approveIsLoading: false,
 }));
@@ -28,7 +29,9 @@ vi.mock("@/store/accessApprovals", () => {
     useGetInstitutionalApplicationsQuery: () => ({
       data: accessApprovalsMocks.applications,
       isLoading: accessApprovalsMocks.isLoading,
+      isFetching: false,
       isError: accessApprovalsMocks.isError,
+      refetch: vi.fn(),
     }),
     useGetInstitutionalApplicationQuery: (
       applicationId: string,
@@ -36,7 +39,9 @@ vi.mock("@/store/accessApprovals", () => {
     ) => ({
       data: options?.skip ? undefined : accessApprovalsMocks.details[applicationId],
       isLoading: false,
+      isFetching: false,
       isError: false,
+      refetch: vi.fn(),
     }),
     useApproveInstitutionalApplicationMutation: () =>
       mutation(accessApprovalsMocks.approve),
@@ -46,6 +51,7 @@ vi.mock("@/store/accessApprovals", () => {
       mutation(accessApprovalsMocks.revoke),
     useReopenInstitutionalApplicationMutation: () =>
       mutation(accessApprovalsMocks.reopen),
+    useRetryInstitutionalAuthorizationMutation: () => mutation(accessApprovalsMocks.retry),
   };
 });
 
@@ -82,6 +88,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     accessApprovalsMocks.reject.mockReset().mockResolvedValue(undefined);
     accessApprovalsMocks.revoke.mockReset().mockResolvedValue(undefined);
     accessApprovalsMocks.reopen.mockReset().mockResolvedValue(undefined);
+    accessApprovalsMocks.retry.mockReset().mockResolvedValue(undefined);
   });
 
   it("D-REQ-001 / D-REQ-002 / D-LIST-002 | lists pending applications with tab counts and searchable visible data", async () => {
@@ -144,9 +151,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     await waitFor(() => {
       expect(accessApprovalsMocks.approve).toHaveBeenCalledWith("app-pending");
     });
-    expect(
-      screen.getByText("La solicitud quedó pendiente de autorización desde tu teléfono."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("La operación fue procesada.")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Rechazar registro" }));
 

@@ -325,9 +325,8 @@ describe("Superadmin wallet lookup", () => {
     );
     await user.click(screen.getByRole("button", { name: /Consultar/i }));
 
-    const alert = await screen.findByText(
-      "No tienes permisos para consultar wallets globalmente.",
-    );
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(/no tienes permisos para consultar wallets globalmente/i);
     expect(alert).toBeInTheDocument();
     expect(within(alert.closest("div") ?? document.body).queryByText(/stack/i)).not.toBeInTheDocument();
   });

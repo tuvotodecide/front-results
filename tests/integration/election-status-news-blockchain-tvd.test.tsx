@@ -48,12 +48,10 @@ describe("Election status news, blockchain and TVD usage", () => {
     const user = await openMoreOption("Verificacion blockchain");
 
     expect(screen.getByRole("heading", { name: "Integridad verificable" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Contrato inteligente publico" })).toBeInTheDocument();
-    expect(screen.getByText(/Manual rapido en BaseScan/i)).toBeInTheDocument();
-    expect(screen.getByText(/Contract > Read Contract/i)).toBeInTheDocument();
-    expect(screen.getByText("getVoteInfo").tagName).toBe("STRONG");
-    expect(screen.getByText("getVoteResults").tagName).toBe("STRONG");
-    expect(screen.getByRole("link", { name: "Ver contrato inteligente" })).toHaveAttribute(
+    expect(screen.getByRole("heading", { name: "Registro de la votación" })).toBeInTheDocument();
+    expect(screen.getByText("Contrato identificado")).toBeInTheDocument();
+    expect(screen.getByText("Elección registrada")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ver en BaseScan" })).toHaveAttribute(
       "href",
       "https://basescan.org/address/0xcontract",
     );
@@ -87,12 +85,9 @@ describe("Election status news, blockchain and TVD usage", () => {
     const user = await openMoreOption("Uso $TVD");
 
     expect(screen.getByText("500 $TVD")).toBeInTheDocument();
-    expect(screen.getByText("500 Bs")).toBeInTheDocument();
     expect(screen.getByText("320 $TVD")).toBeInTheDocument();
-    expect(screen.getByText("320 Bs")).toBeInTheDocument();
     expect(screen.getByText("180 $TVD")).toBeInTheDocument();
-    expect(screen.getByText("180 Bs")).toBeInTheDocument();
-    expect(screen.getByText("Liquidada")).toBeInTheDocument();
+    expect(screen.getByText("Liquidación completada")).toBeInTheDocument();
 
     const operationsButton = screen.getByRole("button", { name: /Operaciones asociadas/i });
     expect(operationsButton).not.toHaveTextContent("+");
@@ -107,11 +102,11 @@ describe("Election status news, blockchain and TVD usage", () => {
     expect(screen.queryByRole("button", { name: "C" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "E" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Copiar txHash Reserva/i })).toHaveTextContent("Copiar");
-    expect(screen.getByRole("link", { name: /Abrir explorer Reserva/i })).toHaveTextContent("Explorer");
+    expect(screen.getByRole("link", { name: /Abrir Reserva en BaseScan/i })).toHaveTextContent("BaseScan");
 
     await user.click(screen.getByRole("button", { name: /Copiar txHash Reserva/i }));
     expect(screen.getByText("txHash copiado.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Abrir explorer Reserva/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /Abrir Reserva en BaseScan/i })).toHaveAttribute(
       "href",
       "https://basescan.org/tx/0xreserve1234567890abcdef",
     );

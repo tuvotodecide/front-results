@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ReactElement } from "react";
 import { vi } from "vitest";
 import SuperadminHomePage from "@/domains/superadmin/screens/SuperadminHomePage";
 import InstitutionalRecoveryPublicPage from "@/domains/auth-votacion/screens/InstitutionalRecoveryPublicPage";
@@ -12,6 +13,133 @@ import TvdWalletLookupPage from "@/domains/superadmin/screens/TvdWalletLookupPag
 import { mockAssignmentTxHash } from "@/domains/superadmin/data/superadminTvd.mock";
 import * as clipboardService from "@/domains/superadmin/services/clipboard";
 import { renderWithAuthStore } from "../utils/renderWithStore";
+
+vi.mock("@/domains/superadmin/hooks/useSuperadminTvdReadModel", () => ({
+  useTvdContractsReadModel: () => ({
+    data: tvdContractReadModel,
+    isLoading: false,
+    error: null,
+    retry: vi.fn(),
+  }),
+  useTvdParametersReadModel: () => ({
+    data: tvdParametersReadModel,
+    isLoading: false,
+    error: null,
+    retry: vi.fn(),
+  }),
+}));
+
+vi.mock("@/store/tvd", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/store/tvd")>();
+  const operations = Array.from({ length: 8 }, (_, index) => ({
+    id: `operation-${index + 1}`,
+    tenantId: index < 3 ? "tse" : "other",
+    institutionName: index < 3 ? "Tribunal Supremo Electoral" : "Municipio de La Paz",
+    operationType: index === 0 ? "VOTE_CONSUMPTION" : "MANUAL_ASSIGNMENT",
+    operationLabel: index === 0 ? "Consumo por voto" : "Asignación manual",
+    economicDirection: index === 0 ? "OUT" : "IN",
+    status: "CONFIRMED",
+    statusLabel: "Confirmada",
+    amount: index === 0 ? "1" : "100",
+    amountSmallestUnit: "1",
+    txHash: index === 0 ? "0xjkl4567890abcdef4" : `0xoperation${index}abcdef`,
+    date: index === 0 ? "2026-06-26T12:00:00.000Z" : "2026-06-25T12:00:00.000Z",
+    explorerUrl: `https://basescan.org/tx/${index}`,
+    source: "HISTORY",
+  }));
+  const filteredOperations = (filters: { tenantId?: string; operationType?: string; dateFrom?: string }) => {
+    if (filters.tenantId === "tse") return operations.slice(0, 3);
+    if (filters.operationType === "VOTE_CONSUMPTION" || filters.dateFrom) return operations.slice(0, 1);
+    return operations;
+  };
+  return {
+    ...actual,
+    allInstitutionsOptionLabel: "Todas las instituciones",
+    tvdAdminOperationTypes: ["MANUAL_ASSIGNMENT", "QR_RECHARGE", "VOTE_CONSUMPTION"],
+    tvdAdminOperationLabels: {
+      MANUAL_ASSIGNMENT: "Asignación manual",
+      QR_RECHARGE: "Recarga mediante QR",
+      VOTE_CONSUMPTION: "Consumo por voto",
+    },
+    tvdAdminOperationStatuses: ["PENDING", "PROCESSING", "CONFIRMED"],
+    tvdAdminOperationStatusLabels: { PENDING: "Pendiente", PROCESSING: "En proceso", CONFIRMED: "Confirmada" },
+    useListTvdAdminInstitutionsQuery: () => ({
+      data: { items: [{ tenantId: "tse", name: "Tribunal Supremo Electoral" }] },
+      isLoading: false,
+      isError: false,
+    }),
+    useListTvdAdminOperationsQuery: (filters: { tenantId?: string; operationType?: string; dateFrom?: string }) => {
+      const items = filteredOperations(filters);
+      return {
+        data: { items, total: 8, hasNextPage: false, summary: { totalOperations: items.length, totalAssigned: filters.tenantId === "tse" ? "300" : "700", totalConsumed: "1" } },
+        isLoading: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      };
+    },
+    useGetCurrentTvdExchangeRateQuery: () => ({ data: { bobPerToken: "1" }, error: null, isFetching: false, refetch: vi.fn() }),
+    useCreateTvdExchangeRateMutation: () => [vi.fn(), { isLoading: false }],
+  };
+});
+
+const recoveryRequests = [
+  {
+    requestId: "pending-request",
+    requestType: "ADMIN_EMAIL_CHANGE",
+    tenantId: "tse",
+    institutionName: "Tribunal Supremo Electoral",
+    fullName: "Ana Gómez",
+    phoneNumber: null,
+    newEmail: "ana.gomez@tse.gob.bo",
+    supervisorPhoneNumber: null,
+    status: "PENDING",
+    requestedAt: "2026-07-23T12:00:00.000Z",
+    resolvedAt: null,
+  },
+  {
+    requestId: "approved-request",
+    requestType: "ADMIN_EMAIL_CHANGE",
+    tenantId: "lapaz",
+    institutionName: "Municipio de La Paz",
+    fullName: "María Pérez",
+    phoneNumber: null,
+    newEmail: "maria@lapaz.bo",
+    supervisorPhoneNumber: null,
+    status: "APPROVED",
+    requestedAt: "2026-07-22T12:00:00.000Z",
+    resolvedAt: "2026-07-23T12:00:00.000Z",
+  },
+];
+
+vi.mock("@/store/institutionalRecovery", () => ({
+  useListInstitutionalRecoveryRequestsQuery: (query?: { status?: string }) => ({
+    data: { data: query?.status ? recoveryRequests.filter((request) => request.status === query.status) : recoveryRequests, total: query?.status ? 1 : recoveryRequests.length },
+    isLoading: false,
+    isFetching: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn().mockResolvedValue(undefined),
+  }),
+  useGetInstitutionalRecoveryRequestQuery: (requestId: string) => ({
+    data: requestId ? { ...recoveryRequests.find((request) => request.requestId === requestId), candidateUserId: "user-1", candidateAssignmentId: "assignment-1", currentEmail: "old@tse.gob.bo", accountAddress: null, institutionalRole: "TENANT_ADMIN", warnings: [], resolutionReason: null } : undefined,
+    isFetching: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
+  useApproveInstitutionalRecoveryRequestMutation: () => [vi.fn(() => ({ unwrap: () => Promise.resolve({}) })), { isLoading: false }],
+  useApproveAdminEmailChangeRequestMutation: () => [vi.fn(() => ({ unwrap: () => Promise.resolve({}) })), { isLoading: false }],
+  useRejectInstitutionalRecoveryRequestMutation: () => [vi.fn(() => ({ unwrap: () => Promise.resolve({}) })), { isLoading: false }],
+  useCreateInstitutionalRecoveryRequestMutation: () => [vi.fn(() => ({ unwrap: () => Promise.resolve({ requestId: "new-request", status: "PENDING", requestedAt: "2026-07-23T12:00:00.000Z" }) })), { isLoading: false }],
+}));
+
+vi.mock("@/store/institutionalTenants", () => ({
+  useLazyListPublicInstitutionalTenantsQuery: () => [
+    vi.fn(() => ({ unwrap: () => Promise.resolve({ items: [{ institutionId: "507f1f77bcf86cd799439011", institutionName: "Tribunal Supremo Electoral" }] }) })),
+  ],
+}));
 
 const tvdContractReadModel = {
   status: "available",
@@ -82,6 +210,20 @@ const tvdContractReadModel = {
   updatedAt: "2026-07-23T12:30:00.000Z",
   issues: [],
 };
+
+const renderAsSuperadmin = (ui: ReactElement) =>
+  renderWithAuthStore(ui, {
+    token: "superadmin-token",
+    role: "SUPERADMIN",
+    active: true,
+    user: {
+      id: "superadmin-1",
+      email: "superadmin@test.dev",
+      name: "Superadmin",
+      role: "SUPERADMIN",
+      active: true,
+    },
+  });
 
 const tvdParametersReadModel = {
   status: "available",
@@ -185,55 +327,37 @@ describe("pantallas Superadmin", () => {
   });
 
   it("renderiza contrato $TVD con red, txHash, firmantes y fondos", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ success: true, data: tvdContractReadModel }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-      ),
-    );
-    render(<TvdContractPage />);
+    renderAsSuperadmin(<TvdContractPage />);
 
     expect(await screen.findByText(/Base Sepolia/)).toBeInTheDocument();
     expect(screen.getByText("0x1234...5678")).toBeInTheDocument();
     expect(screen.getByText("0xaaaa...aaaa")).toBeInTheDocument();
-    expect(screen.getByText("Firmante 1")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Contrato multisig" })).toBeInTheDocument();
     expect(screen.getByText("Tesorería multisig")).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /Ver en BaseScan/i }).length).toBeGreaterThan(1);
   });
 
   it("abre y cierra modal informativo de parámetros económicos", async () => {
     const user = userEvent.setup();
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(
-        new Response(JSON.stringify(tvdParametersReadModel), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-      ),
-    );
-    render(<TvdParametersPage />);
+    renderAsSuperadmin(<TvdParametersPage />);
 
-    expect(screen.getByText("Consumo por voto válido")).toBeInTheDocument();
+    expect(await screen.findByText("Consumo por voto válido")).toBeInTheDocument();
     expect(screen.getByText("Porcentaje de quema")).toBeInTheDocument();
     expect(screen.getByText("Recompensa por voto válido")).toBeInTheDocument();
 
-    await user.click(await screen.findAllByRole("button", { name: /Ver detalle/i }).then((items) => items[0]));
+    await user.click(screen.getAllByRole("button", { name: "Editar" })[0]);
 
     expect(
       screen.getByRole("dialog", {
-        name: /Editar parámetro desde contrato inteligente/i,
+        name: "Consumo por voto válido",
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Este parámetro no se edita directamente desde el panel/i),
+      screen.getByText(/Este cambio se realiza desde el contrato/i),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Abrir en blockchain/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Abrir en blockchain/i })).toBeInTheDocument();
 
-    await user.click(screen.getAllByRole("button", { name: /^Cerrar$/i })[1]);
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
@@ -293,47 +417,47 @@ describe("pantallas Superadmin", () => {
 
   it("filtra operaciones $TVD y muestra resumen por institución", async () => {
     const user = userEvent.setup();
-    render(<TvdOperationsPage />);
+    renderAsSuperadmin(<TvdOperationsPage />);
 
     expect(screen.getByRole("heading", { name: "Operaciones $TVD" })).toBeInTheDocument();
-    expect(screen.getAllByText("Mostrando 8 de 8 operaciones").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("txHash").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/8 operaciones de 8/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Tx Hash").length).toBeGreaterThan(0);
 
     await user.selectOptions(
       screen.getAllByRole("combobox")[0],
       "Tribunal Supremo Electoral",
     );
 
-    expect(screen.getByText("Total operaciones")).toBeInTheDocument();
-    expect(screen.getByText("503 $TVD")).toBeInTheDocument();
+    expect(screen.getByText("Cantidad de operaciones")).toBeInTheDocument();
+    expect(screen.getByText("300 $TVD")).toBeInTheDocument();
     expect(screen.getAllByText("1 $TVD").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Mostrando 3 de 8 operaciones").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/3 operaciones de 8/).length).toBeGreaterThan(0);
     expect(
-      screen.getAllByRole("link", { name: /Comprobar en la web/i }).length,
+      screen.getAllByRole("link", { name: /Comprobar operación/i }).length,
     ).toBeGreaterThanOrEqual(3);
   });
 
   it("filtra operaciones por tipo y rango de fechas, y permite copiar txHash", async () => {
     const user = userEvent.setup();
-    render(<TvdOperationsPage />);
+    renderAsSuperadmin(<TvdOperationsPage />);
 
-    await user.selectOptions(screen.getAllByRole("combobox")[1], "Quema");
+    await user.selectOptions(screen.getAllByRole("combobox")[1], "VOTE_CONSUMPTION");
 
-    expect(screen.getAllByText("Quema").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Mostrando 1 de 8 operaciones").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Consumo por voto").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/1 operaciones de 8/).length).toBeGreaterThan(0);
 
-    await user.selectOptions(screen.getAllByRole("combobox")[1], "Todas");
+    await user.selectOptions(screen.getAllByRole("combobox")[1], "");
     await user.type(screen.getAllByPlaceholderText("dd/mm/aaaa")[0], "26/06/2026");
     await user.type(screen.getAllByPlaceholderText("dd/mm/aaaa")[1], "26/06/2026");
 
-    expect(screen.getAllByText("26 Jun 2026").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Mostrando 1 de 8 operaciones").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/26.*jun.*2026/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/1 operaciones de 8/).length).toBeGreaterThan(0);
 
     await user.click(screen.getAllByRole("button", { name: /Copiar/i })[0]);
 
     await waitFor(() => {
       expect(clipboardService.copyTextToClipboard).toHaveBeenCalledWith(
-        "0xjkl4567890...def4",
+        "0xjkl4567890abcdef4",
       );
     });
   });
@@ -387,7 +511,7 @@ describe("pantallas Superadmin", () => {
     });
 
     expect(
-      screen.getByText(/Ingresa una dirección de wallet para verificar/i),
+      screen.getByText(/Ingresa una dirección de wallet para consultar el detalle/i),
     ).toBeInTheDocument();
 
     await user.type(
@@ -396,9 +520,8 @@ describe("pantallas Superadmin", () => {
     );
     await user.click(screen.getByRole("button", { name: /Consultar/i }));
 
-    expect(await screen.findByText("Detalle de wallet")).toBeInTheDocument();
-    expect(screen.getAllByText("Wallet registrada y asociada").length).toBeGreaterThan(0);
-    expect(screen.getByText("Tribunal Supremo Electoral")).toBeInTheDocument();
+    expect(await screen.findByText("Detalle de billetera")).toBeInTheDocument();
+    expect(screen.getAllByText("Sí pertenece").length).toBeGreaterThan(0);
     expect(screen.queryByText("100 $TVD")).not.toBeInTheDocument();
   });
 
@@ -449,7 +572,7 @@ describe("pantallas Superadmin", () => {
       "0x1234567890abcdef1234567890abcdef12345678",
     );
     await user.click(screen.getByRole("button", { name: /Consultar/i }));
-    expect((await screen.findAllByText("Wallet no registrada")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("No pertenece")).length).toBeGreaterThan(0);
     await user.click(screen.getByRole("button", { name: /Copiar/i }));
 
     await waitFor(() => {
@@ -461,68 +584,66 @@ describe("pantallas Superadmin", () => {
 
   it("aprueba una solicitud de recuperación institucional y muestra toast", async () => {
     const user = userEvent.setup();
-    render(<InstitutionalRecoveryAdminPage />);
+    renderAsSuperadmin(<InstitutionalRecoveryAdminPage />);
 
     expect(
-      screen.getByRole("heading", { name: "Recuperación institucional" }),
+      screen.getByRole("heading", { name: "Cambio de correo institucional" }),
     ).toBeInTheDocument();
-    expect(screen.getAllByText("Nuevo administrador").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Ana Gómez").length).toBeGreaterThan(0);
 
     await user.click(screen.getAllByRole("button", { name: /Ver detalle/i })[0]);
     expect(
-      screen.getByRole("dialog", { name: /Detalle de solicitud/i }),
+      screen.getByRole("dialog", { name: /Detalle de cambio de correo/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getAllByText("Pérdida de acceso a wallet principal").length,
+      screen.getAllByText("old@tse.gob.bo").length,
     ).toBeGreaterThan(0);
 
     await user.type(
-      screen.getByPlaceholderText(/Indique las razones/i),
+      screen.getByPlaceholderText(/Indica una nota administrativa segura/i),
       "Identidad verificada localmente",
     );
-    await user.click(screen.getByRole("button", { name: /^Aprobar$/i }));
-    expect(screen.getByRole("dialog", { name: /¿Estás seguro\?/i })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Aprobar cambio/i }));
+    expect(screen.getByRole("dialog", { name: /¿Aprobar cambio de correo/i })).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /Sí, dar acceso/i }));
+    await user.click(screen.getAllByRole("button", { name: /Aprobar cambio/i })[1]);
 
     await waitFor(() => {
-      expect(screen.getByText("Cuenta restablecida")).toBeInTheDocument();
+      expect(screen.getByText("Operación completada")).toBeInTheDocument();
     });
-    expect(
-      screen.getByText("Se le envió un correo de confirmación"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Cambio de correo aprobado.")).toBeInTheDocument();
   });
 
   it("filtra recuperación institucional por estado, bloquea acciones no pendientes y permite rechazar pendientes", async () => {
     const user = userEvent.setup();
-    render(<InstitutionalRecoveryAdminPage />);
+    renderAsSuperadmin(<InstitutionalRecoveryAdminPage />);
 
     await user.selectOptions(screen.getByRole("combobox"), "Aprobada");
 
     expect(screen.getAllByText("Municipio de La Paz").length).toBeGreaterThan(0);
-    expect(screen.queryByText("Universidad Mayor de San Andrés")).not.toBeInTheDocument();
+    expect(screen.queryByText("Tribunal Supremo Electoral")).not.toBeInTheDocument();
 
     await user.click(screen.getAllByRole("button", { name: /Ver detalle/i })[0]);
-    expect(screen.getByRole("button", { name: /^Aprobar$/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /^Aprobar cambio$/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /^Rechazar$/i })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Cerrar" }));
 
-    await user.selectOptions(screen.getByRole("combobox"), "Todas");
-    await user.clear(screen.getByPlaceholderText("Buscar institución o correo"));
-    await user.type(screen.getByPlaceholderText("Buscar institución o correo"), "ana.gomez");
+    await user.selectOptions(screen.getByRole("combobox"), "ALL");
+    await user.clear(screen.getByPlaceholderText("Buscar institución, administrador o correo"));
+    await user.type(screen.getByPlaceholderText("Buscar institución, administrador o correo"), "ana.gomez");
 
     expect(screen.getAllByText("Tribunal Supremo Electoral").length).toBeGreaterThan(0);
     expect(screen.queryByText("Municipio de La Paz")).not.toBeInTheDocument();
 
     await user.click(screen.getAllByRole("button", { name: /Ver detalle/i })[0]);
     await user.type(
-      screen.getByPlaceholderText(/Indique las razones/i),
+      screen.getByPlaceholderText(/Indica una nota administrativa segura/i),
       "No se pudo verificar al solicitante",
     );
     await user.click(screen.getByRole("button", { name: /^Rechazar$/i }));
 
     await waitFor(() => {
-      expect(screen.queryByRole("dialog", { name: /Detalle de solicitud/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole("dialog", { name: /Detalle de cambio de correo/i })).not.toBeInTheDocument();
     });
     expect(screen.getAllByText("Rechazada").length).toBeGreaterThan(0);
   });
@@ -532,26 +653,20 @@ describe("pantallas Superadmin", () => {
     render(<InstitutionalRecoveryPublicPage />);
 
     expect(
-      screen.getByRole("heading", { name: "Recuperar acceso institucional" }),
+      screen.getByRole("heading", { name: "Actualizar correo institucional" }),
     ).toBeInTheDocument();
 
-    await user.selectOptions(
-      screen.getByLabelText(/Nombre de la institución/i),
-      "Tribunal Supremo Electoral",
-    );
+    await user.type(screen.getByLabelText("Institución"), "Tribunal");
+    await user.click(screen.getByRole("button", { name: "Buscar" }));
+    await user.click(await screen.findByRole("option", { name: "Tribunal Supremo Electoral" }));
     await user.type(screen.getByLabelText(/Nombre completo/i), "Ana Gómez");
-    await user.type(screen.getByLabelText(/Número de teléfono/i), "78945612");
-    await user.type(screen.getByLabelText(/Nuevo Correo/i), "ana.gomez@tse.gob.bo");
-    await user.type(
-      screen.getByLabelText(/inmediato superior/i),
-      "70000000",
-    );
+    await user.type(screen.getByLabelText(/Nuevo correo/i), "ana.gomez@tse.gob.bo");
     await user.click(screen.getByRole("button", { name: /Enviar solicitud/i }));
 
     expect(screen.getByRole("heading", { name: "Solicitud enviada" })).toBeInTheDocument();
     expect(screen.getByText("Tribunal Supremo Electoral")).toBeInTheDocument();
     expect(screen.getByText("ana.gomez@tse.gob.bo")).toBeInTheDocument();
-    expect(screen.getByText("Pendiente de revisión")).toBeInTheDocument();
+    expect(screen.getByText("Pendiente")).toBeInTheDocument();
   });
 
   it("valida campos obligatorios de recuperación institucional pública y conserva volver al login", async () => {
@@ -565,7 +680,7 @@ describe("pantallas Superadmin", () => {
 
     await user.click(screen.getByRole("button", { name: /Enviar solicitud/i }));
 
-    expect(screen.getAllByText("Este campo es obligatorio.")).toHaveLength(5);
+    expect(screen.getAllByRole("alert")).toHaveLength(3);
     expect(screen.queryByRole("heading", { name: "Solicitud enviada" })).not.toBeInTheDocument();
   });
 });

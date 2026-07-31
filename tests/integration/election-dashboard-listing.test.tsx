@@ -1,4 +1,4 @@
-import { cleanup, screen, waitFor } from "@testing-library/react";
+import { cleanup, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import ElectionsPage from "@/features/elections/ElectionsPage";
@@ -7,7 +7,6 @@ import { renderWithAuthStore } from "../utils/renderWithStore";
 
 const navigateMock = vi.fn();
 const refetchEventsMock = vi.fn();
-const deleteEventMock = vi.fn();
 
 vi.mock("@/domains/votacion/navigation/compat-private", () => ({
   useNavigate: () => navigateMock,
@@ -25,7 +24,6 @@ vi.mock("@/features/electionConfig/renderUtils", async () => {
 
 vi.mock("@/store/votingEvents", () => ({
   useGetVotingEventsQuery: vi.fn(),
-  useDeleteVotingEventMutation: vi.fn(),
   useDisableVotingEventMutation: vi.fn(),
 }));
 
@@ -99,10 +97,6 @@ const renderDashboard = (
     refetch: refetchEventsMock,
     ...overrides,
   } as any);
-  vi.mocked(votingEvents.useDeleteVotingEventMutation).mockReturnValue([
-    deleteEventMock,
-    { isLoading: false },
-  ] as any);
   vi.mocked(votingEvents.useDisableVotingEventMutation).mockReturnValue([
     vi.fn(),
     { isLoading: false },
@@ -211,24 +205,10 @@ describe("MX-04 | Creación y configuración de votaciones | Listado frontend", 
     expect(navigateMock).toHaveBeenCalledWith("/votacion/elecciones/evt-results/status");
   });
 
-  it("ELE-CANCL-P0-001 / ELE-CANCL-P1-002 confirma cancelación y conserva modal ante error", async () => {
-    const user = userEvent.setup();
-    const unwrap = vi.fn().mockResolvedValue({});
-    deleteEventMock.mockReturnValue({ unwrap });
+  it("ELE-CANCL-P0-001 / ELE-CANCL-P1-002 no inventa una acción de eliminación en el listado", () => {
     renderDashboard();
 
-    await user.click(screen.getAllByRole("button", { name: "Eliminar" })[0]!);
-    expect(screen.getByText(/¿Estás seguro de eliminar la votación/)).toBeInTheDocument();
-    await user.click(screen.getAllByRole("button", { name: "Eliminar" }).at(-1)!);
-
-    await waitFor(() => {
-      expect(deleteEventMock).toHaveBeenCalledWith("evt-draft");
-    });
-
-    deleteEventMock.mockReturnValue({ unwrap: vi.fn().mockRejectedValue(new Error("No elegible")) });
-    await user.click(screen.getAllByRole("button", { name: "Eliminar" })[0]!);
-    await user.click(screen.getAllByRole("button", { name: "Eliminar" }).at(-1)!);
-
-    expect(await screen.findByText(/¿Estás seguro de eliminar la votación/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Eliminar/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Cancelar/i })).not.toBeInTheDocument();
   });
 });

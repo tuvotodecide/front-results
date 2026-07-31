@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { vi } from "vitest";
@@ -85,30 +85,40 @@ describe("election creation and configuration P0 components", () => {
   }, 10000);
 
   it("ELE-TIM-P1-002 recalcula la fecha mínima al recuperar foco", async () => {
-    const dateNowSpy = vi
-      .spyOn(Date, "now")
-      .mockReturnValue(new Date("2026-04-17T12:00:00.000Z").getTime());
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-04-17T12:00:00.000Z"));
 
-    render(<CreateElectionWizard />);
+      render(<CreateElectionWizard />);
 
-    fireEvent.change(screen.getByLabelText("¿A qué institución pertenece?"), {
-      target: { value: "Eleccion normal" },
-    });
-    fireEvent.change(screen.getByLabelText("¿Cuál es el objetivo o descripción?"), {
-      target: { value: "Elegir representantes institucionales" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+      fireEvent.change(screen.getByLabelText("¿A qué institución pertenece?"), {
+        target: { value: "Eleccion normal" },
+      });
+      fireEvent.change(screen.getByLabelText("¿Cuál es el objetivo o descripción?"), {
+        target: { value: "Elegir representantes institucionales" },
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+      });
 
-    const startInput = await screen.findByLabelText("¿Cuándo abre la votación?");
-    expect(startInput).toHaveAttribute("min", expect.stringContaining("2026-04-17T20:00"));
+      const startInput = screen.getByLabelText("¿Cuándo abre la votación?");
+      const initialMinimum = new Date(Date.now() + 8 * 60 * 60 * 1000)
+        .toISOString()
+        .slice(0, 16);
+      expect(startInput).toHaveAttribute("min", initialMinimum);
 
-    dateNowSpy.mockReturnValue(new Date("2026-04-17T12:01:00.000Z").getTime());
-    window.dispatchEvent(new Event("focus"));
+      vi.setSystemTime(new Date("2026-04-17T12:01:00.000Z"));
+      fireEvent.focus(window);
 
-    await waitFor(() => {
-      expect(startInput).toHaveAttribute("min", expect.stringContaining("2026-04-17T20:01"));
-    });
-    dateNowSpy.mockRestore();
+      await vi.waitFor(() => {
+        const updatedMinimum = new Date(Date.now() + 8 * 60 * 60 * 1000)
+          .toISOString()
+          .slice(0, 16);
+        expect(startInput).toHaveAttribute("min", updatedMinimum);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("ELE-NEW-P0-003 / ELE-NEW-P0-006 conserva datos, confirma una creación y navega a cargos", async () => {

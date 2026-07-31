@@ -173,10 +173,8 @@ describe("participation check", () => {
       />,
     );
 
+    expect(screen.getByLabelText("CI")).toBeInTheDocument();
     expect(screen.getByRole("dialog", { name: "Verificar participación" })).toBeInTheDocument();
-    expect(
-      screen.getByText("Ingresa el CI para consultar si ya votó en esta elección."),
-    ).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("CI"), {
       target: { value: "1234567" },
@@ -238,19 +236,17 @@ describe("participation check", () => {
 
     render(<PublicElectionDetailPage />);
 
-    expect(await screen.findByText("Verificar participación")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Consultar mi estado" })).toBeInTheDocument();
     expect(screen.getByText("Horario de Votación")).toBeInTheDocument();
     expect(screen.getByText("Estado Actual")).toBeInTheDocument();
-    expect(
-      screen.getByText("Consulta si un CI ya votó en esta elección."),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /consulta si estás habilitado/i })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Verificar CI" }));
+    fireEvent.click(screen.getByRole("button", { name: "Consultar mi estado" }));
 
     expect(
-      screen.getByText("Ingresa el CI para consultar si ya votó en esta elección."),
+      screen.getByRole("dialog", { name: "Consulta tu estado en el Padrón" }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("CI")).toBeInTheDocument();
+    expect(screen.getByLabelText("Carnet de Identidad")).toBeInTheDocument();
   });
 
   it("renderiza la card en la vista pública heredada y abre el modal", async () => {
@@ -258,7 +254,9 @@ describe("participation check", () => {
 
     render(<LegacyPublicElectionDetailPage />);
 
-    expect(await screen.findByText("Verificar participación")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Verificar participación" }),
+    ).toBeInTheDocument();
     expect(screen.getByText("Horario de Votación")).toBeInTheDocument();
     expect(screen.getByText("Estado Actual")).toBeInTheDocument();
 

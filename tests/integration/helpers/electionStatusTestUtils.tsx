@@ -384,6 +384,75 @@ vi.mock("@/store/votingEvents", () => ({
   ],
 }));
 
+vi.mock("@/store/contracts/contractsEndpoints", () => ({
+  useGetHistoryContractsQuery: () => ({
+    data: { data: [], total: 0 },
+    isLoading: false,
+    isFetching: false,
+    isError: false,
+    refetch: statusMocks.refetch,
+  }),
+}));
+
+vi.mock("@/store/history/historyEndpoints", () => ({
+  useListHistoryOperationsQuery: () => ({
+    data: { data: [], total: 0 },
+    isLoading: false,
+    isFetching: false,
+    isError: false,
+    refetch: statusMocks.refetch,
+  }),
+}));
+
+vi.mock("@/features/electionConfig/data/useElectionTvdUsage", () => ({
+  useElectionTvdUsage: () => ({
+    isLoading: false,
+    error: null,
+    networkName: "Base Sepolia",
+    creditsContractAddress: "0xcontract",
+    creditsContractUrl: "https://basescan.org/address/0xcontract",
+    registrationVerified: true,
+    statusChecked: true,
+    publicationTxHash: "0xpublish1234567890abcdef",
+    publicationTxUrl: "https://basescan.org/tx/0xpublish1234567890abcdef",
+    fields: [
+      { label: "Saldo inicial de créditos", value: "500 $TVD" },
+      { label: "Créditos disponibles", value: "320 $TVD" },
+      { label: "TVD consumido", value: "180 $TVD" },
+      { label: "Liquidación completada", value: "Sí" },
+    ],
+    operations: [
+      {
+        id: "reserve",
+        type: "Reserva",
+        amount: "500 $TVD",
+        status: "Confirmada",
+        date: "30 jun 2026",
+        txHash: "0xreserve1234567890abcdef",
+        explorerUrl: "https://basescan.org/tx/0xreserve1234567890abcdef",
+      },
+      {
+        id: "consume",
+        type: "Consumo por voto",
+        amount: "180 $TVD",
+        status: "Confirmada",
+        date: "30 jun 2026",
+        txHash: null,
+        explorerUrl: null,
+      },
+      {
+        id: "settlement",
+        type: "Liquidacion",
+        amount: null,
+        status: "Confirmada",
+        date: "30 jun 2026",
+        txHash: null,
+        explorerUrl: null,
+      },
+    ],
+  }),
+}));
+
 import ActiveElectionStatusPage from "@/features/electionConfig/ActiveElectionStatusPage";
 
 export const resetStatusMocks = () => {

@@ -27,10 +27,34 @@ describe("MX-13 public results navigation and refresh", () => {
         images={[
           {
             _id: "ballot-1",
+            tableNumber: "1",
+            tableCode: "M-001",
+            electoralLocationId: "location-1",
+            location: {
+              department: "La Paz",
+              province: "Murillo",
+              municipality: "La Paz",
+              electoralSeat: "Asiento 1",
+              electoralLocationName: "Recinto 1",
+              district: "Distrito 1",
+              zone: "Zona 1",
+              circunscripcion: { number: 1, type: "UNINOMINAL", name: "Circunscripción 1" },
+            },
+            votes: {
+              parties: { validVotes: 0, nullVotes: 0, blankVotes: 0, partyVotes: [], totalVotes: 0 },
+              deputies: { validVotes: 0, nullVotes: 0, blankVotes: 0, partyVotes: [], totalVotes: 0 },
+            },
             version: 2,
             image: "ipfs://cid-acta",
             recordId: "record-1",
             ipfsUri: "ipfs://metadata-1",
+            ipfsCid: "cid-acta",
+            tableIdIpfs: "table-1",
+            status: "PROCESSED",
+            valuable: true,
+            createdAt: "2026-08-01T10:00:00.000Z",
+            updatedAt: "2026-08-01T10:00:00.000Z",
+            __v: 0,
           },
         ]}
         mostSupportedBallot={{
@@ -42,6 +66,17 @@ describe("MX-13 public results navigation and refresh", () => {
         attestationCases={[
           {
             ballotId: "ballot-1",
+            version: 2,
+            location: {
+              department: "La Paz",
+              province: "Murillo",
+              municipality: "La Paz",
+              electoralSeat: "Asiento 1",
+              electoralLocationName: "Recinto 1",
+              district: "Distrito 1",
+              zone: "Zona 1",
+              circunscripcion: { number: 1, type: "UNINOMINAL", name: "Circunscripción 1" },
+            },
             supports: { users: 3, juries: 1 },
           },
         ]}
