@@ -80,6 +80,20 @@ const approvalResultMessage = (status?: ApprovalStatus) => {
   return "La aprobación fue procesada. Se actualizó el estado de la solicitud.";
 };
 
+const getActionErrorMessage = (error: unknown) => {
+  const data = (error as { data?: unknown })?.data;
+  const message =
+    typeof data === "object" && data !== null && "message" in data
+      ? (data as { message?: unknown }).message
+      : undefined;
+
+  if (typeof message === "string" && message.trim()) return message;
+  if (Array.isArray(message) && message.every((item) => typeof item === "string")) {
+    return message.join(" ");
+  }
+  return "No se pudo completar la acción. Revisa el estado actual y vuelve a intentarlo.";
+};
+
 const isStaleProcessing = (row?: InstitutionalApplication | null) => {
   if (!row || !isProcessingStatus(row.status) || (!row.updatedAt && !row.createdAt)) {
     return false;
@@ -268,11 +282,16 @@ export default function AccessApprovalsPage() {
         kind: "success",
         message: typeof message === "function" ? message(result) : message,
       });
-    } catch {
+    } catch (error) {
       setFeedback({
         kind: "error",
-        message: "No se pudo completar la acción. Revisa el estado actual y vuelve a intentarlo.",
+        message: getActionErrorMessage(error),
       });
+    } finally {
+      await Promise.all([
+        institutional.refetch(),
+        selectedId && isDetailOpen ? institutionalDetail.refetch() : Promise.resolve(),
+      ]);
     }
   };
 
