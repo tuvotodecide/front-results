@@ -1,17 +1,14 @@
-import { act, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
-import ResultadosGeneralesPage from "@/domains/resultados/screens/ResultadosGeneralesPage";
 import AuditAndMatchPage from "@/domains/resultados/screens/AuditAndMatchPage";
 import PersonalParticipationPage from "@/domains/resultados/screens/PersonalParticipationPage";
 import {
   auditSummary,
-  countedTables,
   delegateActivity,
   delegateTableActivity,
   executiveSummary,
   mayorContract,
-  resultadosSummary,
 } from "../fixtures/admin/resultadosReports";
 
 const testHarness = vi.hoisted(() => {
@@ -50,9 +47,6 @@ const testHarness = vi.hoisted(() => {
     state,
     searchParams: new URLSearchParams("electionType=mayor"),
     navigate: vi.fn(),
-    getResultsByLocation: vi.fn(),
-    getLiveResultsByLocation: vi.fn(),
-    useCountedBallots: vi.fn(),
     useMyContract: vi.fn(),
     useElectionConfig: vi.fn(),
     useElectionId: vi.fn(),
@@ -82,7 +76,7 @@ vi.mock("@/domains/resultados/navigation/compat", () => ({
     search: `?${testHarness.searchParams.toString()}`,
     hash: "",
     state: null,
-    key: "resultados-test",
+    key: "mx-11-attestation-admin",
   }),
 }));
 
@@ -106,17 +100,8 @@ vi.mock("@/hooks/useAutoRefreshTick", () => ({
   default: () => 0,
 }));
 
-vi.mock("@/hooks/useCountedBallots", () => ({
-  useCountedBallots: (...args: any[]) => testHarness.useCountedBallots(...args),
-}));
-
 vi.mock("@/store/departments/departmentsEndpoints", () => ({
   useGetDepartmentsQuery: vi.fn(() => ({ data: [], isLoading: false })),
-}));
-
-vi.mock("@/store/resultados/resultadosEndpoints", () => ({
-  useLazyGetResultsByLocationQuery: () => [testHarness.getResultsByLocation],
-  useLazyGetLiveResultsByLocationQuery: () => [testHarness.getLiveResultsByLocation],
 }));
 
 vi.mock("@/store/personal/personalEndpoints", () => ({
@@ -136,21 +121,9 @@ vi.mock("@/store/reports/clientReportEndpoints", () => ({
     testHarness.useGetDelegateActivityQuery(...args),
 }));
 
-vi.mock("@/legacy-pages/Resultados/Graphs", () => ({
-  default: ({ data }: { data: Array<{ name: string; value: number }> }) => (
-    <div data-testid="results-graph">
-      {data.map((item) => (
-        <span key={item.name}>
-          {item.name}: {item.value}
-        </span>
-      ))}
-    </div>
-  ),
-}));
-
 vi.mock("@/legacy-pages/Resultados/StatisticsBars", () => ({
   default: ({ voteData }: { voteData: Array<{ name: string; value: number }> }) => (
-    <div data-testid="participation-bars">
+    <div data-testid="attestation-participation-bars">
       {voteData.map((item) => (
         <span key={item.name}>
           {item.name}: {item.value}
@@ -164,11 +137,7 @@ vi.mock("@/domains/resultados/components/Breadcrumb2", () => ({
   default: () => <nav>Inicio / Resultados</nav>,
 }));
 
-const resolvedPromise = (value: any) => ({
-  unwrap: vi.fn().mockResolvedValue(value),
-});
-
-describe("resultados, reportes y auditoria", () => {
+describe("MX-11 | Atestiguamiento, actas y evidencias | Frontend Admin", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useRealTimers();
@@ -186,13 +155,6 @@ describe("resultados, reportes y auditoria", () => {
       municipalityId: "mun-lp",
       electoralLocationId: "",
       electoralSeatId: "",
-    };
-    testHarness.state.results.filters = {
-      department: "La Paz",
-      province: "",
-      municipality: "La Paz",
-      electoralLocation: "",
-      electoralSeat: "",
     };
     testHarness.searchParams = new URLSearchParams("electionType=mayor");
     testHarness.useElectionId.mockReturnValue("election-2026");
@@ -227,18 +189,6 @@ describe("resultados, reportes y auditoria", () => {
       isError: false,
       isClient: true,
     });
-    testHarness.useCountedBallots.mockReturnValue({
-      tables: countedTables,
-      ballots: [],
-      total: 1,
-      page: 1,
-      totalPages: 1,
-      isLoading: false,
-      isError: false,
-      mode: "final",
-    });
-    testHarness.getResultsByLocation.mockReturnValue(resolvedPromise(resultadosSummary));
-    testHarness.getLiveResultsByLocation.mockReturnValue(resolvedPromise(resultadosSummary));
     testHarness.useGetConfigurationStatusQuery.mockReturnValue({
       data: { hasActiveConfig: true },
       isLoading: false,
@@ -265,29 +215,106 @@ describe("resultados, reportes y auditoria", () => {
     });
   });
 
-  it("[PUB-ACC-P0-001][PUB-TER-P0-001][PUB-SEC-P0-002] muestra bloqueo publico seguro cuando el territorio no esta permitido", async () => {
-    vi.useFakeTimers();
-    testHarness.state.auth.token = null as any;
-    testHarness.state.auth.user = null as any;
-    testHarness.usePublicResultsScope.mockReturnValue({
-      isPublic: true,
-      isLoading: false,
-      hasContracts: true,
-      isScopeValid: false,
-      reason: "No hay resultados públicos disponibles para este municipio.",
-    });
+  it("[ADM-AUD-P1-005][ADM-IMG-P1-001][TRA-P1-004] muestra auditoria comparada, imagen de acta y fechas operativas sin corregir resultados", async () => {
+    const user = userEvent.setup();
 
-    render(<ResultadosGeneralesPage />);
+    render(<AuditAndMatchPage />);
 
-    await act(async () => {
-      vi.advanceTimersByTime(450);
-      await Promise.resolve();
-    });
+    expect(screen.getByText("Auditoría vs Resultados TSE")).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeInTheDocument();
+    expect(screen.getAllByText("1")).toHaveLength(3);
 
-    expect(testHarness.getResultsByLocation).not.toHaveBeenCalled();
-    expect(
-      screen.getByText("No hay resultados públicos disponibles para este municipio."),
-    ).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", {
+        name: /ver reporte detallado por hoja de trabajo/i,
+      }),
+    );
+
+    expect(screen.getByText("Unidad Educativa Central")).toBeInTheDocument();
+    expect(screen.getByText("Ana Auditora")).toBeInTheDocument();
+    expect(screen.getByText("No coincide")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /ver hoja de trabajo/i })).toHaveAttribute(
+      "href",
+      "/resultados/imagen/ballot-1",
+    );
+    expect(screen.queryByRole("button", { name: /aprobar|corregir|rechazar/i })).toBeNull();
   });
 
+  it("[ADM-CAS-P1-003][ADM-MES-P1-002] muestra estados de casos y versiones por mesa sin convertir la consulta en resultados oficiales", () => {
+    testHarness.useGetAuditoriaTSEQuery.mockReturnValue({
+      data: { total: 0, observados: 0, sinObservaciones: 0, pendientes: 0, details: [] },
+      isLoading: false,
+    });
+    const { rerender } = render(<AuditAndMatchPage />);
+
+    expect(screen.getByText("Auditoría vs Resultados TSE")).toBeInTheDocument();
+    expect(screen.getByText("Ver reporte detallado por hoja de trabajo")).toBeInTheDocument();
+    expect(screen.queryByText(/ganador|porcentaje general|publicacion oficial/i)).toBeNull();
+
+    testHarness.useGetAuditoriaTSEQuery.mockReturnValue({
+      data: null,
+      isLoading: true,
+    });
+    rerender(<AuditAndMatchPage />);
+
+    expect(screen.getByText("Cargando auditoría vs TSE...")).toBeInTheDocument();
+  });
+
+  it("[ADM-REP-P1-004][SEC-DEL-P0-005][SEC-ACC-P0-001] muestra actividad de delegados por contrato y territorio con datos minimos", async () => {
+    const user = userEvent.setup();
+
+    render(<PersonalParticipationPage />);
+
+    expect(screen.getByText("Participación de Personal")).toBeInTheDocument();
+    expect(screen.getByText(/Alcaldía de La Paz/i)).toBeInTheDocument();
+    expect(screen.getByText("66.67%")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /ver reporte por mesa/i }));
+
+    expect(screen.getByText("Delegados que participaron (1 registros)")).toBeInTheDocument();
+    expect(screen.getByText("Ana Delegada")).toBeInTheDocument();
+    expect(screen.getByText("Delegados que NO participaron (1)")).toBeInTheDocument();
+    expect(screen.getByText("Luis Sin Voto")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /ver hoja de trabajo/i })).toHaveAttribute(
+      "href",
+      "/resultados/mesa/LP-001-01?electionId=election-2026&electionType=mayor",
+    );
+    expect(screen.queryByText(/directorio general|alta de delegado|retiro de delegado/i)).toBeNull();
+  });
+
+  it("[SEC-ACC-P0-001][SEC-DEL-P0-005] bloquea usuario sin alcance y muestra error seguro sin datos de contrato ajeno", () => {
+    testHarness.useMyContract.mockReturnValue({
+      status: "not_client",
+      hasContract: false,
+      contract: null,
+      elections: [],
+      isLoading: false,
+      isError: false,
+      isClient: false,
+    });
+    const { rerender } = render(<PersonalParticipationPage />);
+
+    expect(screen.getByText("Acceso restringido")).toBeInTheDocument();
+    expect(screen.queryByText("contract-other")).toBeNull();
+
+    testHarness.useMyContract.mockReturnValue({
+      status: "has_active",
+      hasContract: true,
+      contract: mayorContract,
+      elections: [],
+      isLoading: false,
+      isError: false,
+      isClient: true,
+    });
+    testHarness.useGetMyContractQuery.mockReturnValue({
+      data: null,
+      isLoading: false,
+      isError: true,
+    });
+
+    rerender(<PersonalParticipationPage />);
+
+    expect(screen.getByText("Error al cargar el reporte")).toBeInTheDocument();
+    expect(screen.queryByText(/token|authorization|x-api-key|dni/i)).toBeNull();
+  });
 });

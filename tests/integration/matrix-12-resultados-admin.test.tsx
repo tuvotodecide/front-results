@@ -265,16 +265,56 @@ describe("resultados, reportes y auditoria", () => {
     });
   });
 
-  it("[PUB-ACC-P0-001][PUB-TER-P0-001][PUB-SEC-P0-002] muestra bloqueo publico seguro cuando el territorio no esta permitido", async () => {
+  it("[RES-ACC-P0-001][RES-ACC-P0-002][RES-SUM-P0-001][RES-SUM-P0-003][RES-CAT-P0-001][RES-TER-P0-001][RES-FIL-P1-001] aplica filtros territoriales y renderiza resumen tablas y graficos administrativos", async () => {
     vi.useFakeTimers();
-    testHarness.state.auth.token = null as any;
-    testHarness.state.auth.user = null as any;
-    testHarness.usePublicResultsScope.mockReturnValue({
-      isPublic: true,
+
+    render(<ResultadosGeneralesPage />);
+
+    expect(screen.getByText("Resultados Generales")).toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(450);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(testHarness.getResultsByLocation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        electionId: "election-2026",
+        electionType: "municipal",
+        department: "dep-lp",
+        municipality: "mun-lp",
+      }),
+      true,
+    );
+    expect(screen.getAllByText("Partido Verde: 120")).toHaveLength(2);
+    expect(screen.getByText("Válidos: 190")).toBeInTheDocument();
+    expect(screen.getByText("Mesa 1")).toBeInTheDocument();
+  });
+
+  it("[RES-ACC-P1-003][RES-TER-P0-002][RES-SEC-P0-001][RES-SEC-P0-002] bloquea usuarios sin alcance territorial antes de consultar resultados", async () => {
+    vi.useFakeTimers();
+    testHarness.state.auth.user = {
+      id: "mayor-2",
+      role: "MAYOR",
+      departmentId: "",
+      municipalityId: "",
+    };
+    testHarness.state.results.filterIds = {
+      departmentId: "",
+      provinceId: "",
+      municipalityId: "",
+      electoralLocationId: "",
+      electoralSeatId: "",
+    };
+    testHarness.useMyContract.mockReturnValue({
+      status: "has_active",
+      hasContract: false,
+      contract: null,
+      elections: [],
       isLoading: false,
-      hasContracts: true,
-      isScopeValid: false,
-      reason: "No hay resultados públicos disponibles para este municipio.",
+      isError: false,
+      isClient: true,
     });
 
     render(<ResultadosGeneralesPage />);
@@ -285,9 +325,7 @@ describe("resultados, reportes y auditoria", () => {
     });
 
     expect(testHarness.getResultsByLocation).not.toHaveBeenCalled();
-    expect(
-      screen.getByText("No hay resultados públicos disponibles para este municipio."),
-    ).toBeInTheDocument();
+    expect(screen.getAllByText("Sin datos").length).toBeGreaterThan(0);
   });
 
 });

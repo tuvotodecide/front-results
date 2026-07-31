@@ -240,6 +240,106 @@
         "tests/unit/presential-kiosk-matrix.test.ts"
       ]
     },
+    "matrix_10": {
+      "name": "MX-10 | Administración territorial, contratos y delegados | Frontend Admin",
+      "flows": [
+        "MX-10",
+        "TER-LST",
+        "TER-JER",
+        "TER-NEW",
+        "TER-DEL",
+        "TER-CON",
+        "TER-ERR",
+        "CON-ACC",
+        "CON-LST",
+        "DEL-LST",
+        "PER-GOV",
+        "PER-MAY",
+        "PER-NOC",
+        "PER-REP",
+        "SEC-TEN",
+        "SEC-DAT",
+        "SEC-DEL",
+        "SEC-BLO",
+        "TRA-P1",
+        "ACC-ADM",
+        "ACC-REP"
+      ],
+      "files": [
+        "tests/unit/matrix-10-territorial-ui.test.ts"
+      ]
+    },
+    "matrix_11": {
+      "name": "MX-11 | Atestiguamiento, actas y evidencias | Frontend Admin",
+      "flows": [
+        "MX-11",
+        "ADM-IMG",
+        "ADM-MES",
+        "ADM-CAS",
+        "ADM-REP",
+        "ADM-AUD",
+        "SEC-ACC",
+        "SEC-DEL",
+        "TRA",
+        "ACC-ADM"
+      ],
+      "files": [
+        "tests/integration/matrix-11-attestation-admin.test.tsx"
+      ]
+    },
+    "matrix_12": {
+      "name": "MX-12 | Resultados administrativos y reportes | Frontend Admin",
+      "flows": [
+        "MX-12",
+        "RES-ACC",
+        "RES-SUM",
+        "RES-CAT",
+        "RES-TER",
+        "RES-MES",
+        "RES-ACT",
+        "RES-CAS",
+        "RES-FIL",
+        "RES-UPD",
+        "RES-REP",
+        "RES-CON",
+        "RES-SEC",
+        "RES-TRA",
+        "RES-UX"
+      ],
+      "files": [
+        "tests/integration/matrix-12-resultados-admin.test.tsx",
+        "tests/unit/matrix-12-admin-results-ui.test.ts"
+      ]
+    },
+    "matrix_13": {
+      "name": "MX-13 | Resultados públicos y landing de votaciones | Frontend Admin",
+      "flows": [
+        "MX-13",
+        "PUB-LND",
+        "PUB-LST",
+        "PUB-ACC",
+        "PUB-STA",
+        "PUB-INF",
+        "PUB-RES",
+        "PUB-CAT",
+        "PUB-TER",
+        "PUB-MES",
+        "PUB-ACT",
+        "PUB-CAS",
+        "PUB-FIL",
+        "PUB-UPD",
+        "PUB-CNS",
+        "PUB-SEC",
+        "PUB-UX"
+      ],
+      "files": [
+        "tests/unit/public-landing-repository.test.ts",
+        "tests/unit/past-elections-page.test.tsx",
+        "tests/integration/resultados-reports-audit.test.tsx",
+        "tests/unit/public-election-detail-repository.test.ts",
+        "tests/unit/public-results-navigation.test.tsx"
+      ]
+    },
     "active-election": {
       "name": "Active election status and ballot",
       "flows": [
@@ -263,10 +363,7 @@
         "BRS-F22"
       ],
       "files": [
-        "tests/integration/resultados-reports-audit.test.tsx",
-        "tests/integration/table-search-pagination.test.tsx",
-        "tests/unit/past-elections-page.test.tsx",
-        "tests/unit/public-landing-repository.test.ts"
+        "tests/integration/table-search-pagination.test.tsx"
       ]
     },
     "participation": {
@@ -383,8 +480,7 @@
         "FRONT-I",
         "BRS-F18"
       ],
-      "files": [
-      ],
+      "files": [],
       "manualFiles": [
         "cypress/legacy/votacion_privada_flujo_canonico.cy.ts"
       ]

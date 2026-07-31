@@ -7,7 +7,7 @@ describe("PublicLandingRepositoryApi.getPastElections", () => {
     vi.restoreAllMocks();
   });
 
-  it("includes active, upcoming and finished public elections", async () => {
+  it("[PUB-LST-P0-002][PUB-STA-P0-001] incluye elecciones activas proximas y finalizadas publicas", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => ({
@@ -60,7 +60,7 @@ describe("PublicLandingRepositoryApi.getPastElections", () => {
     ]);
   });
 
-  it("falls back to the mock repository when the API request fails", async () => {
+  it("[PUB-LND-P0-001][PUB-SEC-P0-001] muestra fallback controlado cuando falla la carga publica", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => {

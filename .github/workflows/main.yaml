@@ -120,6 +120,22 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm test:matrix:09
 
+      - name: MX-10 | Administración territorial, contratos y delegados | Frontend Admin
+        if: ${{ !cancelled() }}
+        run: pnpm test:matrix:10
+
+      - name: MX-11 | Atestiguamiento, actas y evidencias | Frontend Admin
+        if: ${{ !cancelled() }}
+        run: pnpm test:matrix:11
+
+      - name: MX-12 | Resultados administrativos y reportes | Frontend Admin
+        if: ${{ !cancelled() }}
+        run: pnpm test:matrix:12
+
+      - name: MX-13 | Resultados públicos y landing de votaciones | Frontend Admin
+        if: ${{ !cancelled() }}
+        run: pnpm test:matrix:13
+
       - name: Run module tests - Institutional applications residual outside MX-02
         if: ${{ !cancelled() }}
         run: pnpm test:module:applications

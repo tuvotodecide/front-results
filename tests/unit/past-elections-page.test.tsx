@@ -18,7 +18,7 @@ describe("PastElectionsPage", () => {
     vi.clearAllMocks();
   });
 
-  it("renders public elections from multiple statuses", () => {
+  it("[PUB-LST-P1-003][PUB-LST-P0-002] renderiza elecciones publicas por estado y busqueda", () => {
     usePastElectionsMock.mockReturnValue({
       elections: [
         {
@@ -60,9 +60,15 @@ describe("PastElectionsPage", () => {
     expect(screen.getByText("PRÓXIMA")).toBeInTheDocument();
     expect(screen.getByText("FINALIZADA")).toBeInTheDocument();
     expect(screen.getByText("3 elecciones encontradas")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Buscar elección"), {
+      target: { value: "activa" },
+    });
+    expect(screen.getByText("1 elecciones encontradas")).toBeInTheDocument();
+    expect(screen.queryByText("Elección finalizada")).not.toBeInTheDocument();
   });
 
-  it("navigates to the public detail when opening an election", () => {
+  it("[PUB-LST-P1-003][PUB-ACC-P0-001] abre detalle publico con click o teclado sin sesion", () => {
     usePastElectionsMock.mockReturnValue({
       elections: [
         {
