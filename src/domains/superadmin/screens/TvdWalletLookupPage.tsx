@@ -34,7 +34,8 @@ function WalletLookupResult({
     getTvdBlockchainReadConfig().explorerBaseUrl,
     result.accountAddress,
   );
-  const balanceAvailable = result.balance?.status === "AVAILABLE";
+  const balance = result.balance;
+  const balanceAvailable = balance?.status === "AVAILABLE";
 
   return (
     <article className="mt-5 mx-auto max-w-2xl overflow-hidden rounded-2xl border border-[#dfe6df] bg-white shadow-sm">
@@ -78,7 +79,7 @@ function WalletLookupResult({
           <p className="text-xs text-[#777]">Saldo</p>
           {balanceAvailable ? (
             <p className="font-semibold text-[#287c36]">
-              {result.balance.formatted} $TVD
+              {balance.formatted} $TVD
             </p>
           ) : (
             <button

@@ -23,10 +23,7 @@ import type { InstitutionalRecoveryDetail } from "@/store/institutionalRecovery"
 const validDraft = {
   institutionId: "64f1a7f4c5e8a8d0b9a12345",
   fullName: "Ana Gomez",
-  phoneNumber: "70000000",
   newEmail: " Admin.Nuevo@Institucion.BO ",
-  confirmNewEmail: "admin.nuevo@institucion.bo",
-  supervisorPhoneNumber: "71111111",
 };
 
 const detail: InstitutionalRecoveryDetail = {
@@ -58,16 +55,14 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(validation.payload).toEqual({
       institutionId: "64f1a7f4c5e8a8d0b9a12345",
       fullName: "Ana Gomez",
-      phoneNumber: "70000000",
       newEmail: "admin.nuevo@institucion.bo",
-      supervisorPhoneNumber: "71111111",
     });
     expect(normalizeRecoveryEmail("  Persona@Dominio.BO ")).toBe(
       "persona@dominio.bo",
     );
   });
 
-  it("D-MAIL-005 | rechaza campos vacios, correo invalido y confirmacion distinta", () => {
+  it("D-MAIL-005 | rechaza campos vacios y correo invalido", () => {
     const emptyValidation = validateInstitutionalRecoveryPublicDraft(
       initialInstitutionalRecoveryPublicDraft,
     );
@@ -78,21 +73,14 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(Object.keys(emptyValidation.errors)).toEqual([
       "institutionId",
       "fullName",
-      "phoneNumber",
       "newEmail",
-      "confirmNewEmail",
-      "supervisorPhoneNumber",
     ]);
 
     const invalidEmail = validateInstitutionalRecoveryPublicDraft({
       ...validDraft,
       newEmail: "correo-invalido",
-      confirmNewEmail: "otro@correo.bo",
     });
     expect(invalidEmail.errors.newEmail).toBe("Ingresa un correo válido.");
-    expect(invalidEmail.errors.confirmNewEmail).toBe(
-      "Los correos no coinciden.",
-    );
   });
 
   it("D-MAIL-009 / D-MAIL-010 / D-MAIL-011 | mapea estados y errores sin exponer codigos tecnicos", () => {
@@ -102,7 +90,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
       REJECTED: "Rechazada",
     });
     expect(getPublicRecoveryErrorMessage({ status: 409 })).toBe(
-      "No pudimos registrar la solicitud con esos datos o ya existe una solicitud pendiente.",
+      "No pudimos registrar la solicitud con esos datos.",
     );
     expect(getAdminRecoveryErrorMessage({ status: 409 })).toBe(
       "La solicitud ya fue resuelta o sus datos cambiaron. Actualiza el detalle.",

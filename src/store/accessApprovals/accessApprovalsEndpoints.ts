@@ -203,11 +203,22 @@ export const accessApprovalsApi = apiSlice.injectEndpoints({
         { type: "AccessApprovals", id: applicationId },
       ],
     }),
-    approveInstitutionalApplication: builder.mutation<void, string>({
+    approveInstitutionalApplication: builder.mutation<InstitutionalApplication, string>({
       query: (applicationId) => ({
         url: `/institutional-admin-applications/${applicationId}/approve`,
         method: "POST",
       }),
+      transformResponse: (response: any) =>
+        normalizeInstitutional(response?.data ?? response),
+      invalidatesTags: ["AccessApprovals"],
+    }),
+    retryInstitutionalAuthorization: builder.mutation<InstitutionalApplication, string>({
+      query: (applicationId) => ({
+        url: `/institutional-admin-applications/${applicationId}/retry-authorization`,
+        method: "POST",
+      }),
+      transformResponse: (response: any) =>
+        normalizeInstitutional(response?.data ?? response),
       invalidatesTags: ["AccessApprovals"],
     }),
     rejectInstitutionalApplication: builder.mutation<
@@ -301,6 +312,7 @@ export const {
   useGetPendingInstitutionalApplicationsQuery,
   useGetInstitutionalApplicationQuery,
   useApproveInstitutionalApplicationMutation,
+  useRetryInstitutionalAuthorizationMutation,
   useRejectInstitutionalApplicationMutation,
   useRevokeInstitutionalApplicationMutation,
   useReopenInstitutionalApplicationMutation,

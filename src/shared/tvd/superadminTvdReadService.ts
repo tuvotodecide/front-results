@@ -162,7 +162,7 @@ const emptyEconomicValue = (
 });
 
 const createTvdProvider = (config: ReturnType<typeof getTvdServerBlockchainConfig>) =>
-  new JsonRpcProvider(config.rpcUrl, config.chainId ?? undefined, {
+  new JsonRpcProvider(config.rpcUrl ?? undefined, config.chainId ?? undefined, {
     batchMaxCount: 1,
   });
 

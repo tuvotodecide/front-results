@@ -241,14 +241,6 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
 
     expect(await screen.findByText("Correo actual")).toBeInTheDocument();
     expect(screen.getByText("ana.actual@tse.bo")).toBeInTheDocument();
-    expect(screen.getByText("Usuario preservado")).toBeInTheDocument();
-    expect(screen.getByText("user-1")).toBeInTheDocument();
-    expect(screen.getByText("Assignment preservado")).toBeInTheDocument();
-    expect(screen.getByText("assignment-1")).toBeInTheDocument();
-    expect(screen.getByText("Wallet preservada")).toBeInTheDocument();
-    expect(screen.getByText("0x1234...345678")).toBeInTheDocument();
-    expect(screen.getByText("Rol preservado")).toBeInTheDocument();
-    expect(screen.getByText("TENANT_ADMIN")).toBeInTheDocument();
     expect(screen.queryByText(/resetToken/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/IDENTITY_API_KEY/i)).not.toBeInTheDocument();
 
@@ -299,9 +291,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
       "Aprobado por Superadmin",
     );
     expect(screen.queryByText(/nueva contraseña/i)).not.toBeInTheDocument();
-    expect(
-      screen.getByText(/seguirá usando su contraseña existente/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Cambio de correo institucional")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /Aprobar cambio/i }));
     const dialog = screen.getByRole("dialog", {
@@ -320,9 +310,8 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(captured.approveEmailChangeBodies[0]).not.toHaveProperty("targetAssignmentId");
     expect(captured.approveEmailChangeBodies[0]).not.toHaveProperty("password");
     expect(captured.approveEmailChangeBodies[0]).not.toHaveProperty("resetToken");
-    expect(
-      await screen.findByText(/la contraseña existente se conserva/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Operación completada")).toBeInTheDocument();
+    expect(screen.getByText("Cambio de correo aprobado.")).toBeInTheDocument();
   });
 
   it("D-MAIL-014 | rechaza una solicitud sin modificar acceso ni enviar estado manual", async () => {
@@ -371,8 +360,8 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     await screen.findAllByText("Tribunal Supremo Electoral");
     await user.click(screen.getAllByRole("button", { name: /Ver detalle/i })[0]);
 
-    expect(await screen.findByText("NO_CANDIDATE")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Aprobar cambio/i })).toBeDisabled();
+    expect(screen.queryByText("NO_CANDIDATE")).not.toBeInTheDocument();
     expect(captured.approveBodies).toHaveLength(0);
   });
 

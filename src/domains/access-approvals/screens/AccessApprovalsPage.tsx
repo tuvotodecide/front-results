@@ -9,6 +9,7 @@ import {
   useGetInstitutionalApplicationsQuery,
   useRejectInstitutionalApplicationMutation,
   useReopenInstitutionalApplicationMutation,
+  useRetryInstitutionalAuthorizationMutation,
   useRevokeInstitutionalApplicationMutation,
   type ApprovalStatus,
   type InstitutionalApplication,
@@ -57,6 +58,38 @@ const normalizeSearchText = (value?: string | null) =>
 
 const statusLabel = (status?: ApprovalStatus) =>
   STATUS_LABELS[status ?? ""] ?? status ?? "Sin estado";
+
+const STALE_PROCESSING_THRESHOLD_MS = 24 * 60 * 60 * 1000;
+
+const isProcessingStatus = (status?: ApprovalStatus) =>
+  status === "PENDING_CHAIN_CONFIRMATION" || status === "RECONCILIATION_PENDING";
+
+const isRetryableAuthorizationStatus = (status?: ApprovalStatus) =>
+  status === "PENDING_CHAIN_CONFIRMATION" ||
+  status === "RECONCILIATION_PENDING" ||
+  status === "CHAIN_RETRY_PENDING";
+
+const approvalResultMessage = (status?: ApprovalStatus) => {
+  if (status === "APPROVED") return "La autorización institucional fue completada.";
+  if (isRetryableAuthorizationStatus(status)) {
+    return "La aprobación fue iniciada y sigue esperando confirmación de autorización.";
+  }
+  if (status === "PENDING_MOBILE_AUTHORIZATION") {
+    return "La solicitud quedó pendiente de autorización desde el teléfono.";
+  }
+  return "La aprobación fue procesada. Se actualizó el estado de la solicitud.";
+};
+
+const isStaleProcessing = (row?: InstitutionalApplication | null) => {
+  if (!row || !isProcessingStatus(row.status) || (!row.updatedAt && !row.createdAt)) {
+    return false;
+  }
+
+  const lastChange = new Date(row.updatedAt ?? row.createdAt ?? "").getTime();
+  if (Number.isNaN(lastChange)) return false;
+
+  return Date.now() - lastChange > STALE_PROCESSING_THRESHOLD_MS;
+};
 
 const getStatusBucket = (status?: ApprovalStatus): InstitutionalTab | null => {
   if (
@@ -200,6 +233,7 @@ export default function AccessApprovalsPage() {
   });
 
   const selected = institutionalDetail.data ?? selectedSummary;
+  const selectedStaleProcessing = isStaleProcessing(selected);
 
   const [approveInstitutional, approveInstitutionalState] =
     useApproveInstitutionalApplicationMutation();
@@ -209,22 +243,31 @@ export default function AccessApprovalsPage() {
     useRevokeInstitutionalApplicationMutation();
   const [reopenInstitutional, reopenInstitutionalState] =
     useReopenInstitutionalApplicationMutation();
+  const [retryInstitutionalAuthorization, retryInstitutionalAuthorizationState] =
+    useRetryInstitutionalAuthorizationMutation();
 
   const busy =
     approveInstitutionalState.isLoading ||
     rejectInstitutionalState.isLoading ||
     revokeInstitutionalState.isLoading ||
-    reopenInstitutionalState.isLoading;
+    reopenInstitutionalState.isLoading ||
+    retryInstitutionalAuthorizationState.isLoading;
 
   const canReopen = auth.user?.role === "SUPERADMIN";
   const roleLabel = ROLE_LABELS[String(auth.user?.role ?? "")] ?? "Aprobador";
 
-  const runAction = async (message: string, action: () => Promise<unknown>) => {
+  const runAction = async (
+    message: string | ((result: unknown) => string),
+    action: () => Promise<unknown>,
+  ) => {
     setFeedback(null);
 
     try {
-      await action();
-      setFeedback({ kind: "success", message });
+      const result = await action();
+      setFeedback({
+        kind: "success",
+        message: typeof message === "function" ? message(result) : message,
+      });
     } catch {
       setFeedback({
         kind: "error",
@@ -241,8 +284,10 @@ export default function AccessApprovalsPage() {
             label: "Aprobar registro",
             tone: "primary" as const,
             onClick: () =>
-              runAction("La solicitud quedó pendiente de autorización desde tu teléfono.", () =>
-                approveInstitutional(selected.id).unwrap(),
+              runAction(
+                (result) =>
+                  approvalResultMessage((result as InstitutionalApplication | undefined)?.status),
+                () => approveInstitutional(selected.id).unwrap(),
               ),
           },
           {
@@ -281,7 +326,23 @@ export default function AccessApprovalsPage() {
                 },
               ]
             : []
-          : [];
+          : isRetryableAuthorizationStatus(selected?.status)
+            ? [
+                {
+                  key: "retry-authorization",
+                  label: "Reintentar autorización",
+                  tone: "secondary" as const,
+                  onClick: () =>
+                    runAction(
+                      (result) =>
+                        approvalResultMessage(
+                          (result as InstitutionalApplication | undefined)?.status,
+                        ),
+                      () => retryInstitutionalAuthorization(selected.id).unwrap(),
+                    ),
+                },
+              ]
+            : [];
 
   return (
     <main className="min-h-screen bg-[#f5f7f8] px-4 py-6 sm:px-6 lg:px-8">
@@ -423,6 +484,11 @@ export default function AccessApprovalsPage() {
                         {statusLabel(row.status)}
                       </span>
                     </div>
+                    {isStaleProcessing(row) ? (
+                      <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+                        Lleva más de 24 horas en autorización. Revisar reconciliación antes de reabrir o aprobar de nuevo.
+                      </p>
+                    ) : null}
                     <div className="mt-4 space-y-1.5 text-sm text-[#6b7280]">
                       <p className="truncate">{row.email || "Sin correo registrado"}</p>
                       <p className="truncate">
@@ -469,6 +535,11 @@ export default function AccessApprovalsPage() {
                         >
                           {statusLabel(selected.status)}
                         </span>
+                        {selectedStaleProcessing ? (
+                          <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                            Esta autorización lleva más de 24 horas en proceso. Puede indicar una confirmación de red pendiente o una reconciliación incompleta.
+                          </p>
+                        ) : null}
                       </div>
 
                       <div className="grid gap-4 sm:grid-cols-2">

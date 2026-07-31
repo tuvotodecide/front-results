@@ -168,7 +168,7 @@ export const useElectionTvdUsage = (electionId: string): ElectionTvdUsage => {
           },
           {
             label: "Liquidación completada",
-            value: Boolean(result.liquidated) ? "Sí" : "No",
+            value: result.liquidated ? "Sí" : "No",
           },
         ]);
       } catch {

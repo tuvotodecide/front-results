@@ -95,7 +95,10 @@ const selectExistingInstitution = async (container: HTMLElement) => {
     "Colegio",
   );
   await user.click(screen.getByRole("button", { name: "Buscar" }));
-  await user.click(await screen.findByRole("button", { name: "Colegio Activo" }));
+  await user.click(await screen.findByRole("option", { name: "Colegio Activo" }));
+  expect(getInput(container, '[data-cy="register-institution-search"]')).toHaveValue(
+    "Colegio Activo",
+  );
 };
 
 describe("MX-02 | Gestión de instituciones, administradores y wallets | Frontend Admin | Registro institucional", () => {
@@ -165,7 +168,9 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
       page: 1,
       limit: 10,
     });
-    expect(screen.getByText("Institución seleccionada: Colegio Activo")).toBeInTheDocument();
+    expect(getInput(container, '[data-cy="register-institution-search"]')).toHaveValue(
+      "Colegio Activo",
+    );
 
     await user.click(screen.getByRole("button", { name: "Solicitar acceso" }));
 
@@ -199,7 +204,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     );
     await user.click(screen.getByRole("button", { name: "Solicitar acceso" }));
 
-    expect(await screen.findByText("Selecciona una institución activa")).toBeInTheDocument();
+    expect(await screen.findByText("Selecciona una institución.")).toBeInTheDocument();
     expect(createInstitutionalAdminApplication).not.toHaveBeenCalled();
   });
 
@@ -223,8 +228,10 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
       "Colegio",
     );
     await user.click(screen.getByRole("button", { name: "Buscar" }));
-    await user.click(await screen.findByRole("button", { name: "Colegio Activo" }));
-    expect(screen.getByText("Institución seleccionada: Colegio Activo")).toBeInTheDocument();
+    await user.click(await screen.findByRole("option", { name: "Colegio Activo" }));
+    expect(getInput(container, '[data-cy="register-institution-search"]')).toHaveValue(
+      "Colegio Activo",
+    );
 
     await user.click(screen.getByRole("button", { name: "Crear una nueva institución" }));
     expect(
@@ -251,7 +258,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     await user.type(getInput(container, '[data-cy="register-institution-search"]'), "Nada");
     await user.click(screen.getByRole("button", { name: "Buscar" }));
     expect(
-      await screen.findByText("No hay instituciones disponibles en este momento."),
+      await screen.findByText("No hay instituciones disponibles con ese nombre."),
     ).toBeInTheDocument();
     unmount();
 
@@ -268,7 +275,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     );
     await user.click(screen.getByRole("button", { name: "Buscar" }));
     expect(
-      await screen.findByText("No fue posible cargar las instituciones. Intente nuevamente."),
+      await screen.findByText("No pudimos cargar las instituciones. Intenta nuevamente."),
     ).toBeInTheDocument();
   });
 

@@ -170,11 +170,11 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
   it("D-LIST-001 / D-PERM-004 | renderiza accesos reales, busqueda y votaciones del backend mockeado", () => {
     renderDashboard();
 
-    expect(screen.getByText("SALDO $TVD")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Saldo 100 \$TVD/i })).toBeInTheDocument();
     expect(screen.getByText("100")).toBeInTheDocument();
-    expect(screen.getByText("Wallet asociada")).toBeInTheDocument();
-    expect(screen.getByText("0x123456...345678")).toBeInTheDocument();
-    expect(screen.getByText("CUENTA")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Cuenta 0x12345678\.\.\.12345678/i })).toBeInTheDocument();
+    expect(screen.getByText("0x12345678...12345678")).toBeInTheDocument();
+    expect(screen.getByText("Cuenta")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Mis Votaciones" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Nueva Votación" })).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Buscar votación...")).toBeInTheDocument();
@@ -206,7 +206,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     const user = userEvent.setup();
     renderDashboard();
 
-    await user.click(screen.getByRole("button", { name: "Abrir cuenta" }));
+    await user.click(screen.getByRole("link", { name: /Cuenta 0x12345678\.\.\.12345678/i }));
     expect(navigateMock).toHaveBeenCalledWith("/votacion/cuenta-institucional");
   });
 
@@ -226,8 +226,8 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
       refetch: vi.fn(),
     });
 
-    expect(screen.getAllByText("No tienes una wallet asociada").length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: "Asociar mi cuenta" })).toBeInTheDocument();
+    expect(screen.getAllByText("Cuenta pendiente").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "Asociar mi cuenta" })).not.toBeInTheDocument();
     expect(screen.getByText("Elección de Presidente 2026")).toBeInTheDocument();
     expect(screen.queryByText("0 TVD")).not.toBeInTheDocument();
     expect(screen.queryByText(/wallet institucional/i)).not.toBeInTheDocument();
@@ -252,7 +252,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     });
     const user = userEvent.setup();
 
-    expect(screen.getByText("No pudimos consultar tu saldo en este momento.")).toBeInTheDocument();
+    expect(screen.getByText("Saldo no disponible")).toBeInTheDocument();
     expect(screen.getByText("Elección de Presidente 2026")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Volver a intentar" }));
     expect(refetchSummary).toHaveBeenCalled();

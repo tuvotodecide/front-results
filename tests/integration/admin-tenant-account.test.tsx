@@ -200,12 +200,11 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
 
     expect((await screen.findAllByText(activeWalletDisplay)).length).toBeGreaterThan(0);
     expect(screen.getByRole("heading", { name: "Cuenta institucional" })).toBeInTheDocument();
-    expect(screen.getByText("Asociada")).toBeInTheDocument();
-    expect(await screen.findByText("100 TVD")).toBeInTheDocument();
-    expect(screen.getByText("80 TVD")).toBeInTheDocument();
-    expect(screen.getByText("20 TVD")).toBeInTheDocument();
+    expect(screen.getByText("Administrador principal")).toBeInTheDocument();
+    expect(screen.getByText("Acceso habilitado")).toBeInTheDocument();
 
-    expect(screen.getAllByRole("button", { name: /Añadir cuenta/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: /Añadir administrador/i }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: /Añadir cuenta/i })).not.toBeInTheDocument();
     expect(screen.queryByText("Cuenta administrativa")).not.toBeInTheDocument();
     expect(screen.queryByText("Cuenta operativa")).not.toBeInTheDocument();
     expect(screen.queryByText("Cuenta auxiliar")).not.toBeInTheDocument();
@@ -298,26 +297,27 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(screen.getByText("Administrador principal")).toBeInTheDocument();
   });
 
-  it("D-RETRY-002 / D-STATE-004 | permite copiar y reintentar saldo cuando falla la consulta", async () => {
+  it("D-RETRY-002 / D-STATE-004 | permite reintentar el resumen TVD cuando falla la consulta", async () => {
     const user = userEvent.setup();
-    const fetchMock = setupFetch(() =>
-      jsonResponse({
-        ...summaryResponse,
-        totalBalance: null,
-        liquidBalance: null,
-        assignedBalance: null,
-      }),
-    );
+    let summaryCalls = 0;
+    const fetchMock = setupFetch((request) => {
+      const url = new URL(request.url);
+      if (url.pathname === "/api/v1/tvd/me/summary") {
+        summaryCalls += 1;
+        return summaryCalls === 1
+          ? jsonResponse({ code: "TVD_SUMMARY_UNAVAILABLE" }, 503)
+          : jsonResponse(summaryResponse);
+      }
+      return undefined;
+    });
 
     renderWithAuthStore(<InstitutionalAccountPage />, tenantAuth());
 
-    expect(await screen.findByText("No pudimos consultar tu saldo en este momento.")).toBeInTheDocument();
+    expect(await screen.findByText("No pudimos cargar la información.")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /Actualizar saldo/i }));
+    await user.click(screen.getByRole("button", { name: /Volver a intentar/i }));
+    await waitFor(() => expect(summaryCalls).toBeGreaterThanOrEqual(2));
     expect(fetchMock).toHaveBeenCalled();
-
-    await user.click(screen.getByRole("button", { name: "Copiar" }));
-    expect(screen.getByText("Dirección copiada.")).toBeInTheDocument();
   });
 
   it("D-REG-004 / D-REG-005 / D-COMPAT-003 | muestra regularizacion heredada y delega validacion por DNI al backend", async () => {
@@ -347,7 +347,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(
       screen.getByRole("dialog", { name: "Asociar mi cuenta" }),
     ).toBeInTheDocument();
-    expect(screen.getAllByText(/wallet registrada para tu usuario/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/cuenta registrada para tu usuario/i).length).toBeGreaterThan(0);
     expect(screen.queryByLabelText("Wallet candidata")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Carnet de identidad")).toBeInTheDocument();
 
@@ -373,6 +373,21 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     };
     const fetchMock = setupFetch((request) => {
       const pathname = new URL(request.url).pathname;
+      if (pathname === "/api/v1/institutional-tenants/tenant-1/admins") {
+        const regularizationCalls = fetchMock.mock.calls.filter(([called]) => {
+          return (
+            called instanceof Request &&
+            new URL(called.url).pathname.endsWith("/wallet-regularization")
+          );
+        });
+        return jsonResponse({
+          ...adminsResponse,
+          data: adminsResponse.data.map((admin) => ({
+            ...admin,
+            accountAddress: regularizationCalls.length ? secondWallet : activeWallet,
+          })),
+        });
+      }
       if (pathname === "/api/v1/tvd/me/summary") {
         const regularizationCalls = fetchMock.mock.calls.filter(([called]) => {
           return (
@@ -521,8 +536,8 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
 
     renderWithAuthStore(<InstitutionalAccountPage />, tenantAuth());
 
-    await user.click((await screen.findAllByRole("button", { name: /Añadir cuenta/i }))[0]);
-    const dialog = screen.getByRole("dialog", { name: "Añadir cuenta" });
+    await user.click((await screen.findAllByRole("button", { name: /Añadir administrador/i }))[0]);
+    const dialog = screen.getByRole("dialog", { name: "Invitar administrador" });
     expect(within(dialog).getByLabelText("CI/DNI")).toBeInTheDocument();
     expect(within(dialog).queryByLabelText(/Dirección/i)).not.toBeInTheDocument();
     expect(within(dialog).queryByLabelText(/Correo/i)).not.toBeInTheDocument();
@@ -532,7 +547,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     await user.type(within(dialog).getByLabelText("CI/DNI"), "12345678");
     expect(await within(dialog).findByText("Cuenta encontrada. Puedes continuar.")).toBeInTheDocument();
     expect(within(dialog).queryByDisplayValue(secondWallet)).not.toBeInTheDocument();
-    await user.click(within(dialog).getByRole("button", { name: "Añadir cuenta" }));
+    await user.click(within(dialog).getByRole("button", { name: "Invitar administrador" }));
 
     expect(await screen.findByText("Pendiente")).toBeInTheDocument();
     expect(screen.getByText("Cuenta existente")).toBeInTheDocument();
@@ -583,26 +598,26 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
 
     renderWithAuthStore(<InstitutionalAccountPage />, tenantAuth());
 
-    await user.click((await screen.findAllByRole("button", { name: /Añadir cuenta/i }))[0]);
-    let dialog = screen.getByRole("dialog", { name: "Añadir cuenta" });
+    await user.click((await screen.findAllByRole("button", { name: /Añadir administrador/i }))[0]);
+    let dialog = screen.getByRole("dialog", { name: "Invitar administrador" });
     await user.type(within(dialog).getByLabelText("CI/DNI"), "0000000");
     expect(
       await within(dialog).findByText(PERSON_NOT_REGISTERED_MESSAGE),
     ).toBeInTheDocument();
-    expect(within(dialog).getByRole("button", { name: "Añadir cuenta" })).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: "Invitar administrador" })).toBeDisabled();
 
     await user.clear(within(dialog).getByLabelText("CI/DNI"));
     await user.type(within(dialog).getByLabelText("CI/DNI"), "2222222");
     expect(await within(dialog).findByText("Cuenta encontrada. Puedes continuar.")).toBeInTheDocument();
-    await user.click(within(dialog).getByRole("button", { name: "Añadir cuenta" }));
+    await user.click(within(dialog).getByRole("button", { name: "Invitar administrador" }));
     expect(await within(dialog).findByText(ALREADY_ADMIN_MESSAGE)).toBeInTheDocument();
 
     await user.clear(within(dialog).getByLabelText("CI/DNI"));
     await user.type(within(dialog).getByLabelText("CI/DNI"), "3333333");
     await waitFor(() =>
-      expect(within(dialog).getByRole("button", { name: "Añadir cuenta" })).not.toBeDisabled(),
+      expect(within(dialog).getByRole("button", { name: "Invitar administrador" })).not.toBeDisabled(),
     );
-    await user.click(within(dialog).getByRole("button", { name: "Añadir cuenta" }));
+    await user.click(within(dialog).getByRole("button", { name: "Invitar administrador" }));
     expect(await within(dialog).findByText(DUPLICATE_INVITATION_MESSAGE)).toBeInTheDocument();
   });
 
@@ -731,8 +746,8 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(screen.getByText("Pendiente de firma en tu teléfono")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Rechazar" }));
-    expect(await screen.findByText("Rechazada")).toBeInTheDocument();
     expect(screen.getByText("Solicitud rechazada. No se creó firma pendiente.")).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText("Solicitante B")).not.toBeInTheDocument());
   });
 
   it("D-LIST-001 / D-LIST-003 / D-LIST-004 / D-DIS-001 / D-DIS-004 / D-DIS-005 / D-DIS-006 / D-DIS-007 | principal ve estados y suspende o reactiva sin firma", async () => {
@@ -813,11 +828,11 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
 
     expect(await screen.findByText("Admin principal")).toBeInTheDocument();
     expect(screen.getByText("Admin activa")).toBeInTheDocument();
-    expect(screen.getByText("Admin suspendida")).toBeInTheDocument();
-    expect(screen.getByText("Admin pendiente")).toBeInTheDocument();
+    expect(screen.queryByText("Admin suspendida")).not.toBeInTheDocument();
+    expect(screen.queryByText("Admin pendiente")).not.toBeInTheDocument();
     expect(screen.getAllByText("Acceso habilitado").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText("Acceso suspendido")).toBeInTheDocument();
-    expect(screen.getByText("Pendiente")).toBeInTheDocument();
+    expect(screen.queryByText("Acceso suspendido")).not.toBeInTheDocument();
+    expect(screen.queryByText("Pendiente")).not.toBeInTheDocument();
 
     const primaryCard = screen.getByText("Admin principal").closest("article");
     expect(primaryCard).not.toBeNull();
@@ -829,11 +844,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     await waitFor(() => expect(statusCalls.some((call) => call.url.includes("secondary-active/status") && call.body.active === false)).toBe(true));
     expect(await screen.findByText("Acceso suspendido. La wallet permanece autorizada.")).toBeInTheDocument();
 
-    const suspendedCard = screen.getByText("Admin suspendida").closest("article");
-    expect(suspendedCard).not.toBeNull();
-    await user.click(within(suspendedCard as HTMLElement).getByRole("button", { name: "Reactivar" }));
-    await waitFor(() => expect(statusCalls.some((call) => call.url.includes("secondary-suspended/status") && call.body.active === true)).toBe(true));
-    expect(await screen.findByText("Acceso habilitado. No se pidió firma ni operación en la red.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reactivar" })).not.toBeInTheDocument();
   });
 
   it("D-REQ-006 / D-REQ-007 / D-PERM-003 | un administrador secundario ve la cuenta pero no acciones exclusivas", async () => {
@@ -891,7 +902,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
 
     expect(await screen.findByText("Pendiente sin acciones")).toBeInTheDocument();
     expect(screen.getByText("Solicitud sin acciones")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Añadir cuenta/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Añadir administrador/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Reenviar" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Cancelar" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Aprobar" })).not.toBeInTheDocument();
@@ -912,6 +923,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
               name: "Solicitante procesando",
               email: "procesando@example.com",
               status: "PENDING_CHAIN_CONFIRMATION",
+              updatedAt: "2000-01-01T00:00:00.000Z",
             },
             {
               id: "app-retry",
@@ -945,6 +957,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
 
     expect(await screen.findByText("Solicitante procesando")).toBeInTheDocument();
     expect(screen.getByText("Procesando autorización")).toBeInTheDocument();
+    expect(screen.getByText(/más de 24 horas en autorización/)).toBeInTheDocument();
     expect(screen.getByText("Solicitante reintento")).toBeInTheDocument();
     expect(screen.getByText("Error recuperable")).toBeInTheDocument();
     expect(screen.getByText("Solicitante vencida")).toBeInTheDocument();
@@ -957,9 +970,8 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     const tenantBWallet = "0x4444444444444444444444444444444444444444";
     setupFetch((request) => {
       const pathname = new URL(request.url).pathname;
-      if (pathname !== "/api/v1/tvd/me/summary") return undefined;
       const authorization = request.headers.get("authorization");
-      if (authorization === "Bearer tenant-b-token") {
+      if (pathname === "/api/v1/tvd/me/summary" && authorization === "Bearer tenant-b-token") {
         return jsonResponse({
           ...summaryResponse,
           tenantId: "tenant-2",
@@ -967,7 +979,28 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
           wallet: tenantBWallet,
         });
       }
-      return jsonResponse(summaryResponse);
+      const adminsPath = /^\/api\/v1\/institutional-tenants\/[^/]+\/admins$/.test(pathname);
+      if (adminsPath && authorization === "Bearer tenant-b-token") {
+        return jsonResponse({
+          tenantId: "tenant-2",
+          data: [
+            {
+              ...adminsResponse.data[0],
+              tenantId: "tenant-2",
+              assignmentId: "assignment-b",
+              userId: "user-2",
+              name: "Admin B",
+              email: "admin-b@tenant.test",
+              accountAddress: tenantBWallet,
+            },
+          ],
+          total: 1,
+        });
+      }
+      if (adminsPath) {
+        return jsonResponse(adminsResponse);
+      }
+      return undefined;
     });
 
     const first = renderWithAuthStore(<InstitutionalAccountPage />, tenantAuth());

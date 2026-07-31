@@ -467,8 +467,9 @@ describe("useElectionPublish", () => {
     const { result } = renderHook(() => useElectionPublish("evt-1"));
 
     expect(result.current.officialPublicationCanCancel).toBe(true);
+    expect(result.current.cancelOfficialPublication).toBeDefined();
     await act(async () => {
-      await result.current.cancelOfficialPublication();
+      await result.current.cancelOfficialPublication?.();
     });
 
     expect(cancelRequest).toHaveBeenCalledWith({ requestId: "opr-1" });

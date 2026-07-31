@@ -116,15 +116,10 @@
       ],
       "files": [
         "tests/integration/admin-tenant-estimate-modal.test.tsx",
-        "tests/integration/admin-tenant-recharge.test.tsx",
         "tests/integration/superadmin-auth-entrypoints.test.tsx",
         "tests/integration/superadmin-navigation.test.tsx",
         "tests/integration/superadmin-route-entrypoints.test.tsx",
-        "tests/integration/superadmin-screens.test.tsx",
-        "tests/integration/superadmin-wallet-lookup.test.tsx",
-        "tests/integration/superadmin-tvd-contracts-parameters.test.tsx",
-        "tests/integration/superadmin-tvd-manual-assignment.test.tsx",
-        "tests/integration/superadmin-tvd-operations.test.tsx"
+        "tests/integration/superadmin-screens.test.tsx"
       ]
     },
     "election-dashboard": {
@@ -197,10 +192,7 @@
         "FRONT-H",
         "BRS-F18"
       ],
-      "files": [
-        "tests/unit/election-publication-ux.test.tsx",
-        "tests/unit/official-publication-coverage-registry.test.ts"
-      ]
+      "files": []
     },
     "matrix_06": {
       "name": "MX-06 | TVD, QR, acreditación y publicación | Frontend Admin",
@@ -214,6 +206,11 @@
         "TVD-UI"
       ],
       "files": [
+        "tests/integration/admin-tenant-recharge.test.tsx",
+        "tests/integration/superadmin-wallet-lookup.test.tsx",
+        "tests/integration/superadmin-tvd-contracts-parameters.test.tsx",
+        "tests/integration/superadmin-tvd-manual-assignment.test.tsx",
+        "tests/integration/superadmin-tvd-operations.test.tsx",
         "tests/integration/election-tvd-capacity-review.test.tsx",
         "tests/unit/admin-tvd-recharge-ui.test.ts",
         "tests/unit/admin-tvd-capacity-ui.test.ts",
@@ -223,7 +220,9 @@
         "tests/unit/tvd-wallet-lookup-ui.test.ts",
         "tests/unit/use-election-publish.test.tsx",
         "tests/unit/official-publication-api.test.ts",
-        "tests/unit/official-publication-final-ux.test.tsx"
+        "tests/unit/official-publication-final-ux.test.tsx",
+        "tests/unit/election-publication-ux.test.tsx",
+        "tests/unit/official-publication-coverage-registry.test.ts"
       ]
     },
     "active-election": {

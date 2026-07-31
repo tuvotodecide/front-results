@@ -21,25 +21,16 @@ const requestFromFetch = (
 
 const fillValidForm = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.type(screen.getByLabelText(/Institución/i), "Tribunal");
-  await user.click(screen.getByRole("button", { name: /Buscar institución/i }));
+  await user.click(screen.getByRole("button", { name: /Buscar/i }));
   await user.click(
     await screen.findByRole("option", {
       name: /Tribunal Supremo Electoral/i,
     }),
   );
   await user.type(screen.getByLabelText(/Nombre completo/i), "Ana Gomez");
-  await user.type(screen.getByLabelText(/Número de teléfono/i), "70000000");
   await user.type(
     screen.getAllByLabelText(/Nuevo correo/i)[0],
     " Admin.Nuevo@Institucion.BO ",
-  );
-  await user.type(
-    screen.getByLabelText(/Confirmar nuevo correo/i),
-    "admin.nuevo@institucion.bo",
-  );
-  await user.type(
-    screen.getByLabelText(/Teléfono del superior inmediato/i),
-    "71111111",
   );
 };
 
@@ -93,10 +84,10 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
 
     expect(await screen.findByText("Solicitud enviada")).toBeInTheDocument();
     expect(
-      screen.getByText(/Si la información corresponde a una cuenta institucional válida/i),
+      screen.getByText(/La solicitud fue registrada/i),
     ).toBeInTheDocument();
-    expect(screen.queryByText("Tribunal Supremo Electoral")).not.toBeInTheDocument();
-    expect(screen.queryByText("admin.nuevo@institucion.bo")).not.toBeInTheDocument();
+    expect(screen.getByText("Tribunal Supremo Electoral")).toBeInTheDocument();
+    expect(screen.getByText("admin.nuevo@institucion.bo")).toBeInTheDocument();
 
     const request = requestFromFetch(fetchMock);
     expect(request).toBeInstanceOf(Request);
@@ -111,9 +102,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
       expect(body).toEqual({
         institutionId: "64f1a7f4c5e8a8d0b9a12345",
         fullName: "Ana Gomez",
-        phoneNumber: "70000000",
         newEmail: "admin.nuevo@institucion.bo",
-        supervisorPhoneNumber: "71111111",
       });
       expect(body).not.toHaveProperty("wallet");
       expect(body).not.toHaveProperty("institutionName");
@@ -141,26 +130,13 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(fetchMock).not.toHaveBeenCalled();
 
     await user.type(screen.getByLabelText(/Institución/i), "x");
-    await user.click(screen.getByRole("button", { name: /Buscar institución/i }));
+    await user.click(screen.getByRole("button", { name: /Buscar/i }));
     await user.type(screen.getByLabelText(/Nombre completo/i), "Ana Gomez");
-    await user.type(screen.getByLabelText(/Número de teléfono/i), "70000000");
     await user.type(screen.getAllByLabelText(/Nuevo correo/i)[0], "correo");
-    await user.type(
-      screen.getByLabelText(/Confirmar nuevo correo/i),
-      "otro@institucion.bo",
-    );
-    await user.type(
-      screen.getByLabelText(/Teléfono del superior inmediato/i),
-      "71111111",
-    );
     await user.click(screen.getByRole("button", { name: /Enviar solicitud/i }));
 
-    expect(
-      screen.getByText("Ingresa al menos 2 caracteres para buscar la institución."),
-    ).toBeInTheDocument();
     expect(screen.getByText("Selecciona una institución.")).toBeInTheDocument();
     expect(screen.getByText("Ingresa un correo válido.")).toBeInTheDocument();
-    expect(screen.getByText("Los correos no coinciden.")).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -189,14 +165,14 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     renderWithAuthStore(<InstitutionalRecoveryPublicPage />);
 
     await user.type(screen.getByLabelText(/Institución/i), "Tribunal");
-    await user.click(screen.getByRole("button", { name: /Buscar institución/i }));
+    await user.click(screen.getByRole("button", { name: /Buscar/i }));
 
     expect(
-      await screen.findByText("No pudimos buscar instituciones. Intenta nuevamente."),
+      await screen.findByText("No pudimos cargar las instituciones. Intenta nuevamente."),
     ).toBeInTheDocument();
     expect(screen.queryByText(/database stack/i)).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /Buscar institución/i }));
+    await user.click(screen.getByRole("button", { name: /Buscar/i }));
 
     expect(
       await screen.findByRole("option", {

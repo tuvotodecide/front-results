@@ -146,6 +146,33 @@ const applicationStatusLabel = (status?: InstitutionalApplication["status"]) => 
   }
 };
 
+const isVisibleTenantApplicationStatus = (
+  status?: InstitutionalApplication["status"],
+) =>
+  status === "PENDING_APPROVAL" ||
+  status === "PENDING_MOBILE_AUTHORIZATION" ||
+  status === "MOBILE_AUTHORIZATION_EXPIRED" ||
+  status === "PENDING_CHAIN_CONFIRMATION" ||
+  status === "RECONCILIATION_PENDING" ||
+  status === "CHAIN_RETRY_PENDING" ||
+  status === "CHAIN_FAILED" ||
+  status === "APPROVED";
+
+const isProcessingApplicationStatus = (
+  status?: InstitutionalApplication["status"],
+) => status === "PENDING_CHAIN_CONFIRMATION" || status === "RECONCILIATION_PENDING";
+
+const STALE_PROCESSING_THRESHOLD_MS = 24 * 60 * 60 * 1000;
+
+const isStaleProcessingApplication = (application: InstitutionalApplication) => {
+  if (!isProcessingApplicationStatus(application.status)) return false;
+  const lastChange = new Date(
+    application.updatedAt ?? application.createdAt ?? "",
+  ).getTime();
+  if (Number.isNaN(lastChange)) return false;
+  return Date.now() - lastChange > STALE_PROCESSING_THRESHOLD_MS;
+};
+
 const adminStatusLabel = (admin: TenantAdminAssignment) => {
   if (!admin.active && admin.status === "SUSPENDED") return "Acceso suspendido";
   if (admin.active) return "Acceso habilitado";
@@ -754,7 +781,7 @@ export default function InstitutionalAccountPage() {
     () =>
       applications.filter((application) => {
         if (!tenantId || application.tenantId !== tenantId) return false;
-        if ((application.status ?? "PENDING_APPROVAL") !== "PENDING_APPROVAL") {
+        if (!isVisibleTenantApplicationStatus(application.status ?? "PENDING_APPROVAL")) {
           return false;
         }
         const candidateKeys = [
@@ -1222,6 +1249,11 @@ export default function InstitutionalAccountPage() {
                             {applicationStatusLabel(application.status)}
                           </span>
                         </div>
+                        {isStaleProcessingApplication(application) ? (
+                          <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+                            Lleva más de 24 horas en autorización. Pide a soporte revisar la reconciliación antes de crear otra solicitud.
+                          </p>
+                        ) : null}
                         <p className="mt-3 text-sm text-slate-500">
                           Institución: {application.institutionName || tenantName}
                         </p>

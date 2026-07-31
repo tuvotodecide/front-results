@@ -168,6 +168,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
         institutionName: "Institución Procesando",
         tenantId: "tenant-chain",
         status: "PENDING_CHAIN_CONFIRMATION",
+        updatedAt: "2000-01-01T00:00:00.000Z",
       },
     ];
     accessApprovalsMocks.details = {
@@ -178,6 +179,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
 
     await screen.findByRole("button", { name: /Diana Procesando/ });
     expect(screen.getAllByText("Procesando autorización").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/más de 24 horas en autorización/).length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: "Aprobar registro" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Rechazar registro" })).not.toBeInTheDocument();
   });

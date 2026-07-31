@@ -91,10 +91,16 @@ describe("MX-04 | Creación y configuración de votaciones | Imágenes", () => {
         onClose={vi.fn()}
         onSave={onSave}
         isLoading={false}
-        positions={[{ id: "role-1", name: "Presidencia", electionId: "evt-1" }]}
+        positions={[{
+          id: "role-1",
+          name: "Presidencia",
+          electionId: "evt-1",
+          createdAt: "2026-07-31T00:00:00.000Z",
+        }]}
         existingCandidates={[
           {
             id: "cand-1",
+            partyId: "party-1",
             positionId: "role-1",
             positionName: "Presidencia",
             fullName: "Ana Presidenta",

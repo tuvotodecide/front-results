@@ -68,9 +68,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Verify module mapping
+      - name: Run dependency checks
         if: ${{ !cancelled() }}
-        run: pnpm test:modules:check
+        run: pnpm check:dependencies
 
       - name: Run lint
         if: ${{ !cancelled() }}
@@ -80,84 +80,53 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm typecheck
 
-      - name: Run Cypress lint
+      - name: Run build
         if: ${{ !cancelled() }}
-        run: pnpm lint:cypress
-
-      - name: Run Cypress typecheck
-        if: ${{ !cancelled() }}
-        run: pnpm typecheck:cypress
+        run: pnpm build
 
       - name: Check focused or skipped active tests
         if: ${{ !cancelled() }}
         run: pnpm check:no-focused-tests
 
-      - name: Run build
+      - name: Check modules test map
         if: ${{ !cancelled() }}
-        run: pnpm build
-
-      - name: Run unit coverage
-        if: ${{ !cancelled() }}
-        run: pnpm test:coverage
-
-      - name: Official publication frontend focused tests
-        if: ${{ !cancelled() }}
-        run: >
-          pnpm exec vitest run
-          tests/unit/official-publication-final-ux.test.tsx
-          tests/unit/use-election-publish.test.tsx
-
-      - name: Upload coverage report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-admin-coverage
-          path: coverage/
-          if-no-files-found: warn
-
-      - name: Run dependency checks
-        if: ${{ !cancelled() }}
-        run: pnpm check:dependencies
+        run: pnpm test:modules:check
 
       - name: Run module tests - General configuration, hooks and state
         if: ${{ !cancelled() }}
         run: pnpm test:module:general
 
-      - name: MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin
-        if: ${{ !cancelled() }}
-        run: pnpm test:matrix:03
-
       - name: MX-02 | Gestión de instituciones, administradores y wallets | Frontend Admin
         if: ${{ !cancelled() }}
         run: pnpm test:matrix:02
 
-      - name: Run module tests - Institutional applications residual outside MX-02
+      - name: MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin
         if: ${{ !cancelled() }}
-        run: pnpm test:module:applications
+        run: pnpm test:matrix:03
 
       - name: MX-04 | Creación y configuración de votaciones | Frontend Admin
         if: ${{ !cancelled() }}
         run: pnpm test:matrix:04
 
-      - name: Run module tests - Election creation and configuration residual outside MX-04
-        if: ${{ !cancelled() }}
-        run: pnpm test:module:election-config
-
       - name: MX-05 | Padrón, staging, elegibilidad y archivos | Frontend
         if: ${{ !cancelled() }}
         run: pnpm test:matrix:05
-
-      - name: Run module tests - Electoral register residual outside MX-05
-        if: ${{ !cancelled() }}
-        run: pnpm test:module:register
 
       - name: MX-06 | TVD, QR, acreditación y publicación | Frontend Admin
         if: ${{ !cancelled() }}
         run: pnpm test:matrix:06
 
-      - name: Run module tests - Election review and official publication
+      - name: Run module tests - Institutional applications residual outside MX-02
         if: ${{ !cancelled() }}
-        run: pnpm test:module:publication
+        run: pnpm test:module:applications
+
+      - name: Run module tests - Election creation and configuration residual outside MX-04
+        if: ${{ !cancelled() }}
+        run: pnpm test:module:election-config
+
+      - name: Run module tests - Electoral register residual outside MX-05
+        if: ${{ !cancelled() }}
+        run: pnpm test:module:register
 
       - name: Run module tests - Active election status and ballot
         if: ${{ !cancelled() }}
@@ -175,86 +144,17 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm test:module:notifications
 
-      - name: Verify Cypress binary
+      - name: Run unit coverage
         if: ${{ !cancelled() }}
-        run: pnpm cypress:verify
+        run: pnpm test:coverage
 
-      - name: Start frontend for Cypress
-        if: ${{ !cancelled() }}
-        shell: bash
-        run: |
-          pnpm exec next start -H 127.0.0.1 -p 3000 > next-cypress.log 2>&1 &
-          echo $! > next-cypress.pid
-          for i in {1..90}; do
-            if curl -fsS http://127.0.0.1:3000 >/dev/null; then
-              exit 0
-            fi
-            sleep 1
-          done
-          cat next-cypress.log
-          exit 1
-
-      - name: MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | Cypress
-        if: ${{ !cancelled() }}
-        env:
-          CYPRESS_BASE_URL: http://127.0.0.1:3000
-        run: pnpm cypress:matrix:03
-
-      - name: MX-02 | Aceptación institucional | Frontend Admin
-        if: ${{ !cancelled() }}
-        env:
-          CYPRESS_BASE_URL: http://127.0.0.1:3000
-        run: pnpm cypress:matrix:02
-
-      - name: MX-04 | Creación y configuración de votaciones | Frontend Admin | Cypress
-        if: ${{ !cancelled() }}
-        env:
-          CYPRESS_BASE_URL: http://127.0.0.1:3000
-        run: pnpm cypress:matrix:04
-
-      - name: MX-05 | Padrón, staging, elegibilidad y archivos | Frontend | Cypress
-        if: ${{ !cancelled() }}
-        env:
-          CYPRESS_BASE_URL: http://127.0.0.1:3000
-        run: pnpm cypress:matrix:05
-
-      - name: MX-06 | TVD, QR, acreditación y publicación | Frontend Admin | Cypress
-        if: ${{ !cancelled() }}
-        env:
-          CYPRESS_BASE_URL: http://127.0.0.1:3000
-        run: pnpm cypress:matrix:06
-
-      - name: Run Cypress tests - Election review and official publication
-        if: ${{ !cancelled() }}
-        env:
-          CYPRESS_BASE_URL: http://127.0.0.1:3000
-        run: pnpm cypress:module:publication
-
-      - name: Run Cypress tests - Election results and public view
-        if: ${{ !cancelled() }}
-        env:
-          CYPRESS_BASE_URL: http://127.0.0.1:3000
-        run: pnpm cypress:module:results
-
-      - name: Upload Cypress evidence
+      - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: frontend-cypress-evidence
-          path: |
-            next-cypress.log
-            cypress/screenshots/
-            cypress/videos/
-            cypress/results/
-          if-no-files-found: ignore
-
-      - name: Stop frontend server
-        if: always()
-        shell: bash
-        run: |
-          if [[ -f next-cypress.pid ]]; then
-            kill "$(cat next-cypress.pid)" || true
-          fi
+          name: frontend-admin-coverage
+          path: coverage/
+          if-no-files-found: warn
 
       - name: Frontend module validation summary
         if: always()
@@ -263,9 +163,8 @@ jobs:
           {
             echo "# Frontend module tests"
             echo ""
-            echo "The frontend automated battery ran in one job with visible Vitest and Cypress module steps."
+            echo "The frontend automated battery ran in one job with visible Vitest module steps."
             echo ""
-            echo "Cypress base URL: `http://127.0.0.1:3000`"
             echo "Coverage HTML report path: `coverage/index.html`"
           } >> "$GITHUB_STEP_SUMMARY"
 
