@@ -35,7 +35,7 @@ describe("MX-09 presential kiosk controlled coverage", () => {
     window.localStorage.clear();
   });
 
-  it("KIO-HAB-P0-001 KIO-QR-P0-002 KIO-UX-P1-003 | normaliza estados visuales del kiosco sin exponer datos de voto", () => {
+  it("KIO-HAB-P0-001 KIO-QR-P0-002 KIO-CON-P0-002 | normaliza estados visuales del kiosco sin exponer datos de voto", () => {
     const ready = normalizeCreatePresentialSessionResult({
       eventId: "evt-1",
       stationId: "default",
