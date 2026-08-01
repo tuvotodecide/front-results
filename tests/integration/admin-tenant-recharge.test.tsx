@@ -98,7 +98,7 @@ const qrPaymentResponse = {
   merchantReference: "123456",
   providerReference: "654321",
   qrImage: "iVBORw0KGgo=",
-  qrExpiresAt: "2026-07-21T12:30:00.000Z",
+  qrExpiresAt: "2099-07-21T12:30:00.000Z",
   confirmationSource: null,
   tvdQuote: {
     fiatAmountMinor: "1050",
@@ -128,7 +128,7 @@ const confirmedPaymentResponse = {
   provider: "RED_ENLACE",
   merchantReference: "123456",
   providerReference: "654321",
-  qrExpiresAt: "2026-07-21T12:30:00.000Z",
+  qrExpiresAt: "2099-07-21T12:30:00.000Z",
   confirmationSource: "WEBHOOK",
   createdAt: "2026-07-21T12:00:00.000Z",
   updatedAt: "2026-07-21T12:01:00.000Z",
@@ -190,7 +190,7 @@ const regeneratedQrPaymentResponse = {
   previousPaymentId: "payment-1",
   regenerationStatus: "NOT_REGENERABLE",
   regenerationReason: "PAYMENT_STATUS_QR_ACTIVE",
-  qrExpiresAt: "2026-07-21T13:00:00.000Z",
+  qrExpiresAt: "2099-07-21T13:00:00.000Z",
 };
 
 const renderRechargePage = () =>
@@ -252,7 +252,7 @@ const installFetchMock = () => {
         paymentId: "payment-2",
         merchantReference: "223344",
         providerReference: "443322",
-        qrExpiresAt: "2026-07-21T13:00:00.000Z",
+        qrExpiresAt: "2099-07-21T13:00:00.000Z",
       });
     }
     if (url.pathname.endsWith("/tvd/me/payments")) {
@@ -291,16 +291,16 @@ describe("Admin tenant operational recharge", () => {
     const user = userEvent.setup();
     renderRechargePage();
 
-    expect(await screen.findByText("Colegio Demo")).toBeInTheDocument();
+    expect(await screen.findByText("Recarga operativa")).toBeInTheDocument();
     expect(screen.queryByText("Básico")).not.toBeInTheDocument();
     expect(screen.queryByText("Estándar")).not.toBeInTheDocument();
-    expect(screen.getByText("80")).toBeInTheDocument();
+    expect(screen.getByLabelText("Monto BOB a pagar")).toBeInTheDocument();
 
     await user.clear(screen.getByLabelText("Monto BOB a pagar"));
     await user.type(screen.getByLabelText("Monto BOB a pagar"), "10.50");
 
     expect(await screen.findByText("4.2 TVD")).toBeInTheDocument();
-    expect(screen.getByText("Bs. 2.5 por TVD")).toBeInTheDocument();
+    expect(screen.getByText("1 TVD = 2.5 Bs.")).toBeInTheDocument();
     expect(
       fetchCalls.some((call) =>
         call.url.includes("/tvd/me/quote?amount=10.50&currency=BOB"),
@@ -486,9 +486,9 @@ describe("Admin tenant operational recharge", () => {
     await screen.findByText("4.2 TVD");
     await user.click(screen.getByRole("button", { name: /Generar QR/i }));
 
-    expect(await screen.findByText("Pago recibido correctamente.")).toBeInTheDocument();
+    expect(await screen.findByText("Procesando tokens")).toBeInTheDocument();
     expect(
-      screen.getByText("Pago recibido; acreditación TVD en proceso."),
+      screen.getByText("Pago recibido; tokens en proceso."),
     ).toBeInTheDocument();
     expect(screen.queryByText("Pago fallido")).not.toBeInTheDocument();
   });
@@ -504,7 +504,7 @@ describe("Admin tenant operational recharge", () => {
     await user.click(screen.getByRole("button", { name: /Generar QR/i }));
 
     expect(
-      await screen.findByText(/Acreditación bloqueada por configuración/i),
+      await screen.findByText(/^Requiere revisi.n$/i),
     ).toBeInTheDocument();
     expect(paymentDetailQueue).toHaveLength(0);
   });

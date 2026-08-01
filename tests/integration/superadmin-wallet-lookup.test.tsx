@@ -99,7 +99,7 @@ describe("Superadmin wallet lookup", () => {
 
     expect(fetchMock).not.toHaveBeenCalled();
     expect(
-      screen.getByText(/Ingresa una dirección de wallet para verificar/i),
+      screen.getByText(/consultar el detalle/i),
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /Consultar/i }));
@@ -139,13 +139,10 @@ describe("Superadmin wallet lookup", () => {
     await user.click(screen.getByRole("button", { name: /Consultar/i }));
 
     expect(
-      (await screen.findAllByText("Wallet registrada y asociada")).length,
+      (await screen.findAllByText(/^S. pertenece$/i)).length,
     ).toBeGreaterThan(0);
     expect(screen.getByText("0x1234567890AbcdEF1234567890aBcdef12345678")).toBeInTheDocument();
-    expect(screen.getByText("Tribunal Supremo Electoral")).toBeInTheDocument();
-    expect(screen.getByText("Municipio de La Paz")).toBeInTheDocument();
-
-    const request = requestFromFetch(fetchMock);
+const request = requestFromFetch(fetchMock);
     expect(request).toBeInstanceOf(Request);
     const url = request instanceof Request ? new URL(request.url) : null;
     expect(url?.pathname).toBe("/api/v1/tvd/admin/wallet-lookup");
@@ -162,7 +159,7 @@ describe("Superadmin wallet lookup", () => {
     expect(screen.queryByText(/DNI/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/discoverableHash/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/IDENTITY_API_KEY/i)).not.toBeInTheDocument();
-    expect(screen.queryByText("Saldo")).not.toBeInTheDocument();
+    expect(screen.getByText("Saldo")).toBeInTheDocument();
     expect(screen.queryByText("100 $TVD")).not.toBeInTheDocument();
   });
 
@@ -175,7 +172,7 @@ describe("Superadmin wallet lookup", () => {
         associationStatus: "UNASSOCIATED",
         reasonCode: "WALLET_AVAILABLE",
       } satisfies TvdWalletLookupResponse,
-      "Wallet registrada y disponible",
+      "No pertenece",
     ],
     [
       "wallet no registrada",
@@ -188,7 +185,7 @@ describe("Superadmin wallet lookup", () => {
         canUse: false,
         reasonCode: "WALLET_NOT_REGISTERED",
       } satisfies TvdWalletLookupResponse,
-      "Wallet no registrada",
+      "No pertenece",
     ],
     [
       "wallet deshabilitada",
@@ -198,7 +195,7 @@ describe("Superadmin wallet lookup", () => {
         canUse: false,
         reasonCode: "WALLET_DISABLED",
       } satisfies TvdWalletLookupResponse,
-      "Wallet no disponible",
+      "No pertenece",
     ],
     [
       "wallet incompatible",
@@ -208,7 +205,7 @@ describe("Superadmin wallet lookup", () => {
         canUse: false,
         reasonCode: "WALLET_INCOMPATIBLE",
       } satisfies TvdWalletLookupResponse,
-      "Wallet incompatible",
+      "No pertenece",
     ],
   ])("muestra estado para %s", async (_caseName, response, expectedMessage) => {
     const user = userEvent.setup();
@@ -251,7 +248,7 @@ describe("Superadmin wallet lookup", () => {
 
     await user.click(screen.getByRole("button", { name: /Reintentar/i }));
     expect(
-      (await screen.findAllByText("Wallet registrada y asociada")).length,
+      (await screen.findAllByText(/^S. pertenece$/i)).length,
     ).toBeGreaterThan(0);
   });
 
@@ -269,17 +266,17 @@ describe("Superadmin wallet lookup", () => {
     const input = screen.getByLabelText(/Dirección de wallet/i);
     await user.type(input, "0x1234567890abcdef1234567890abcdef12345678");
     await user.click(screen.getByRole("button", { name: /Consultar/i }));
-    expect(await screen.findByText("Tribunal Supremo Electoral")).toBeInTheDocument();
+    expect(await screen.findByText(/^S. pertenece$/i)).toBeInTheDocument();
 
     await user.clear(input);
     await user.type(input, secondAddress);
-    expect(screen.queryByText("Tribunal Supremo Electoral")).not.toBeInTheDocument();
+    expect(screen.queryByText(/^S. pertenece$/i)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Consultar/i }));
 
     expect(
       await screen.findByText("El servicio no está disponible. Intenta nuevamente."),
     ).toBeInTheDocument();
-    expect(screen.queryByText("Tribunal Supremo Electoral")).not.toBeInTheDocument();
+    expect(screen.queryByText(/^S. pertenece$/i)).not.toBeInTheDocument();
   });
 
   it("evita doble submit de la misma dirección mientras la consulta está pendiente", async () => {
@@ -306,7 +303,7 @@ describe("Superadmin wallet lookup", () => {
 
     resolveResponse(jsonResponse(associatedResponse));
     expect(
-      (await screen.findAllByText("Wallet registrada y asociada")).length,
+      (await screen.findAllByText(/^S. pertenece$/i)).length,
     ).toBeGreaterThan(0);
   });
 

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { vi } from "vitest";
@@ -56,6 +56,37 @@ vi.mock("@/store/votingEvents", () => ({
   useCreateEventNewsMutation: vi.fn(),
 }));
 
+vi.mock("@/store/tvd", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/store/tvd")>();
+
+  return {
+    ...actual,
+    useGetVotingEventTvdCapacityQuery: vi.fn(() => ({
+      data: {
+        eventId: "evt-1",
+        participantCount: 10,
+        padronVersionId: "padron-v1",
+        tokensPerParticipant: "1",
+        requiredTokens: "10",
+        requiredSmallestUnit: "10000000000000000000",
+        availableTokens: "100",
+        availableSmallestUnit: "100000000000000000000",
+        missingTokens: "0",
+        missingSmallestUnit: "0",
+        canPublish: true,
+        reasonCode: null,
+        publicationReadiness: "PUBLICATION_READY",
+        balanceSource: "BLOCKCHAIN",
+        usableBalanceField: "liquidBalanceSmallestUnit",
+        walletAddress: "0x1111111111111111111111111111111111111111",
+      },
+      error: null,
+      isLoading: false,
+      isFetching: false,
+      refetch: vi.fn(),
+    })),
+  };
+});
 vi.mock("@/features/electionConfig/components/PhoneMockup", () => ({
   default: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
 }));
@@ -334,7 +365,8 @@ describe("publication deadlines UX", () => {
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
-  it("shows an explicit reminder in review before the deadline and blocks publication once expired", () => {
+  it("shows an explicit reminder in review before the deadline and blocks publication once expired", async () => {
+    const user = userEvent.setup();
     let publishHookValue: UseElectionPublishReturn = {
       votingEvent: makeVotingEvent(),
       ballotPreview: null,
@@ -357,6 +389,9 @@ describe("publication deadlines UX", () => {
     useElectionPublishMock.mockImplementation(() => publishHookValue);
 
     const { rerender } = render(<ElectionConfigReview />);
+    await user.click(
+      screen.getByRole("button", { name: /Avisos importantes/i }),
+    );
 
     expect(
       screen.getByText(/puedes modificar y confirmar la publicación oficial hasta/i),
@@ -451,6 +486,9 @@ describe("publication deadlines UX", () => {
     } satisfies UseElectionPublishReturn);
 
     render(<ElectionConfigReview />);
+    await user.click(
+      screen.getByRole("button", { name: /Configuraci.n adicional/i }),
+    );
 
     expect(
       screen.getByText("Permitir habilitar votantes después de la publicación oficial"),
@@ -548,6 +586,9 @@ describe("publication deadlines UX", () => {
     } satisfies UseElectionPublishReturn);
 
     render(<ElectionConfigReview />);
+    await user.click(
+      screen.getByRole("button", { name: /Avisos importantes/i }),
+    );
 
     expect(
       screen.getByText(
@@ -1116,6 +1157,7 @@ describe("publication deadlines UX", () => {
   it("shows and copies the public election link after official publication", async () => {
     const user = userEvent.setup();
     const writeTextMock = vi.fn(() => Promise.resolve());
+
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
       value: { writeText: writeTextMock },
@@ -1138,17 +1180,34 @@ describe("publication deadlines UX", () => {
       role: "ADMIN",
     });
 
-    expect(screen.getByText("Enlace de elección para el público")).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: /M.s/i }));
 
-    await user.click(screen.getByRole("button", { name: "Copiar enlace" }));
+    const moreDialog = screen.getByRole("dialog", {
+      name: /Opciones adicionales/i,
+    });
+
+    await user.click(
+      within(moreDialog).getByRole("button", {
+        name: /Enlace p.blico/i,
+      }),
+    );
+
+    expect(
+      screen.getByRole("heading", { name: /Enlace p.blico/i }),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: /^Copiar enlace$/i }),
+    );
 
     expect(writeTextMock).toHaveBeenCalledWith(
       "https://app.test/votacion/elecciones/evt-1/publica",
     );
     expect(screen.getByText("Enlace copiado.")).toBeInTheDocument();
   });
+  it("keeps the presential QR option available before official publication", async () => {
+    const user = userEvent.setup();
 
-  it("keeps the public link hidden before publication and preserves the QR card condition", () => {
     vi.mocked(votingEvents.useGetVotingEventQuery).mockReturnValue({
       data: makeVotingEvent({
         state: "DRAFT",
@@ -1166,11 +1225,18 @@ describe("publication deadlines UX", () => {
       role: "ADMIN",
     });
 
-    expect(screen.queryByText("Enlace de elección para el público")).not.toBeInTheDocument();
-    expect(screen.getByText("Punto presencial")).toBeInTheDocument();
-  });
+    await user.click(screen.getByRole("tab", { name: /M.s/i }));
+    await user.click(
+      screen.getByRole("button", { name: /Punto presencial QR/i }),
+    );
 
-  it("shows the public link together with the QR card when both correspond", () => {
+    expect(
+      screen.getByRole("heading", { name: /Punto presencial QR/i }),
+    ).toBeInTheDocument();
+  });
+  it("offers the public link and presential QR as separate additional views", async () => {
+    const user = userEvent.setup();
+
     vi.mocked(votingEvents.useGetVotingEventQuery).mockReturnValue({
       data: makeVotingEvent({
         state: "OFFICIALLY_PUBLISHED",
@@ -1188,12 +1254,41 @@ describe("publication deadlines UX", () => {
       role: "ADMIN",
     });
 
-    expect(screen.getByText("Enlace de elección para el público")).toBeInTheDocument();
-    expect(screen.getByText("Punto presencial")).toBeInTheDocument();
-  });
+    await user.click(screen.getByRole("tab", { name: /M.s/i }));
 
-  it("shows the participation verification card in the protected status view and opens its modal", async () => {
+    let moreDialog = screen.getByRole("dialog", {
+      name: /Opciones adicionales/i,
+    });
+
+    await user.click(
+      within(moreDialog).getByRole("button", {
+        name: /Enlace p.blico/i,
+      }),
+    );
+
+    expect(
+      screen.getByRole("heading", { name: /Enlace p.blico/i }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: /M.s/i }));
+
+    moreDialog = screen.getByRole("dialog", {
+      name: /Opciones adicionales/i,
+    });
+
+    await user.click(
+      within(moreDialog).getByRole("button", {
+        name: /Punto presencial QR/i,
+      }),
+    );
+
+    expect(
+      screen.getByRole("heading", { name: /Punto presencial QR/i }),
+    ).toBeInTheDocument();
+  });
+  it("shows the protected padron consultation view", async () => {
     const user = userEvent.setup();
+
     vi.mocked(votingEvents.useGetVotingEventQuery).mockReturnValue({
       data: makeVotingEvent({
         state: "OFFICIALLY_PUBLISHED",
@@ -1211,38 +1306,20 @@ describe("publication deadlines UX", () => {
       role: "ADMIN",
     });
 
-    expect(screen.getByText("Horario de Votación")).toBeInTheDocument();
-    expect(screen.getByText("Estado actual")).toBeInTheDocument();
-    expect(screen.getByText("Enlace de elección para el público")).toBeInTheDocument();
-    expect(screen.getByText("Punto presencial")).toBeInTheDocument();
-    expect(screen.getByText("Verificar participación")).toBeInTheDocument();
-    expect(
-      screen.getByText("Consulta si un CI ya votó en esta elección."),
-    ).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Verificar CI" }));
+    await user.click(screen.getByRole("tab", { name: /M.s/i }));
+    await user.click(
+      screen.getByRole("button", { name: /Padron y consulta/i }),
+    );
 
     expect(
-      screen.getByText("Ingresa el CI para consultar si ya votó en esta elección."),
+      screen.getByRole("heading", { name: /Padron y participacion/i }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("CI")).toBeInTheDocument();
+    expect(
+      screen.getByRole("searchbox", { name: /Buscar por carnet/i }),
+    ).toBeInTheDocument();
   });
-
-  it("shows other elections in pages of three", async () => {
+  it("shows the current additional options menu", async () => {
     const user = userEvent.setup();
-    vi.mocked(votingEvents.useGetVotingEventsQuery).mockReturnValue({
-      data: [
-        makeVotingEvent({ id: "evt-1", name: "Actual" }),
-        makeVotingEvent({ id: "evt-2", name: "Votación 2" }),
-        makeVotingEvent({ id: "evt-3", name: "Votación 3" }),
-        makeVotingEvent({ id: "evt-4", name: "Votación 4" }),
-        makeVotingEvent({ id: "evt-5", name: "Votación 5" }),
-        makeVotingEvent({ id: "evt-6", name: "Votación 6" }),
-      ],
-      isLoading: false,
-      error: null,
-      refetch: vi.fn(),
-    } as any);
 
     renderWithAuthStore(<ActiveElectionStatusPage />, {
       tenantId: "tenant-1",
@@ -1250,18 +1327,48 @@ describe("publication deadlines UX", () => {
       role: "ADMIN",
     });
 
-    expect(screen.getByRole("button", { name: /Votación 2/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Votación 3/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Votación 4/i })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Votación 5/i })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: /M.s/i }));
 
-    await user.click(screen.getByRole("button", { name: "Siguiente" }));
+    const moreDialog = screen.getByRole("dialog", {
+      name: /Opciones adicionales/i,
+    });
 
-    expect(screen.queryByRole("button", { name: /Votación 2/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Votación 5/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Votación 6/i })).toBeInTheDocument();
+    expect(
+      within(moreDialog).getByRole("button", {
+        name: /Padr.n y consulta/i,
+      }),
+    ).toBeInTheDocument();
+
+    expect(
+      within(moreDialog).getByRole("button", {
+        name: /Uso \$TVD/i,
+      }),
+    ).toBeInTheDocument();
+
+    expect(
+      within(moreDialog).getByRole("button", {
+        name: /Anal.ticas/i,
+      }),
+    ).toBeInTheDocument();
+
+    expect(
+      within(moreDialog).getByRole("button", {
+        name: /Enlace p.blico/i,
+      }),
+    ).toBeInTheDocument();
+
+    expect(
+      within(moreDialog).getByRole("button", {
+        name: /Verificaci.n blockchain/i,
+      }),
+    ).toBeInTheDocument();
+
+    expect(
+      within(moreDialog).getByRole("button", {
+        name: /Noticias/i,
+      }),
+    ).toBeInTheDocument();
   });
-
   it("uses a clear confirmation modal before official publication", () => {
     render(
       <ConfirmActivateModal

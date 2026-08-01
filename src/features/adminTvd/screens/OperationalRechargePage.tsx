@@ -600,7 +600,7 @@ export default function OperationalRechargePage() {
         {step === 2 && activePayment ? (
           <section className="rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm sm:p-8">
             <div className="mx-auto max-w-xl">
-              {activeQrExpired ? (
+              {activeQrExpired && activeRegenerationStatus !== "REGENERABLE" ? (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-6 text-left text-amber-900">
                   <div className="flex gap-3">
                     <ExclamationTriangleIcon

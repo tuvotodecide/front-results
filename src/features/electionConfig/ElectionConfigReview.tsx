@@ -39,7 +39,7 @@ import {
   useUpdateEventScheduleMutation,
   useUpdateVotingEventMutation,
 } from "../../store/votingEvents";
-import { useGetVotingEventTvdCapacityQuery } from "../../store/tvd";
+import { useGetVotingEventTvdCapacityQuery } from "@/store/tvd";
 import {
   formatTvdCapacityAmount,
   getCapacityRequestErrorMessage,

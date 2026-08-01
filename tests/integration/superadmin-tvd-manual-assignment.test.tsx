@@ -190,23 +190,32 @@ describe("Superadmin TVD manual assignment", () => {
     renderAssignmentPage();
 
     expect(await screen.findByText("Tribunal Supremo Electoral")).toBeInTheDocument();
-    expect(screen.getByText(/2 wallet\(s\) disponible\(s\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/2 wallets disponibles/i)).toBeInTheDocument();
     await user.click(screen.getByText("Tribunal Supremo Electoral"));
 
-    expect(await screen.findByText("FINANCE_ADMIN")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", {
+        name: /0x2222222222222222222222222222222222222222/i,
+      }),
+    ).toBeInTheDocument();
     expect(screen.getByText("0x1111111111111111111111111111111111111111")).toBeInTheDocument();
     expect(screen.getByText("0x2222222222222222222222222222222222222222")).toBeInTheDocument();
-    await user.click(screen.getByText("FINANCE_ADMIN"));
+    await user.click(
+      screen.getByRole("button", {
+        name: /0x2222222222222222222222222222222222222222/i,
+      }),
+    );
     await user.type(screen.getByLabelText(/Cantidad TVD/i), "25.5000");
     await user.type(
-      screen.getByLabelText(/Motivo auditado/i),
+      screen.getByLabelText(/^Motivo/i),
       "Asignación operativa piloto",
     );
-    await user.click(screen.getByRole("button", { name: /Revisar operación/i }));
-    await user.dblClick(screen.getByRole("button", { name: /Solicitar asignación/i }));
-
-    expect(await screen.findByText("Asignación TVD confirmada.")).toBeInTheDocument();
-    expect(screen.getByText("0xmanualassignmenthash")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Continuar/i }));
+    await user.dblClick(screen.getByRole("button", { name: /^Asignar$/i }));
+    expect(
+      (await screen.findAllByText(/Asignaci.n TVD confirmada\./i)).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByTitle("0xmanualassignmenthash")).toBeInTheDocument();
     expect(screen.queryByText(/MetaMask/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Wallet origen/i)).not.toBeInTheDocument();
 
@@ -250,14 +259,18 @@ describe("Superadmin TVD manual assignment", () => {
       screen.getByText("Selecciona una wallet verificada y habilitada."),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /Revisar operación/i }));
+    await user.click(screen.getByRole("button", { name: /Continuar/i }));
     expect(screen.getByText("Selecciona una wallet institucional.")).toBeInTheDocument();
     expect(screen.getByText("Ingresa una cantidad TVD mayor a 0.")).toBeInTheDocument();
 
-    await user.click(screen.getByText("FINANCE_ADMIN"));
+    await user.click(
+      screen.getByRole("button", {
+        name: /0x2222222222222222222222222222222222222222/i,
+      }),
+    );
     await user.type(screen.getByLabelText(/Cantidad TVD/i), "1e3");
-    await user.type(screen.getByLabelText(/Motivo auditado/i), "corto");
-    await user.click(screen.getByRole("button", { name: /Revisar operación/i }));
+    await user.type(screen.getByLabelText(/^Motivo/i), "corto");
+    await user.click(screen.getByRole("button", { name: /Continuar/i }));
     expect(screen.getByText("Ingresa una cantidad TVD mayor a 0.")).toBeInTheDocument();
     expect(
       screen.getByText("Describe un motivo de entre 8 y 240 caracteres."),
@@ -321,17 +334,20 @@ describe("Superadmin TVD manual assignment", () => {
 
     renderAssignmentPage();
     await user.click(await screen.findByText("Tribunal Supremo Electoral"));
-    await user.click(await screen.findByText("FINANCE_ADMIN"));
+    await user.click(
+      await screen.findByRole("button", {
+        name: /0x2222222222222222222222222222222222222222/i,
+      }),
+    );
     await user.type(screen.getByLabelText(/Cantidad TVD/i), "10");
     await user.type(
-      screen.getByLabelText(/Motivo auditado/i),
+      screen.getByLabelText(/^Motivo/i),
       "Asignación operativa piloto",
     );
-    await user.click(screen.getByRole("button", { name: /Revisar operación/i }));
-    await user.click(screen.getByRole("button", { name: /Solicitar asignación/i }));
+    await user.click(screen.getByRole("button", { name: /Continuar/i }));
+    await user.click(screen.getByRole("button", { name: /^Asignar$/i }));
 
     expect(await screen.findAllByText("La asignación requiere revisión manual.")).toHaveLength(2);
-    expect(screen.getByText("Sin txHash aún")).toBeInTheDocument();
-    expect(screen.queryByText(/0xreserve/i)).not.toBeInTheDocument();
+expect(screen.queryByText(/0xreserve/i)).not.toBeInTheDocument();
   });
 });

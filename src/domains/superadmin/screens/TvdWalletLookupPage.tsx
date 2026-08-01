@@ -243,7 +243,7 @@ export default function TvdWalletLookupPage() {
       ) : null}
 
       {!isLoading && lookupAddress && lookupState.isError ? (
-        <div className="mt-5 rounded-2xl border border-[#f0b8b8] bg-[#fff7f7] p-5 shadow-sm">
+        <div role="alert" className="mt-5 rounded-2xl border border-[#f0b8b8] bg-[#fff7f7] p-5 shadow-sm">
           <div className="flex gap-3">
             <ShieldAlert className="mt-0.5 h-5 w-5 flex-none text-[#a33030]" />
             <div>

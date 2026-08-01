@@ -416,8 +416,8 @@ describe("Superadmin TVD operations", () => {
     expect(await screen.findAllByText("Asignación manual")).not.toHaveLength(0);
     const table = screen.getByRole("table");
     expect(within(table).getByText("Tipo de operación")).toBeInTheDocument();
-    expect(within(table).getAllByText("Universidad Mayor de San Andrés")).not.toHaveLength(0);
-    expect(screen.getAllByText("Código de transacción")).not.toHaveLength(0);
+    expect(await within(table).findAllByText(/Universidad Mayor de San Andr.s/i)).not.toHaveLength(0);
+    expect(screen.getAllByText("Tx Hash")).not.toHaveLength(0);
     expect(screen.getAllByText("Página 1. 4 operaciones de 85")).not.toHaveLength(0);
   });
 

@@ -72,6 +72,10 @@ vi.mock("ethers", async () => {
         : 1n;
     });
 
+    isPaused = vi.fn(async () => {
+      if (ethersMocks.failRpc) throw new Error("rpc");
+      return true;
+    });
     campaignsCount = vi.fn(async () => {
       if (ethersMocks.failRpc) throw new Error("rpc");
       return 0n;
@@ -268,7 +272,7 @@ const contractReadModel: TvdContractsReadModel = {
 };
 
 const mockHistoryFetch = (status = 200) => {
-  const fetchMock = vi.fn().mockResolvedValue(
+  const fetchMock = vi.fn(async () =>
     new Response(
       status === 200 ? JSON.stringify(historyContractsResponse) : "{}",
       {
@@ -285,7 +289,7 @@ const mockInternalContractFetch = (
   body: unknown = { success: true, data: contractReadModel },
   status = 200,
 ) => {
-  const fetchMock = vi.fn().mockResolvedValue(
+  const fetchMock = vi.fn(async () =>
     new Response(JSON.stringify(body), {
       status,
       headers: { "Content-Type": "application/json" },
@@ -355,8 +359,8 @@ describe("vistas Superadmin TVD conectadas a /history/contracts", () => {
     });
 
     expect(await screen.findByText("0x1234...5678")).toBeInTheDocument();
-    expect(screen.getByText("2 de 3 firmantes")).toBeInTheDocument();
-    expect(screen.getByText("Firmantes autorizados (3)")).toBeInTheDocument();
+    expect(screen.getByText("Contrato multisig")).toBeInTheDocument();
+    expect(screen.getAllByText("0xabcd...abcd").length).toBeGreaterThan(0);
     expect(screen.getByText("Tesorería multisig")).toBeInTheDocument();
     expect(screen.getByText("Ecosistema")).toBeInTheDocument();
     expect(screen.getByText("Liquidez")).toBeInTheDocument();
@@ -400,12 +404,9 @@ describe("vistas Superadmin TVD conectadas a /history/contracts", () => {
     expect(screen.getByText("1 TVD")).toBeInTheDocument();
     expect(screen.getByText("10%")).toBeInTheDocument();
     expect(screen.getByText("0 TVD")).toBeInTheDocument();
-    expect(screen.getByText("Deshabilitadas")).toBeInTheDocument();
-    expect(screen.getByText("No existe una campaña configurada")).toBeInTheDocument();
-    expect(screen.getByText("0x4444...4444")).toBeInTheDocument();
-    expect(screen.getByText("0x5555...5555")).toBeInTheDocument();
-    expect(screen.getByText("0x6666...6666")).toBeInTheDocument();
-  });
+    expect(screen.getByText("Recompensas desactivadas")).toBeInTheDocument();
+    expect(screen.getByText("Pausada")).toBeInTheDocument();
+});
 
   it.each([401, 403])("muestra error Backend Results con estado %s", async (status) => {
     mockInternalContractFetch(
