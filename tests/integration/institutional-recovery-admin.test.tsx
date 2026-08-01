@@ -240,7 +240,9 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     await user.click(screen.getAllByRole("button", { name: /Ver detalle/i })[0]);
 
     expect(await screen.findByText("Correo actual")).toBeInTheDocument();
-    expect(screen.getByText("ana.actual@tse.bo")).toBeInTheDocument();
+    expect(
+      await screen.findByText("ana.actual@tse.bo"),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/resetToken/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/IDENTITY_API_KEY/i)).not.toBeInTheDocument();
 
