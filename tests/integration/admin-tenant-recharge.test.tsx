@@ -257,7 +257,9 @@ const installFetchMock = () => {
     }
     if (url.pathname.endsWith("/tvd/me/payments")) {
       return jsonResponse({
-        items: [confirmedPaymentResponse],
+        // Los casos de creaciÃ³n deben iniciar en el paso 1. Cada test que
+        // necesite recuperar un pago debe declararlo de forma explÃ­cita.
+        items: [],
         page: 1,
         limit: 5,
         total: 1,

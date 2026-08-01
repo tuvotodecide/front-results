@@ -4,6 +4,10 @@ import type { ReactNode } from "react";
 import { vi } from "vitest";
 import AddPositionModal from "@/features/electionConfig/components/AddPositionModal";
 import CreateElectionWizard from "@/features/elections/components/CreateElectionWizard";
+import {
+  getMinimumLocalDateTime,
+  MIN_CREATE_LEAD_MS,
+} from "@/features/electionConfig/renderUtils";
 
 const createElectionMock = vi.fn();
 const navigateMock = vi.fn();
@@ -102,18 +106,20 @@ describe("election creation and configuration P0 components", () => {
       });
 
       const startInput = screen.getByLabelText("¿Cuándo abre la votación?");
-      const initialMinimum = new Date(Date.now() + 8 * 60 * 60 * 1000)
-        .toISOString()
-        .slice(0, 16);
+      const initialMinimum = getMinimumLocalDateTime(
+        MIN_CREATE_LEAD_MS,
+        Date.now(),
+      );
       expect(startInput).toHaveAttribute("min", initialMinimum);
 
       vi.setSystemTime(new Date("2026-04-17T12:01:00.000Z"));
       fireEvent.focus(window);
 
       await vi.waitFor(() => {
-        const updatedMinimum = new Date(Date.now() + 8 * 60 * 60 * 1000)
-          .toISOString()
-          .slice(0, 16);
+        const updatedMinimum = getMinimumLocalDateTime(
+          MIN_CREATE_LEAD_MS,
+          Date.now(),
+        );
         expect(startInput).toHaveAttribute("min", updatedMinimum);
       });
     } finally {

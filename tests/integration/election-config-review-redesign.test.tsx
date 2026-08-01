@@ -398,9 +398,9 @@ describe("election config review redesign", () => {
       expect(updateScheduleMock).toHaveBeenCalledWith({
         eventId: "evt-1",
         data: {
-          votingStart: "2026-04-18T23:00:00.000Z",
-          votingEnd: "2026-04-19T01:00:00.000Z",
-          resultsPublishAt: "2026-04-19T02:00:00.000Z",
+          votingStart: new Date("2026-04-18T19:00").toISOString(),
+          votingEnd: new Date("2026-04-18T21:00").toISOString(),
+          resultsPublishAt: new Date("2026-04-18T22:00").toISOString(),
         },
       });
     });
@@ -592,6 +592,7 @@ describe("election config review redesign", () => {
 
   it("bloquea con padrón no listo y permite reintentar sin ofrecer recarga", async () => {
     const user = userEvent.setup();
+    console.log(user)
     const refetchCapacityMock = vi.fn();
     useGetVotingEventTvdCapacityQueryMock.mockReturnValue({
       data: {

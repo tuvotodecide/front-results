@@ -34,5 +34,11 @@ cypress\screenshots
 
 .next
 out
-docs
+!docs/
+docs/*
+!docs/testing/
+docs/testing/*
+!docs/testing/official-publication-mobile-signature/
+!docs/testing/official-publication-mobile-signature/**
 analisis-y-plan-flujos-institucionales.md
+docs/testing/official-publication-mobile-signature/**
