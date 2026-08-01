@@ -44,3 +44,5 @@ analisis-y-plan-flujos-institucionales.md
 docs/testing/official-publication-mobile-signature/**
 !docs/testing/official-publication-mobile-signature/01-informe-integral-implementacion.md
 !docs/testing/official-publication-mobile-signature/02A-matriz-tecnica-detallada.md
+!tests/unit/official-publication-coverage-registry.test.ts
+!docs/testing/official-publication-mobile-signature
