@@ -46,3 +46,5 @@ docs/testing/official-publication-mobile-signature/**
 !docs/testing/official-publication-mobile-signature/02A-matriz-tecnica-detallada.md
 !tests/unit/official-publication-coverage-registry.test.ts
 !docs/testing/official-publication-mobile-signature
+!docs/testing/official-publication-mobile-signature/08-resumen-cobertura.md
+!docs/testing/official-publication-mobile-signature/03-trazabilidad-implementacion-pruebas.md
