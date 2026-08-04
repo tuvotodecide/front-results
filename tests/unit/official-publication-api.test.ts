@@ -99,7 +99,7 @@ describe("official publication admin API", () => {
     expect(result.data?.request).toBeNull();
   });
 
-  it("TVD-PUB-P0-007 | accepts created:false when another tab already created the active request", async () => {
+  it("[MX-06][TVD-PUB-P0-007][INTEGRACION] reutiliza la solicitud activa creada por otra pestaña", async () => {
     vi.mocked(fetch).mockResolvedValue(
       jsonResponse({
         created: false,

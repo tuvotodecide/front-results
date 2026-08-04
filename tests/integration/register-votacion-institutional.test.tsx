@@ -122,7 +122,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     });
   });
 
-  it("D-NEW-001 / D-NEW-006 / D-NEW-007 | resuelve wallet por DNI, la muestra completa y no la envia en el registro final", async () => {
+  it("[MX-02][D-NEW-001][INTEGRACION] resuelve wallet por DNI y no la envía en el registro inicial", async () => {
     const { container } = renderWithAuthStore(<RegisterVotacionPage />);
     await submitForm(container);
 
@@ -149,7 +149,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     });
   });
 
-  it("D-NEW-002 / D-NEW-003 / D-NEW-004 | muestra modos de institucion, busca activas y envia institutionId para una solicitud existente", async () => {
+  it("[MX-02][SOPORTE-REGRESION][INTEGRACION] muestra modos de institución y solicita acceso existente", async () => {
     const { container } = renderWithAuthStore(<RegisterVotacionPage />);
     const user = await fillBaseFields(container);
 
@@ -191,7 +191,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     );
   });
 
-  it("D-NEW-005 | no permite texto arbitrario como institucion existente", async () => {
+  it("[MX-02][SOPORTE-REGRESION][INTEGRACION] no permite texto arbitrario como institución existente", async () => {
     const { container } = renderWithAuthStore(<RegisterVotacionPage />);
     const user = await fillBaseFields(container);
 
@@ -208,7 +208,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(createInstitutionalAdminApplication).not.toHaveBeenCalled();
   });
 
-  it("D-NEW-008 / D-RETRY-001 | limpia valores ocultos al alternar entre institucion nueva y existente", async () => {
+  it("[MX-02][SOPORTE-REGRESION][INTEGRACION] limpia valores al alternar entre institución nueva y existente", async () => {
     const user = userEvent.setup();
     const { container } = renderWithAuthStore(<RegisterVotacionPage />);
 
@@ -240,7 +240,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(getInput(container, '[data-cy="register-tenant-name"]')).toHaveValue("");
   });
 
-  it("D-NEW-009 / D-NEW-010 | muestra mensajes controlados del catalogo publico", async () => {
+  it("[MX-02][SOPORTE-REGRESION][INTEGRACION] muestra mensajes controlados del catálogo público", async () => {
     const user = userEvent.setup();
     listPublicInstitutionalTenants.mockReturnValueOnce({
       unwrap: vi.fn().mockResolvedValue({
@@ -308,7 +308,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(await screen.findByText(message)).toBeInTheDocument();
   });
 
-  it("D-NEW-011 | bloquea el envio cuando el CI o DNI no corresponde a una persona registrada", async () => {
+  it("[MX-02][D-NEW-002][INTEGRACION] bloquea el envío cuando la persona no está registrada", async () => {
     const user = userEvent.setup();
     resolveInstitutionalWalletByDni.mockReturnValue({
       unwrap: vi.fn().mockResolvedValue({
@@ -329,7 +329,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(createInstitutionalAdminApplication).not.toHaveBeenCalled();
   });
 
-  it("D-NEW-012 | bloquea el envio cuando la persona registrada no tiene billetera", async () => {
+  it("[MX-02][D-NEW-003][INTEGRACION] bloquea el envío cuando la persona no tiene billetera", async () => {
     const user = userEvent.setup();
     resolveInstitutionalWalletByDni.mockReturnValue({
       unwrap: vi.fn().mockResolvedValue({
@@ -352,7 +352,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(createInstitutionalAdminApplication).not.toHaveBeenCalled();
   });
 
-  it("D-NEW-013 / D-MAIL-001 | muestra conflicto de correo ocupado y no finaliza el registro", async () => {
+  it("[MX-02][D-NEW-004][INTEGRACION] muestra conflicto de correo ocupado sin finalizar registro", async () => {
     createInstitutionalAdminApplication.mockReturnValueOnce({
       unwrap: vi.fn().mockRejectedValue({
         data: { message: "El email o DNI ya está asociado a otro usuario" },
@@ -388,7 +388,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(await screen.findByDisplayValue(secondWallet)).toBeInTheDocument();
   });
 
-  it("D-NEW-014 | muestra mensaje seguro cuando el endpoint responde rate limit", async () => {
+  it("[MX-02][SOPORTE-REGRESION][INTEGRACION] muestra mensaje seguro ante rate limit de wallet", async () => {
     const user = userEvent.setup();
     resolveInstitutionalWalletByDni.mockReturnValue({
       unwrap: vi.fn().mockRejectedValue({ status: 429 }),
@@ -406,7 +406,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(screen.getByRole("button", { name: "Registrarse" })).toBeDisabled();
   });
 
-  it("D-NEW-015 / D-REG-003 | muestra mensaje controlado cuando falla la consulta de wallet", async () => {
+  it("[MX-02][SOPORTE-REGRESION][INTEGRACION] muestra error al consultar wallet", async () => {
     const user = userEvent.setup();
     resolveInstitutionalWalletByDni.mockReturnValue({
       unwrap: vi.fn().mockRejectedValue({ status: "FETCH_ERROR" }),

@@ -39,7 +39,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     vi.unstubAllGlobals();
   });
 
-  it("D-MAIL-002 / D-MAIL-004 | envia la solicitud real con body minimo y respuesta no enumerativa", async () => {
+  it("[MX-02][SOPORTE-REGRESION][INTEGRACION] envía la solicitud pública con body mínimo y respuesta no enumerativa", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const request = input instanceof Request ? input : new Request(input);
@@ -115,7 +115,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     }
   });
 
-  it("D-MAIL-005 | valida campos invalidos y no ejecuta request", async () => {
+  it("[MX-02][SOPORTE-REGRESION][INTEGRACION] valida campos públicos inválidos sin ejecutar request", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn(async (_input: RequestInfo | URL) =>
       jsonResponse({}),
@@ -183,7 +183,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(screen.queryByText("private@example.test")).not.toBeInTheDocument();
   });
 
-  it("D-MAIL-008 / D-RETRY-003 | evita doble submit mientras la solicitud esta en curso", async () => {
+  it("[MX-02][SOPORTE-REGRESION][INTEGRACION] evita doble submit de la solicitud pública", async () => {
     const user = userEvent.setup();
     let resolveRequest: (response: Response) => void = () => undefined;
     const pendingResponse = new Promise<Response>((resolve) => {
@@ -234,7 +234,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(await screen.findByText("Solicitud enviada")).toBeInTheDocument();
   });
 
-  it("D-MAIL-009 / D-MAIL-010 / D-MAIL-011 | muestra error seguro para duplicado, rate limit o timeout", async () => {
+  it("[MX-02][SOPORTE-REGRESION][INTEGRACION] muestra errores seguros de la solicitud pública", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const request = input instanceof Request ? input : new Request(input);

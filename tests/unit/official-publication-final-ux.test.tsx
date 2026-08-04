@@ -37,7 +37,7 @@ describe("official publication final frontend UX", () => {
     expect(screen.queryByText(/backend/i)).not.toBeInTheDocument();
   });
 
-  it("FA-N01 muestra capacidad insuficiente de TVD sin crear una solicitud", () => {
+  it("[MX-06][TVD-PUB-P0-003][INTEGRACION] muestra capacidad insuficiente sin crear una solicitud", () => {
     expect(getTvdCapacityReasonMessage("INSUFFICIENT_TVD_BALANCE")).toBe(
       "Faltan TVD para cubrir esta elección.",
     );

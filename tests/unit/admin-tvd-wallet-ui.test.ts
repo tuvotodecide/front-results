@@ -80,7 +80,7 @@ describe("admin TVD visual blockchain balance", () => {
     vi.stubEnv("VITE_TVD_DECIMALS", "18");
   });
 
-  it("TVD-RES-P0-004 TVD-PUB-P0-003 TVD-PUB-P0-004 | lee balanceOf y assignedBalance para la wallet activa y suma con bigint", async () => {
+  it("[MX-06][TVD-RES-P0-004][UNITARIA] lee balanceOf y assignedBalance de la wallet institucional", async () => {
     const { readTvdOnChainBalance } = await import(
       "@/features/adminTvd/services/tvdOnChainBalance"
     );

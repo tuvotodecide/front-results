@@ -245,7 +245,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     ).toBeInTheDocument();
   });
 
-  it("D-PERM-001 / D-STATE-003 | only lets SUPERADMIN reopen rejected or revoked institutional applications", async () => {
+  it("[MX-02][SOPORTE-REGRESION][INTEGRACION] solo permite a SUPERADMIN reabrir solicitudes rechazadas o revocadas", async () => {
     const user = userEvent.setup();
 
     const { unmount } = renderApprovals("ACCESS_APPROVER");

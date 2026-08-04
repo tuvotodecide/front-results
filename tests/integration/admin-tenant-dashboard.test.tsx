@@ -187,7 +187,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(screen.getAllByText(/Cierre:/i).length).toBeGreaterThan(0);
   });
 
-  it("D-LIST-003 / D-STATE-001 | filtra votaciones localmente por nombre y muestra estado vacio", async () => {
+  it("[MX-02][SOPORTE-REGRESION][INTEGRACION] filtra votaciones localmente por nombre y muestra estado vacío", async () => {
     const user = userEvent.setup();
     renderDashboard();
 

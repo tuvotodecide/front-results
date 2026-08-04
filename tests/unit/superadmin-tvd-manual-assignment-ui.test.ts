@@ -31,7 +31,7 @@ describe("superadmin TVD manual assignment helpers", () => {
     expect(normalizeTvdTokenAmount(input)).toBe(expected);
   });
 
-  it("valida cantidad y motivo requeridos por el DTO backend", () => {
+  it("[MX-06][TVD-ASSIGN-P0-001][UNITARIA] [MX-06][TVD-ASSIGN-P0-003][UNITARIA] valida cantidad y motivo requeridos", () => {
     expect(validateTvdManualAssignmentAmount("0")).toBe(
       "Ingresa una cantidad TVD mayor a 0.",
     );

@@ -118,6 +118,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm test:matrix:06
 
+      - name: MX-16 | Gestión Superadmin TVD y administración global | Frontend Admin
+        if: ${{ !cancelled() }}
+        run: node tools/run-module-tests.mjs vitest matrix_16
+
       - name: MX-09 | Votación presencial mediante kiosco y QR | Frontend Admin
         if: ${{ !cancelled() }}
         run: pnpm test:matrix:09
@@ -137,6 +141,10 @@ jobs:
       - name: MX-13 | Resultados públicos y landing de votaciones | Frontend Admin
         if: ${{ !cancelled() }}
         run: pnpm test:matrix:13
+
+      - name: MX-14 | Noticias, notificaciones y device tokens | Frontend Admin
+        if: ${{ !cancelled() }}
+        run: node tools/run-module-tests.mjs vitest matrix_14
 
       - name: Run module tests - Institutional applications residual outside MX-02
         if: ${{ !cancelled() }}

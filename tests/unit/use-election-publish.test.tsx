@@ -227,7 +227,7 @@ describe("useElectionPublish", () => {
     expect(result.current.publicationPadronCount).toBe(0);
   });
 
-  it("TVD-PUB-P0-006 | creates an official publication request without calling the legacy confirm endpoint", async () => {
+  it("[MX-06][TVD-PUB-P0-006][INTEGRACION] crea una solicitud de publicación sin usar el endpoint legado", async () => {
     const legacyConfirm = vi.fn();
     const createRequest = vi.fn().mockReturnValue({
       unwrap: vi.fn().mockResolvedValue({

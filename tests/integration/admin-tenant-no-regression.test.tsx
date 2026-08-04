@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { NextRequest } from "next/server";
 import { vi } from "vitest";
 import CreateElectionWizard from "@/features/elections/components/CreateElectionWizard";
@@ -33,11 +33,13 @@ const createRequest = (pathname: string, cookies: Record<string, string> = {}) =
 };
 
 describe("MX-02 | Gestión de instituciones, administradores y wallets | Frontend Admin | Compatibilidad", () => {
-  it("D-COMPAT-006 | mantiene el wizard real de creacion en /votacion/elecciones/new", () => {
+  it("D-COMPAT-006 | mantiene el wizard real de creacion en /votacion/elecciones/new", async () => {
     render(<CreateElectionWizard />);
 
-    expect(screen.getByText("Crear Nueva Votación")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Siguiente" })).toBeInTheDocument();
+    expect(await screen.findByText("Crear Nueva Votación")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Siguiente" })).toBeDisabled();
+    });
   });
 
   it("D-COMPAT-007 | agrega rutas mock al middleware sin quitar rutas productivas", () => {

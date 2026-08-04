@@ -684,7 +684,7 @@ describe("publication deadlines UX", () => {
     ).toBeInTheDocument();
   });
 
-  it("keeps official publication blocked by critical pending items", () => {
+  it("[MX-06][TVD-PUB-P0-002][INTEGRACION] bloquea la publicación sin padrón confirmado", () => {
     useElectionPublishMock.mockReturnValue({
       votingEvent: makeVotingEvent(),
       ballotPreview: null,
@@ -795,7 +795,7 @@ describe("publication deadlines UX", () => {
     consoleErrorMock.mockRestore();
   });
 
-  it("TVD-PUB-P0-008 TVD-PUB-P0-013 TVD-UI-P1-001 | shows persistent official publication request progress and blocks duplicate publication", async () => {
+  it("[MX-06][TVD-PUB-P0-008][INTEGRACION] muestra espera de firma móvil y bloquea la publicación duplicada", async () => {
     const user = userEvent.setup();
     useElectionPublishMock.mockReturnValue({
       votingEvent: readyForReviewEvent,
@@ -853,7 +853,7 @@ describe("publication deadlines UX", () => {
     ).toBeEnabled();
   });
 
-  it("TVD-PUB-P0-012 TVD-UI-P1-002 | shows retry action for failed retryable official publication attempts", async () => {
+  it("[MX-06][TVD-PUB-P0-012][INTEGRACION] conserva el fallo recuperable sin declarar éxito", async () => {
     const user = userEvent.setup();
     const activateElectionMock = vi.fn();
     useElectionPublishMock.mockReturnValue({
@@ -974,7 +974,7 @@ describe("publication deadlines UX", () => {
     confirmSpy.mockRestore();
   });
 
-  it("prevents a second official publication once the event is already published", () => {
+  it("[MX-06][TVD-PUB-P0-011][INTEGRACION] bloquea una nueva preparación tras la publicación confirmada", () => {
     useElectionPublishMock.mockReturnValue({
       votingEvent: makeVotingEvent({
         state: "OFFICIALLY_PUBLISHED",

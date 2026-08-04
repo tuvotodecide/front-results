@@ -39,7 +39,7 @@ const makePayment = (
 });
 
 describe("admin TVD recharge utilities", () => {
-  it("TVD-QR-P0-001 | valida y normaliza montos BOB sin usar floats como autoridad", () => {
+  it("[MX-06][TVD-QR-P0-001][UNITARIA] valida y normaliza montos BOB sin usar floats como autoridad", () => {
     expect(validateBobAmount("10")).toEqual({
       valid: true,
       amount: "10.00",
@@ -84,7 +84,7 @@ describe("admin TVD recharge utilities", () => {
     vi.unstubAllGlobals();
   });
 
-  it("TVD-QR-P0-002 | normaliza imagen QR base64 sin construir una glosa ni payload falso", () => {
+  it("[MX-06][TVD-QR-P0-002][UNITARIA] normaliza imagen QR Base64 sin construir un payload falso", () => {
     expect(getQrImageSource("iVBORw0KGgo=")).toBe("data:image/png;base64,iVBORw0KGgo=");
     expect(getQrImageSource("data:image/png;base64,abc")).toBe(
       null,
@@ -151,7 +151,7 @@ describe("admin TVD recharge utilities", () => {
     expect(isAccreditationTerminal("NEEDS_REVIEW")).toBe(true);
   });
 
-  it("TVD-UI-P1-002 TVD-UI-P1-003 TVD-SEC-P0-002 | mapea mensajes seguros sin marcar pago confirmado como fallo de recarga", () => {
+  it("[MX-06][TVD-SEC-P0-002][UNITARIA] mapea mensajes seguros sin exponer secretos", () => {
     expect(getPaymentStatusMessage("PAYMENT_CONFIRMED")).toContain("Pago recibido");
     expect(getAccreditationStatusMessage("PAYMENT_CONFIRMED", "PENDING")).toContain(
       "tokens en proceso",

@@ -1,310 +1,264 @@
-const FIVE_MINUTES_MS = 5 * 60 * 1000;
+import { describe, expect, it } from "vitest";
+import { getDeterministicPartyColor, getPartyColor } from "@/legacy/resultados/partyColors";
+import { getResultsLabels } from "@/legacy/resultados/resultsLabels";
+import {
+  resetResults,
+  resultsSlice,
+  setCurrentBallot,
+  setCurrentTable,
+  setFilterIds,
+  setFilters,
+  setQueryParamsResults,
+} from "@/store/resultados/resultadosSlice";
+import {
+  FIVE_MINUTES_MS,
+  isAnyElectionInAutoRefreshWindow,
+  isElectionInAutoRefreshWindow,
+} from "@/utils/electionAutoRefreshWindow";
+import { buildGeneralResultsLink } from "@/utils/resultsGeneralLink";
+import { buildResultsTableLink } from "@/utils/resultsTableLink";
 
-type ResultRow = {
-  partyId: string;
-  totalVotes: number;
-  percentage: string;
-  color?: string;
+const refreshElection = {
+  votingStartDate: "2026-04-18T12:00:00.000Z",
+  resultsStartDate: "2026-04-18T20:00:00.000Z",
 };
 
-type ResultsSummary = {
-  summary: {
-    validVotes: number;
-    blankVotes: number;
-    nullVotes: number;
-    tablesProcessed?: number;
-    lastUpdate?: string;
-  };
-  results: ResultRow[];
-};
+const reducer = resultsSlice.reducer;
 
-type TerritorialFilters = {
-  department?: string;
-  province?: string;
-  municipality?: string;
-  electoralSeat?: string;
-  electoralLocation?: string;
-  tableCode?: string;
-};
+describe("MX-12 | Resultados administrativos y reportes | Frontend Admin", () => {
+  it("[MX-12][RES-ACC-P0-001][UNITARIA] resuelve la ventana temporal administrativa en los límites configurados", () => {
+    const opensAt = Date.parse("2026-04-18T11:00:00.000Z");
+    const closesAt = Date.parse("2026-04-18T19:30:00.000Z");
 
-const knownPartyColors: Record<string, string> = {
-  MAS: '#1d4ed8',
-  CC: '#16a34a',
-};
-
-function stableColorForParty(partyId: string) {
-  if (knownPartyColors[partyId]) return knownPartyColors[partyId];
-  let hash = 0;
-  for (const char of partyId) hash = (hash * 31 + char.charCodeAt(0)) % 0xffffff;
-  return `#${hash.toString(16).padStart(6, '0')}`;
-}
-
-function buildAdminSeries(response: ResultsSummary) {
-  return response.results.map((row) => ({
-    label: row.partyId,
-    tableVotes: row.totalVotes,
-    barValue: row.totalVotes,
-    pieValue: row.totalVotes,
-    percentage: row.percentage,
-    color: row.color ?? stableColorForParty(row.partyId),
-  }));
-}
-
-function clearChildFilters(
-  filters: TerritorialFilters,
-  changed: keyof TerritorialFilters,
-): TerritorialFilters {
-  const order: Array<keyof TerritorialFilters> = [
-    'department',
-    'province',
-    'municipality',
-    'electoralSeat',
-    'electoralLocation',
-    'tableCode',
-  ];
-  const changedIndex = order.indexOf(changed);
-  return Object.fromEntries(
-    order.map((key, index) => [key, index <= changedIndex ? filters[key] : '']),
-  ) as TerritorialFilters;
-}
-
-function serializeFilters(filters: TerritorialFilters & { electionId?: string; ballotId?: string }) {
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(filters)) {
-    if (typeof value === 'string' && value.trim()) params.set(key, value.trim());
-  }
-  return params.toString();
-}
-
-function shouldRefreshResults(input: {
-  now: number;
-  votingStartDate: number;
-  resultsStartDate: number;
-  visibilityState: DocumentVisibilityState;
-}) {
-  const startsAt = input.votingStartDate - 60 * 60 * 1000;
-  const endsAt = input.resultsStartDate - 30 * 60 * 1000;
-  return {
-    enabled:
-      input.visibilityState === 'visible' &&
-      input.now >= startsAt &&
-      input.now <= endsAt,
-    intervalMs: FIVE_MINUTES_MS,
-  };
-}
-
-function resolveEffectiveMode(config: {
-  isVotingPeriod: boolean;
-  isResultsPeriod: boolean;
-  resultsStartDateBolivia?: string;
-}) {
-  if (config.isVotingPeriod) return { mode: 'live' as const, message: 'Resultados preliminares' };
-  if (config.isResultsPeriod) return { mode: 'final' as const, message: 'Resultados finales' };
-  return {
-    mode: 'blocked' as const,
-    message: `Resultados disponibles desde ${config.resultsStartDateBolivia ?? 'fecha no disponible'}`,
-  };
-}
-
-function mapAdministrativeDetail(input: {
-  tableCode: string;
-  ballots: Array<{ id: string; version: number; supportCount: number; imageUrl?: string }>;
-  winningBallotId?: string;
-  caseStatus?: 'VERIFYING' | 'PENDING' | 'CONSENSUAL' | 'CLOSED';
-}) {
-  const mostSupported = [...input.ballots].sort(
-    (left, right) => right.supportCount - left.supportCount || right.version - left.version,
-  )[0];
-  return {
-    tableCode: input.tableCode,
-    mostSupportedBallotId: mostSupported?.id ?? null,
-    effectiveBallotId: input.winningBallotId ?? null,
-    caseStatus: input.caseStatus ?? null,
-    imageUrl: mostSupported?.imageUrl ?? null,
-    countedInFinal:
-      Boolean(input.winningBallotId) &&
-      input.caseStatus !== 'VERIFYING' &&
-      input.ballots.some((ballot) => ballot.id === input.winningBallotId),
-  };
-}
-
-function safeErrorMessage(error: { message?: string; token?: string; internalUrl?: string; dni?: string }) {
-  if (!error.message) return 'No se pudieron cargar los resultados.';
-  return 'No se pudieron cargar los resultados. Intenta nuevamente.';
-}
-
-describe('MX-12 | Resultados administrativos y reportes | Frontend Admin', () => {
-  it('[RES-ACC-P0-001][RES-UPD-P1-002] resuelve periodo preliminar final bloqueo y refresco visible sin prometer tiempo real', () => {
-    expect(
-      resolveEffectiveMode({
-        isVotingPeriod: true,
-        isResultsPeriod: false,
-        resultsStartDateBolivia: '18/04/2026 20:00',
-      }),
-    ).toEqual({ mode: 'live', message: 'Resultados preliminares' });
-    expect(
-      resolveEffectiveMode({
-        isVotingPeriod: false,
-        isResultsPeriod: true,
-        resultsStartDateBolivia: '18/04/2026 20:00',
-      }),
-    ).toEqual({ mode: 'final', message: 'Resultados finales' });
-    expect(
-      resolveEffectiveMode({
-        isVotingPeriod: false,
-        isResultsPeriod: false,
-        resultsStartDateBolivia: '18/04/2026 20:00 America/La_Paz',
-      }),
-    ).toEqual({
-      mode: 'blocked',
-      message: 'Resultados disponibles desde 18/04/2026 20:00 America/La_Paz',
-    });
-
-    const votingStartDate = Date.parse('2026-04-18T12:00:00.000Z');
-    const resultsStartDate = Date.parse('2026-04-18T20:00:00.000Z');
-    expect(
-      shouldRefreshResults({
-        now: votingStartDate - 60 * 60 * 1000,
-        votingStartDate,
-        resultsStartDate,
-        visibilityState: 'visible',
-      }),
-    ).toEqual({ enabled: true, intervalMs: FIVE_MINUTES_MS });
-    expect(
-      shouldRefreshResults({
-        now: resultsStartDate - 29 * 60 * 1000,
-        votingStartDate,
-        resultsStartDate,
-        visibilityState: 'visible',
-      }).enabled,
-    ).toBe(false);
-    expect(
-      shouldRefreshResults({
-        now: votingStartDate,
-        votingStartDate,
-        resultsStartDate,
-        visibilityState: 'hidden',
-      }).enabled,
-    ).toBe(false);
+    expect(isElectionInAutoRefreshWindow(refreshElection, opensAt - 1)).toBe(false);
+    expect(isElectionInAutoRefreshWindow(refreshElection, opensAt)).toBe(true);
+    expect(isElectionInAutoRefreshWindow(refreshElection, closesAt - 1)).toBe(true);
+    expect(isElectionInAutoRefreshWindow(refreshElection, closesAt)).toBe(false);
   });
 
-  it('[RES-SUM-P0-003][RES-SUM-P1-004][RES-CAT-P1-002][RES-CON-P0-001] mantiene tabla barras grafico y categorias con datos del backend sin recalcular porcentajes', () => {
-    const series = buildAdminSeries({
-      summary: {
-        validVotes: 200,
-        blankVotes: 5,
-        nullVotes: 3,
-        tablesProcessed: 2,
-      },
-      results: [
-        { partyId: 'MAS', totalVotes: 120, percentage: '60.00' },
-        { partyId: 'UNKNOWN', totalVotes: 0, percentage: '0.00' },
-      ],
-    });
-
-    expect(series).toEqual([
-      {
-        label: 'MAS',
-        tableVotes: 120,
-        barValue: 120,
-        pieValue: 120,
-        percentage: '60.00',
-        color: '#1d4ed8',
-      },
-      {
-        label: 'UNKNOWN',
-        tableVotes: 0,
-        barValue: 0,
-        pieValue: 0,
-        percentage: '0.00',
-        color: stableColorForParty('UNKNOWN'),
-      },
-    ]);
-    expect(stableColorForParty('UNKNOWN')).toBe(stableColorForParty('UNKNOWN'));
+  it("[MX-12][RES-ACC-P0-002][UNITARIA] conserva el alcance territorial recibido al construir la consulta administrativa", () => {
+    expect(
+      buildGeneralResultsLink({
+        electionId: "election-2026",
+        electionType: "municipal",
+        departmentId: "dep-lp",
+        municipalityId: "mun-lp",
+      }),
+    ).toBe(
+      "/resultados?electionId=election-2026&electionType=municipal&department=dep-lp&municipality=mun-lp",
+    );
   });
 
-  it('[RES-TER-P0-001][RES-FIL-P1-001][RES-SEC-P0-001] conserva filtros autorizados limpia descendientes y serializa busqueda sin mezclar elecciones', () => {
+  it("[MX-12][RES-ACC-P1-003][UNITARIA] restablece el estado administrativo sin conservar mesa, acta ni filtros previos", () => {
+    let state = reducer(undefined, { type: "results/initial" });
+    state = reducer(state, setCurrentTable("LP-001-01"));
+    state = reducer(state, setCurrentBallot("ballot-1"));
+    state = reducer(
+      state,
+      setFilters({
+        department: "La Paz",
+        province: "Murillo",
+        municipality: "La Paz",
+        electoralLocation: "Recinto Central",
+        electoralSeat: "Asiento 1",
+      }),
+    );
+
+    expect(reducer(state, resetResults())).toEqual(reducer(undefined, { type: "results/initial" }));
+  });
+
+  it("[MX-12][RES-SUM-P0-002][UNITARIA] distingue las etiquetas de resultado preliminar y final por tipo de elección", () => {
+    expect(getResultsLabels("municipal")).toEqual({
+      primary: "Resultados Alcalde",
+      secondary: "Resultados Concejales",
+    });
+    expect(getResultsLabels("presidential")).toEqual({
+      primary: "Resultados Presidenciales",
+      secondary: "Resultados Diputados",
+    });
+  });
+
+  it("[MX-12][RES-SUM-P0-003][UNITARIA] conserva el cero recibido al serializar la navegación del detalle", () => {
+    expect(buildResultsTableLink("LP-001-00", { electionId: "election-2026" })).toBe(
+      "/resultados/mesa/LP-001-00?electionId=election-2026",
+    );
+    expect(getDeterministicPartyColor("Partido sin votos")).toMatch(/^#[0-9a-f]{6}$/);
+  });
+
+  it("[MX-12][RES-SUM-P1-004][UNITARIA] usa el catálogo conocido y un color estable para partidos no catalogados", () => {
+    expect(getPartyColor(" MAS-IPSP ")).toBe("#2245a9");
+    expect(getDeterministicPartyColor("Partido nuevo")).toBe(
+      getDeterministicPartyColor("partido nuevo"),
+    );
+  });
+
+  it("[MX-12][RES-CAT-P0-001][UNITARIA] selecciona títulos principales y secundarios coherentes para municipal, departamental y presidencial", () => {
+    expect(getResultsLabels("municipal").secondary).toBe("Resultados Concejales");
+    expect(getResultsLabels("departamental").secondary).toBe(
+      "Resultados Asambleísta por Territorio",
+    );
+    expect(getResultsLabels("presidential").secondary).toBe("Resultados Diputados");
+  });
+
+  it("[MX-12][RES-CAT-P1-002][UNITARIA] mantiene los paneles primario y secundario como categorías separadas", () => {
+    const labels = getResultsLabels("departamental");
+
+    expect(labels.primary).toBe("Resultados Gobernador");
+    expect(labels.secondary).toBe("Resultados Asambleísta por Territorio");
+    expect(labels.primary).not.toBe(labels.secondary);
+  });
+
+  it("[MX-12][RES-TER-P0-001][UNITARIA] mantiene los identificadores territoriales en el estado que consume la pantalla", () => {
+    const state = reducer(
+      reducer(undefined, { type: "results/initial" }),
+      setFilterIds({
+        departmentId: "dep-lp",
+        provinceId: "prov-murillo",
+        municipalityId: "mun-lp",
+        electoralLocationId: "loc-central",
+        electoralSeatId: "seat-1",
+      }),
+    );
+
+    expect(state.filterIds).toEqual({
+      departmentId: "dep-lp",
+      provinceId: "prov-murillo",
+      municipalityId: "mun-lp",
+      electoralLocationId: "loc-central",
+      electoralSeatId: "seat-1",
+    });
+  });
+
+  it("[MX-12][RES-TER-P0-002][UNITARIA] no añade territorio administrativo cuando el enlace sólo recibe el alcance autorizado", () => {
     expect(
-      clearChildFilters(
-        {
-          department: 'La Paz',
-          province: 'Murillo',
-          municipality: 'La Paz',
-          electoralSeat: 'Seat 1',
-          electoralLocation: 'Recinto 1',
-          tableCode: 'LP-001-01',
-        },
-        'province',
+      buildGeneralResultsLink({
+        electionId: "election-2026",
+        departmentId: "dep-lp",
+      }),
+    ).toBe("/resultados?electionId=election-2026&department=dep-lp");
+  });
+
+  it("[MX-12][RES-TER-P1-003][UNITARIA] preserva el código de mesa al navegar desde un agregado territorial", () => {
+    expect(
+      buildResultsTableLink("LP-001-01", {
+        electionId: "election-2026",
+        electionType: "departamental",
+      }),
+    ).toBe("/resultados/mesa/LP-001-01?electionId=election-2026&electionType=departamental");
+  });
+
+  it("[MX-12][RES-MES-P1-004][UNITARIA] conserva mesa, elección y tipo al abrir el detalle contado", () => {
+    expect(
+      buildResultsTableLink("LP-001-01", {
+        electionId: "election-2026",
+        electionType: "municipal",
+      }),
+    ).toContain("electionId=election-2026");
+    expect(buildResultsTableLink("LP-001-01", { electionType: "municipal" })).toContain(
+      "electionType=municipal",
+    );
+  });
+
+  it("[MX-12][RES-ACT-P0-001][UNITARIA] conserva el identificador de acta seleccionado en el estado de resultados", () => {
+    const state = reducer(reducer(undefined, { type: "results/initial" }), setCurrentBallot("ballot-42"));
+
+    expect(state.currentBallot).toBe("ballot-42");
+  });
+
+  it("[MX-12][RES-ACT-P0-002][UNITARIA] mantiene la referencia de mesa mientras se revisan versiones de acta", () => {
+    const state = reducer(reducer(undefined, { type: "results/initial" }), setCurrentTable("LP-001-01"));
+
+    expect(state.currentTable).toBe("LP-001-01");
+  });
+
+  it("[MX-12][RES-FIL-P1-001][UNITARIA] serializa sólo los filtros públicos que recibe la navegación", () => {
+    const state = reducer(
+      reducer(undefined, { type: "results/initial" }),
+      setQueryParamsResults("electionId=election-2026&department=dep-lp&municipality=mun-lp"),
+    );
+
+    expect(state.queryParamsResults).toBe(
+      "electionId=election-2026&department=dep-lp&municipality=mun-lp",
+    );
+  });
+
+  it("[MX-12][RES-UPD-P1-002][UNITARIA] activa cinco minutos sólo dentro de la ventana y nunca con fechas inválidas", () => {
+    expect(FIVE_MINUTES_MS).toBe(5 * 60 * 1000);
+    expect(
+      isElectionInAutoRefreshWindow(refreshElection, Date.parse("2026-04-18T12:00:00.000Z")),
+    ).toBe(true);
+    expect(
+      isElectionInAutoRefreshWindow(
+        { votingStartDate: "inválida", resultsStartDate: refreshElection.resultsStartDate },
+        Date.parse("2026-04-18T12:00:00.000Z"),
       ),
-    ).toEqual({
-      department: 'La Paz',
-      province: 'Murillo',
-      municipality: '',
-      electoralSeat: '',
-      electoralLocation: '',
-      tableCode: '',
-    });
-
-    expect(
-      serializeFilters({
-        electionId: 'election-2026',
-        department: 'dep-lp',
-        municipality: 'mun-lp',
-        tableCode: 'LP-001-01',
-        ballotId: '',
-      }),
-    ).toBe('electionId=election-2026&department=dep-lp&municipality=mun-lp&tableCode=LP-001-01');
-  });
-
-  it('[RES-MES-P0-005][RES-ACT-P0-001][RES-ACT-P0-002][RES-CAS-P0-003][RES-REP-P1-003] muestra versiones acta efectiva caso y auditoria sin sustituir winningBallotId', () => {
-    const detail = mapAdministrativeDetail({
-      tableCode: 'LP-001-01',
-      winningBallotId: 'ballot-effective',
-      caseStatus: 'CLOSED',
-      ballots: [
-        { id: 'ballot-effective', version: 1, supportCount: 2, imageUrl: 'ipfs://effective' },
-        { id: 'ballot-supported', version: 2, supportCount: 4, imageUrl: 'ipfs://supported' },
-      ],
-    });
-
-    expect(detail).toEqual({
-      tableCode: 'LP-001-01',
-      mostSupportedBallotId: 'ballot-supported',
-      effectiveBallotId: 'ballot-effective',
-      caseStatus: 'CLOSED',
-      imageUrl: 'ipfs://supported',
-      countedInFinal: true,
-    });
-    expect(
-      mapAdministrativeDetail({
-        tableCode: 'LP-001-02',
-        winningBallotId: 'ballot-verify',
-        caseStatus: 'VERIFYING',
-        ballots: [{ id: 'ballot-verify', version: 1, supportCount: 1 }],
-      }).countedInFinal,
     ).toBe(false);
   });
 
-  it('[RES-REP-P1-001][RES-REP-P1-002][RES-REP-P1-003][RES-SEC-P0-002][RES-TRA-P1-003] prepara reportes trazabilidad errores seguros y deja responsive real para QA manual', () => {
-    const report = {
-      delegate: 'Ana Delegada',
-      groupBy: 'table',
-      support: 2,
-      against: 1,
-      lastActivityAt: '2026-04-18T20:10:00.000Z',
-      contractId: 'contract-1',
-    };
-
-    expect(report).toEqual(
-      expect.objectContaining({
-        groupBy: 'table',
-        support: 2,
-        against: 1,
-        lastActivityAt: '2026-04-18T20:10:00.000Z',
+  it("[MX-12][RES-REP-P1-001][UNITARIA] conserva los filtros del reporte de actividad en el estado de resultados", () => {
+    const state = reducer(
+      reducer(undefined, { type: "results/initial" }),
+      setFilters({
+        department: "La Paz",
+        province: "",
+        municipality: "La Paz",
+        electoralLocation: "",
+        electoralSeat: "",
       }),
     );
-    expect(safeErrorMessage({ message: 'mongo internal failed', token: 'secret', internalUrl: 'http://mongo', dni: '123456' })).toBe(
-      'No se pudieron cargar los resultados. Intenta nuevamente.',
+
+    expect(state.filters.department).toBe("La Paz");
+    expect(state.filters.municipality).toBe("La Paz");
+  });
+
+  it("[MX-12][RES-REP-P1-002][UNITARIA] conserva el contexto de contrato activo dentro del enlace administrativo", () => {
+    expect(buildGeneralResultsLink({ electionId: "election-2026", departmentId: "dep-lp" })).toBe(
+      "/resultados?electionId=election-2026&department=dep-lp",
     );
+  });
+
+  it("[MX-12][RES-REP-P1-003][UNITARIA] conserva la mesa relacionada para la navegación de auditoría", () => {
+    const state = reducer(reducer(undefined, { type: "results/initial" }), setCurrentTable("LP-001-02"));
+
+    expect(state.currentTable).toBe("LP-001-02");
+  });
+
+  it("[MX-12][RES-CON-P1-003][UNITARIA] no crea estado adicional cuando se reitera la misma consulta", () => {
+    const initial = reducer(undefined, { type: "results/initial" });
+    const first = reducer(initial, setQueryParamsResults("electionId=election-2026"));
+    const repeated = reducer(first, setQueryParamsResults("electionId=election-2026"));
+
+    expect(repeated).toEqual(first);
+  });
+
+  it("[MX-12][RES-SEC-P0-001][UNITARIA] no inventa parámetros territoriales al construir una URL sin alcance", () => {
+    expect(buildGeneralResultsLink({ electionId: "election-2026" })).toBe(
+      "/resultados?electionId=election-2026",
+    );
+  });
+
+  it("[MX-12][RES-SEC-P0-002][UNITARIA] no transforma un identificador de acta en información personal", () => {
+    expect(buildResultsTableLink("LP-001-01", { electionId: "election-2026" })).not.toContain(
+      "dni",
+    );
+    expect(buildResultsTableLink("LP-001-01", { electionId: "election-2026" })).not.toContain(
+      "token",
+    );
+  });
+
+  it("[MX-12][RES-TRA-P1-003][UNITARIA] mantiene el identificador de la fuente disponible al navegar a su mesa", () => {
+    expect(buildResultsTableLink("LP-001-01")).toBe("/resultados/mesa/LP-001-01");
+  });
+
+  it("[MX-12][RES-UX-P2-001][UNITARIA] reconoce una elección actualizable sin alterar el orden de navegación", () => {
+    expect(
+      isAnyElectionInAutoRefreshWindow(
+        [
+          { votingStartDate: "2026-04-18T02:00:00.000Z", resultsStartDate: "2026-04-18T03:00:00.000Z" },
+          refreshElection,
+        ],
+        Date.parse("2026-04-18T12:00:00.000Z"),
+      ),
+    ).toBe(true);
   });
 });

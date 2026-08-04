@@ -170,6 +170,7 @@
       ],
       "files": [
         "tests/integration/election-padron-flow.test.tsx",
+        "tests/integration/matrix-05-padron-admin.test.tsx",
         "tests/unit/padron-gemini-observations.test.ts",
         "tests/unit/padron-parser.test.ts",
         "tests/unit/padron-eligibility-check.test.tsx",
@@ -225,6 +226,20 @@
         "tests/unit/official-publication-coverage-registry.test.ts"
       ]
     },
+    "matrix_16": {
+      "name": "MX-16 | Gestión Superadmin TVD y administración global | Frontend Admin",
+      "flows": ["MX-16", "ADM-ACC", "ADM-PNL", "ADM-CTR", "ADM-PRM", "ADM-WAL", "ADM-ASG", "ADM-OPS", "ADM-REG", "ADM-REC", "ADM-SEC", "ADM-CON", "ADM-UX"],
+      "files": [
+        "tests/unit/matrix-16-superadmin-access.test.ts",
+        "tests/unit/matrix-16-contract-wallet.test.ts",
+        "tests/unit/matrix-16-assignment-operations.test.ts",
+        "tests/unit/matrix-16-institutional-management.test.ts",
+        "tests/integration/matrix-16-superadmin-access.test.tsx",
+        "tests/integration/matrix-16-contract-wallet.test.tsx",
+        "tests/integration/matrix-16-assignment-operations.test.tsx",
+        "tests/integration/matrix-16-institutional-management.test.tsx"
+      ]
+    },
     "matrix_09": {
       "name": "MX-09 | Votación presencial mediante kiosco y QR | Frontend Admin",
       "flows": [
@@ -237,7 +252,13 @@
       ],
       "files": [
         "tests/unit/kiosk-constants.test.ts",
-        "tests/unit/presential-kiosk-matrix.test.ts"
+        "tests/unit/presential-kiosk-matrix.test.ts",
+        "tests/unit/matrix-09-kiosk-links-token-status.unit.test.tsx",
+        "tests/integration/matrix-09-kiosk-toggle.integration.test.tsx",
+        "tests/integration/matrix-09-kiosk-enable-link.integration.test.tsx",
+        "tests/integration/matrix-09-kiosk-session-qr.integration.test.tsx",
+        "tests/integration/matrix-09-kiosk-sse-recovery.integration.test.tsx",
+        "tests/integration/matrix-09-kiosk-security-status.integration.test.tsx"
       ]
     },
     "matrix_10": {
@@ -260,14 +281,21 @@
         "SEC-TEN",
         "SEC-DAT",
         "SEC-DEL",
-        "SEC-BLO",
-        "TRA-P1",
-        "ACC-ADM",
-        "ACC-REP"
-      ],
-      "files": [
-        "tests/unit/matrix-10-territorial-ui.test.ts"
-      ]
+      "SEC-BLO",
+      "TRA-P1",
+      "ACC-ADM",
+      "ACC-REP"
+    ],
+    "files": [
+      "tests/unit/matrix-10-territorial-ui.test.ts",
+      "tests/unit/matrix-10-territorial-forms.unit.test.tsx",
+      "tests/unit/matrix-10-territorial-access.test.tsx",
+      "tests/integration/matrix-10-territorial-lists.integration.test.tsx",
+      "tests/integration/matrix-10-territorial-forms.integration.test.tsx",
+      "tests/integration/matrix-10-territorial-reports.integration.test.tsx",
+      "tests/integration/matrix-10-territorial-scope.integration.test.tsx",
+      "tests/integration/matrix-10-territorial-revocation.integration.test.tsx"
+    ]
     },
     "matrix_11": {
       "name": "MX-11 | Atestiguamiento, actas y evidencias | Frontend Admin",
@@ -284,6 +312,7 @@
         "ACC-ADM"
       ],
       "files": [
+        "tests/unit/matrix-11-attestation-admin-ui.test.tsx",
         "tests/integration/matrix-11-attestation-admin.test.tsx"
       ]
     },
@@ -312,7 +341,7 @@
       ]
     },
     "matrix_13": {
-      "name": "MX-13 | Resultados públicos y landing de votaciones | Frontend Admin",
+      "name": "MX-13 | Resultados públicos y landing de votaciones | Frontend público",
       "flows": [
         "MX-13",
         "PUB-LND",
@@ -333,11 +362,37 @@
         "PUB-UX"
       ],
       "files": [
+        "tests/unit/matrix-13-public-landing-detail.test.tsx",
+        "tests/unit/matrix-13-public-territory-security.test.tsx",
+        "tests/integration/matrix-13-public-pages.test.tsx",
+        "tests/integration/matrix-13-public-results-navigation.test.tsx",
+        "tests/acceptance/matrix-13-public-eligibility.test.tsx"
+      ]
+    },
+    "public_results_legacy": {
+      "name": "Resultados públicos históricos compartidos fuera de la selección focal MX-13",
+      "flows": [
+        "PUBLIC_RESULTS_LEGACY"
+      ],
+      "files": [
         "tests/unit/public-landing-repository.test.ts",
         "tests/unit/past-elections-page.test.tsx",
         "tests/integration/resultados-reports-audit.test.tsx",
         "tests/unit/public-election-detail-repository.test.ts",
         "tests/unit/public-results-navigation.test.tsx"
+      ]
+    },
+    "matrix_14": {
+      "name": "MX-14 | Noticias, notificaciones y device tokens | Frontend Admin",
+      "flows": [
+        "MX-14",
+        "NOT-ADM",
+        "NOT-SEC",
+        "NOT-UX"
+      ],
+      "files": [
+        "tests/unit/matrix-14-news-admin.test.tsx",
+        "tests/integration/matrix-14-news-admin.test.tsx"
       ]
     },
     "active-election": {

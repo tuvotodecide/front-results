@@ -57,7 +57,7 @@ describe("MX-05 | Padrón, staging, elegibilidad y archivos | Frontend público"
     fetchMock.mockReset();
   });
 
-  it("PAD-ELG-P0-001 / PAD-SEC-P0-001 | consulta elegibilidad por evento sin exponer datos personales", async () => {
+  it("[MX-05][PAD-ELG-P0-001][ACEPTACION] consulta elegibilidad por evento sin exponer datos personales", async () => {
     fetchMock.mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -90,7 +90,7 @@ describe("MX-05 | Padrón, staging, elegibilidad y archivos | Frontend público"
     expect(JSON.stringify(result)).not.toContain("ana@example.com");
   });
 
-  it("PAD-ELG-P0-002 / PAD-SEC-P0-001 | lista elegibilidad multi-evento sin enumerar padrón completo", async () => {
+  it("[MX-05][PAD-ELG-P0-002][ACEPTACION] lista elegibilidad multi-evento sin enumerar padrón completo", async () => {
     fetchMock.mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -145,7 +145,7 @@ describe("MX-05 | Padrón, staging, elegibilidad y archivos | Frontend público"
     expect(JSON.stringify(result)).not.toContain("voters");
   });
 
-  it("PAD-ELG-P0-001 / PAD-SEC-P0-001 | muestra elegible, no elegible, carga y error seguro", async () => {
+  it("[MX-05][PAD-SEC-P0-001][ACEPTACION] muestra estados públicos sin datos personales", async () => {
     fetchMock
       .mockResolvedValueOnce({
         ok: true,

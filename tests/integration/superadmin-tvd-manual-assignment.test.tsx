@@ -177,7 +177,7 @@ describe("Superadmin TVD manual assignment", () => {
     vi.unstubAllGlobals();
   });
 
-  it("TVD-ASSIGN-P0-001 TVD-ASSIGN-P0-004 | lista instituciones y wallets reales, crea con Idempotency-Key y sigue el detalle", async () => {
+  it("[MX-06][TVD-ASSIGN-P0-001][INTEGRACION] [MX-06][TVD-ASSIGN-P0-004][INTEGRACION] asigna una wallet elegible sin duplicar el envío", async () => {
     const user = userEvent.setup();
     const captured: CapturedRequest[] = [];
     const fetchMock = createFetchMock(captured);
@@ -246,7 +246,7 @@ describe("Superadmin TVD manual assignment", () => {
     ).toBe(true);
   });
 
-  it("TVD-ASSIGN-P0-002 TVD-ASSIGN-P0-003 | bloquea datos inválidos, wallets no elegibles y no envía wallet manual", async () => {
+  it("[MX-06][TVD-ASSIGN-P0-002][INTEGRACION] [MX-06][TVD-ASSIGN-P0-003][INTEGRACION] bloquea wallets no elegibles y datos inválidos", async () => {
     const user = userEvent.setup();
     const captured: CapturedRequest[] = [];
     vi.stubGlobal("fetch", createFetchMock(captured));
@@ -280,7 +280,7 @@ describe("Superadmin TVD manual assignment", () => {
     ).toBe(false);
   });
 
-  it("TVD-ASSIGN-P0-005 | muestra errores seguros y permite reintentar listas", async () => {
+  it("[MX-06][TVD-ASSIGN-P0-005][INTEGRACION] muestra un error recuperable y permite reintentar", async () => {
     const user = userEvent.setup();
     const fetchMock = vi
       .fn()

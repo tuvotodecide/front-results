@@ -67,7 +67,7 @@ describe("admin TVD capacity UI helpers", () => {
     );
   });
 
-  it("TVD-PUB-P0-003 | ofrece QR solo cuando el bloqueo real es saldo insuficiente", () => {
+  it("[MX-06][TVD-PUB-P0-003][UNITARIA] ofrece QR solo cuando el bloqueo real es saldo insuficiente", () => {
     expect(isTvdCapacityRechargeable("INSUFFICIENT_TVD_BALANCE")).toBe(true);
     expect(isTvdCapacityRechargeable("PADRON_PROCESSING")).toBe(false);
     expect(isTvdCapacityRechargeable(null)).toBe(false);

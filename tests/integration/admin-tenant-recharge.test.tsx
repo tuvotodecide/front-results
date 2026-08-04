@@ -287,7 +287,7 @@ describe("Admin tenant operational recharge", () => {
         vi.unstubAllGlobals();
   });
 
-  it("TVD-QR-P0-001 | consulta cotizacion real y no muestra paquetes ni saldo mock", async () => {
+  it("[MX-06][TVD-QR-P0-001][INTEGRACION] consulta cotización y muestra datos económicos", async () => {
     const user = userEvent.setup();
     renderRechargePage();
 
@@ -402,7 +402,7 @@ describe("Admin tenant operational recharge", () => {
     appendChild.mockRestore();
   });
 
-  it("TVD-QR-P0-010 | regenera QR solo cuando backend autoriza y usa endpoint con Idempotency-Key", async () => {
+  it("[MX-06][TVD-QR-P0-010][INTEGRACION] regenera QR solo cuando backend lo autoriza", async () => {
     const user = userEvent.setup();
     paymentDetailQueue.push(expiredPaymentDetailResponse);
     renderRechargePage();
@@ -476,7 +476,7 @@ describe("Admin tenant operational recharge", () => {
     expect(screen.getByRole("button", { name: /Generar QR/i })).toBeDisabled();
   });
 
-  it("TVD-QR-P0-006 TVD-RES-P0-001 TVD-UI-P1-001 | muestra pago confirmado y acreditacion pendiente como estados separados", async () => {
+  it("[MX-06][TVD-QR-P0-006][INTEGRACION] muestra pago confirmado y acreditación pendiente como estados separados", async () => {
     const user = userEvent.setup();
     paymentDetailQueue.push(confirmedPaymentResponse);
     renderRechargePage();
@@ -493,7 +493,7 @@ describe("Admin tenant operational recharge", () => {
     expect(screen.queryByText("Pago fallido")).not.toBeInTheDocument();
   });
 
-  it("TVD-RES-P0-003 TVD-UI-P1-002 | detiene polling visual y muestra bloqueo de configuracion de acreditacion", async () => {
+  it("[MX-06][TVD-UI-P1-002][INTEGRACION] conserva el contexto ante un bloqueo recuperable de acreditación", async () => {
     const user = userEvent.setup();
     paymentDetailQueue.push(blockedAccreditationResponse);
     renderRechargePage();
@@ -509,7 +509,7 @@ describe("Admin tenant operational recharge", () => {
     expect(paymentDetailQueue).toHaveLength(0);
   });
 
-  it("TVD-RES-P0-002 TVD-RES-P0-004 TVD-UI-P1-003 | actualiza saldo visual al confirmar acreditacion y permite copiar referencia", async () => {
+  it("[MX-06][TVD-RES-P0-002][INTEGRACION] actualiza el saldo visual al confirmar la acreditación", async () => {
     const user = userEvent.setup();
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", {
