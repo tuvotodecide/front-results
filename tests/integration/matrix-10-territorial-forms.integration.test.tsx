@@ -73,6 +73,10 @@ vi.mock("react-select/async", () => ({
       electoralLocationId: { value: "loc-central", label: "Recinto Central" },
     }[name];
 
+    if (!option) {
+      return <button aria-label={name} disabled type="button">{value?.label ?? `Seleccionar ${name}`}</button>;
+    }
+
     return (
       <button
         aria-label={name}

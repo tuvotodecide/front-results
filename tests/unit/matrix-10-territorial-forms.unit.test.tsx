@@ -25,6 +25,7 @@ vi.mock("@/domains/resultados/components/BackButton", () => ({ default: () => <b
 vi.mock("react-select/async", () => ({
   default: ({ isDisabled, loadOptions, name, onChange, value }: { isDisabled?: boolean; loadOptions?: (input: string) => Promise<unknown>; name: string; onChange: (option: { value: string; label: string }) => void; value?: { label: string } | null }) => {
     const option = { departmentId: { value: "dep-lp", label: "La Paz" }, provinceId: { value: "prov-murillo", label: "Murillo" }, municipalityId: { value: "mun-lp", label: "La Paz" }, electoralSeatId: { value: "seat-central", label: "Central" }, electoralLocationId: { value: "loc-central", label: "Recinto Central" } }[name];
+    if (!option) return <button aria-label={name} disabled type="button">{value?.label ?? `Seleccionar ${name}`}</button>;
     return <button aria-label={name} disabled={isDisabled} type="button" onClick={async () => { await loadOptions?.(""); onChange(option); }}>{value?.label ?? `Seleccionar ${name}`}</button>;
   },
 }));

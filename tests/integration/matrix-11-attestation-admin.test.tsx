@@ -13,6 +13,13 @@ import {
   mayorContract,
 } from "../fixtures/admin/resultadosReports";
 
+function requireHTMLElement(element: Element | null, description: string): HTMLElement {
+  if (!(element instanceof HTMLElement)) {
+    throw new Error(`No se encontró ${description}`);
+  }
+  return element;
+}
+
 const testHarness = vi.hoisted(() => {
   const state = {
     auth: {
@@ -598,11 +605,13 @@ describe("MX-11 | Atestiguamiento, actas y evidencias | Frontend Admin", () => {
     const workpaperCards = screen
       .getAllByRole("heading", { name: "Hoja de trabajo electoral" })
       .map((heading) => heading.closest('[class~="sm:max-w-sm"]'));
-    const [versionOneCard, versionTwoCard] = workpaperCards;
+    const [versionOneElement, versionTwoElement] = workpaperCards;
 
-    if (!versionOneCard || !versionTwoCard) {
+    if (!versionOneElement || !versionTwoElement) {
       throw new Error("Las dos tarjetas de versiones de acta no están disponibles.");
     }
+    const versionOneCard = requireHTMLElement(versionOneElement, "la tarjeta de la versión 1");
+    const versionTwoCard = requireHTMLElement(versionTwoElement, "la tarjeta de la versión 2");
 
     expect(within(versionOneCard).getByText("Versión").parentElement).toHaveTextContent("1");
     expect(within(versionOneCard).getByText("Usuarios").parentElement).toHaveTextContent("2");

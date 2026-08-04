@@ -12,7 +12,7 @@ afterEach(() => {
 describe("MX-13 | aceptación de consulta pública de padrón", () => {
   it("[MX-13][PUB-CNS-P0-001][ACEPTACION] permite a un visitante verificar un carnet válido y comunica los estados habilitado y no habilitado sin exponer el padrón", async () => {
     const user = userEvent.setup();
-    const fetchMock = vi.fn(async () =>
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse({
         status: "ELIGIBLE",
         referenceVersion: "publica-v1",
@@ -29,7 +29,9 @@ describe("MX-13 | aceptación de consulta pública de padrón", () => {
 
     expect(await within(dialog).findByRole("heading", { name: "HABILITADO" })).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [eligibleRequest, eligibleInit] = fetchMock.mock.calls[0]!;
+    const eligibleCall = fetchMock.mock.calls[0];
+    if (!eligibleCall) throw new Error("fetch no fue invocado");
+    const [eligibleRequest, eligibleInit] = eligibleCall;
     const eligibleUrl = new URL(String(eligibleRequest));
     expect(eligibleUrl.pathname).toBe("/api/v1/voting/events/evt-publico/eligibility/public");
     expect(eligibleUrl.searchParams.get("carnet")).toBe("1234567");
@@ -48,7 +50,7 @@ describe("MX-13 | aceptación de consulta pública de padrón", () => {
 
   it("[MX-13][PUB-CNS-P0-002][ACEPTACION] informa consulta pública deshabilitada sin sesión administrativa ni datos de otra identidad", async () => {
     const user = userEvent.setup();
-    const fetchMock = vi.fn(async () =>
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse({
         status: "PUBLIC_CHECK_DISABLED",
         internalReason: "configuración privada",
@@ -66,7 +68,9 @@ describe("MX-13 | aceptación de consulta pública de padrón", () => {
       await within(dialog).findByRole("heading", { name: "CONSULTA DESHABILITADA" }),
     ).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [disabledRequest, disabledInit] = fetchMock.mock.calls[0]!;
+    const disabledCall = fetchMock.mock.calls[0];
+    if (!disabledCall) throw new Error("fetch no fue invocado");
+    const [disabledRequest, disabledInit] = disabledCall;
     const disabledUrl = new URL(String(disabledRequest));
     expect(disabledUrl.pathname).toBe("/api/v1/voting/events/evt-sin-consulta/eligibility/public");
     expect(disabledUrl.searchParams.get("carnet")).toBe("1234567");

@@ -85,7 +85,7 @@ describe("MX-13 | páginas públicas", () => {
   });
 
   it("[MX-13][PUB-LST-P0-002][INTEGRACION] conserva la landing estática pública y verifica separadamente el contrato de elecciones activas", async () => {
-    const fetchMock = vi.fn(async () => jsonResponse(publicLandingResponse));
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => jsonResponse(publicLandingResponse));
     vi.stubGlobal("fetch", fetchMock);
     const repository = new PublicLandingRepositoryApi();
     const elections = await repository.getActiveElections();
@@ -93,7 +93,9 @@ describe("MX-13 | páginas públicas", () => {
     render(<VotacionPublicLandingPage />);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [landingRequest, landingInit] = fetchMock.mock.calls[0]!;
+    const firstCall = fetchMock.mock.calls[0];
+    if (!firstCall) throw new Error("fetch no fue invocado");
+    const [landingRequest, landingInit] = firstCall;
     expect(new URL(String(landingRequest)).pathname).toBe("/api/v1/voting/events/public/landing");
     expect(landingInit).toEqual({ method: "GET", headers: { Accept: "application/json" } });
     expect(elections.featured).toEqual(

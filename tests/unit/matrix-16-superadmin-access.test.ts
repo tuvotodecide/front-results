@@ -39,13 +39,14 @@ describe("MX-16 | acceso y aislamiento Superadmin", () => {
   it("[MX-16][ADM-ACC-P0-001][UNITARIA] resuelve el home y retornos globales a /superadmin", () => {
     const globalContext = { type: "GLOBAL_ADMIN" as const, role: "SUPERADMIN" as const };
     expect(resolveHomeByContext(globalContext)).toBe("/superadmin");
-    expect(resolvePostLoginRedirect({
+    const authState = {
       availableContexts: [globalContext],
       requiresContextSelection: false,
       defaultContext: globalContext,
       activeContext: globalContext,
-      accessStatus: "ACTIVE",
-    }, "/resultados/panel")).toBe("/superadmin");
+      accessStatus: null,
+    } satisfies Pick<AuthState, "availableContexts" | "requiresContextSelection" | "defaultContext" | "activeContext" | "accessStatus">;
+    expect(resolvePostLoginRedirect(authState, "/resultados/panel")).toBe("/superadmin");
   });
 
   it("[MX-16][ADM-ACC-P0-002][UNITARIA] limpia sesión global al cerrar sesión", () => {

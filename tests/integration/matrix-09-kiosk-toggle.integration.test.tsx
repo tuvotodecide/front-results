@@ -141,12 +141,15 @@ const openAdditionalConfiguration = async () => {
   return { page, user };
 };
 
-const getPresentialKioskSection = () => {
+const getPresentialKioskSection = (): HTMLElement => {
   const section = screen
     .getByText("Usar voto presencial con QR")
     .closest("div.rounded-lg");
   if (!section) {
     throw new Error("No se encontró la sección de voto presencial con QR.");
+  }
+  if (!(section instanceof HTMLElement)) {
+    throw new Error("No se encontró la sección del punto presencial");
   }
   return section;
 };

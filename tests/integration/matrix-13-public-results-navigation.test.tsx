@@ -224,7 +224,7 @@ describe("MX-13 | resultados y navegación pública", () => {
   });
 
   it("[MX-13][PUB-SEC-P0-001][INTEGRACION] renderiza solo datos públicos cuando el detalle HTTP trae campos administrativos adicionales", async () => {
-    const fetchMock = vi.fn(async () =>
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse(
         makePublicElectionResponse({
           dni: "12345678",
@@ -245,7 +245,9 @@ describe("MX-13 | resultados y navegación pública", () => {
     expect(screen.queryByText("token-interno")).not.toBeInTheDocument();
     expect(screen.queryByText("admin@private.test")).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [detailRequest, detailInit] = fetchMock.mock.calls[0]!;
+    const firstCall = fetchMock.mock.calls[0];
+    if (!firstCall) throw new Error("fetch no fue invocado");
+    const [detailRequest, detailInit] = firstCall;
     expect(new URL(String(detailRequest)).pathname).toBe(
       "/api/v1/voting/events/public/detail/evt-publico",
     );
