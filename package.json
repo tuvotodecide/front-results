@@ -48,7 +48,8 @@
     "test:matrix:04": "node tools/run-module-tests.mjs vitest matrix_04",
     "test:matrix:05": "node tools/run-module-tests.mjs vitest matrix_05",
     "test:matrix:06": "node tools/run-module-tests.mjs vitest matrix_06",
-    "test:matrix:16": "node tools/run-module-tests.mjs vitest matrix_16",
+    "test:matrix:07": "node tools/run-module-tests.mjs vitest matrix_07",
+    "test:matrix:08": "node tools/run-module-tests.mjs vitest matrix_08",
     "test:matrix:09": "node tools/run-module-tests.mjs vitest matrix_09",
     "test:matrix:10": "node tools/run-module-tests.mjs vitest matrix_10",
     "test:module:applications": "node tools/run-module-tests.mjs vitest applications_remaining",
@@ -57,8 +58,8 @@
     "test:module:election-config": "node tools/run-module-tests.mjs vitest election-config",
     "test:module:election-options": "node tools/run-module-tests.mjs vitest election-options",
     "test:module:register": "node tools/run-module-tests.mjs vitest register_remaining",
-    "test:module:publication": "node tools/run-module-tests.mjs vitest publication",
-    "test:module:active-election": "node tools/run-module-tests.mjs vitest active-election",
+    "test:module:publication": "node tools/run-module-tests.mjs vitest matrix_07",
+    "test:module:active-election": "node tools/run-module-tests.mjs vitest matrix_08",
     "test:module:results": "node tools/run-module-tests.mjs vitest results",
     "test:module:participation": "node tools/run-module-tests.mjs vitest participation",
     "test:module:notifications": "node tools/run-module-tests.mjs vitest notifications",
@@ -75,7 +76,8 @@
     "cypress:module:results": "node tools/run-module-tests.mjs cypress results",
     "test:matrix:11": "node tools/run-module-tests.mjs vitest matrix_11",
     "test:matrix:12": "node tools/run-module-tests.mjs vitest matrix_12",
-    "test:matrix:13": "node tools/run-module-tests.mjs vitest matrix_13"
+    "test:matrix:13": "node tools/run-module-tests.mjs vitest matrix_13",
+    "test:matrix:16": "node tools/run-module-tests.mjs vitest matrix_16"
   },
   "dependencies": {
     "@aws-sdk/client-ses": "^3.1075.0",

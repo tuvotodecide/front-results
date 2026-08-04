@@ -114,13 +114,17 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm test:matrix:05
 
-      - name: MX-06 | TVD, QR, acreditación y publicación | Frontend Admin
+      - name: MX-06 | TVD, QR y acreditación | Frontend Admin
         if: ${{ !cancelled() }}
         run: pnpm test:matrix:06
 
-      - name: MX-16 | Gestión Superadmin TVD y administración global | Frontend Admin
+      - name: MX-07 | Revisión y publicación oficial de votaciones | Frontend Admin
         if: ${{ !cancelled() }}
-        run: node tools/run-module-tests.mjs vitest matrix_16
+        run: pnpm test:matrix:07
+
+      - name: MX-08 | Estado de elección activa y papeleta | Frontend Admin
+        if: ${{ !cancelled() }}
+        run: pnpm test:matrix:08
 
       - name: MX-09 | Votación presencial mediante kiosco y QR | Frontend Admin
         if: ${{ !cancelled() }}
@@ -146,6 +150,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: node tools/run-module-tests.mjs vitest matrix_14
 
+      - name: MX-16 | Gestión Superadmin TVD y administración global | Frontend Admin
+        if: ${{ !cancelled() }}
+        run: pnpm test:matrix:16
+
       - name: Run module tests - Institutional applications residual outside MX-02
         if: ${{ !cancelled() }}
         run: pnpm test:module:applications
@@ -157,10 +165,6 @@ jobs:
       - name: Run module tests - Electoral register residual outside MX-05
         if: ${{ !cancelled() }}
         run: pnpm test:module:register
-
-      - name: Run module tests - Active election status and ballot
-        if: ${{ !cancelled() }}
-        run: pnpm test:module:active-election
 
       - name: Run module tests - Election results and public view
         if: ${{ !cancelled() }}

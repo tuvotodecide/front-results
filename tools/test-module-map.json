@@ -196,13 +196,12 @@
       "files": []
     },
     "matrix_06": {
-      "name": "MX-06 | TVD, QR, acreditación y publicación | Frontend Admin",
+      "name": "MX-06 | TVD, QR y acreditación | Frontend Admin",
       "flows": [
         "MX-06",
         "TVD-ASSIGN",
         "TVD-QR",
         "TVD-RES",
-        "TVD-PUB",
         "TVD-SEC",
         "TVD-UI"
       ],
@@ -212,13 +211,24 @@
         "tests/integration/superadmin-tvd-contracts-parameters.test.tsx",
         "tests/integration/superadmin-tvd-manual-assignment.test.tsx",
         "tests/integration/superadmin-tvd-operations.test.tsx",
-        "tests/integration/election-tvd-capacity-review.test.tsx",
         "tests/unit/admin-tvd-recharge-ui.test.ts",
         "tests/unit/admin-tvd-capacity-ui.test.ts",
         "tests/unit/admin-tvd-wallet-ui.test.ts",
         "tests/unit/superadmin-tvd-manual-assignment-ui.test.ts",
         "tests/unit/superadmin-tvd-blockchain-utils.test.ts",
-        "tests/unit/tvd-wallet-lookup-ui.test.ts",
+        "tests/unit/tvd-wallet-lookup-ui.test.ts"
+      ]
+    },
+    "matrix_07": {
+      "name": "MX-07 | Revisión y publicación oficial de votaciones | Frontend Admin",
+      "flows": [
+        "MX-07",
+        "TVD-PUB",
+        "FRONT-H",
+        "BRS-F18"
+      ],
+      "files": [
+        "tests/integration/election-tvd-capacity-review.test.tsx",
         "tests/unit/use-election-publish.test.tsx",
         "tests/unit/official-publication-api.test.ts",
         "tests/unit/official-publication-final-ux.test.tsx",
@@ -395,9 +405,10 @@
         "tests/integration/matrix-14-news-admin.test.tsx"
       ]
     },
-    "active-election": {
-      "name": "Active election status and ballot",
+    "matrix_08": {
+      "name": "MX-08 | Estado de elección activa y papeleta | Frontend Admin",
       "flows": [
+        "MX-08",
         "FRONT-I",
         "BRS-F17"
       ],
