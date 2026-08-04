@@ -76,6 +76,47 @@ describe("participation analytics votingEvents API", () => {
     expect(result.data?.participationPercentage).toBe(70);
   });
 
+  it("getParticipationList usa GET paginado y normaliza los estados de participación", async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: [
+            { id: "voter-1", carnetNorm: "123456", status: "PARTICIPATED" },
+            { id: "voter-2", carnetNorm: "789012", status: "PENDING" },
+          ],
+          page: 1,
+          limit: 20,
+          total: 120,
+          totalPages: 6,
+          padronVersionId: "padron-1",
+        }),
+        { headers: { "content-type": "application/json" } },
+      ),
+    );
+    const store = createApiStore();
+
+    const result = await store.dispatch(
+      votingEventsEndpoints.endpoints.getParticipationList.initiate({
+        eventId: "evt-1",
+        page: 1,
+        limit: 20,
+      }),
+    );
+
+    const request = getFetchCall();
+    expect(request.url).toContain("/api/v1/voting/events/evt-1/participation-list?page=1&limit=20");
+    expect(request.method).toBe("GET");
+    expect(result.data).toMatchObject({
+      total: 120,
+      totalPages: 6,
+      padronVersionId: "padron-1",
+      data: [
+        { carnetNorm: "123456", status: "PARTICIPATED" },
+        { carnetNorm: "789012", status: "PENDING" },
+      ],
+    });
+  });
+
   it("downloadParticipationReportWithScreenshot usa POST, envía modalScreenshot y usa filename del header", async () => {
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);

@@ -31,6 +31,7 @@ import type {
   PadronVoter,
   PadronWorkflowSummary,
   ParticipationAnalytics,
+  ParticipationList,
   ParticipationReportDownload,
   ParticipationReportRequest,
   ParticipationStatus,
@@ -1085,6 +1086,39 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
       ],
     }),
 
+    getParticipationList: builder.query<
+      ParticipationList,
+      { eventId: string; page?: number; limit?: number }
+    >({
+      query: ({ eventId, page = 1, limit = 50 }) =>
+        `/voting/events/${eventId}/participation-list?page=${page}&limit=${limit}`,
+      transformResponse: (response: any) => {
+        const source = response?.data && !Array.isArray(response.data) ? response.data : response;
+        return {
+          data: Array.isArray(source?.data)
+            ? source.data.map((entry: any) => ({
+                id: String(entry?.id ?? entry?._id ?? ""),
+                carnetNorm: String(entry?.carnetNorm ?? ""),
+                status:
+                  entry?.status === "PARTICIPATED"
+                    ? ("PARTICIPATED" as const)
+                    : ("PENDING" as const),
+              }))
+            : [],
+          page: Number(source?.page ?? 1),
+          limit: Number(source?.limit ?? 50),
+          total: Number(source?.total ?? 0),
+          totalPages: Number(source?.totalPages ?? 0),
+          padronVersionId: source?.padronVersionId
+            ? String(source.padronVersionId)
+            : undefined,
+        };
+      },
+      providesTags: (_result, _error, { eventId }) => [
+        { type: "VotingEvents", id: eventId },
+      ],
+    }),
+
     downloadParticipationReportWithScreenshot: builder.mutation<
       ParticipationReportDownload,
       ParticipationReportRequest
@@ -1333,6 +1367,7 @@ export const {
   useLazyDownloadPadronCsvQuery,
   useLazyDownloadPadronPdfQuery,
   useGetParticipationAnalyticsQuery,
+  useGetParticipationListQuery,
   useDownloadParticipationReportWithScreenshotMutation,
   useUpdateEventScheduleMutation,
   useUpdatePublicEligibilityMutation,

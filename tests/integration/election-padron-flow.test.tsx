@@ -42,6 +42,7 @@ vi.mock("@/store/votingEvents", () => ({
   useGetVotingEventsQuery: vi.fn(),
   useGetEventResultsQuery: vi.fn(),
   useGetParticipationAnalyticsQuery: vi.fn(),
+  useGetParticipationListQuery: vi.fn(),
   useDownloadParticipationReportWithScreenshotMutation: vi.fn(),
   useCreatePresentialSessionMutation: vi.fn(),
   useUpdateEventScheduleMutation: vi.fn(),
@@ -322,6 +323,11 @@ describe("MX-05 | Padrón, staging, elegibilidad y archivos | Frontend", () => {
     vi.mocked(votingEvents.useLazyGetPadronImportStatusQuery).mockReturnValue([vi.fn()] as any);
     vi.mocked(votingEvents.useGetParticipationAnalyticsQuery).mockReturnValue({
       data: undefined,
+      isFetching: false,
+      isError: false,
+    } as any);
+    vi.mocked(votingEvents.useGetParticipationListQuery).mockReturnValue({
+      data: { data: [], page: 1, limit: 20, total: 0, totalPages: 1 },
       isFetching: false,
       isError: false,
     } as any);

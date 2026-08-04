@@ -64,6 +64,7 @@ vi.mock("@/store/votingEvents", () => ({
   useGetPadronVotersQuery: vi.fn(),
   useGetPadronWorkflowSummaryQuery: vi.fn(),
   useGetParticipationAnalyticsQuery: vi.fn(),
+  useGetParticipationListQuery: vi.fn(),
   useGetVotingEventQuery: vi.fn(),
   useGetVotingEventsQuery: vi.fn(),
   useLazyDownloadPadronPdfQuery: vi.fn(),
@@ -167,6 +168,11 @@ describe("participation analytics flow", () => {
         totalPending: 30,
         participationPercentage: 70,
       },
+      isFetching: false,
+      isError: false,
+    } as any);
+    vi.mocked(votingEvents.useGetParticipationListQuery).mockReturnValue({
+      data: { data: [], page: 1, limit: 20, total: 0, totalPages: 1 },
       isFetching: false,
       isError: false,
     } as any);

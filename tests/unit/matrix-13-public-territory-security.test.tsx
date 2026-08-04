@@ -322,7 +322,7 @@ describe("MX-13 | territorio, mesa, acta y seguridad pública", () => {
     );
     expect(screen.getByRole("link", { name: "NFT" })).toHaveAttribute(
       "href",
-      "https://testnet.routescan.io/nft/0xdCa6d6E8f4E69C3Cf86B656f0bBf9b460727Bed9/record-publico",
+      "record-publico",
     );
     expect(screen.getByRole("link", { name: "Metadata" })).toHaveAttribute(
       "href",

@@ -188,6 +188,18 @@ const statusMocksState = vi.hoisted(() => {
     participationPercentage: 66.7,
   });
 
+  const makeParticipationList = () => ({
+    data: [
+      { id: "voter-1", carnetNorm: "1234567", status: "PARTICIPATED" },
+      { id: "voter-2", carnetNorm: "7654321", status: "PENDING" },
+    ],
+    page: 1,
+    limit: 20,
+    total: 2,
+    totalPages: 1,
+    padronVersionId: "padron-1",
+  });
+
   return {
     electionId: "evt-status",
     navigate: vi.fn(),
@@ -230,6 +242,7 @@ const statusMocksState = vi.hoisted(() => {
     makeWorkflowSummary,
     makePadronData,
     makeAnalytics,
+    makeParticipationList,
     event: makeEvent(),
     results: makeResults() as any,
     publicElection: makePublicElection() as any,
@@ -238,6 +251,7 @@ const statusMocksState = vi.hoisted(() => {
     workflowSummary: makeWorkflowSummary() as any,
     padronData: makePadronData() as any,
     analytics: makeAnalytics() as any,
+    participationList: makeParticipationList() as any,
   };
 });
 
@@ -362,6 +376,11 @@ vi.mock("@/store/votingEvents", () => ({
   }),
   useGetParticipationAnalyticsQuery: (_eventId: string, options?: { skip?: boolean }) => ({
     data: options?.skip ? undefined : statusMocks.analytics,
+    isFetching: false,
+    isError: false,
+  }),
+  useGetParticipationListQuery: (_args: unknown, options?: { skip?: boolean }) => ({
+    data: options?.skip ? undefined : statusMocks.participationList,
     isFetching: false,
     isError: false,
   }),

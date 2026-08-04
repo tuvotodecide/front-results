@@ -34,6 +34,7 @@ import {
   useCreatePresentialSessionMutation,
   useUpdateEventScheduleMutation,
   useGetParticipationAnalyticsQuery,
+  useGetParticipationListQuery,
 } from "../../store/votingEvents";
 import type { PartyWithCandidates, Position, Voter } from "./types";
 import type {
@@ -602,6 +603,18 @@ const ActiveElectionStatusPage: React.FC = () => {
   const { data: resultsData } = useGetEventResultsQuery(actualElectionId, {
     skip: !actualElectionId || !shouldShowResults,
   });
+  const shouldLoadParticipationList =
+    activeStatusTab === "more" &&
+    activeMoreView === "padron" &&
+    !activeWorkflowDraft;
+  const {
+    data: participationList,
+    isFetching: loadingParticipationList,
+    isError: participationListError,
+  } = useGetParticipationListQuery(
+    { eventId: actualElectionId, page, limit: 20 },
+    { skip: !actualElectionId || !shouldLoadParticipationList, refetchOnMountOrArgChange: true },
+  );
   const shouldLoadAnalytics =
     activeStatusTab === "more" &&
     activeMoreView === "analytics" &&
@@ -643,16 +656,17 @@ const ActiveElectionStatusPage: React.FC = () => {
       }));
     }
 
-    return (padronData?.voters ?? []).map((voter, index) => ({
+    return (participationList?.data ?? []).map((voter, index) => ({
       id: voter.id,
       rowNumber: index + 1 + (page - 1) * 20,
       carnet: voter.carnetNorm,
-      fullName: voter.fullName ?? "-",
-      enabled: voter.enabled,
+      fullName: "-",
+      enabled: true,
       hasIdentity: true,
       status: "valid",
+      participationStatus: voter.status,
     }));
-  }, [activeWorkflowDraft, padronData?.voters, page, stagingData?.data]);
+  }, [activeWorkflowDraft, page, participationList?.data, stagingData?.data]);
 
   const filteredVoters = useMemo(
     () =>
@@ -786,10 +800,10 @@ const ActiveElectionStatusPage: React.FC = () => {
       : null;
   const displayPadronTotal = activeWorkflowDraft
     ? Number(stagingData?.total ?? activeWorkflowDraft.summary.stagingCount ?? 0)
-    : Number(padronData?.total ?? 0);
+    : Number(participationList?.total ?? padronData?.total ?? 0);
   const displayPadronTotalPages = activeWorkflowDraft
     ? Number(stagingData?.totalPages ?? 1)
-    : Number(padronData?.totalPages ?? 1);
+    : Number(participationList?.totalPages ?? padronData?.totalPages ?? 1);
   const displayPadronValidCount = activeWorkflowDraft
     ? Number(activeWorkflowDraft.summary.enabledCount ?? 0)
     : Number(currentPadron?.totals.validCount ?? 0);
@@ -1389,7 +1403,13 @@ const ActiveElectionStatusPage: React.FC = () => {
                       />
                     </label>
                     <div className="overflow-x-auto rounded-xl border border-gray-200">
-                      {filteredVoters.length > 0 ? (
+                      {loadingParticipationList ? (
+                        <p className="p-5 text-center text-sm text-gray-500">Cargando participación...</p>
+                      ) : participationListError ? (
+                        <p className="p-5 text-center text-sm text-red-700">
+                          No se pudo cargar la participación del padrón.
+                        </p>
+                      ) : filteredVoters.length > 0 ? (
                         <table className="min-w-full divide-y divide-gray-200 text-sm">
                           <thead className="bg-gray-50 text-left text-xs font-bold uppercase tracking-wide text-gray-500">
                             <tr>
@@ -1399,8 +1419,9 @@ const ActiveElectionStatusPage: React.FC = () => {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100 bg-white">
-                            {filteredVoters.map((voter, index) => {
-                              const participated = voter.enabled && index % 2 === 0;
+                            {filteredVoters.map((voter) => {
+                              const participated = voter.participationStatus === "PARTICIPATED";
+                              const hasParticipationStatus = Boolean(voter.participationStatus);
                               return (
                                 <tr key={voter.id}>
                                   <td className="px-4 py-3 font-medium text-gray-900">{voter.carnet}</td>
@@ -1410,8 +1431,18 @@ const ActiveElectionStatusPage: React.FC = () => {
                                     </span>
                                   </td>
                                   <td className="px-4 py-3">
-                                    <span className={participated ? "rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700" : "rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700"}>
-                                      {participated ? "Votó" : "No votó"}
+                                    <span className={
+                                      !hasParticipationStatus
+                                        ? "rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600"
+                                        : participated
+                                          ? "rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700"
+                                          : "rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700"
+                                    }>
+                                      {!hasParticipationStatus
+                                        ? "Sin participación"
+                                        : participated
+                                          ? "Votó"
+                                          : "No votó"}
                                     </span>
                                   </td>
                                 </tr>

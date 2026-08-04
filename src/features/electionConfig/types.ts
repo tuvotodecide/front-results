@@ -86,6 +86,7 @@ export interface Voter {
   hasIdentity: boolean;
   enabled: boolean;
   status: VoterStatus;
+  participationStatus?: 'PARTICIPATED' | 'PENDING';
   invalidReason?: InvalidReason;
   sourceKind?: 'PARSED' | 'MANUAL' | 'CLONED';
   sourceRow?: number | null;

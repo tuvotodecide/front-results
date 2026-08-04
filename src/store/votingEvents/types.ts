@@ -406,6 +406,23 @@ export interface ParticipationAnalytics {
   participationPercentage: number;
 }
 
+export type ParticipationListStatus = "PARTICIPATED" | "PENDING";
+
+export interface ParticipationListEntry {
+  id: string;
+  carnetNorm: string;
+  status: ParticipationListStatus;
+}
+
+export interface ParticipationList {
+  data: ParticipationListEntry[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  padronVersionId?: string;
+}
+
 export interface ParticipationReportRequest {
   eventId: string;
   modalScreenshot: string;
