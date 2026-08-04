@@ -22,6 +22,22 @@ import {
   matrix13PublicBallot as publicBallot,
 } from "../fixtures/matrix-13-public";
 
+const nftEnvironment = vi.hoisted(() => ({
+  nftBaseUrl: "https://testnet.routescan.io/nft/0xdCa6d6E8f4E69C3Cf86B656f0bBf9b460727Bed9/",
+}));
+
+vi.mock("@/shared/system/runtimeEnv", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/shared/system/runtimeEnv")>();
+
+  return {
+    ...actual,
+    getRuntimeEnv: (viteKey: string, nextPublicKey?: string) =>
+      viteKey === "VITE_BASE_NFT_URL" || nextPublicKey === "NEXT_PUBLIC_BASE_NFT_URL"
+        ? nftEnvironment.nftBaseUrl
+        : actual.getRuntimeEnv(viteKey, nextPublicKey),
+  };
+});
+
 const resultsHarness = vi.hoisted(() => ({
   electionId: "evt-publico" as string | null,
   electionType: "municipal",
@@ -315,6 +331,8 @@ describe("MX-13 | territorio, mesa, acta y seguridad pública", () => {
 
   it("[MX-13][PUB-SEC-P0-001][UNITARIA] muestra los enlaces técnicos actuales junto a la imagen pública", () => {
     render(<ImagesSection images={[publicBallot]} />);
+    const nftBaseUrl = nftEnvironment.nftBaseUrl;
+    const recordId = "record-publico";
 
     expect(screen.getByRole("img", { name: "Vista previa de hoja de trabajo electoral" })).toHaveAttribute(
       "src",
@@ -322,7 +340,7 @@ describe("MX-13 | territorio, mesa, acta y seguridad pública", () => {
     );
     expect(screen.getByRole("link", { name: "NFT" })).toHaveAttribute(
       "href",
-      "record-publico",
+      `${nftBaseUrl}${recordId}`,
     );
     expect(screen.getByRole("link", { name: "Metadata" })).toHaveAttribute(
       "href",
