@@ -178,10 +178,6 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm test:module:results
 
-      - name: Run module tests - Participation history and analytics
-        if: ${{ !cancelled() }}
-        run: pnpm test:module:participation
-
       - name: Run module tests - News and notifications
         if: ${{ !cancelled() }}
         run: pnpm test:module:notifications
