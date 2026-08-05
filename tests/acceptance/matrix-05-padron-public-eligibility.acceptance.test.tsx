@@ -4,6 +4,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import PadronCheckModal from "@/features/padronCheck/PadronCheckModal";
 
 const jsonResponse = (body: unknown) => ({ ok: true, json: async () => body });
+type PublicEligibilityFetch = (
+  input: RequestInfo | URL,
+  init?: RequestInit,
+) => Promise<ReturnType<typeof jsonResponse>>;
 const privateValues = [
   "Ana Pérez",
   "ana@example.test",
@@ -33,7 +37,7 @@ afterEach(() => {
 describe("MX-05 | aceptación pública de elegibilidad", () => {
   it("[MX-05][PAD-ELG-P0-001][ACEPTACION] consulta por votación y muestra estados públicos sin datos adicionales", async () => {
     const user = userEvent.setup();
-    const fetchMock = vi.fn();
+    const fetchMock = vi.fn<PublicEligibilityFetch>();
     let resolveEligible!: (response: ReturnType<typeof jsonResponse>) => void;
     vi.stubGlobal("fetch", fetchMock);
 
@@ -45,7 +49,12 @@ describe("MX-05 | aceptación pública de elegibilidad", () => {
     expect(screen.getByText("Verificando...")).toBeInTheDocument();
     resolveEligible(jsonResponse({ status: "ELIGIBLE", fullName: "Ana Pérez", email: "ana@example.test" }));
     expect(await within(eligibleDialog).findByRole("heading", { name: "HABILITADO" })).toBeInTheDocument();
-    expect(String(fetchMock.mock.calls[0]?.[0])).toContain("/voting/events/evt-publico/eligibility/public?carnet=1234567");
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "/voting/events/evt-publico/eligibility/public?carnet=1234567",
+      ),
+      expect.objectContaining({ method: "GET" }),
+    );
 
     cleanup();
     fetchMock.mockResolvedValueOnce(jsonResponse({ status: "NOT_ELIGIBLE" }));
@@ -77,7 +86,7 @@ describe("MX-05 | aceptación pública de elegibilidad", () => {
 
   it("[MX-05][PAD-ELG-P0-002][ACEPTACION] consulta eventos públicos visibles y conserva el orden de la respuesta pública", async () => {
     const user = userEvent.setup();
-    const fetchMock = vi.fn(async () =>
+    const fetchMock = vi.fn<PublicEligibilityFetch>(async () =>
       jsonResponse({
         carnet: "1234567",
         events: [
@@ -95,7 +104,12 @@ describe("MX-05 | aceptación pública de elegibilidad", () => {
     expect(names).toEqual(["Alpha elección", "Beta elección"]);
     expect(within(dialog).getByText("HABILITADO")).toBeInTheDocument();
     expect(within(dialog).getByText("NO HABILITADO")).toBeInTheDocument();
-    expect(String(fetchMock.mock.calls[0]?.[0])).toContain("/voting/events/public/eligibility-by-carnet?carnet=1234567");
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "/voting/events/public/eligibility-by-carnet?carnet=1234567",
+      ),
+      expect.objectContaining({ method: "GET" }),
+    );
 
     cleanup();
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ carnet: "1234567", events: [] })));

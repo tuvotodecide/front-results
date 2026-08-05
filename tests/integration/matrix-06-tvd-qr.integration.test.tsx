@@ -127,7 +127,7 @@ describe("MX-06 | recarga QR TVD", () => {
           estimatedTvd: amount === "11.00" ? "4" : fixtures.quote.estimatedTvd,
         });
       },
-      createQr: (call) =>
+      createQr: () =>
         fetchCalls.filter((item) => item.url.endsWith("/payments/qr")).length === 1
           ? new Promise<Response>((resolve) => {
               resolveFirstCreate = resolve;
@@ -312,15 +312,50 @@ describe("MX-06 | recarga QR TVD", () => {
   it("[MX-06][TVD-QR-P0-010][INTEGRACION] regenera solo con autorización y bloquea conciliación", async () => {
     const user = userEvent.setup();
     const fixtures = createRechargeFixtures();
-    const first = configureRechargeMocks({ paymentDetails: { "payment-1": [fixtures.expiredPayment] } });
+    const regeneratedQrImage = "iVBORw0KGgoA";
+    const regeneratedPayment = {
+      ...fixtures.regeneratedQrPayment,
+      qrImage: regeneratedQrImage,
+    };
+    const regeneratedDetail = {
+      ...fixtures.activePayment,
+      paymentId: "payment-2",
+      merchantReference: "223344",
+      providerReference: "443322",
+      qrImage: regeneratedQrImage,
+      qrExpiresAt: "2099-07-21T13:00:00.000Z",
+    };
+    const first = configureRechargeMocks({
+      paymentDetails: {
+        "payment-1": [fixtures.expiredPayment],
+        "payment-2": [regeneratedDetail],
+      },
+      regenerateQr: () => jsonResponse(regeneratedPayment),
+    });
     const rendered = renderRechargePage();
 
     await createQr(user);
     const regenerateButton = await screen.findByRole("button", { name: /Regenerar QR/i });
     await user.dblClick(regenerateButton);
     expect(await screen.findByText("QR regenerado. Esperando confirmación del pago.")).toBeInTheDocument();
-    expect(screen.getByText("223344")).toBeInTheDocument();
-    expect(first.fetchCalls.filter((call) => call.url.endsWith("/payments/payment-1/regenerate"))).toHaveLength(1);
+    expect(await screen.findByText("223344")).toBeInTheDocument();
+    const regeneratedQr = await screen.findByAltText("Código QR para pagar la recarga TVD");
+    expect(regeneratedQr).toHaveAttribute(
+      "src",
+      `data:image/png;base64,${regeneratedQrImage}`,
+    );
+    expect(screen.getByText("Bs. 10.50")).toBeInTheDocument();
+    expect(screen.queryByText("TVD acreditados correctamente.")).not.toBeInTheDocument();
+    expect(
+      first.fetchCalls.filter((call) =>
+        call.url.endsWith("/payments/payment-1/regenerate"),
+      ),
+    ).toHaveLength(1);
+    expect(
+      first.fetchCalls.filter((call) =>
+        call.url.endsWith("/tvd/me/payments/payment-2"),
+      ),
+    ).toHaveLength(1);
     rendered.unmount();
 
     resetRechargeMocks();

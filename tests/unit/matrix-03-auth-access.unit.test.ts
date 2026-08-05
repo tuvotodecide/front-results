@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loginResultadosValidationSchema } from "@/domains/auth-resultados/screens/LoginResultadosPage";
-import { DEV_AUTH_COOKIE, DEV_AUTH_COOKIE_VALUE } from "@/domains/dev-auth/devAuth";
 import { POST as loginDevSuperadmin } from "@/app/api/dev/auth/superadmin/route";
 import { authSlice, logOut, setAuth, type AuthState } from "@/store/auth/authSlice";
 import { resolveDomainLogin, resolvePostLoginRedirect } from "@/store/auth/contextUtils";

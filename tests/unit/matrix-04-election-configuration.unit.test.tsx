@@ -6,7 +6,6 @@ import ElectionsPage from "@/features/elections/ElectionsPage";
 import CreateElectionWizard from "@/features/elections/components/CreateElectionWizard";
 import AddPositionModal from "@/features/electionConfig/components/AddPositionModal";
 import BallotPreview from "@/features/electionConfig/components/BallotPreview";
-import CandidatesModal from "@/features/electionConfig/components/CandidatesModal";
 import PartyModal from "@/features/electionConfig/components/PartyModal";
 import {
   getMinimumLocalDateTime,
