@@ -490,19 +490,39 @@ describe("MX-11 | Atestiguamiento, actas y evidencias | Frontend Admin", () => {
     expect(screen.queryByRole("button", { name: /aprobar|corregir|rechazar/i })).toBeNull();
   });
 
-  it("[BASELINE_ACTUAL][NO_CUBRE_MATRIZ] mantiene visible el detalle de mesa aunque no exista resumen de caso", async () => {
-    render(<ResultadosMesaPage />);
+  it("[MX-11][ADM-CAS-P1-003][INTEGRACION] consulta el detalle de casos por mesa y elección y conserva la evidencia ganadora como sólo lectura", async () => {
+    const { rerender } = render(<ResultadosMesaPage />);
 
     await flushEffects();
 
+    expect(testHarness.useGetAttestationCasesByTableCodeQuery).toHaveBeenCalledWith(
+      { tableCode: "LP-001-01", electionId: "election-2026" },
+      expect.objectContaining({ skip: false, refetchOnFocus: true, refetchOnReconnect: true }),
+    );
+    expect(testHarness.useGetMostSupportedBallotByTableCodeQuery).toHaveBeenCalledWith(
+      { tableCode: "LP-001-01", electionId: "election-2026" },
+      expect.objectContaining({ skip: false, refetchOnFocus: true, refetchOnReconnect: true }),
+    );
     expect(screen.getByText("Mesa #1")).toBeInTheDocument();
     expect(screen.getByText("Código: LP-001-01")).toBeInTheDocument();
     expect(
       screen.getAllByRole("heading", { name: "Hoja de trabajo electoral" }),
     ).toHaveLength(2);
-    expect(screen.queryByText("En verificación")).toBeNull();
-    expect(screen.queryByText("Resumen del caso")).toBeNull();
-    expect(screen.queryByText(/Sin resolución/i)).toBeNull();
+    expect(screen.getByText("Mas apoyada")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /aprobar|corregir|rechazar|resolver/i })).toBeNull();
+
+    testHarness.useElectionId.mockReturnValue("election-2027");
+    rerender(<ResultadosMesaPage />);
+    await flushEffects();
+
+    expect(testHarness.useGetAttestationCasesByTableCodeQuery).toHaveBeenLastCalledWith(
+      { tableCode: "LP-001-01", electionId: "election-2027" },
+      expect.objectContaining({ skip: false }),
+    );
+    expect(testHarness.useGetMostSupportedBallotByTableCodeQuery).toHaveBeenLastCalledWith(
+      { tableCode: "LP-001-01", electionId: "election-2027" },
+      expect.objectContaining({ skip: false }),
+    );
   });
 
   it("[MX-11][ADM-REP-P1-004][INTEGRACION] muestra sólo actividad de atestiguamiento del contrato permitido", async () => {
@@ -527,7 +547,7 @@ describe("MX-11 | Atestiguamiento, actas y evidencias | Frontend Admin", () => {
     expect(screen.queryByText(/directorio general|alta de delegado|retiro de delegado/i)).toBeNull();
   });
 
-  it("[BASELINE_ACTUAL][NO_CUBRE_MATRIZ] consulta atestiguamientos por acta en la UI actual", async () => {
+  it("[MX-11][SEC-ACC-P0-001][INTEGRACION] conserva las consultas de acta y atestiguamiento acotadas al recurso autorizado", async () => {
     render(<ResultadosImagenPage />);
 
     await flushEffects();
@@ -537,6 +557,11 @@ describe("MX-11 | Atestiguamiento, actas y evidencias | Frontend Admin", () => {
       "ballot-1",
       expect.objectContaining({ skip: false }),
     );
+    expect(testHarness.useGetBallotQuery).toHaveBeenLastCalledWith(
+      "ballot-1",
+      expect.objectContaining({ skip: false }),
+    );
+    expect(screen.queryByText(/contrato ajeno|otro municipio|otro departamento/i)).toBeNull();
   });
 
   it("[MX-11][ADM-IMG-P1-001][INTEGRACION] consulta una acta, muestra evidencia y comunica una imagen inexistente", async () => {

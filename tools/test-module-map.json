@@ -34,6 +34,14 @@
         "AUT-SEC"
       ],
       "files": [
+        "tests/unit/matrix-03-auth-access.unit.test.ts",
+        "tests/integration/matrix-03-auth-access.integration.test.tsx"
+      ]
+    },
+    "matrix_03_legacy": {
+      "name": "MX-03 | suites históricas fuera de la selección canónica",
+      "flows": ["MX-03", "AUTH_ACCESS_LEGACY"],
+      "files": [
         "tests/integration/auth-domain-password-pages.test.tsx",
         "tests/integration/auth-resultados-pages.test.tsx",
         "tests/integration/resultados-private-guard.test.tsx",
@@ -97,6 +105,19 @@
         "ELE-EDT",
         "ELE-CANCL",
         "ELE-HTTP"
+      ],
+      "files": [
+        "tests/unit/matrix-04-election-configuration.unit.test.tsx",
+        "tests/integration/matrix-04-election-listing-wizard.integration.test.tsx",
+        "tests/integration/matrix-04-election-ballot-configuration.integration.test.tsx",
+        "tests/integration/matrix-04-election-review-state.integration.test.tsx"
+      ]
+    },
+    "matrix_04_legacy": {
+      "name": "MX-04 | suites históricas fuera de la selección canónica",
+      "flows": [
+        "MX-04",
+        "ELECTION_CONFIGURATION_LEGACY"
       ],
       "files": [
         "tests/integration/election-dashboard-listing.test.tsx",
@@ -169,11 +190,24 @@
         "PAD-SEC"
       ],
       "files": [
+        "tests/unit/matrix-05-padron-canonical.unit.test.tsx",
+        "tests/integration/matrix-05-padron-access-processing.integration.test.tsx",
+        "tests/integration/matrix-05-padron-staging-management.integration.test.tsx",
+        "tests/acceptance/matrix-05-padron-public-eligibility.acceptance.test.tsx"
+      ]
+    },
+    "matrix_05_legacy": {
+      "name": "MX-05 | Padrón histórico residual fuera de la selección canónica",
+      "flows": [
+        "MX-05",
+        "PADRON_LEGACY"
+      ],
+      "files": [
         "tests/integration/election-padron-flow.test.tsx",
         "tests/integration/matrix-05-padron-admin.test.tsx",
+        "tests/unit/padron-eligibility-check.test.tsx",
         "tests/unit/padron-gemini-observations.test.ts",
         "tests/unit/padron-parser.test.ts",
-        "tests/unit/padron-eligibility-check.test.tsx",
         "tests/unit/padron-ux.test.tsx"
       ]
     },
@@ -206,6 +240,19 @@
         "TVD-UI"
       ],
       "files": [
+        "tests/unit/matrix-06-tvd-canonical.unit.test.ts",
+        "tests/integration/matrix-06-tvd-assignment.integration.test.tsx",
+        "tests/integration/matrix-06-tvd-qr.integration.test.tsx",
+        "tests/integration/matrix-06-tvd-accreditation-balance.integration.test.tsx",
+        "tests/integration/matrix-06-tvd-publication.integration.test.tsx",
+        "tests/integration/matrix-06-tvd-security-ui.integration.test.tsx"
+      ]
+    },
+    "matrix_06_support": {
+      "name": "MX-06 Frontend Admin — soporte y regresión fuera del conteo canónico",
+      "flows": ["MX-06-SUPPORT"],
+      "files": [
+        "tests/integration/matrix-06-tvd-canonical.integration.test.tsx",
         "tests/integration/admin-tenant-recharge.test.tsx",
         "tests/integration/superadmin-wallet-lookup.test.tsx",
         "tests/integration/superadmin-tvd-contracts-parameters.test.tsx",
@@ -237,7 +284,7 @@
       ]
     },
     "matrix_16": {
-      "name": "MX-16 | Gestión Superadmin TVD y administración global | Frontend Admin",
+      "name": "MX-16 Frontend Admin — capas obligatorias",
       "flows": ["MX-16", "ADM-ACC", "ADM-PNL", "ADM-CTR", "ADM-PRM", "ADM-WAL", "ADM-ASG", "ADM-OPS", "ADM-REG", "ADM-REC", "ADM-SEC", "ADM-CON", "ADM-UX"],
       "files": [
         "tests/unit/matrix-16-superadmin-access.test.ts",
@@ -251,7 +298,7 @@
       ]
     },
     "matrix_09": {
-      "name": "MX-09 | Votación presencial mediante kiosco y QR | Frontend Admin",
+      "name": "MX-09 Frontend Admin — 14 IDs, 4 unitarias y 13 integraciones",
       "flows": [
         "MX-09",
         "KIO-HAB",
@@ -261,8 +308,6 @@
         "KIO-UX"
       ],
       "files": [
-        "tests/unit/kiosk-constants.test.ts",
-        "tests/unit/presential-kiosk-matrix.test.ts",
         "tests/unit/matrix-09-kiosk-links-token-status.unit.test.tsx",
         "tests/integration/matrix-09-kiosk-toggle.integration.test.tsx",
         "tests/integration/matrix-09-kiosk-enable-link.integration.test.tsx",
@@ -271,8 +316,18 @@
         "tests/integration/matrix-09-kiosk-security-status.integration.test.tsx"
       ]
     },
+    "matrix_09_support": {
+      "name": "MX-09 Frontend Admin — soporte fuera del conteo canónico",
+      "flows": [
+        "MX-09-SUPPORT"
+      ],
+      "files": [
+        "tests/unit/kiosk-constants.test.ts",
+        "tests/unit/presential-kiosk-matrix.test.ts"
+      ]
+    },
     "matrix_10": {
-      "name": "MX-10 | Administración territorial, contratos y delegados | Frontend Admin",
+      "name": "MX-10 Frontend Admin — 32 IDs, 11 unitarias y 32 integraciones",
       "flows": [
         "MX-10",
         "TER-LST",
@@ -289,26 +344,32 @@
         "PER-NOC",
         "PER-REP",
         "SEC-TEN",
-        "SEC-DAT",
         "SEC-DEL",
-      "SEC-BLO",
-      "TRA-P1",
-      "ACC-ADM",
-      "ACC-REP"
-    ],
-    "files": [
-      "tests/unit/matrix-10-territorial-ui.test.ts",
-      "tests/unit/matrix-10-territorial-forms.unit.test.tsx",
-      "tests/unit/matrix-10-territorial-access.test.tsx",
-      "tests/integration/matrix-10-territorial-lists.integration.test.tsx",
-      "tests/integration/matrix-10-territorial-forms.integration.test.tsx",
-      "tests/integration/matrix-10-territorial-reports.integration.test.tsx",
-      "tests/integration/matrix-10-territorial-scope.integration.test.tsx",
-      "tests/integration/matrix-10-territorial-revocation.integration.test.tsx"
-    ]
+        "SEC-BLO",
+        "TRA"
+      ],
+      "files": [
+        "tests/unit/matrix-10-territorial-forms.unit.test.tsx",
+        "tests/unit/matrix-10-territorial-access.test.tsx",
+        "tests/integration/matrix-10-territorial-lists.integration.test.tsx",
+        "tests/integration/matrix-10-territorial-forms.integration.test.tsx",
+        "tests/integration/matrix-10-territorial-approvals.integration.test.tsx",
+        "tests/integration/matrix-10-territorial-reports.integration.test.tsx",
+        "tests/integration/matrix-10-territorial-scope.integration.test.tsx",
+        "tests/integration/matrix-10-territorial-revocation.integration.test.tsx"
+      ]
+    },
+    "matrix_10_support": {
+      "name": "MX-10 Frontend Admin — soporte fuera del conteo canónico",
+      "flows": [
+        "MX-10-SUPPORT"
+      ],
+      "files": [
+        "tests/unit/matrix-10-territorial-ui.test.ts"
+      ]
     },
     "matrix_11": {
-      "name": "MX-11 | Atestiguamiento, actas y evidencias | Frontend Admin",
+      "name": "MX-11 Frontend Admin — capas obligatorias",
       "flows": [
         "MX-11",
         "ADM-IMG",
@@ -318,8 +379,7 @@
         "ADM-AUD",
         "SEC-ACC",
         "SEC-DEL",
-        "TRA",
-        "ACC-ADM"
+        "TRA"
       ],
       "files": [
         "tests/unit/matrix-11-attestation-admin-ui.test.tsx",
@@ -327,7 +387,7 @@
       ]
     },
     "matrix_12": {
-      "name": "MX-12 | Resultados administrativos y reportes | Frontend Admin",
+      "name": "MX-12 Frontend Admin — capas obligatorias",
       "flows": [
         "MX-12",
         "RES-ACC",
@@ -346,12 +406,12 @@
         "RES-UX"
       ],
       "files": [
-        "tests/integration/matrix-12-resultados-admin.test.tsx",
-        "tests/unit/matrix-12-admin-results-ui.test.ts"
+        "tests/unit/matrix-12-admin-results-ui.test.ts",
+        "tests/integration/matrix-12-resultados-admin.test.tsx"
       ]
     },
     "matrix_13": {
-      "name": "MX-13 | Resultados públicos y landing de votaciones | Frontend público",
+      "name": "MX-13 Frontend público — capas obligatorias",
       "flows": [
         "MX-13",
         "PUB-LND",
@@ -368,14 +428,23 @@
         "PUB-FIL",
         "PUB-UPD",
         "PUB-CNS",
-        "PUB-SEC",
-        "PUB-UX"
+        "PUB-SEC"
       ],
       "files": [
         "tests/unit/matrix-13-public-landing-detail.test.tsx",
         "tests/unit/matrix-13-public-territory-security.test.tsx",
         "tests/integration/matrix-13-public-pages.test.tsx",
         "tests/integration/matrix-13-public-results-navigation.test.tsx",
+        "tests/acceptance/matrix-13-public-results.test.tsx"
+      ]
+    },
+    "matrix_13_support": {
+      "name": "MX-13 Frontend público — soporte y regresión fuera del conteo canónico",
+      "flows": [
+        "MX-13-SUPPORT",
+        "PUB-PADRON"
+      ],
+      "files": [
         "tests/acceptance/matrix-13-public-eligibility.test.tsx"
       ]
     },
@@ -393,12 +462,11 @@
       ]
     },
     "matrix_14": {
-      "name": "MX-14 | Noticias, notificaciones y device tokens | Frontend Admin",
+      "name": "MX-14 Frontend Admin — capas obligatorias",
       "flows": [
         "MX-14",
         "NOT-ADM",
-        "NOT-SEC",
-        "NOT-UX"
+        "NOT-SEC"
       ],
       "files": [
         "tests/unit/matrix-14-news-admin.test.tsx",

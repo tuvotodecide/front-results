@@ -71,20 +71,41 @@ describe("MX-09 | sesión y QR del punto presencial", () => {
     rejectedPage.unmount();
   });
 
-  it("[MX-09][KIO-HAB-P1-002][INTEGRACION] bloquea la pantalla administrativa cuando el modo presencial está desactivado", async () => {
-    kioskPageMocks.event = {
-      ...kioskPageMocks.event,
-      presentialKioskEnabled: false,
-    };
-    const page = renderKioskPage();
+  it("[MX-09][KIO-QR-P0-002][INTEGRACION] muestra el QR READY activo y no habilita escaneo fuera de una sesión operativa", async () => {
+    const readyPage = renderKioskPage();
 
-    expect(
-      await screen.findByText(
-        "El voto presencial con QR no está activado para esta elección.",
-      ),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("QR listo para escanear")).toBeInTheDocument();
+    expect(screen.getByTitle("Código QR")).toBeInTheDocument();
+    expect(screen.getByText(/Disponible por/)).toBeInTheDocument();
+    readyPage.unmount();
+
+    resetKioskPageMocks();
+    kioskPageMocks.currentState = makeKioskState("READY", {
+      isEventActive: false,
+      qrValue: null,
+    });
+    const inactivePage = renderKioskPage();
+
+    await waitFor(() => {
+      expect(kioskPageMocks.fetchCurrent).toHaveBeenCalledWith({
+        eventId: "eleccion-09",
+        stationId: "kiosco-principal",
+        kioskToken: undefined,
+      });
+      expect(screen.queryByTitle("Código QR")).not.toBeInTheDocument();
+      expect(screen.queryByText("Tiempo restante")).not.toBeInTheDocument();
+    });
+    inactivePage.unmount();
+
+    resetKioskPageMocks();
+    kioskPageMocks.currentState = makeKioskState("READY", {
+      kioskEnabled: false,
+      qrValue: null,
+    });
+    const preparingPage = renderKioskPage();
+
+    expect(await screen.findAllByText("Preparando código QR")).toHaveLength(2);
     expect(screen.queryByTitle("Código QR")).not.toBeInTheDocument();
-    expect(kioskPageMocks.createSession).not.toHaveBeenCalled();
-    page.unmount();
+    preparingPage.unmount();
   });
 });

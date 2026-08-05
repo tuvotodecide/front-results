@@ -46,7 +46,7 @@ describe("MX-16 | gestión institucional global", () => {
     expect(canApproveInstitutionalRecovery({ ...pendingDetail, warnings: ["WALLET_CHANGED"] })).toBe(false);
   });
 
-  it("[MX-16][ADM-SEC-P0-002][UNITARIA] traduce errores de recuperación sin reflejar datos sensibles", () => {
+  it("[MX-16][SOPORTE-REC-SEC][UNITARIA] traduce errores de recuperación sin reflejar datos sensibles", () => {
     const message = getAdminRecoveryErrorMessage({ status: 500, data: { passwordResetToken: "secret" } });
     expect(message).toBe("No pudimos completar la operación. Intenta nuevamente.");
     expect(message).not.toContain("secret");

@@ -56,21 +56,19 @@ const mockPublicationConfig = (readinessFixture: string) => {
   }).as("reviewReadiness");
 };
 
-describe("[FLOW:PUBLICATION] Smoke de revisión, publicación y estado activo", () => {
+describe("MX-06 | navegador controlado de recarga y publicación", () => {
   beforeEach(() => {
     cy.clearSession();
   });
 
-  it("muestra readiness bloqueado en revisión", () => {
+  it("[MX-06][TVD-UI-P2-004][E2E] recorre estados controlados de revisión y publicación en navegador", () => {
     mockPublicationConfig("elections/review-blocked.json");
 
     cy.setTenantSession("/votacion/elecciones/event-smoke/config/review");
     cy.wait("@reviewReadiness");
     cy.contains("Así verán los votantes las papeletas", { timeout: 10000 }).should("be.visible");
     cy.contains(/pendiente|bloque|padrón|configuración/i).should("be.visible");
-  });
 
-  it("publica con confirmación mock y navega al estado activo", () => {
     mockPublicationConfig("elections/review-ready.json");
     cy.intercept("POST", "**/api/v1/voting/events/event-smoke/official-publication/confirm", {
       statusCode: 200,

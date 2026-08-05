@@ -63,7 +63,7 @@ describe("MX-16 | contrato, parámetros y wallets globales", () => {
     expect(message).not.toContain("private-key");
   });
 
-  it("[MX-16][ADM-CON-P1-002][UNITARIA] conserva una red desconocida sin inventar explorador", () => {
+  it("[MX-16][SOPORTE-CON-RED][UNITARIA] conserva una red desconocida sin inventar explorador", () => {
     expect(getKnownBaseNetwork(999).name).toBe("Red 999");
     expect(getKnownBaseNetwork(999).explorerBaseUrl).toBeNull();
   });

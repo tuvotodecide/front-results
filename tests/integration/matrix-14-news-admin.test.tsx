@@ -1,7 +1,8 @@
-import { cleanup, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ElectionConfigReview from "@/features/electionConfig/ElectionConfigReview";
+import CreateNewsModal from "@/features/electionConfig/components/CreateNewsModal";
 import type { ConfigSummary } from "@/features/electionConfig/data/ElectionPublishRepository.mock";
 import type { UseElectionPublishReturn } from "@/features/electionConfig/data/useElectionPublish";
 import type {
@@ -184,6 +185,39 @@ const fillNewsForm = async (
   );
 };
 
+const renderNewsModal = (options?: {
+  isLoading?: boolean;
+  onClose?: () => void;
+  onSubmit?: (payload: {
+    title: string;
+    body: string;
+    link?: string;
+    imageUrl?: string;
+  }) => Promise<void>;
+}) => {
+  const onClose = options?.onClose ?? vi.fn();
+  const onSubmit = options?.onSubmit ?? vi.fn().mockResolvedValue(undefined);
+
+  render(
+    <CreateNewsModal
+      isOpen
+      onClose={onClose}
+      onSubmit={onSubmit}
+      isLoading={options?.isLoading}
+    />,
+  );
+
+  return { onClose, onSubmit };
+};
+
+const fillModalRequiredFields = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.type(screen.getByLabelText("Título"), "Aviso de horario");
+  await user.type(
+    screen.getByLabelText("Descripción"),
+    "La atención al votante cambia esta semana.",
+  );
+};
+
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -198,7 +232,30 @@ beforeEach(() => {
 });
 
 describe("MX-14 | publicación administrativa de noticias", () => {
-  it("[MX-14][NOT-ADM-P1-001][INTEGRACION] publica desde la pantalla administrativa mediante el endpoint real y cierra el modal al confirmar", async () => {
+  it("[MX-14][NOT-ADM-P1-001][INTEGRACION] valida el modal y publica desde la pantalla administrativa mediante el endpoint real", async () => {
+    const modalUser = userEvent.setup();
+    const { onSubmit: standaloneSubmit } = renderNewsModal();
+    const standalonePublish = screen.getByRole("button", { name: "Publicar noticia" });
+    const standaloneDialog = screen.getByRole("dialog", { name: "Crear noticia" });
+    const standaloneLink = within(standaloneDialog).getByRole("textbox", { name: /^Enlace opcional/i });
+    const standaloneImage = within(standaloneDialog).getByRole("textbox", { name: /^URL de imagen \(opcional\)/i });
+
+    expect(standalonePublish).toBeDisabled();
+    await fillModalRequiredFields(modalUser);
+    await modalUser.type(standaloneLink, "ftp://admin.test/horarios");
+    await modalUser.click(standalonePublish);
+    expect(standaloneSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText("Ingresa un enlace válido que comience con http:// o https://.")).toBeInTheDocument();
+    await modalUser.clear(standaloneLink);
+    await modalUser.type(standaloneLink, "https://admin.test/horarios");
+    await modalUser.type(standaloneImage, "ftp://cdn.test/horarios.webp");
+    await modalUser.click(standalonePublish);
+    expect(standaloneSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText("Ingresa una URL http(s) que apunte a una imagen válida, por ejemplo .png, .jpg o .webp.")).toBeInTheDocument();
+    cleanup();
+    renderNewsModal({ isLoading: true });
+    expect(screen.getByRole("button", { name: "Publicando..." })).toBeDisabled();
+
     const user = userEvent.setup();
     const captured: CapturedRequest[] = [];
     vi.stubGlobal(
@@ -218,6 +275,7 @@ describe("MX-14 | publicación administrativa de noticias", () => {
       ),
     );
 
+    cleanup();
     renderReview();
     const dialog = await openNewsModal(user);
     await fillNewsForm(user, dialog);
@@ -245,7 +303,21 @@ describe("MX-14 | publicación administrativa de noticias", () => {
     expect(screen.queryByText(/0 omitid[oa]s/i)).not.toBeInTheDocument();
   });
 
-  it("[MX-14][NOT-ADM-P1-002][INTEGRACION] conserva el contenido y mantiene el modal abierto ante rechazo del backend con un único envío", async () => {
+  it("[MX-14][NOT-ADM-P1-002][INTEGRACION] conserva campos editables ante validación inválida y rechazo backend con un único envío", async () => {
+    const modalUser = userEvent.setup();
+    const { onSubmit: standaloneSubmit } = renderNewsModal();
+    await fillModalRequiredFields(modalUser);
+    const standaloneLink = screen.getByLabelText("Enlace opcional");
+    const standaloneImage = screen.getByLabelText("URL de imagen (opcional)");
+    await modalUser.type(standaloneLink, "ftp://admin.test/horarios");
+    await modalUser.type(standaloneImage, "https://cdn.test/horarios.pdf");
+    await modalUser.click(screen.getByRole("button", { name: "Publicar noticia" }));
+    expect(screen.getByText("Ingresa un enlace válido que comience con http:// o https://.")).toBeInTheDocument();
+    expect(screen.getByText("Ingresa una URL http(s) que apunte a una imagen válida, por ejemplo .png, .jpg o .webp.")).toBeInTheDocument();
+    expect(standaloneLink).toBeEnabled();
+    expect(standaloneImage).toBeEnabled();
+    expect(standaloneSubmit).not.toHaveBeenCalled();
+
     const user = userEvent.setup();
     const captured: CapturedRequest[] = [];
     vi.stubGlobal(
@@ -256,6 +328,7 @@ describe("MX-14 | publicación administrativa de noticias", () => {
       ),
     );
 
+    cleanup();
     renderReview();
     const dialog = await openNewsModal(user);
     await fillNewsForm(user, dialog);
@@ -285,6 +358,32 @@ describe("MX-14 | publicación administrativa de noticias", () => {
         link: "https://admin.test/horarios",
         imageUrl: "https://cdn.test/horarios.png",
       },
+    });
+  });
+
+  it("[MX-14][NOT-SEC-P0-002][INTEGRACION] muestra solo datos de la noticia y excluye tokens, secretos y cabeceras del DOM", async () => {
+    const user = userEvent.setup();
+    const { onSubmit } = renderNewsModal();
+
+    await fillModalRequiredFields(user);
+    await user.type(screen.getByLabelText("Enlace opcional"), "https://admin.test/horarios");
+    await user.type(screen.getByLabelText("URL de imagen (opcional)"), "https://cdn.test/horarios.png");
+
+    expect(screen.getByRole("heading", { name: "Crear noticia" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Título")).toHaveValue("Aviso de horario");
+    expect(screen.getByLabelText("Descripción")).toHaveValue("La atención al votante cambia esta semana.");
+    expect(screen.getByLabelText("Enlace opcional")).toHaveValue("https://admin.test/horarios");
+    expect(screen.getByLabelText("URL de imagen (opcional)")).toHaveValue("https://cdn.test/horarios.png");
+    expect(document.body).not.toHaveTextContent(/token fcm|x-api-key|authorization|private key|firebase|secret/i);
+
+    await user.click(screen.getByRole("button", { name: "Publicar noticia" }));
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith({
+        title: "Aviso de horario",
+        body: "La atención al votante cambia esta semana.",
+        link: "https://admin.test/horarios",
+        imageUrl: "https://cdn.test/horarios.png",
+      });
     });
   });
 });

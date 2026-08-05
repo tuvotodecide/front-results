@@ -130,30 +130,6 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm test:matrix:09
 
-      - name: MX-10 | Administración territorial, contratos y delegados | Frontend Admin
-        if: ${{ !cancelled() }}
-        run: pnpm test:matrix:10
-
-      - name: MX-11 | Atestiguamiento, actas y evidencias | Frontend Admin
-        if: ${{ !cancelled() }}
-        run: pnpm test:matrix:11
-
-      - name: MX-12 | Resultados administrativos y reportes | Frontend Admin
-        if: ${{ !cancelled() }}
-        run: pnpm test:matrix:12
-
-      - name: MX-13 | Resultados públicos y landing de votaciones | Frontend Admin
-        if: ${{ !cancelled() }}
-        run: pnpm test:matrix:13
-
-      - name: MX-14 | Noticias, notificaciones y device tokens | Frontend Admin
-        if: ${{ !cancelled() }}
-        run: node tools/run-module-tests.mjs vitest matrix_14
-
-      - name: MX-16 | Gestión Superadmin TVD y administración global | Frontend Admin
-        if: ${{ !cancelled() }}
-        run: pnpm test:matrix:16
-
       - name: Run module tests - Institutional applications residual outside MX-02
         if: ${{ !cancelled() }}
         run: pnpm test:module:applications
@@ -202,9 +178,209 @@ jobs:
             echo "Coverage HTML report path: `coverage/index.html`"
           } >> "$GITHUB_STEP_SUMMARY"
 
+  mx-10-canonical:
+    name: MX-10 Frontend Admin — 32 IDs, 11 unitarias y 32 integraciones
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: MX-10 Frontend Admin — 32 IDs, 11 unitarias y 32 integraciones
+        run: pnpm test:matrix:10
+
+  mx-10-support:
+    name: MX-10 Frontend Admin — soporte fuera del conteo canónico
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: MX-10 Frontend Admin — soporte fuera del conteo canónico
+        run: pnpm test:matrix:10:support
+
+  mx-11-canonical:
+    name: MX-11 Frontend Admin — 8 IDs canónicos
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: MX-11 Frontend Admin — 8 IDs canónicos
+        run: pnpm test:matrix:11
+
+  mx-12-canonical:
+    name: MX-12 Frontend Admin — 29 IDs canónicos
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: MX-12 Frontend Admin — 29 IDs canónicos
+        run: pnpm test:matrix:12
+
+  mx-13-canonical:
+    name: MX-13 Frontend público — 22 IDs canónicos
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: MX-13 Frontend público — 22 IDs canónicos
+        run: pnpm test:matrix:13
+
+  mx-13-support:
+    name: MX-13 Frontend público — soporte fuera del conteo canónico
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: MX-13 Frontend público — soporte fuera del conteo canónico
+        run: pnpm test:matrix:13:support
+
+  mx-14-canonical:
+    name: MX-14 Frontend Admin — 3 IDs canónicos
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: MX-14 Frontend Admin — 3 IDs canónicos
+        run: pnpm test:matrix:14
+
+  mx-16-canonical:
+    name: MX-16 Frontend Admin — capas obligatorias
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: MX-16 Frontend Admin — capas obligatorias
+        run: pnpm test:matrix:16
+
   build:
     name: Build & Push Docker image
-    needs: module-tests
+    needs: [module-tests, mx-10-canonical, mx-10-support, mx-11-canonical, mx-12-canonical, mx-13-canonical, mx-13-support, mx-14-canonical, mx-16-canonical]
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: devops_aws

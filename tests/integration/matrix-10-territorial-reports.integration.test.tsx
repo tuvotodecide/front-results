@@ -37,6 +37,8 @@ const activeContract = {
   electionId: "election-2026",
   role: "MAYOR" as const,
   active: true,
+  startDate: "2026-01-01T00:00:00.000Z",
+  endDate: "2026-12-31T23:59:59.000Z",
   territory: { type: "municipality" as const, municipalityId: "mun-lp", municipalityName: "La Paz" },
 };
 
@@ -113,5 +115,21 @@ describe("MX-10 | contratos y reporte operativo territorial", () => {
     await user.click(screen.getByRole("button", { name: /Ver reporte por mesa/i }));
     expect(screen.getByText("100")).toBeInTheDocument();
     expect(screen.queryByText("99999999")).not.toBeInTheDocument();
+  });
+
+  it("[MX-10][TRA-P1-001][INTEGRACION] conserva la consulta contractual fechada y refresca la actividad operativa visible", async () => {
+    const user = userEvent.setup();
+    render(<PersonalParticipationPage />);
+
+    expect(reportHarness.getContract).toHaveBeenCalledWith(
+      { electionId: "election-2026" },
+      { skip: false },
+    );
+    await user.click(screen.getByRole("button", { name: /Ver reporte por mesa/i }));
+    expect(screen.getByText("Ana Autorizada")).toBeInTheDocument();
+    expect(reportHarness.getActivity).toHaveBeenCalledWith(
+      { electionId: "election-2026", groupBy: "table" },
+      { skip: false },
+    );
   });
 });

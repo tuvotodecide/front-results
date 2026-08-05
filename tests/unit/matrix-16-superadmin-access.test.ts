@@ -34,10 +34,6 @@ describe("MX-16 | acceso y aislamiento Superadmin", () => {
     expect(hasSuperadminAccess({ ...base, availableContexts: [globalContext] })).toBe(true);
     expect(hasSuperadminAccess({ ...base, availableContexts: [{ type: "TENANT", role: "TENANT_ADMIN" }] })).toBe(false);
     expect(hasSuperadminAccess({ ...base, availableContexts: [{ type: "TERRITORIAL", role: "GOVERNOR" }] })).toBe(false);
-  });
-
-  it("[MX-16][ADM-ACC-P0-001][UNITARIA] resuelve el home y retornos globales a /superadmin", () => {
-    const globalContext = { type: "GLOBAL_ADMIN" as const, role: "SUPERADMIN" as const };
     expect(resolveHomeByContext(globalContext)).toBe("/superadmin");
     const authState = {
       availableContexts: [globalContext],

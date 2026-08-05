@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
 import AuditAndMatchPage from "@/domains/resultados/screens/AuditAndMatchPage";
 import PersonalParticipationPage from "@/domains/resultados/screens/PersonalParticipationPage";
@@ -395,16 +395,11 @@ describe("MX-12 | Resultados administrativos y reportes | Frontend Admin", () =>
     );
   });
 
-  it("[MX-12][RES-SUM-P0-001][INTEGRACION] muestra el mismo resumen recibido junto con mesas contadas", async () => {
+  it("[MX-12][RES-SUM-P0-001][INTEGRACION] muestra el resumen final, mesas contadas y conserva filtros al abrir su fuente", async () => {
     await renderResultsSummary();
 
     expect(screen.getByText("Válidos: 190")).toBeInTheDocument();
     expect(screen.getByText("Mesa 1")).toBeInTheDocument();
-  });
-
-  it("[MX-12][RES-SUM-P0-001][ACEPTACION] permite llegar de un resumen final a una mesa conservando elección y tipo", async () => {
-    await renderResultsSummary();
-
     expect(screen.getByRole("link", { name: /Mesa 1/i })).toHaveAttribute(
       "href",
       "/resultados/mesa/LP-001-01?electionId=election-2026&electionType=mayor",
@@ -582,6 +577,36 @@ describe("MX-12 | Resultados administrativos y reportes | Frontend Admin", () =>
     );
   });
 
+  it("[MX-12][RES-SUM-P0-001][ACEPTACION] recorre el resumen final filtrado hasta la fuente de mesa manteniendo el contexto de elección", async () => {
+    await renderResultsSummary();
+
+    expect(screen.getByText("Válidos: 190")).toBeInTheDocument();
+    const resultGraph = screen
+      .getAllByTestId("results-graph")
+      .find((graph) => within(graph).queryByText("Partido Verde: 120"));
+    if (!resultGraph) throw new Error("No se encontró el gráfico de Partido Verde.");
+    expect(within(resultGraph).getByText("Partido Verde: 120")).toBeInTheDocument();
+    expect(screen.getByText("Mesa 1")).toBeInTheDocument();
+    const source = screen.getByRole("link", { name: /Mesa 1/i });
+    expect(source).toHaveAttribute(
+      "href",
+      "/resultados/mesa/LP-001-01?electionId=election-2026&electionType=mayor",
+    );
+    expect(source).toHaveAttribute("href", expect.stringContaining("electionId=election-2026"));
+  });
+
+  it("[MX-12][RES-REP-P1-002][INTEGRACION] muestra las métricas recibidas del contrato activo sin recalcular su alcance", () => {
+    render(<PersonalParticipationPage />);
+
+    const summaryCard = document.querySelector('[data-cy="summary-card"]');
+    if (!(summaryCard instanceof HTMLElement)) throw new Error("No se encontró el resumen ejecutivo.");
+    expect(testHarness.useGetExecutiveSummaryQuery).toHaveBeenCalled();
+    expect(within(summaryCard).getByText("66.67%")).toBeInTheDocument();
+    expect(within(summaryCard).getByText(/de 3 delegados autorizados/i)).toBeInTheDocument();
+    expect(within(summaryCard).getByText("2")).toBeInTheDocument();
+    expect(within(summaryCard).getByText("1")).toBeInTheDocument();
+  });
+
   it("[MX-12][RES-REP-P1-003][INTEGRACION] filtra la auditoría con la elección y abre el acta relacionada", () => {
     render(<AuditAndMatchPage />);
 
@@ -625,6 +650,35 @@ describe("MX-12 | Resultados administrativos y reportes | Frontend Admin", () =>
     expect(screen.queryByText("Mesa 1")).not.toBeInTheDocument();
     expect(screen.queryByTestId("results-graph")).not.toBeInTheDocument();
     expect(testHarness.getResultsByLocation).not.toHaveBeenCalled();
+  });
+
+  it("[MX-12][RES-SEC-P0-002][INTEGRACION] renderiza únicamente campos permitidos aunque la respuesta incluya metadata sensible", async () => {
+    testHarness.getResultsByLocation.mockReturnValue(
+      resolvedPromise({
+        ...resultadosSummary,
+        token: "session-secret",
+        wallet: "0xprivate-wallet",
+        internalUrl: "https://internal.test/results",
+        delegateDni: "1234567",
+      }),
+    );
+
+    await renderResultsSummary();
+
+    expect(screen.getAllByText("Partido Verde: 120")).toHaveLength(2);
+    expect(document.body).not.toHaveTextContent(/session-secret|0xprivate-wallet|internal\.test|1234567/i);
+  });
+
+  it("[MX-12][RES-TRA-P1-003][INTEGRACION] conserva identificadores y actividad disponibles solo cuando la fuente los entrega", () => {
+    render(<PersonalParticipationPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Ver reporte por mesa/i }));
+    expect(screen.getByText("Ana Delegada")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Ver hoja de trabajo/i })).toHaveAttribute(
+      "href",
+      "/resultados/mesa/LP-001-01?electionId=election-2026&electionType=mayor",
+    );
+    expect(screen.queryByText("Sin fecha de actividad")).not.toBeInTheDocument();
   });
 
   it("[MX-12][RES-UX-P2-001][INTEGRACION] mantiene encabezado, gráficos, participación y mesa sin superponer el flujo", async () => {

@@ -247,4 +247,36 @@ describe("MX-10 | formularios territoriales", () => {
     await waitFor(() => expect(formHarness.navigate).toHaveBeenCalledWith("/resultados/mesas"));
     expect(formHarness.getLocationsBySeat).toHaveBeenCalledWith("seat-central");
   });
+
+  it("[MX-10][TER-JER-P0-001][INTEGRACION] bloquea dependencias y completa una cascada territorial válida antes de guardar", async () => {
+    const user = userEvent.setup();
+    render(<ElectoralTableForm />);
+
+    expect(screen.getByRole("button", { name: "provinceId" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "municipalityId" })).toBeDisabled();
+
+    await fill(user, "Número de Mesa", "16");
+    await fill(user, "Código de Mesa", "LP-001-16");
+    await selectFullHierarchy(user, true);
+    await user.click(screen.getByRole("button", { name: "Guardar" }));
+
+    await waitFor(() => expect(formHarness.createTable).toHaveBeenCalled());
+    expect(formHarness.getProvincesByDepartment).toHaveBeenCalledWith("dep-lp");
+    expect(formHarness.getMunicipalitiesByProvince).toHaveBeenCalledWith("prov-murillo");
+    expect(formHarness.getSeatsByMunicipality).toHaveBeenCalledWith("mun-lp");
+    expect(formHarness.getLocationsBySeat).toHaveBeenCalledWith("seat-central");
+  });
+
+  it("[MX-10][TER-CON-P0-003][INTEGRACION] conserva el formulario territorial para corregir una duplicidad recuperable", async () => {
+    const user = userEvent.setup();
+    formHarness.createDepartment.mockRejectedValueOnce(new Error("duplicado"));
+    render(<DepartmentForm />);
+
+    await fill(user, "Nombre del Departamento", "La Paz");
+    await user.click(screen.getByRole("button", { name: "Guardar" }));
+
+    await waitFor(() => expect(formHarness.createDepartment).toHaveBeenCalled());
+    expect(screen.getByLabelText("Nombre del Departamento")).toHaveValue("La Paz");
+    expect(formHarness.navigate).not.toHaveBeenCalled();
+  });
 });

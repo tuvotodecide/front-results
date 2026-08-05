@@ -9,8 +9,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("MX-13 | aceptación de consulta pública de padrón", () => {
-  it("[MX-13][PUB-CNS-P0-001][ACEPTACION] permite a un visitante verificar un carnet válido y comunica los estados habilitado y no habilitado sin exponer el padrón", async () => {
+describe("MX-13 | soporte de consulta pública de padrón", () => {
+  it("[MX-13][SOPORTE-PADRON][ACEPTACION] permite a un visitante verificar un carnet válido y comunica los estados habilitado y no habilitado sin exponer el padrón", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse({
@@ -48,7 +48,7 @@ describe("MX-13 | aceptación de consulta pública de padrón", () => {
     expect(await within(unavailableDialog).findByRole("heading", { name: "NO HABILITADO" })).toBeInTheDocument();
   });
 
-  it("[MX-13][PUB-CNS-P0-002][ACEPTACION] informa consulta pública deshabilitada sin sesión administrativa ni datos de otra identidad", async () => {
+  it("[MX-13][SOPORTE-PADRON][ACEPTACION] informa consulta pública deshabilitada sin sesión administrativa ni datos de otra identidad", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse({

@@ -24,37 +24,6 @@ type ContractSummary = {
   endDate?: string;
 };
 
-const MX10_ALL_IDS = [
-  "TER-LST-P1-001",
-  "TER-LST-P1-002",
-  "TER-LST-P1-003",
-  "TER-LST-P1-004",
-  "TER-LST-P1-005",
-  "TER-LST-P1-006",
-  "TER-JER-P0-001",
-  "TER-NEW-P0-001",
-  "TER-NEW-P0-002",
-  "TER-NEW-P0-003",
-  "TER-NEW-P0-004",
-  "TER-NEW-P0-005",
-  "TER-NEW-P0-006",
-  "TER-DEL-P0-001",
-  "TER-CON-P0-003",
-  "TER-ERR-P1-004",
-  "CON-LST-P1-004",
-  "DEL-LST-P1-005",
-  "PER-GOV-P0-001",
-  "PER-MAY-P0-002",
-  "PER-NOC-P0-003",
-  "PER-REP-P1-005",
-  "SEC-TEN-P0-001",
-  "SEC-DEL-P0-003",
-  "SEC-BLO-P0-004",
-  "TRA-P1-001",
-  "ACC-ADM-P2-001",
-  "ACC-REP-P2-002",
-];
-
 const searchRows = <T extends Record<string, unknown>>(rows: T[], term: string) => {
   const normalized = term.trim().toLowerCase();
   return rows.filter((row) =>
@@ -196,11 +165,5 @@ describe("MX-10 | Administración territorial, contratos y delegados | Frontend 
     expect(delegateRow).not.toHaveProperty("result");
     expect(delegateRow.addedAt).toBeTruthy();
     expect(delegateRow.addedBy).toBe("admin-1");
-  });
-
-  it("mantiene trazabilidad documental MX-10 de Frontend y manuales P2 fuera del CI automatizado", () => {
-    expect(MX10_ALL_IDS).toHaveLength(28);
-    expect(MX10_ALL_IDS).toContain("ACC-ADM-P2-001");
-    expect(MX10_ALL_IDS).toContain("ACC-REP-P2-002");
   });
 });

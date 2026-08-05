@@ -189,9 +189,8 @@ describe("MX-11 | Atestiguamiento, actas y evidencias | unitarias", () => {
       "href",
       "https://ipfs.io/ipfs/cid-acta-1",
     );
-  });
 
-  it("[MX-11][ADM-IMG-P1-001][UNITARIA] construye enlaces de detalle y soporte desde la evidencia IPFS", () => {
+    cleanup();
     render(
       <ImagesSection
         images={[ballot]}

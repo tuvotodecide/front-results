@@ -227,14 +227,16 @@ describe("MX-16 | integración de asignación y operaciones TVD", () => {
     vi.useRealTimers();
   });
 
-  it("[MX-16][ADM-ASG-P0-001][INTEGRACION] envía el wizard global con Idempotency-Key y consulta el estado de acreditación", async () => {
+  it("[MX-16][ADM-ASG-P0-001][INTEGRACION] completa los tres pasos, reutiliza idempotencia, envía el POST, espera el estado terminal y nunca firma una transacción en navegador", async () => {
     const user = userEvent.setup();
     const captured: CapturedRequest[] = [];
+    const ethereum = { request: vi.fn() };
     vi.stubGlobal("fetch", installFetch(captured));
     vi.stubGlobal("crypto", {
       randomUUID: () => "idem-mx16-1",
       getRandomValues: (bytes: Uint8Array) => bytes,
     });
+    vi.stubGlobal("ethereum", ethereum);
 
     renderAssignment();
     await fillAssignment(user);
@@ -256,27 +258,7 @@ describe("MX-16 | integración de asignación y operaciones TVD", () => {
         (request) => request.path === "/api/v1/tvd/manual-assignments/accreditation-1",
       ),
     ).toBe(true);
-  });
-
-  it("[MX-16][ADM-ASG-P0-001][ACEPTACION] confirma que el navegador no construye ni firma una transacción blockchain", async () => {
-    const user = userEvent.setup();
-    const captured: CapturedRequest[] = [];
-    const ethereum = { request: vi.fn() };
-    vi.stubGlobal("fetch", installFetch(captured));
-    vi.stubGlobal("crypto", {
-      randomUUID: () => "idem-mx16-2",
-      getRandomValues: (bytes: Uint8Array) => bytes,
-    });
-    vi.stubGlobal("ethereum", ethereum);
-
-    renderAssignment();
-    await fillAssignment(user);
-    await user.click(screen.getByRole("button", { name: /^Asignar$/i }));
-
-    expect(await findConfirmedAssignmentHeading()).toBeInTheDocument();
     expect(ethereum.request).not.toHaveBeenCalled();
-    const createRequest = captured.find((request) => request.method === "POST");
-    expect(createRequest?.path).toBe("/api/v1/tvd/manual-assignments");
     expect(JSON.stringify(createRequest?.body)).not.toMatch(
       /wallet|private|secret|txHash|signature/i,
     );

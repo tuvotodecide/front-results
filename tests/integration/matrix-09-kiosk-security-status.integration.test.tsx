@@ -51,15 +51,17 @@ describe("MX-09 | seguridad y estados del punto presencial", () => {
     page.unmount();
   });
 
-  it.each([
-    ["READY", "Lista"],
-    ["CLAIMED", "En proceso"],
-    ["COMPLETED", "Completada"],
-    ["EXPIRED", "Expirada"],
-    ["CANCELLED", "Cancelada"],
-  ])(
-    "[MX-09][KIO-UX-P2-002][INTEGRACION] comunica el estado %s como %s y oculta el QR fuera de READY",
-    async (status, label) => {
+  it("[MX-09][KIO-UX-P2-002][INTEGRACION] comunica los cinco estados reales y oculta el QR fuera de READY", async () => {
+    const statusLabels = [
+      ["READY", "Lista"],
+      ["CLAIMED", "En proceso"],
+      ["COMPLETED", "Completada"],
+      ["EXPIRED", "Expirada"],
+      ["CANCELLED", "Cancelada"],
+    ] as const;
+
+    for (const [status, label] of statusLabels) {
+      resetKioskPageMocks();
       kioskPageMocks.currentState = makeKioskState(status);
       const page = renderKioskPage();
 
@@ -70,6 +72,6 @@ describe("MX-09 | seguridad y estados del punto presencial", () => {
         expect(screen.queryByTitle("Código QR")).not.toBeInTheDocument();
       }
       page.unmount();
-    },
-  );
+    }
+  });
 });

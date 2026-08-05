@@ -168,7 +168,7 @@ describe("MX-16 | integración de registros y recuperación institucional", () =
     vi.unstubAllGlobals();
   });
 
-  it("[MX-16][ADM-REG-P0-001][INTEGRACION] conecta la ruta global de registros con listado, detalle y decisiones", async () => {
+  it("[MX-16][ADM-REG-P0-001][INTEGRACION] agrupa pestañas y búsqueda, muestra detalle y ejecuta decisiones globales con feedback solo para Superadmin", async () => {
     const user = userEvent.setup();
     renderAsSuperadmin(<RegistrosPage />);
 
@@ -177,13 +177,6 @@ describe("MX-16 | integración de registros y recuperación institucional", () =
     expect(await screen.findByText("Carnet de identidad")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Aprobar registro" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Rechazar registro" })).toBeInTheDocument();
-  });
-
-  it("[MX-16][ADM-REG-P0-001][ACEPTACION] actualiza la decisión global desde una solicitud pendiente", async () => {
-    const user = userEvent.setup();
-    renderAsSuperadmin(<RegistrosPage />);
-
-    await screen.findByRole("button", { name: /Ana Pendiente/i });
     await user.click(screen.getByRole("button", { name: "Aprobar registro" }));
     await waitFor(() => {
       expect(approvalMocks.approve).toHaveBeenCalledWith("app-pending");

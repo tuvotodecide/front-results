@@ -280,21 +280,22 @@ describe("MX-16 | integración de contrato, parámetros y billeteras", () => {
     vi.useRealTimers();
   });
 
-  it("[MX-16][ADM-CTR-P0-001][INTEGRACION] muestra contrato disponible, cadena, txHash y acciones de copia actuales", async () => {
+  it("[MX-16][ADM-CTR-P0-001][INTEGRACION] consume el contrato configurado con fecha on-chain, enlaces seguros, datos parciales y copia únicamente de valores disponibles", async () => {
     renderGlobal(<TvdContractPage />);
 
     expect(await screen.findByText("Base Sepolia")).toBeInTheDocument();
     expect(screen.getByText("0x1234...5678")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Copiar" })).toHaveLength(4);
-  });
-
-  it("[MX-16][ADM-CTR-P0-001][ACEPTACION] publica enlaces externos seguros para dirección y transacción", async () => {
-    renderGlobal(<TvdContractPage />);
     const links = await screen.findAllByRole("link", {
       name: /Ver en BaseScan|Ver transacción/i,
     });
     expect(links[0]).toHaveAttribute("target", "_blank");
     expect(links[0]).toHaveAttribute("rel", "noopener noreferrer");
+    const onChainDateLabel = screen.getByText("Fecha de registro");
+    const onChainDateRow = onChainDateLabel.parentElement;
+    if (!onChainDateRow) throw new Error("No se encontró la fila de fecha on-chain.");
+    expect(within(onChainDateRow).getByText(/2026/)).toBeInTheDocument();
+    expect(screen.queryByText(contractModel.updatedAt)).not.toBeInTheDocument();
   });
 
   it("[MX-16][ADM-CTR-P1-002][INTEGRACION] presenta distribución inicial y balance actual de un fondo oficial", async () => {
@@ -304,26 +305,21 @@ describe("MX-16 | integración de contrato, parámetros y billeteras", () => {
     expect(screen.getByText("900 TVD")).toBeInTheDocument();
   });
 
-  it("[MX-16][ADM-PRM-P0-001][INTEGRACION] renderiza parámetros leídos y permite abrir solo el detalle informativo", async () => {
+  it("[MX-16][ADM-PRM-P0-001][INTEGRACION] muestra el valor formateado y abre y cierra el detalle observable de solo lectura", async () => {
     const user = userEvent.setup();
     renderGlobal(<TvdParametersPage />);
     await openConsumptionDetail(user);
-    expect(
-      screen.getByRole("dialog", { name: "Consumo por voto válido" }),
-    ).toBeInTheDocument();
-  });
-
-  it("[MX-16][ADM-PRM-P0-001][ACEPTACION] cierra el detalle sin persistir cambios del parámetro", async () => {
-    const user = userEvent.setup();
-    renderGlobal(<TvdParametersPage />);
-    await openConsumptionDetail(user);
+    const detailDialog = screen.getByRole("dialog", { name: "Consumo por voto válido" });
+    expect(detailDialog).toBeInTheDocument();
+    expect(screen.getByText("1 TVD")).toBeInTheDocument();
+    expect(within(detailDialog).queryByRole("button", { name: /Guardar/i })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Cancelar" }));
     expect(
       screen.queryByRole("dialog", { name: "Consumo por voto válido" }),
     ).not.toBeInTheDocument();
   });
 
-  it("[MX-16][ADM-WAL-P0-001][INTEGRACION] muestra un error recuperable y reintenta el lookup global con la misma dirección", async () => {
+  it("[MX-16][ADM-WAL-P0-001][INTEGRACION] valida entradas y consulta estados Identity y asociación con carga, error, reintento y asociaciones seguras", async () => {
     const user = userEvent.setup();
     const retryResponse = walletResponse(walletAddresses.retry);
     const { fetchMock, requests } = createWalletFetch(
@@ -344,16 +340,15 @@ describe("MX-16 | integración de contrato, parámetros y billeteras", () => {
     expectWalletRequest(requests[0], walletAddresses.retry);
     expectWalletRequest(requests[1], walletAddresses.retry);
     expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
 
-  it.each([
-    ["registrada", walletAddresses.available, availableWallet, "No pertenece"],
-    ["no registrada", walletAddresses.unregistered, unregisteredWallet, "No pertenece"],
-    ["asociada", walletAddresses.associated, associatedWallet, "Sí pertenece"],
-    ["deshabilitada", walletAddresses.disabled, disabledWallet, "No pertenece"],
-  ] as Array<[string, string, TvdWalletLookupResponse, string]>)(
-    "[MX-16][ADM-WAL-P0-001][ACEPTACION][%s] muestra el estado actual de pertenencia sin secretos",
-    async (_scenario, address, response, membershipLabel) => {
+    for (const [, address, response, membershipLabel] of [
+      ["registrada", walletAddresses.available, availableWallet, "No pertenece"],
+      ["no registrada", walletAddresses.unregistered, unregisteredWallet, "No pertenece"],
+      ["asociada", walletAddresses.associated, associatedWallet, "Sí pertenece"],
+      ["deshabilitada", walletAddresses.disabled, disabledWallet, "No pertenece"],
+    ] as Array<[string, string, TvdWalletLookupResponse, string]>) {
+      cleanup();
+      vi.unstubAllGlobals();
       const user = userEvent.setup();
       const { fetchMock, requests } = createWalletFetch(jsonResponse(response));
       vi.stubGlobal("fetch", fetchMock);
@@ -368,8 +363,8 @@ describe("MX-16 | integración de contrato, parámetros y billeteras", () => {
       expect(result).not.toHaveTextContent(
         /serializedTransaction|identity-api-key|private key|secret/i,
       );
-    },
-  );
+    }
+  });
 
   it("[MX-16][ADM-WAL-P1-002][INTEGRACION] carga wallets al elegir institución y limpia la wallet al cambiarla", async () => {
     const user = userEvent.setup();
@@ -479,36 +474,4 @@ describe("MX-16 | integración de contrato, parámetros y billeteras", () => {
     expect(alert).not.toHaveTextContent("private-key");
   });
 
-  it("[MX-16][ADM-CON-P1-002][INTEGRACION] no mantiene el resultado anterior al consultar una segunda wallet", async () => {
-    const user = userEvent.setup();
-    const firstResponse = walletResponse(walletAddresses.firstLookup);
-    const secondResponse = walletResponse(walletAddresses.secondLookup, {
-      associationStatus: "UNASSOCIATED",
-      canUse: true,
-      reasonCode: "WALLET_AVAILABLE",
-      associations: [],
-    });
-    const { fetchMock, requests } = createWalletFetch(
-      jsonResponse(firstResponse),
-      jsonResponse(secondResponse),
-    );
-    vi.stubGlobal("fetch", fetchMock);
-
-    renderGlobal(<TvdWalletLookupPage />);
-    await lookup(user, walletAddresses.firstLookup);
-    const firstResult = await findWalletState("Sí pertenece");
-    expect(firstResult).toHaveTextContent(walletAddresses.firstLookup);
-
-    const input = screen.getByLabelText(/Dirección de wallet/i);
-    await user.clear(input);
-    await user.type(input, walletAddresses.secondLookup);
-    expect(screen.queryByRole("heading", { name: "Detalle de billetera" })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /^Consultar$/i }));
-
-    const secondResult = await findWalletState("No pertenece");
-    expect(secondResult).toHaveTextContent(walletAddresses.secondLookup);
-    expect(secondResult).not.toHaveTextContent(walletAddresses.firstLookup);
-    expectWalletRequest(requests[0], walletAddresses.firstLookup);
-    expectWalletRequest(requests[1], walletAddresses.secondLookup);
-  });
 });

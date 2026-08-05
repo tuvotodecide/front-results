@@ -204,4 +204,22 @@ describe("MX-10 | listados territoriales", () => {
     await user.click(screen.getByRole("button", { name: "Confirmar" }));
     expect(harness.remove).toHaveBeenCalledWith("dep-lp");
   });
+
+  it("[MX-10][TER-ERR-P1-004][INTEGRACION] conserva la navegación y permite recuperar la consulta territorial tras un error", async () => {
+    const user = userEvent.setup();
+    harness.getDepartments.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      refetch: harness.getDepartments,
+    });
+    render(<DepartmentsPage />);
+
+    expect(screen.queryByText("La Paz")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+    expect(harness.getDepartments).toHaveBeenCalledWith(
+      expect.objectContaining({ search: "La Paz" }),
+    );
+    expect(harness.navigate).not.toHaveBeenCalled();
+  });
 });

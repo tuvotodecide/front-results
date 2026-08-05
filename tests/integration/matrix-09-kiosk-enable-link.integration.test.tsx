@@ -8,7 +8,7 @@ import {
 } from "./helpers/electionStatusTestUtils";
 
 const openKioskPanel = async (user: ReturnType<typeof userEvent.setup>) => {
-  renderStatusPage();
+  const page = renderStatusPage();
   await user.click(screen.getByRole("tab", { name: "Mas" }));
   const kioskOption = screen
     .getAllByRole("button")
@@ -17,7 +17,7 @@ const openKioskPanel = async (user: ReturnType<typeof userEvent.setup>) => {
     throw new Error("No se encontró la opción del punto presencial.");
   }
   await user.click(kioskOption);
-  return user;
+  return page;
 };
 
 const setupClipboardInteraction = () => {
@@ -41,7 +41,7 @@ describe("MX-09 | enlace del punto presencial", () => {
 
   it("[MX-09][KIO-HAB-P1-002][INTEGRACION] abre el punto autorizado y copia su enlace limitado", async () => {
     const { user, clipboardWriteText } = setupClipboardInteraction();
-    await openKioskPanel(user);
+    const page = await openKioskPanel(user);
 
     await user.click(screen.getByRole("button", { name: "Abrir punto QR" }));
     expect(statusMocks.open).toHaveBeenCalledWith(
@@ -73,6 +73,22 @@ describe("MX-09 | enlace del punto presencial", () => {
     expect(
       screen.getByText("Enlace del punto presencial copiado."),
     ).toBeInTheDocument();
+
+    page.unmount();
+    resetStatusMocks();
+    statusMocks.event = {
+      ...statusMocks.makeEvent(),
+      presentialKioskEnabled: false,
+    };
+    const disabledPage = renderStatusPage();
+    await user.click(screen.getByRole("tab", { name: "Mas" }));
+
+    expect(
+      screen.queryByRole("button", { name: "Punto presencial QR" }),
+    ).not.toBeInTheDocument();
+    expect(statusMocks.open).not.toHaveBeenCalled();
+    expect(statusMocks.createPresentialSession).not.toHaveBeenCalled();
+    disabledPage.unmount();
   });
 
   it("[MX-09][KIO-QR-P0-005][INTEGRACION] muestra el enlace rotado y conserva el error cuando la sesión está reclamada", async () => {
