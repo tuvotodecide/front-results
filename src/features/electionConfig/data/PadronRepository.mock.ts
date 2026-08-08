@@ -64,7 +64,6 @@ const generateMockVoters = (count: number, invalidCount: number): Voter[] => {
       carnet,
       fullName,
       enabled: true,
-      hasIdentity: true,
       status,
       invalidReason,
     });
