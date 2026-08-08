@@ -7,6 +7,7 @@ import { Formik, Form, Field, ErrorMessage, type FieldProps } from 'formik';
 import * as Yup from 'yup';
 import Stepper from './Stepper';
 import ConfirmCreateModal from './ConfirmCreateModal';
+import ToggleOptionField from './ToggleOptionField';
 import { useCreateElection } from '../data/useElectionRepository';
 import {
   addMinutesToLocalDateTime,
@@ -41,6 +42,7 @@ const step1Schema = Yup.object({
         ),
     }),
   isReferendum: Yup.boolean().required(),
+  isOpenVoting: Yup.boolean().required(),
 });
 
 // Validación Step 2
@@ -165,6 +167,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
     institution: '',
     description: '',
     isReferendum: false,
+    isOpenVoting: false,
   });
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingData, setPendingData] = useState<ElectionFormData | null>(null);
@@ -219,6 +222,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
         institution: pendingData.institution,
         description: pendingData.description,
         isReferendum: pendingData.isReferendum,
+        isOpenVoting: pendingData.isOpenVoting,
         votingStartDate: pendingData.votingStartDate,
         votingEndDate: pendingData.votingEndDate,
         resultsDate: pendingData.resultsDate,
@@ -284,49 +288,21 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
             >
               {({ isValid, values }) => (
                 <Form className="space-y-6">
-                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-medium text-gray-800">Crear como referéndum</p>
-                        <p className="mt-1 text-sm text-gray-500">
-                          Activa esta opción si la votación será un referéndum con una pregunta y opciones de respuesta.
-                        </p>
-                      </div>
-                      <Field name="isReferendum">
-                        {({ field, form }: FieldProps<boolean>) => (
-                          <button
-                            type="button"
-                            role="switch"
-                            aria-label="¿Es referéndum?"
-                            aria-checked={field.value}
-                            onClick={() => {
-                              void form.setFieldValue('isReferendum', !field.value, true);
-                              void form.setFieldTouched('isReferendum', true, false);
-                            }}
-                            className={`relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors ${
-                              field.value ? 'bg-[#459151]' : 'bg-gray-300'
-                            }`}
-                          >
-                            <span
-                              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                                field.value ? 'translate-x-6' : 'translate-x-1'
-                              }`}
-                            />
-                          </button>
-                        )}
-                      </Field>
-                    </div>
+                  <ToggleOptionField
+                    name="isReferendum"
+                    title="Crear como referéndum"
+                    description="Activa esta opción si la votación será un referéndum con una pregunta y opciones de respuesta."
+                    warningText="Después no podrás cambiar el tipo de votación."
+                    ariaLabel="¿Es referéndum?"
+                  />
 
-                    <Field name="isReferendum">
-                      {({ field }: FieldProps<boolean>) =>
-                        field.value ? (
-                          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
-                            Después no podrás cambiar el tipo de votación.
-                          </div>
-                        ) : null
-                      }
-                    </Field>
-                  </div>
+                  <ToggleOptionField
+                    name="isOpenVoting"
+                    title="Votación abierta"
+                    description="Activa esta opción si la votación estará disponible para todos los usuarios registrados"
+                    warningText="Después no podrás desactivar esta opción."
+                    ariaLabel="¿Es votación abierta?"
+                  />
 
                   {/* Campo Institución */}
                   <div>

@@ -14,6 +14,7 @@ import type {
   CurrentPadronVoterMutationResult,
   CreatePresentialSessionResult,
   CreateVotingEventDto,
+  ElectionCreditsUsage,
   CreateVotingOptionDto,
   EligibilityResult,
   EventNews,
@@ -142,6 +143,7 @@ const toVotingEvent = (raw: any): VotingEvent => {
     name: source?.name ?? "",
     objective: source?.objective ?? "",
     isReferendum: Boolean(source?.isReferendum),
+    isOpenVoting: Boolean(source?.isOpenVoting),
     votingStart: source?.votingStart ?? null,
     votingEnd: source?.votingEnd ?? null,
     resultsPublishAt: source?.resultsPublishAt ?? null,
@@ -439,6 +441,22 @@ const toOfficialPublicationAdminResponse = (
   };
 };
 
+const toElectionCreditsUsage = (raw: any): ElectionCreditsUsage => {
+  const source = unwrapApiData(raw);
+  return {
+    institution: String(source?.institution ?? ""),
+    creditBalance: String(source?.creditBalance ?? "0"),
+    lockedTVD: String(source?.lockedTVD ?? "0"),
+    pendingTVD: String(source?.pendingTVD ?? "0"),
+    startCreditBalance: String(source?.startCreditBalance ?? "0"),
+    startLockedTVD: String(source?.startLockedTVD ?? "0"),
+    liquidated: Boolean(source?.liquidated),
+    burnedTVD: String(source?.burnedTVD ?? "0"),
+    consumedTVD: String(source?.consumedTVD ?? "0"),
+    refundedTVD: String(source?.refundedTVD ?? "0"),
+  };
+};
+
 export const votingEventsEndpoints = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getVotingEvents: builder.query<VotingEvent[], { tenantId?: string } | void>({
@@ -503,6 +521,14 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
       }),
       transformResponse: (response: any) => toPublishResponse(response),
       invalidatesTags: (_result, _error, { electionId }) => [{ type: "VotingEvents", id: electionId }],
+    }),
+
+    getElectionCreditsUsage: builder.query<ElectionCreditsUsage, string>({
+      query: (electionId) => `/voting/events/${electionId}/credits-usage`,
+      transformResponse: (response: any) => toElectionCreditsUsage(response),
+      providesTags: (_result, _error, electionId) => [
+        { type: "VotingEvents", id: electionId },
+      ],
     }),
 
     getEventReviewReadiness: builder.query<ReviewReadinessResponse, string>({
@@ -745,6 +771,19 @@ export const votingEventsEndpoints = apiSlice.injectEndpoints({
           body: formData,
         };
       },
+      transformResponse: (response: any) => toPadronImportJob(response),
+      invalidatesTags: (_result, _error, { eventId }) => [
+        { type: "VotingEventPadron", id: eventId },
+        { type: "VotingEventPadronSummary", id: eventId },
+        { type: "VotingEvents", id: eventId },
+      ],
+    }),
+
+    importPadronUsers: builder.mutation<PadronImportJob, { eventId: string }>({
+      query: ({ eventId }) => ({
+        url: `/voting/events/${eventId}/padron/imports/users`,
+        method: "POST",
+      }),
       transformResponse: (response: any) => toPadronImportJob(response),
       invalidatesTags: (_result, _error, { eventId }) => [
         { type: "VotingEventPadron", id: eventId },
@@ -1322,6 +1361,7 @@ export const {
   useDeleteVotingEventMutation,
   useDisableVotingEventMutation,
   usePublishVotingEventMutation,
+  useGetElectionCreditsUsageQuery,
   useGetEventReviewReadinessQuery,
   useMarkEventReadyForReviewMutation,
   useConfirmOfficialPublicationMutation,
@@ -1345,6 +1385,7 @@ export const {
   useDeleteVotingOptionMutation,
   useImportPadronMutation,
   useUploadPadronSourceMutation,
+  useImportPadronUsersMutation,
   useAnalyzePadronWithGeminiMutation,
   useGetPadronImportStatusQuery,
   useLazyGetPadronImportStatusQuery,

@@ -65,7 +65,7 @@ vi.mock("ethers", async () => {
       return 1000n;
     });
 
-    rewardByVote = vi.fn(async () => {
+    tvdPerVote = vi.fn(async () => {
       if (ethersMocks.failRpc) throw new Error("rpc");
       return this.address === "0x5555555555555555555555555555555555555555"
         ? 0n
@@ -389,7 +389,7 @@ describe("vistas Superadmin TVD conectadas a /history/contracts", () => {
     });
   });
 
-  it("usa ElectoralCredits, VoteManager e IncentiveCampaigns del backend", async () => {
+  it("RR-P0-01-001 usa ElectoralCredits, VoteManager e IncentiveCampaigns del backend", async () => {
     mockHistoryFetch();
 
     renderWithAuthStore(<TvdParametersPage />, {

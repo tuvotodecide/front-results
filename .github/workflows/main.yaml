@@ -162,6 +162,14 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm test:matrix:16
 
+      - name: Frontend Admin — elecciones abiertas
+        if: ${{ !cancelled() }}
+        run: pnpm test:matrix:ea
+
+      - name: Frontend Admin — registro después de votación
+        if: ${{ !cancelled() }}
+        run: pnpm test:matrix:rdv
+
       - name: Run module tests - Institutional applications residual outside MX-02
         if: ${{ !cancelled() }}
         run: pnpm test:module:applications

@@ -83,7 +83,6 @@ export interface Voter {
   rowNumber: number;
   carnet: string;
   fullName: string;
-  hasIdentity: boolean;
   enabled: boolean;
   status: VoterStatus;
   participationStatus?: 'PARTICIPATED' | 'PENDING';

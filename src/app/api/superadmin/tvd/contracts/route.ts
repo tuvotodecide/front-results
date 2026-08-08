@@ -13,7 +13,7 @@ const getBaseApiUrl = () => {
 };
 
 const getHistoryContractsUrl = () =>
-  getBaseApiUrl().replace(/\/api\/v1\/?$/i, "") + "/history/contracts";
+  getBaseApiUrl().replace(/\/$/, "") + "/history/contracts";
 
 export async function GET(request: NextRequest) {
   const token =

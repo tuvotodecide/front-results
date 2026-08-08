@@ -173,6 +173,7 @@ describe("election creation and configuration P0 components", () => {
         institution: "Eleccion normal",
         description: "Elegir representantes institucionales",
         isReferendum: false,
+        isOpenVoting: false,
         votingStartDate: "2027-06-01T12:00",
         votingEndDate: "2027-06-01T18:00",
         resultsDate: "2027-06-01T19:00",

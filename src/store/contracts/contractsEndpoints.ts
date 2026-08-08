@@ -49,8 +49,8 @@ const getHistoryContractsUrl = () => {
   const baseUrl = String(
     getRuntimeEnv("VITE_BASE_API_URL", "NEXT_PUBLIC_BASE_API_URL") ?? "",
   ).trim();
-  if (!baseUrl) return "/history/contracts";
-  const rootUrl = baseUrl.replace(/\/api\/v1\/?$/i, "").replace(/\/$/, "");
+  if (!baseUrl) return "/api/v1/history/contracts";
+  const rootUrl = baseUrl.replace(/\/$/, "");
   return `${rootUrl}/history/contracts`;
 };
 

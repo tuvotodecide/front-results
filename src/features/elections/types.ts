@@ -5,6 +5,7 @@ export interface Election {
   institution: string;
   description: string;
   isReferendum?: boolean;
+  isOpenVoting?: boolean;
   votingStartDate: string; // ISO date
   votingEndDate: string;
   resultsDate: string;
@@ -16,6 +17,7 @@ export interface CreateElectionPayload {
   institution: string;
   description: string;
   isReferendum: boolean;
+  isOpenVoting: boolean;
   votingStartDate: string;
   votingEndDate: string;
   resultsDate: string;
@@ -25,6 +27,7 @@ export interface ElectionFormStep1 {
   institution: string;
   description: string;
   isReferendum: boolean;
+  isOpenVoting: boolean;
 }
 
 export interface ElectionFormStep2 {
