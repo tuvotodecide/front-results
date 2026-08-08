@@ -28,7 +28,6 @@ const disabledVoter: Voter = {
   rowNumber: 1,
   carnet: "1234567",
   fullName: "Ana Perez",
-  hasIdentity: true,
   enabled: false,
   status: "valid",
 };
