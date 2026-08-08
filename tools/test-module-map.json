@@ -150,6 +150,13 @@
         "tests/unit/matrix-register-after-post.test.tsx"
       ]
     },
+    "matrix_rr": {
+      "name": "MX-RR Frontend Admin — Recompensas y parámetros",
+      "flows": ["RR-P0"],
+      "files": [
+        "tests/integration/superadmin-tvd-contracts-parameters.test.tsx"
+      ]
+    },
     "applications_remaining": {
       "name": "Institutional applications residual tests outside MX-02",
       "flows": [
@@ -276,7 +283,6 @@
         "tests/integration/matrix-06-tvd-canonical.integration.test.tsx",
         "tests/integration/admin-tenant-recharge.test.tsx",
         "tests/integration/superadmin-wallet-lookup.test.tsx",
-        "tests/integration/superadmin-tvd-contracts-parameters.test.tsx",
         "tests/integration/superadmin-tvd-manual-assignment.test.tsx",
         "tests/integration/superadmin-tvd-operations.test.tsx",
         "tests/unit/admin-tvd-recharge-ui.test.ts",

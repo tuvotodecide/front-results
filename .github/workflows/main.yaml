@@ -170,6 +170,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm test:matrix:rdv
 
+      - name: Frontend Admin — recompensas
+        if: ${{ !cancelled() }}
+        run: pnpm test:matrix:rr
+
       - name: Run module tests - Institutional applications residual outside MX-02
         if: ${{ !cancelled() }}
         run: pnpm test:module:applications
