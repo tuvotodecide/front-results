@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
-import { Contract, JsonRpcProvider, isAddress } from "ethers";
+import { useMemo } from "react";
+import { isAddress } from "ethers";
 import { useGetHistoryContractsQuery } from "@/store/contracts/contractsEndpoints";
 import { useListHistoryOperationsQuery } from "@/store/history/historyEndpoints";
+import { useGetElectionCreditsUsageQuery } from "@/store/votingEvents/votingEventsEndpoints";
 import { getTvdBlockchainReadConfig } from "@/shared/tvd/tvdBlockchainConfig";
 import {
   buildExplorerAddressUrl,
@@ -9,11 +10,7 @@ import {
   formatTvdAmount,
 } from "@/shared/tvd/tvdBlockchainFormatters";
 import { getTvdOperationMetadata } from "@/shared/tvd/tvdOperationMetadata";
-
-const ELECTORAL_CREDITS_ABI = [
-  "function getElection(uint256 electionId) view returns (address institution,uint256 creditBalance,uint256 lockedTVD,uint256 pendingTVD,uint256 startCreditBalance,uint256 startLockedTVD,bool liquidated,uint256 burnedTVD,uint256 consumedTVD,uint256 refundedTVD)",
-] as const;
-const TOKEN_ABI = ["function decimals() view returns (uint8)"] as const;
+import { getRuntimeEnv } from "@/shared/system/runtimeEnv";
 
 export type ElectionTvdOperation = {
   id: string;
@@ -44,12 +41,13 @@ export type ElectionTvdUsage = {
   operations: ElectionTvdOperation[];
 };
 
-const isHexElectionId = (value: string) => /^[0-9a-fA-F]+$/.test(value);
-
-const toElectionBigInt = (electionId: string) => {
-  const trimmed = electionId.trim().replace(/^0x/i, "");
-  if (!trimmed || !isHexElectionId(trimmed)) return null;
-  return BigInt(`0x${trimmed}`);
+const getTvdDecimals = () => {
+  const configured = Number(
+    getRuntimeEnv("VITE_TVD_DECIMALS", "NEXT_PUBLIC_TVD_DECIMALS"),
+  );
+  return Number.isSafeInteger(configured) && configured >= 0 && configured <= 36
+    ? configured
+    : 18;
 };
 
 const formatDate = (value?: string | null) => {
@@ -72,9 +70,7 @@ const formatRelatedAmount = (value?: string | null) => {
 
 export const useElectionTvdUsage = (electionId: string): ElectionTvdUsage => {
   const config = useMemo(() => getTvdBlockchainReadConfig(), []);
-  const [fields, setFields] = useState<ElectionTvdField[]>([]);
-  const [readError, setReadError] = useState<string | null>(null);
-  const [isReading, setIsReading] = useState(false);
+  const decimals = useMemo(() => getTvdDecimals(), []);
   const { data: contractsResponse, isLoading: contractsLoading } =
     useGetHistoryContractsQuery();
   const { data: historyData, isFetching: historyLoading } =
@@ -82,117 +78,64 @@ export const useElectionTvdUsage = (electionId: string): ElectionTvdUsage => {
       { electionId, page: 1, limit: 10 },
       { skip: !electionId },
     );
+  const {
+    data: creditsUsage,
+    isFetching: creditsLoading,
+    isError: creditsHasError,
+  } = useGetElectionCreditsUsageQuery(electionId, { skip: !electionId });
   const contracts = contractsResponse?.data;
   const configuredCreditsAddress = contracts?.electoralCredits?.address ?? null;
-  const configuredTokenAddress = contracts?.tvdToken?.address ?? null;
   const creditsContractAddress =
     configuredCreditsAddress && isAddress(configuredCreditsAddress)
       ? configuredCreditsAddress
       : null;
-  const tokenContractAddress =
-    configuredTokenAddress && isAddress(configuredTokenAddress)
-      ? configuredTokenAddress
+
+  const fields = useMemo<ElectionTvdField[]>(() => {
+    if (!creditsUsage) return [];
+    return [
+      {
+        label: "Saldo inicial de créditos",
+        value: formatTvdAmount(BigInt(creditsUsage.startCreditBalance || "0"), 0, "Créditos"),
+      },
+      {
+        label: "TVD bloqueado al inicio",
+        value: formatTvdAmount(BigInt(creditsUsage.startLockedTVD || "0"), decimals, "$TVD"),
+      },
+      {
+        label: "Créditos disponibles",
+        value: formatTvdAmount(BigInt(creditsUsage.creditBalance || "0"), 0, "Créditos"),
+      },
+      {
+        label: "TVD pendiente",
+        value: formatTvdAmount(BigInt(creditsUsage.pendingTVD || "0"), decimals, "$TVD"),
+      },
+      {
+        label: "TVD bloqueado",
+        value: formatTvdAmount(BigInt(creditsUsage.lockedTVD || "0"), decimals, "$TVD"),
+      },
+      {
+        label: "TVD consumido",
+        value: formatTvdAmount(BigInt(creditsUsage.consumedTVD || "0"), decimals, "$TVD"),
+      },
+      {
+        label: "TVD quemado",
+        value: formatTvdAmount(BigInt(creditsUsage.burnedTVD || "0"), decimals, "$TVD"),
+      },
+      {
+        label: "TVD devuelto",
+        value: formatTvdAmount(BigInt(creditsUsage.refundedTVD || "0"), decimals, "$TVD"),
+      },
+      {
+        label: "Liquidación completada",
+        value: creditsUsage.liquidated ? "Sí" : "No",
+      },
+    ];
+  }, [creditsUsage, decimals]);
+
+  const readError =
+    electionId && creditsHasError
+      ? "No se pudo consultar el uso de TVD para esta votación."
       : null;
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const readElection = async () => {
-      const electionBigInt = toElectionBigInt(electionId);
-      if (!electionBigInt) {
-        setFields([]);
-        setReadError("No se pudo consultar el uso de TVD para esta votación.");
-        return;
-      }
-      if (!config.rpcUrl || !creditsContractAddress) {
-        setFields([]);
-        setReadError("La consulta de TVD no está disponible en este momento.");
-        return;
-      }
-
-      setIsReading(true);
-      setReadError(null);
-      try {
-        const provider = new JsonRpcProvider(config.rpcUrl, config.chainId ?? undefined, {
-          batchMaxCount: 1,
-        });
-        const contract = new Contract(
-          creditsContractAddress,
-          ELECTORAL_CREDITS_ABI,
-          provider,
-        );
-        const tokenContract = tokenContractAddress
-          ? new Contract(tokenContractAddress, TOKEN_ABI, provider)
-          : null;
-        const [result, decimalsResult] = await Promise.all([
-          contract.getElection(electionBigInt),
-          tokenContract?.decimals() ?? Promise.resolve(null),
-        ]);
-        if (cancelled) return;
-        const decimals = decimalsResult === null ? NaN : Number(decimalsResult);
-        if (!Number.isSafeInteger(decimals) || decimals < 0 || decimals > 36) {
-          throw new Error("decimales invalidos");
-        }
-        setFields([
-          {
-            label: "Saldo inicial de créditos",
-            value: formatTvdAmount(BigInt(result.startCreditBalance ?? 0), decimals, "$TVD"),
-          },
-          {
-            label: "TVD bloqueado al inicio",
-            value: formatTvdAmount(BigInt(result.startLockedTVD ?? 0), decimals, "$TVD"),
-          },
-          {
-            label: "Créditos disponibles",
-            value: formatTvdAmount(BigInt(result.creditBalance ?? 0), decimals, "$TVD"),
-          },
-          {
-            label: "TVD pendiente",
-            value: formatTvdAmount(BigInt(result.pendingTVD ?? 0), decimals, "$TVD"),
-          },
-          {
-            label: "TVD bloqueado",
-            value: formatTvdAmount(BigInt(result.lockedTVD ?? 0), decimals, "$TVD"),
-          },
-          {
-            label: "TVD consumido",
-            value: formatTvdAmount(BigInt(result.consumedTVD ?? 0), decimals, "$TVD"),
-          },
-          {
-            label: "TVD quemado",
-            value: formatTvdAmount(BigInt(result.burnedTVD ?? 0), decimals, "$TVD"),
-          },
-          {
-            label: "TVD devuelto",
-            value: formatTvdAmount(BigInt(result.refundedTVD ?? 0), decimals, "$TVD"),
-          },
-          {
-            label: "Liquidación completada",
-            value: result.liquidated ? "Sí" : "No",
-          },
-        ]);
-      } catch {
-        if (!cancelled) {
-          setFields([]);
-          setReadError("No se pudo consultar el uso de TVD para esta votación.");
-        }
-      } finally {
-        if (!cancelled) setIsReading(false);
-      }
-    };
-
-    void readElection();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    config.chainId,
-    config.rpcUrl,
-    creditsContractAddress,
-    electionId,
-    tokenContractAddress,
-  ]);
 
   const operations = useMemo(
     () =>
@@ -217,7 +160,7 @@ export const useElectionTvdUsage = (electionId: string): ElectionTvdUsage => {
   const publicationTxHash = publicationOperation?.txHash ?? null;
 
   return {
-    isLoading: contractsLoading || isReading || historyLoading,
+    isLoading: contractsLoading || creditsLoading || historyLoading,
     error: readError,
     networkName: config.name,
     creditsContractAddress,

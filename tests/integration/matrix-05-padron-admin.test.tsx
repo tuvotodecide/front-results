@@ -22,7 +22,6 @@ const voters: Voter[] = [
     rowNumber: 1,
     carnet: "1234567",
     fullName: "",
-    hasIdentity: true,
     enabled: true,
     status: "valid",
   },
@@ -31,7 +30,6 @@ const voters: Voter[] = [
     rowNumber: 2,
     carnet: "7654321",
     fullName: "",
-    hasIdentity: false,
     enabled: false,
     status: "valid",
   },
@@ -109,7 +107,6 @@ describe("MX-05 | Padrón, staging, elegibilidad y archivos | integración de co
     );
 
     expect(screen.getByText("Observados")).toBeInTheDocument();
-    expect(screen.getByText("No registrado")).toBeInTheDocument();
     await user.click(screen.getByRole("checkbox", { name: "Seleccionar 1234567" }));
     await user.type(screen.getByPlaceholderText("Buscar por carnet"), "7654321");
     await user.click(screen.getByRole("button", { name: "Siguiente" }));
@@ -144,7 +141,7 @@ describe("MX-05 | Padrón, staging, elegibilidad y archivos | integración de co
     );
   });
 
-  it("[MX-05][PAD-ROW-P0-002][INTEGRACION] expone identidad faltante e inhabilitación en staging", () => {
+  it("[MX-05][PAD-ROW-P0-002][INTEGRACION] expone inhabilitación en staging", () => {
     render(
       <PadronStagingView
         file={file}
@@ -162,7 +159,6 @@ describe("MX-05 | Padrón, staging, elegibilidad y archivos | integración de co
     );
 
     expect(screen.getByText("7654321")).toBeInTheDocument();
-    expect(screen.getByText("No registrado")).toBeInTheDocument();
     expect(screen.getByText("Inhabilitados")).toBeInTheDocument();
     expect(screen.getByText("No")).toBeInTheDocument();
   });

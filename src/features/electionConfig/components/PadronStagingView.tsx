@@ -391,9 +391,6 @@ const PadronStagingView: React.FC<PadronStagingViewProps> = ({
                       <div>
                         <p className="font-medium text-slate-900">
                           {voter.carnet}
-                          {!voter.hasIdentity && (
-                            <span className="ml-2 text-red-600 text-xs font-semibold align-middle">No registrado</span>
-                          )}
                         </p>
                       </div>
                     </td>

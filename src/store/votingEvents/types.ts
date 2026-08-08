@@ -5,6 +5,7 @@ export interface CreateVotingEventDto {
   name: string;
   objective: string;
   isReferendum?: boolean;
+  isOpenVoting?: boolean;
   votingStart?: string;
   votingEnd?: string;
   resultsPublishAt?: string;
@@ -119,6 +120,7 @@ export interface VotingEvent {
   chainRequestId: string;
   objective: string;
   isReferendum?: boolean;
+  isOpenVoting?: boolean;
   votingStart?: string | null;
   votingEnd?: string | null;
   resultsPublishAt?: string | null;
@@ -607,3 +609,16 @@ export interface ReviewReadinessResponse {
 }
 
 export type ComparisonReportStatus = "PENDING" | "OK" | "FAILED";
+
+export interface ElectionCreditsUsage {
+  institution: string;
+  creditBalance: string;
+  lockedTVD: string;
+  pendingTVD: string;
+  startCreditBalance: string;
+  startLockedTVD: string;
+  liquidated: boolean;
+  burnedTVD: string;
+  consumedTVD: string;
+  refundedTVD: string;
+}

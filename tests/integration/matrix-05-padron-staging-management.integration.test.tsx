@@ -24,7 +24,7 @@ vi.mock("@/store/votingEvents", () => ({
   useGetPadronWorkflowSummaryQuery: vi.fn(), useGetVotingEventQuery: vi.fn(),
   useLazyDownloadPadronPdfQuery: vi.fn(), useLazyGetPadronImportStatusQuery: vi.fn(),
   useLazyGetPadronStagingQuery: vi.fn(), useUpdatePadronStagingEntryMutation: vi.fn(),
-  useUploadPadronSourceMutation: vi.fn(),
+  useUploadPadronSourceMutation: vi.fn(), useImportPadronUsersMutation: vi.fn(),
 }));
 
 import * as votingEvents from "@/store/votingEvents";
@@ -38,8 +38,8 @@ import type { PadronFile, Voter } from "@/features/electionConfig/types";
 
 const file: PadronFile = { fileName: "padron-job-1.pdf", uploadedAt: "2026-04-16T12:00:00.000Z", totalRecords: 2, validCount: 1, invalidCount: 1, sourceType: "PDF" };
 const voters: Voter[] = [
-  { id: "entry-1", rowNumber: 1, carnet: "1234567", fullName: "Ana", hasIdentity: true, enabled: true, status: "valid" },
-  { id: "entry-2", rowNumber: 2, carnet: "7654321", fullName: "Beto", hasIdentity: false, enabled: false, status: "valid" },
+  { id: "entry-1", rowNumber: 1, carnet: "1234567", fullName: "Ana", enabled: true, status: "valid" },
+  { id: "entry-2", rowNumber: 2, carnet: "7654321", fullName: "Beto", enabled: false, status: "valid" },
 ];
 const event = { id: "evt-1", tenantId: "tenant-1", state: "DRAFT", status: "DRAFT", name: "Elección de tenant 1", votingStart: "2026-04-18T12:00:00.000Z", votingEnd: "2026-04-18T18:00:00.000Z", publishDeadline: "2026-04-18T06:00:00.000Z" };
 const mutation = (value: unknown = {}) => vi.fn().mockReturnValue({ unwrap: vi.fn().mockResolvedValue(value) });
@@ -63,13 +63,14 @@ beforeEach(() => {
   vi.mocked(votingEvents.useGetEventOptionsQuery).mockReturnValue({ data: [{ id: "o1", candidates: [{ id: "c1" }] }], isLoading: false, isError: false } as any);
   vi.mocked(votingEvents.useGetEventReviewReadinessQuery).mockReturnValue({ data: { pending: [] }, isLoading: false, isFetching: false, refetch: vi.fn() } as any);
   setWorkflow();
-  vi.mocked(votingEvents.useGetPadronStagingQuery).mockReturnValue({ data: { data: voters.map((voter) => ({ id: voter.id, ci: voter.carnet, enabled: voter.enabled, hasIdentity: voter.hasIdentity, sourceKind: "PARSED" })), total: 2, totalPages: 1 }, isFetching: false, isError: false, isUninitialized: false, refetch: refs.staging } as any);
+  vi.mocked(votingEvents.useGetPadronStagingQuery).mockReturnValue({ data: { data: voters.map((voter) => ({ id: voter.id, ci: voter.carnet, enabled: voter.enabled, sourceKind: "PARSED" })), total: 2, totalPages: 1 }, isFetching: false, isError: false, isUninitialized: false, refetch: refs.staging } as any);
   vi.mocked(votingEvents.useGetPadronVotersQuery).mockReturnValue({ data: { voters: [], total: 0, totalPages: 1 }, isFetching: false, isError: false, isUninitialized: true, refetch: vi.fn() } as any);
   vi.mocked(votingEvents.useLazyGetPadronStagingQuery).mockReturnValue([mutation({ data: [], totalPages: 1 })] as any);
   vi.mocked(votingEvents.useLazyGetPadronImportStatusQuery).mockReturnValue([mutation({ status: "PARSED" })] as any);
   vi.mocked(votingEvents.useLazyDownloadPadronPdfQuery).mockReturnValue([vi.fn()] as any);
   vi.mocked(votingEvents.useAnalyzePadronWithGeminiMutation).mockReturnValue([mutation({ records: [] }), { isLoading: false }] as any);
   vi.mocked(votingEvents.useUploadPadronSourceMutation).mockReturnValue([refs.upload, { isLoading: false }] as any);
+  vi.mocked(votingEvents.useImportPadronUsersMutation).mockReturnValue([mutation(), { isLoading: false }] as any);
   vi.mocked(votingEvents.useAddPadronStagingEntryMutation).mockReturnValue([refs.add, { isLoading: false }] as any);
   vi.mocked(votingEvents.useUpdatePadronStagingEntryMutation).mockReturnValue([refs.update, { isLoading: false }] as any);
   vi.mocked(votingEvents.useDeletePadronStagingEntryMutation).mockReturnValue([refs.remove, { isLoading: false }] as any);
@@ -83,17 +84,16 @@ describe("MX-05 | padrón: staging, gestión y permisos", () => {
     const view = renderWithAuthStore(<ElectionConfigPadron />, { active: true, tenantId: "tenant-1", role: "ADMIN" });
     expect(screen.getByText("1234567")).toBeInTheDocument();
     setWorkflow(null, draft("job-2"));
-    vi.mocked(votingEvents.useGetPadronStagingQuery).mockReturnValue({ data: { data: [{ id: "new-1", ci: "9999999", enabled: true, hasIdentity: true, sourceKind: "PARSED" }], total: 1, totalPages: 1 }, isFetching: false, isError: false, isUninitialized: false, refetch: refs.staging } as any);
+    vi.mocked(votingEvents.useGetPadronStagingQuery).mockReturnValue({ data: { data: [{ id: "new-1", ci: "9999999", enabled: true, sourceKind: "PARSED" }], total: 1, totalPages: 1 }, isFetching: false, isError: false, isUninitialized: false, refetch: refs.staging } as any);
     view.rerender(<ElectionConfigPadron />);
     expect(screen.getByText("9999999")).toBeInTheDocument();
     expect(screen.queryByText("1234567")).not.toBeInTheDocument();
     expect(votingEvents.useGetPadronStagingQuery).toHaveBeenCalledWith(expect.objectContaining({ eventId: "evt-1" }), expect.objectContaining({ skip: false }));
   });
 
-  it("[MX-05][PAD-ROW-P0-002][INTEGRACION] mantiene identidad faltante e inhabilitación visibles", () => {
+  it("[MX-05][PAD-ROW-P0-002][INTEGRACION] mantiene inhabilitación visible", () => {
     renderStaging({ observedCount: 1 });
     expect(screen.getByText("7654321")).toBeInTheDocument();
-    expect(screen.getByText("No registrado")).toBeInTheDocument();
     expect(screen.getByText("Inhabilitados")).toBeInTheDocument();
     expect(screen.getAllByText("No").length).toBeGreaterThan(0);
     expect(screen.getByText("1234567")).toBeInTheDocument();

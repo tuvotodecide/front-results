@@ -38,6 +38,7 @@ vi.mock("@/store/votingEvents", () => ({
   useLazyGetPadronImportStatusQuery: vi.fn(),
   useLazyDownloadPadronPdfQuery: vi.fn(),
   useUploadPadronSourceMutation: vi.fn(),
+  useImportPadronUsersMutation: vi.fn(),
   useUpdatePadronStagingEntryMutation: vi.fn(),
   useGetVotingEventsQuery: vi.fn(),
   useGetEventResultsQuery: vi.fn(),
@@ -300,7 +301,6 @@ describe("MX-05 | Padrón, staging, elegibilidad y archivos | Frontend", () => {
           importJobId: "job-1",
           ci: `100${index}`,
           enabled: true,
-          hasIdentity: true,
           sourceKind: "PARSED",
         })),
         page: 1,
@@ -345,6 +345,7 @@ describe("MX-05 | Padrón, staging, elegibilidad y archivos | Frontend", () => {
       uploadPadronSourceMock,
       { isLoading: false },
     ] as any);
+    vi.mocked(votingEvents.useImportPadronUsersMutation).mockReturnValue(noopMutation as any);
     vi.mocked(votingEvents.useAnalyzePadronWithGeminiMutation).mockReturnValue([
       analyzePadronWithGeminiMock,
       { isLoading: false },
@@ -369,14 +370,9 @@ describe("MX-05 | Padrón, staging, elegibilidad y archivos | Frontend", () => {
     vi.mocked(votingEvents.useCreateEventNewsMutation).mockReturnValue(noopMutation as any);
   });
 
-  it("PAD-ACC-P0-001 / PAD-ROW-P0-002 | permite finalizar con identidades faltantes fuera de la página actual", () => {
+  it("PAD-ACC-P0-001 / PAD-ROW-P0-002 | permite finalizar con registros fuera de la página actual", () => {
     render(<ElectionConfigPadron />);
 
-    expect(
-      screen.getByText(
-        "Hay 2 registros del padrón sin identidad verificada en la aplicación electoral. Se resolverán al confirmar la publicación oficial.",
-      ),
-    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /finalizar configuración/i })).toBeEnabled();
   });
 

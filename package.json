@@ -54,6 +54,8 @@
     "test:matrix:09:support": "node tools/run-module-tests.mjs vitest matrix_09_support",
     "test:matrix:10": "node tools/run-module-tests.mjs vitest matrix_10",
     "test:matrix:10:support": "node tools/run-module-tests.mjs vitest matrix_10_support",
+    "test:matrix:ea": "node tools/run-module-tests.mjs vitest matrix_ea --reporter=verbose",
+    "test:matrix:rdv": "node tools/run-module-tests.mjs vitest matrix_rdv --reporter=verbose",
     "test:module:applications": "node tools/run-module-tests.mjs vitest applications_remaining",
     "test:module:applications-remaining": "node tools/run-module-tests.mjs vitest applications_remaining",
     "test:module:election-dashboard": "node tools/run-module-tests.mjs vitest election-dashboard",

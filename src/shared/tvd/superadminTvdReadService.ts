@@ -39,7 +39,7 @@ const ELECTORAL_CREDITS_ABI = [
   "function burnBps() view returns (uint256)",
   "function platformWallet() view returns (address)",
 ];
-const VOTE_MANAGER_ABI = ["function rewardByVote() view returns (uint256)"];
+const VOTE_MANAGER_ABI = ["function tvdPerVote() view returns (uint256)"];
 const INCENTIVE_CAMPAIGNS_ABI = [
   "function isPaused() view returns (bool)",
   "function campaignsCount() view returns (uint256)",
@@ -912,7 +912,7 @@ const readRewardByVote = async (
 ) => {
   try {
     const contract = new Contract(address, VOTE_MANAGER_ABI, provider);
-    const raw = toBigIntValue(await contract.rewardByVote());
+    const raw = toBigIntValue(await contract.tvdPerVote());
     if (raw === null) throw new Error("raw invalido");
     return {
       raw: raw.toString(),

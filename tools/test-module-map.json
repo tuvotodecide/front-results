@@ -129,6 +129,27 @@
         "tests/unit/referendum-flow.test.tsx"
       ]
     },
+    "matrix_ea": {
+      "name": "EA | Votación abierta",
+      "flows": [
+        "EA",
+        "EA-P0"
+      ],
+      "files": [
+        "tests/unit/matrix-open-elections.test.tsx",
+        "tests/integration/matrix-open-elections.test.tsx"
+      ]
+    },
+    "matrix_rdv": {
+      "name": "RDV | Registro del padrón tras publicación",
+      "flows": [
+        "RDV",
+        "RDV-P0"
+      ],
+      "files": [
+        "tests/unit/matrix-register-after-post.test.tsx"
+      ]
+    },
     "applications_remaining": {
       "name": "Institutional applications residual tests outside MX-02",
       "flows": [
