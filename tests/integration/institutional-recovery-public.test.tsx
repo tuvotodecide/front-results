@@ -140,7 +140,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("D-MAIL-006 / D-MAIL-007 | maneja busqueda publica de instituciones con error, retry y datos sanitizados", async () => {
+  it("[MX-02][SOPORTE-RECOVERY-PUBLIC][INTEGRACION] maneja búsqueda pública con error, reintento y datos sanitizados", async () => {
     const user = userEvent.setup();
     const fetchMock = vi
       .fn<(input: RequestInfo | URL) => Promise<Response>>()

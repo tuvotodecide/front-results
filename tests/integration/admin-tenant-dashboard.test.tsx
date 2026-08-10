@@ -167,7 +167,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     navigateMock.mockReset();
   });
 
-  it("D-LIST-001 / D-PERM-004 | renderiza accesos reales, busqueda y votaciones del backend mockeado", () => {
+  it("[MX-02][SOPORTE-DASHBOARD][INTEGRACION] renderiza accesos reales, búsqueda y votaciones del backend simulado", () => {
     renderDashboard();
 
     expect(screen.getByRole("link", { name: /Saldo 100 \$TVD/i })).toBeInTheDocument();
@@ -210,7 +210,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(navigateMock).toHaveBeenCalledWith("/votacion/cuenta-institucional");
   });
 
-  it("D-REG-003 / D-STATE-004 | mantiene votaciones visibles y alerta roja cuando no existe wallet vinculada", () => {
+  it("[MX-02][SOPORTE-DASHBOARD][INTEGRACION] mantiene votaciones visibles y alerta roja cuando no existe wallet vinculada", () => {
     renderDashboard(mockEvents, {
       data: {
         ...tvdSummaryWithWallet,

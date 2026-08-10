@@ -50,7 +50,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(config.matcher).toContain("/votacion/elecciones/:electionId/config/:path*");
   });
 
-  it("D-COMPAT-008 / D-PERM-005 | protege rutas nuevas igual que rutas privadas de votacion", () => {
+  it("[MX-02][SOPORTE-NO-REGRESION][INTEGRACION] protege rutas nuevas igual que rutas privadas de votación", () => {
     const anonymousResponse = handleVotacionAccess(createRequest("/votacion/recarga-operativa"));
     expect(anonymousResponse.headers.get("location")).toBe(
       "http://localhost/votacion/login",

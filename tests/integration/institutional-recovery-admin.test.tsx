@@ -198,7 +198,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     vi.unstubAllGlobals();
   });
 
-  it("D-MAIL-012 / D-LIST-005 | lista solicitudes reales y consulta por estado sin mocks productivos", async () => {
+  it("[MX-02][SOPORTE-RECOVERY][INTEGRACION] lista solicitudes y consulta por estado con el componente real", async () => {
     const user = userEvent.setup();
     const { fetchMock, captured } = makeFetchMock();
     vi.stubGlobal("fetch", fetchMock);
@@ -229,7 +229,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(approvedListRequest?.headers.get("x-api-key")).toBeNull();
   });
 
-  it("D-MAIL-003 / D-MAIL-013 | muestra detalle con identidad preservada y aprueba con body minimo", async () => {
+  it("[MX-02][SOPORTE-RECOVERY][INTEGRACION] muestra detalle de recuperación general y aprueba con body mínimo", async () => {
     const user = userEvent.setup();
     const { captured, fetchMock } = makeFetchMock();
     vi.stubGlobal("fetch", fetchMock);
@@ -274,7 +274,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(await screen.findByText("Operación completada")).toBeInTheDocument();
   });
 
-  it("D-MAIL-003 | aprueba cambio de correo administrativo con endpoint especifico y sin reset de contraseña", async () => {
+  it("[MX-02][D-MAIL-003][INTEGRACION] aprueba cambio de correo con endpoint específico y sin reset de contraseña", async () => {
     const user = userEvent.setup();
     const { captured, fetchMock } = makeFetchMock({
       detail: {
@@ -316,7 +316,47 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(screen.getByText("Cambio de correo aprobado.")).toBeInTheDocument();
   });
 
-  it("D-MAIL-014 | rechaza una solicitud sin modificar acceso ni enviar estado manual", async () => {
+  it("[MX-02][D-MAIL-006][INTEGRACION] aprueba el cambio sin exponer ni enviar CI o DNI", async () => {
+    const user = userEvent.setup();
+    const { captured, fetchMock } = makeFetchMock({
+      detail: {
+        ...pendingDetail,
+        requestType: "ADMIN_EMAIL_CHANGE",
+      },
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderAdminPage();
+
+    await screen.findAllByText("Tribunal Supremo Electoral");
+    await user.click(screen.getAllByRole("button", { name: /Ver detalle/i })[0]);
+    const detailDialog = await screen.findByRole("dialog", {
+      name: /Detalle de cambio de correo/i,
+    });
+    expect(within(detailDialog).queryAllByText(/\b(?:CI|DNI)\b/i)).toHaveLength(0);
+
+    await user.type(
+      await screen.findByPlaceholderText(/nota administrativa segura/i),
+      "Datos de identidad no editables",
+    );
+    await user.click(screen.getByRole("button", { name: /Aprobar cambio/i }));
+    const dialog = screen.getByRole("dialog", {
+      name: /Aprobar cambio de correo/i,
+    });
+    await user.click(within(dialog).getByRole("button", { name: /Aprobar cambio/i }));
+
+    await waitFor(() => {
+      expect(captured.approveEmailChangeBodies).toHaveLength(1);
+    });
+    expect(captured.approveEmailChangeBodies[0]).toEqual({
+      reason: "Datos de identidad no editables",
+    });
+    expect(captured.approveEmailChangeBodies[0]).not.toHaveProperty("dni");
+    expect(captured.approveEmailChangeBodies[0]).not.toHaveProperty("ci");
+    expect(await screen.findByText("Cambio de correo aprobado.")).toBeInTheDocument();
+  });
+
+  it("[MX-02][D-MAIL-004][INTEGRACION] el superadministrador rechaza el cambio sin modificar acceso ni enviar estado manual", async () => {
     const user = userEvent.setup();
     const { captured, fetchMock } = makeFetchMock();
     vi.stubGlobal("fetch", fetchMock);

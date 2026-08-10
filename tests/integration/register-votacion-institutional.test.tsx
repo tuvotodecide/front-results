@@ -279,23 +279,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     ).toBeInTheDocument();
   });
 
-  it.each([
-    [
-      "D-REQ-004",
-      "mantiene pendiente la solicitud duplicada",
-      "Ya tienes una solicitud pendiente para esta institución.",
-    ],
-    [
-      "D-COMPAT-001",
-      "detecta administrador institucional existente",
-      "Ya administras esta institución.",
-    ],
-    [
-      "D-STATE-002",
-      "rechaza institución no disponible",
-      "La institución seleccionada no está disponible.",
-    ],
-  ])("%s | %s", async (_id, _scenario, message) => {
+  const assertExistingInstitutionRequestError = async (message: string) => {
     createInstitutionalAdminApplication.mockReturnValueOnce({
       unwrap: vi.fn().mockRejectedValue({ data: { message } }),
     });
@@ -306,6 +290,40 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     await user.click(screen.getByRole("button", { name: "Solicitar acceso" }));
 
     expect(await screen.findByText(message)).toBeInTheDocument();
+  };
+
+  it("[MX-02][D-REQ-002][INTEGRACION] informa una solicitud vigente sin crear otra", async () => {
+    await assertExistingInstitutionRequestError(
+      "Ya tienes una solicitud pendiente para esta institución.",
+    );
+  });
+
+  it("[MX-02][D-REQ-003][INTEGRACION] informa que la persona ya administra la institución", async () => {
+    await assertExistingInstitutionRequestError("Ya administras esta institución.");
+  });
+
+  it("[MX-02][D-REQ-005][INTEGRACION] permite reenviar una solicitud después de que la anterior fue rechazada", async () => {
+    createInstitutionalAdminApplication
+      .mockReturnValueOnce({
+        unwrap: vi.fn().mockRejectedValue({
+          data: { message: "La solicitud anterior fue rechazada. Puedes volver a solicitar." },
+        }),
+      })
+      .mockReturnValueOnce({ unwrap: vi.fn().mockResolvedValue({ ok: true }) });
+    const { container } = renderWithAuthStore(<RegisterVotacionPage />);
+    const user = await fillBaseFields(container);
+    await selectExistingInstitution(container);
+
+    await user.click(screen.getByRole("button", { name: "Solicitar acceso" }));
+    expect(await screen.findByText("La solicitud anterior fue rechazada. Puedes volver a solicitar.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Solicitar acceso" }));
+
+    await waitFor(() => expect(createInstitutionalAdminApplication).toHaveBeenCalledTimes(2));
+    expect(navigate).toHaveBeenCalledWith("/votacion/pendiente", { replace: true });
+  });
+
+  it("[MX-02][D-STATE-002][INTEGRACION] muestra que la institución seleccionada no está disponible", async () => {
+    await assertExistingInstitutionRequestError("La institución seleccionada no está disponible.");
   });
 
   it("[MX-02][D-NEW-002][INTEGRACION] bloquea el envío cuando la persona no está registrada", async () => {
@@ -369,7 +387,61 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     });
   });
 
-  it("D-REG-001 / D-REG-002 | limpia la wallet anterior cuando cambia el DNI", async () => {
+  it("[MX-02][D-NEW-005][INTEGRACION] mantiene el registro pendiente cuando el correo aún no fue verificado", async () => {
+    createInstitutionalAdminApplication.mockReturnValueOnce({
+      unwrap: vi.fn().mockRejectedValue({
+        data: { message: "Debes verificar tu correo antes de completar el registro." },
+      }),
+    });
+    const { container } = renderWithAuthStore(<RegisterVotacionPage />);
+
+    await submitForm(container);
+
+    expect(
+      await screen.findByText("Debes verificar tu correo antes de completar el registro."),
+    ).toBeInTheDocument();
+    expect(createInstitutionalAdminApplication).toHaveBeenCalledTimes(1);
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("[MX-02][D-NEW-008][INTEGRACION] permite presentar una nueva solicitud después de que la anterior fue rechazada", async () => {
+    createInstitutionalAdminApplication
+      .mockReturnValueOnce({
+        unwrap: vi.fn().mockRejectedValue({
+          data: { message: "La solicitud anterior fue rechazada. Puedes volver a solicitar." },
+        }),
+      })
+      .mockReturnValueOnce({ unwrap: vi.fn().mockResolvedValue({ ok: true }) });
+    const { container } = renderWithAuthStore(<RegisterVotacionPage />);
+
+    await submitForm(container);
+    expect(
+      await screen.findByText("La solicitud anterior fue rechazada. Puedes volver a solicitar."),
+    ).toBeInTheDocument();
+
+    await userEvent.setup().click(screen.getByRole("button", { name: "Registrarse" }));
+
+    await waitFor(() => {
+      expect(createInstitutionalAdminApplication).toHaveBeenCalledTimes(2);
+    });
+    expect(navigate).toHaveBeenCalledWith("/votacion/pendiente", { replace: true });
+  });
+
+  it("[MX-02][SOPORTE-REGRESION][INTEGRACION] muestra la billetera resuelta por Identity como solo lectura", async () => {
+    const user = userEvent.setup();
+    resolveInstitutionalWalletByDni.mockReturnValueOnce(successfulResolve(wallet));
+
+    const { container } = renderWithAuthStore(<RegisterVotacionPage />);
+
+    const dniInput = getInput(container, '[data-cy="register-dni"]');
+    await user.type(dniInput, "12345678");
+    expect(await screen.findByDisplayValue(wallet)).toBeInTheDocument();
+    expect(getInput(container, '[data-cy="register-account-address"]')).toHaveAttribute(
+      "readonly",
+    );
+  });
+
+  it("[MX-02][SOPORTE-REGRESION][INTEGRACION] descarta la billetera anterior al cambiar el DNI", async () => {
     const user = userEvent.setup();
     resolveInstitutionalWalletByDni
       .mockReturnValueOnce(successfulResolve(wallet))

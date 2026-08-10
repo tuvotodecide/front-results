@@ -47,7 +47,7 @@ const detail: InstitutionalRecoveryDetail = {
 };
 
 describe("MX-02 | Gestión de instituciones, administradores y wallets | Frontend Admin | Helpers de recuperación", () => {
-  it("D-MAIL-002 | normaliza correo y construye el body publico exacto", () => {
+  it("[MX-02][SOPORTE-RECOVERY][UNITARIO] normaliza el correo y construye el body público exacto", () => {
     const validation = validateInstitutionalRecoveryPublicDraft(validDraft);
 
     expect(validation.isValid).toBe(true);
@@ -62,7 +62,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     );
   });
 
-  it("D-MAIL-005 | rechaza campos vacios y correo invalido", () => {
+  it("[MX-02][SOPORTE-RECOVERY][UNITARIO] rechaza campos públicos vacíos y correo inválido", () => {
     const emptyValidation = validateInstitutionalRecoveryPublicDraft(
       initialInstitutionalRecoveryPublicDraft,
     );
@@ -83,7 +83,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(invalidEmail.errors.newEmail).toBe("Ingresa un correo válido.");
   });
 
-  it("D-MAIL-009 / D-MAIL-010 / D-MAIL-011 | mapea estados y errores sin exponer codigos tecnicos", () => {
+  it("[MX-02][SOPORTE-RECOVERY][UNITARIO] mapea estados y errores sin exponer códigos técnicos", () => {
     expect(recoveryStatusLabels).toEqual({
       PENDING: "Pendiente",
       APPROVED: "Aprobada",
@@ -100,7 +100,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     );
   });
 
-  it("D-MAIL-013 | confirma identidad preservada antes de aprobar", () => {
+  it("[MX-02][SOPORTE-RECOVERY][UNITARIO] confirma la identidad requerida antes de aprobar una recuperación", () => {
     expect(canApproveInstitutionalRecovery(detail)).toBe(true);
     expect(canApproveInstitutionalRecovery({ ...detail, warnings: ["NO_CANDIDATE"] })).toBe(
       false,
@@ -118,7 +118,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(normalizeOptionalRecoveryReason("   ")).toBeUndefined();
   });
 
-  it("D-RETRY-005 / D-STATE-005 | consume una sola vez el motivo seguro de cierre por authVersion", () => {
+  it("[MX-02][SOPORTE-SESION][UNITARIO] consume una sola vez el motivo seguro de cierre por authVersion", () => {
     persistAuthSessionEndReason(AUTH_VERSION_MISMATCH_CODE);
 
     const reason = consumeAuthSessionEndReason();

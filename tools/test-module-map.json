@@ -85,7 +85,8 @@
         "tests/integration/institutional-recovery-public.test.tsx",
         "tests/integration/register-votacion-institutional.test.tsx",
         "tests/unit/institutional-recovery-ui.test.ts",
-        "tests/unit/register-prefill.test.ts"
+        "tests/unit/register-prefill.test.ts",
+        "tests/integration/mx02-suspended-domain-access.test.tsx"
       ]
     },
     "matrix_04": {
