@@ -85,9 +85,14 @@ describe("Election status news, blockchain and TVD usage", () => {
     const user = await openMoreOption("Uso $TVD");
 
     expect(screen.getByText("500 $TVD")).toBeInTheDocument();
-    expect(screen.getByText("320 $TVD")).toBeInTheDocument();
-    expect(screen.getByText("180 $TVD")).toBeInTheDocument();
-    expect(screen.getByText("Liquidación completada")).toBeInTheDocument();
+    expect(screen.getByText("3,450.00 Bs")).toBeInTheDocument();
+    expect(screen.getByText("2 $TVD")).toBeInTheDocument();
+    expect(screen.getByText("13.80 Bs")).toBeInTheDocument();
+    expect(screen.getByText("0 $TVD")).toBeInTheDocument();
+    expect(screen.getByText("0.00 Bs")).toBeInTheDocument();
+    expect(screen.getByText("500 Créditos")).toBeInTheDocument();
+    expect(screen.getByText("320 Créditos")).toBeInTheDocument();
+    expect(screen.getByText("Liquidada")).toBeInTheDocument();
 
     const operationsButton = screen.getByRole("button", { name: /Operaciones asociadas/i });
     expect(operationsButton).not.toHaveTextContent("+");

@@ -653,14 +653,22 @@ describe("pantallas Superadmin", () => {
     render(<InstitutionalRecoveryPublicPage />);
 
     expect(
-      screen.getByRole("heading", { name: "Actualizar correo institucional" }),
+      screen.getByRole("heading", { name: "Recuperar acceso institucional" }),
     ).toBeInTheDocument();
 
-    await user.type(screen.getByLabelText("Institución"), "Tribunal");
+    await user.type(
+      screen.getByLabelText("Nombre de la institución"),
+      "Tribunal",
+    );
     await user.click(screen.getByRole("button", { name: "Buscar" }));
     await user.click(await screen.findByRole("option", { name: "Tribunal Supremo Electoral" }));
     await user.type(screen.getByLabelText(/Nombre completo/i), "Ana Gómez");
+    await user.type(screen.getByLabelText(/^Número de teléfono$/i), "70000000");
     await user.type(screen.getByLabelText(/Nuevo correo/i), "ana.gomez@tse.gob.bo");
+    await user.type(
+      screen.getByLabelText(/Número de su inmediato superior/i),
+      "71111111",
+    );
     await user.click(screen.getByRole("button", { name: /Enviar solicitud/i }));
 
     expect(screen.getByRole("heading", { name: "Solicitud enviada" })).toBeInTheDocument();
@@ -680,7 +688,14 @@ describe("pantallas Superadmin", () => {
 
     await user.click(screen.getByRole("button", { name: /Enviar solicitud/i }));
 
-    expect(screen.getAllByRole("alert")).toHaveLength(3);
+    expect(screen.getAllByRole("alert")).toHaveLength(5);
+    expect(screen.getByText("Selecciona una institución.")).toBeInTheDocument();
+    expect(screen.getByText("Ingresa tu nombre completo.")).toBeInTheDocument();
+    expect(screen.getByText("Ingresa tu número de teléfono.")).toBeInTheDocument();
+    expect(screen.getByText("Ingresa el nuevo correo.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Ingresa el número de tu inmediato superior."),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Solicitud enviada" })).not.toBeInTheDocument();
   });
 });

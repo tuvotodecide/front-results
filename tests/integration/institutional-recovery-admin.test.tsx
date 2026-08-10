@@ -404,6 +404,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     await screen.findAllByText("Tribunal Supremo Electoral");
     await user.click(screen.getAllByRole("button", { name: /Ver detalle/i })[0]);
 
+    expect(await screen.findByText("ana.actual@tse.bo")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Aprobar cambio/i })).toBeDisabled();
     expect(
       screen.getByText(/Esta solicitud no pudo validarse correctamente/i),
