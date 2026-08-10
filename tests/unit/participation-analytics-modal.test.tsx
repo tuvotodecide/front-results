@@ -84,8 +84,8 @@ describe("ParticipationAnalyticsModal", () => {
     expect(screen.getByText(/Resultados publicados/)).toBeInTheDocument();
     expect(screen.getByText("Fecha publicación")).toBeInTheDocument();
     expect(
-      screen.getByText("No se muestra por quién votó ninguna persona."),
-    ).toBeInTheDocument();
+      screen.queryByText("No se muestra por quién votó ninguna persona."),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Descargar reporte" })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Cerrar" }).length).toBeGreaterThanOrEqual(2);
     expect(document.body).not.toHaveTextContent("candidateId");
@@ -114,7 +114,7 @@ describe("ParticipationAnalyticsModal", () => {
 
     expect(captureArea).toHaveTextContent("Analíticas");
     expect(captureArea).toHaveTextContent("Habilitados");
-    expect(captureArea).toHaveTextContent("No se muestra por quién votó ninguna persona.");
+    expect(captureArea).not.toHaveTextContent("No se muestra por quién votó ninguna persona.");
     expect(captureArea).not.toHaveTextContent("Cerrar");
     expect(captureArea).not.toHaveTextContent("Descargar reporte");
     expect(captureArea).not.toHaveTextContent("Descargando...");

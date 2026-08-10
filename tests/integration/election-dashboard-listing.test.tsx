@@ -89,6 +89,7 @@ const events: VotingEvent[] = [
 
 const renderDashboard = (
   overrides: Partial<ReturnType<typeof votingEvents.useGetVotingEventsQuery>> = {},
+  tvdSummary: Record<string, unknown> = { walletStatus: "MISSING", wallet: null },
 ) => {
   vi.mocked(votingEvents.useGetVotingEventsQuery).mockReturnValue({
     data: events,
@@ -102,7 +103,7 @@ const renderDashboard = (
     { isLoading: false },
   ] as any);
   vi.mocked(tvdStore.useGetMyTvdSummaryQuery).mockReturnValue({
-    data: { walletStatus: "MISSING", wallet: null },
+    data: tvdSummary,
     isLoading: false,
     isFetching: false,
     error: null,
@@ -203,6 +204,22 @@ describe("MX-04 | Creación y configuración de votaciones | Listado frontend", 
     expect(navigateMock).toHaveBeenCalledWith("/votacion/elecciones/evt-active/status");
     expect(navigateMock).toHaveBeenCalledWith("/votacion/elecciones/evt-closed/status");
     expect(navigateMock).toHaveBeenCalledWith("/votacion/elecciones/evt-results/status");
+  });
+
+  it("ELE-LST-P1-007 permite copiar la dirección de la cuenta desde elecciones", async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const wallet = "0x1234567890abcdef1234567890abcdef12345678";
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    renderDashboard({}, { walletStatus: "VERIFIED", wallet, formattedBalance: "100" });
+
+    await user.click(screen.getByRole("button", { name: "Copiar dirección" }));
+
+    expect(writeText).toHaveBeenCalledWith(wallet);
+    expect(await screen.findByText("Dirección copiada.")).toBeInTheDocument();
   });
 
   it("ELE-CANCL-P0-001 / ELE-CANCL-P1-002 no inventa una acción de eliminación en el listado", () => {

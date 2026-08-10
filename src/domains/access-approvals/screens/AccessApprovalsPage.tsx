@@ -14,6 +14,7 @@ import {
   type ApprovalStatus,
   type InstitutionalApplication,
 } from "@/store/accessApprovals";
+import CopyButton from "@/domains/superadmin/components/CopyButton";
 
 type InstitutionalTab = "pending" | "approved" | "rejected";
 type FeedbackState = { kind: "success" | "warning" | "error"; message: string } | null;
@@ -236,12 +237,32 @@ const actionClassName = (tone: ActionTone) => {
   return "border border-[#f0bc68] text-[#a86600] hover:bg-[#fff8ec]";
 };
 
-const InfoLine = ({ label, value }: { label: string; value?: string | null }) => (
-  <div className="space-y-1">
+const abbreviateHash = (value: string) =>
+  value.length > 20 ? `${value.slice(0, 10)}…${value.slice(-8)}` : value;
+
+const InfoLine = ({
+  label,
+  value,
+  technicalHash = false,
+}: {
+  label: string;
+  value?: string | null;
+  technicalHash?: boolean;
+}) => (
+  <div className="min-w-0 space-y-1">
     <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400">
       {label}
     </p>
-    <p className="text-sm text-gray-800">{value || "No informado"}</p>
+    {technicalHash && value ? (
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <p className="min-w-0 break-all font-mono text-sm text-gray-800" title={value}>
+          {abbreviateHash(value)}
+        </p>
+        <CopyButton value={value} label="Copiar" />
+      </div>
+    ) : (
+      <p className="break-words text-sm text-gray-800">{value || "No informado"}</p>
+    )}
   </div>
 );
 
@@ -637,7 +658,7 @@ export default function AccessApprovalsPage() {
                           <div className="mt-3 grid gap-3 sm:grid-cols-2">
                             <InfoLine label="Estado de red" value={chainStatusLabel(selected.chainStatus)} />
                             <InfoLine label="Intentos" value={String(selected.chainAttempts ?? 0)} />
-                            <InfoLine label="TxHash" value={selected.chainTxHash || "No generado"} />
+                            <InfoLine label="TxHash" value={selected.chainTxHash} technicalHash />
                             <InfoLine label="Último intento" value={formatDate(selected.updatedAt)} />
                             {selected.chainNextRetryAt ? (
                               <InfoLine

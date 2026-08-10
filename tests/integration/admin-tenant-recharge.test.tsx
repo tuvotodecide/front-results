@@ -516,7 +516,14 @@ describe("Admin tenant operational recharge", () => {
   it("[MX-06][TVD-QR-RESTORE-004][INTEGRACION] limpia B y recupera el QR pendiente de A al volver", async () => {
     paymentHistoryByTenant.set("tenant-1", [activePaymentDetailResponse]);
     paymentHistoryByTenant.set("tenant-2", []);
-    paymentDetailQueue.push(activePaymentDetailResponse, activePaymentDetailResponse);
+    // RTK Query puede revalidar el detalle al alternar el contexto activo.
+    // Todas estas respuestas describen el mismo QR pendiente del tenant A.
+    paymentDetailQueue.push(
+      activePaymentDetailResponse,
+      activePaymentDetailResponse,
+      activePaymentDetailResponse,
+      activePaymentDetailResponse,
+    );
     const rendered = renderRechargePage();
 
     expect(await screen.findByAltText("Código QR para pagar la recarga TVD")).toBeInTheDocument();

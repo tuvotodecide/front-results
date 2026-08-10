@@ -464,7 +464,12 @@ export default function InstitutionalRecoveryAdminPage() {
                 label="Correo actual"
                 value={detailedSelected?.currentEmail}
               />
+              <DetailField label="Número de teléfono" value={selected.phoneNumber} />
               <DetailField label="Nuevo correo" value={selected.newEmail} />
+              <DetailField
+                label="Número de inmediato superior"
+                value={selected.supervisorPhoneNumber}
+              />
               <DetailField
                 label="Fecha solicitud"
                 value={formatRecoveryDate(selected.requestedAt)}
@@ -483,6 +488,14 @@ export default function InstitutionalRecoveryAdminPage() {
                   Motivo registrado
                 </p>
                 <p className="mt-1">{detailedSelected.resolutionReason}</p>
+              </div>
+            ) : null}
+
+            {detailedSelected &&
+            selected.status === "PENDING" &&
+            !canApprove ? (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                Esta solicitud no pudo validarse correctamente con la información disponible. Puede rechazarla, pero no aprobarla.
               </div>
             ) : null}
 

@@ -44,9 +44,11 @@ vi.mock("@/store/accessApprovals", () => {
 
 const records = [
   {
-    id: "territory-pending", dni: "100", name: "Alcaldesa Pendiente", email: "mayor@test.local",
+    id: "territory-pending", dni: "100", name: "Alcaldesa Pendiente", email: "correo-institucional-muy-largo-para-validar-el-wrap@municipio-de-la-paz.gob.bo",
     institutionName: "Alcaldía de La Paz", tenantId: "mun-lp", status: "PENDING_APPROVAL",
     createdAt: "2026-04-10T12:00:00.000Z", role: "MAYOR", territoryName: "La Paz",
+    chainStatus: "CONFIRMED",
+    chainTxHash: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
   },
   {
     id: "territory-approved", dni: "200", name: "Gobernador Aprobado", email: "governador@test.local",
@@ -108,6 +110,24 @@ describe("MX-10 | aprobaciones de acceso territorial", () => {
 
     await waitFor(() => expect(approvals.approve).toHaveBeenCalledWith("territory-pending"));
     expect(screen.getByText("La operación fue procesada.")).toBeInTheDocument();
+  });
+
+  it("[MX-10][CON-ACC-P1-006][INTEGRACION] contiene email largo y conserva el hash completo mediante título y copia", async () => {
+    const user = userEvent.setup();
+    renderApprovals();
+
+    await user.click(await screen.findByRole("button", { name: /Alcaldesa Pendiente/ }));
+
+    const email = screen
+      .getAllByText("correo-institucional-muy-largo-para-validar-el-wrap@municipio-de-la-paz.gob.bo")
+      .find((element) => element.classList.contains("break-words"));
+    if (!email) throw new Error("No se encontró el correo contenido en el detalle.");
+    expect(email).toHaveClass("break-words");
+    expect(email.parentElement).toHaveClass("min-w-0");
+
+    const hash = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
+    expect(screen.getByTitle(hash)).toHaveTextContent("0x12345678…90abcdef");
+    expect(screen.getByRole("button", { name: "Copiar" })).toBeInTheDocument();
   });
 
   it("[MX-10][CON-ACC-P0-003][INTEGRACION] rechaza una solicitud pendiente y conserva la razón operativa en el detalle", async () => {

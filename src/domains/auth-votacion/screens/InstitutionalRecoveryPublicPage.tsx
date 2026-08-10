@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Info } from "lucide-react";
 import {
   initialInstitutionalRecoveryPublicDraft,
   getPublicRecoveryErrorMessage,
@@ -71,8 +71,11 @@ export default function InstitutionalRecoveryPublicPage() {
           <>
             <div className="mb-6 text-center">
               <h1 className="text-2xl font-bold text-gray-800">
-                Actualizar correo institucional
+                Recuperar acceso institucional
               </h1>
+              <p className="mt-2 text-sm text-gray-500">
+                Envía una solicitud para recuperar la administración de tu institución.
+              </p>
             </div>
 
             <form onSubmit={submit} className="space-y-4" noValidate>
@@ -80,6 +83,7 @@ export default function InstitutionalRecoveryPublicPage() {
                 id="institution-search"
                 value={draft.institutionId}
                 error={errors.institutionId}
+                label="Nombre de la institución"
                 onChange={(institutionId) => updateField("institutionId", institutionId)}
                 onSelectInstitution={setSelectedInstitution}
               />
@@ -101,6 +105,22 @@ export default function InstitutionalRecoveryPublicPage() {
 
               <label className="block">
                 <span className="text-sm font-semibold text-gray-700">
+                  Número de teléfono
+                </span>
+                <input
+                  value={draft.phoneNumber}
+                  onChange={(event) =>
+                    updateField("phoneNumber", event.target.value)
+                  }
+                  type="tel"
+                  className={inputClassName}
+                  autoComplete="tel"
+                />
+                <FieldError message={errors.phoneNumber} />
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-semibold text-gray-700">
                   Nuevo correo
                 </span>
                 <input
@@ -115,6 +135,27 @@ export default function InstitutionalRecoveryPublicPage() {
                 />
                 <FieldError message={errors.newEmail} />
               </label>
+
+              <label className="block">
+                <span className="text-sm font-semibold text-gray-700">
+                  Número de su inmediato superior para verificación
+                </span>
+                <input
+                  value={draft.supervisorPhoneNumber}
+                  onChange={(event) =>
+                    updateField("supervisorPhoneNumber", event.target.value)
+                  }
+                  type="tel"
+                  className={inputClassName}
+                  autoComplete="tel"
+                />
+                <FieldError message={errors.supervisorPhoneNumber} />
+              </label>
+
+              <div className="flex items-center gap-2 rounded-lg bg-gray-50 px-4 py-3 text-xs text-gray-600">
+                <Info className="h-4 w-4 shrink-0 text-[#459151]" />
+                La solicitud será revisada antes de aplicar cambios.
+              </div>
 
               {formError ? (
                 <div
@@ -151,7 +192,7 @@ export default function InstitutionalRecoveryPublicPage() {
               Solicitud enviada
             </h1>
             <p className="mx-auto mt-3 max-w-md text-base text-gray-500">
-              La solicitud fue registrada. Será revisada y se te notificará cuando exista una actualización.
+              Solicitud enviada correctamente. Será revisada y se te notificará cuando exista una actualización.
             </p>
 
             <div className="mx-auto mt-6 max-w-md rounded-xl border border-gray-100 bg-gray-50 p-4 text-left text-sm">

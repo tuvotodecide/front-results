@@ -14,6 +14,7 @@ type PublicInstitutionAutocompleteProps = {
   onSelectInstitution?: (institution: PublicInstitutionTenant | null) => void;
   error?: string;
   dataCy?: string;
+  label?: string;
 };
 
 const inputClassName =
@@ -26,6 +27,7 @@ export default function PublicInstitutionAutocomplete({
   onSelectInstitution,
   error,
   dataCy,
+  label = "Institución",
 }: PublicInstitutionAutocompleteProps) {
   const [search, setSearch] = useState("");
   const [options, setOptions] = useState<PublicInstitutionTenant[]>([]);
@@ -109,7 +111,7 @@ export default function PublicInstitutionAutocomplete({
   return (
     <div className="flex flex-col">
       <label className="text-sm font-semibold text-gray-700 mb-1 ml-1" htmlFor={id}>
-        Institución
+        {label}
       </label>
       <div className="flex gap-2">
         <input

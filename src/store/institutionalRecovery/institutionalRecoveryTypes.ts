@@ -3,7 +3,9 @@ export type InstitutionalRecoveryStatus = "PENDING" | "APPROVED" | "REJECTED";
 export type CreateInstitutionalRecoveryRequest = {
   institutionId: string;
   fullName: string;
+  phoneNumber: string;
   newEmail: string;
+  supervisorPhoneNumber: string;
 };
 
 export type CreateAdminEmailChangeRequest = {

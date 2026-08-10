@@ -86,7 +86,10 @@ export const authApiSlice = apiSlice.injectEndpoints({
       }),
     }),
 
-    forgotPassword: builder.mutation<any, { email: string }>({
+    forgotPassword: builder.mutation<
+      any,
+      { email: string; context?: "votacion" | "resultados" }
+    >({
       query: (data) => ({
         url: "/auth/forgot-password",
         method: "POST",

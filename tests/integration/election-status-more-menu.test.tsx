@@ -70,6 +70,9 @@ describe("Election status more menu", () => {
 
     expect(screen.getByRole("heading", { name: "Uso $TVD" })).toBeInTheDocument();
     expect(screen.getByText("500 $TVD")).toBeInTheDocument();
+    expect(screen.getByText("13.80 Bs")).toBeInTheDocument();
+    expect(screen.getByText("500 Créditos")).toBeInTheDocument();
+    expect(screen.getByText("Liquidada")).toBeInTheDocument();
   });
 
   it("selecciona Analiticas", async () => {

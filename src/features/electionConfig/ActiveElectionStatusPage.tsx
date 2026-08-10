@@ -1699,41 +1699,38 @@ const ActiveElectionStatusPage: React.FC = () => {
                         {tvdUsage.error}
                       </div>
                     ) : null}
-                    {tvdUsage.isLoading && tvdUsage.fields.length === 0 ? (
+                    {tvdUsage.isLoading && tvdUsage.economicFields.length === 0 ? (
                       <div className="rounded-2xl border border-gray-100 bg-white p-5 text-sm text-gray-500 shadow-sm">
                         Consultando uso de TVD...
                       </div>
                     ) : null}
-                    {tvdUsage.fields.length > 0 ? (
-                      <div>
-                        <div className="rounded-2xl border border-gray-100 bg-white px-4 py-1 shadow-sm">
-                          {tvdUsage.fields.map((field) => (
-                            <FieldRow
-                              key={field.label}
-                              label={field.label}
-                              value={
-                                <span
-                                  className={
-                                    field.value.startsWith("0x")
-                                      ? "break-all font-mono text-xs"
-                                      : undefined
-                                  }
-                                >
-                                  {field.value}
-                                </span>
-                              }
-                            />
-                          ))}
+                    {tvdUsage.economicFields.length > 0 ? (
+                      <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+                        {tvdUsage.economicFields.map((field) => (
+                          <div
+                            key={field.label}
+                            className="flex items-center justify-between gap-6 border-b border-gray-100 px-5 py-4 last:border-b-0"
+                          >
+                            <p className="text-base text-gray-500">{field.label}</p>
+                            <div className="min-w-0 text-right">
+                              <p className="text-lg font-bold text-gray-800">{field.tvd}</p>
+                              {field.bob ? (
+                                <p className="mt-0.5 text-sm font-medium text-gray-400">{field.bob}</p>
+                              ) : null}
+                            </div>
+                          </div>
+                        ))}
+                        <div className="flex items-center justify-between gap-6 bg-gray-50 px-5 py-4">
+                          <p className="text-base text-gray-500">Estado actual</p>
+                          <p className="text-lg font-bold text-gray-800">{tvdUsage.liquidationStatus}</p>
                         </div>
-                        {tvdUsage.fields.some(
-                          (field) =>
-                            field.label === "Liquidación completada" &&
-                            field.value === "No",
-                        ) ? (
-                          <p className="mt-3 text-sm text-gray-500">
-                            La liquidación se completa al finalizar la elección.
-                          </p>
-                        ) : null}
+                      </div>
+                    ) : null}
+                    {tvdUsage.operationalFields.length > 0 ? (
+                      <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-1">
+                        {tvdUsage.operationalFields.map((field) => (
+                          <FieldRow key={field.label} label={field.label} value={field.value} />
+                        ))}
                       </div>
                     ) : null}
                     {tvdCopyMessage ? (

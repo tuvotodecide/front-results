@@ -427,19 +427,19 @@ vi.mock("@/features/electionConfig/data/useElectionTvdUsage", () => ({
   useElectionTvdUsage: () => ({
     isLoading: false,
     error: null,
-    networkName: "Base Sepolia",
     creditsContractAddress: "0xcontract",
-    creditsContractUrl: "https://basescan.org/address/0xcontract",
     registrationVerified: true,
     statusChecked: true,
-    publicationTxHash: "0xpublish1234567890abcdef",
-    publicationTxUrl: "https://basescan.org/tx/0xpublish1234567890abcdef",
-    fields: [
-      { label: "Saldo inicial de créditos", value: "500 $TVD" },
-      { label: "Créditos disponibles", value: "320 $TVD" },
-      { label: "TVD consumido", value: "180 $TVD" },
-      { label: "Liquidación completada", value: "Sí" },
+    economicFields: [
+      { label: "Reservado al inicio", tvd: "500 $TVD", bob: "3,450.00 Bs" },
+      { label: "Consumido", tvd: "2 $TVD", bob: "13.80 Bs" },
+      { label: "Liberado / devuelto", tvd: "0 $TVD", bob: "0.00 Bs" },
     ],
+    operationalFields: [
+      { label: "Saldo inicial de créditos", value: "500 Créditos" },
+      { label: "Créditos disponibles", value: "320 Créditos" },
+    ],
+    liquidationStatus: "Liquidada",
     operations: [
       {
         id: "reserve",

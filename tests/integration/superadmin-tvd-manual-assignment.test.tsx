@@ -246,6 +246,35 @@ describe("Superadmin TVD manual assignment", () => {
     ).toBe(true);
   });
 
+  it("vuelve al formulario al terminar una asignación", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", createFetchMock());
+
+    renderAssignmentPage();
+
+    await user.click(await screen.findByText("Tribunal Supremo Electoral"));
+    await user.click(
+      await screen.findByRole("button", {
+        name: /0x2222222222222222222222222222222222222222/i,
+      }),
+    );
+    await user.type(screen.getByLabelText(/Cantidad TVD/i), "25.5");
+    await user.type(
+      screen.getByLabelText(/^Motivo/i),
+      "Asignación operativa piloto",
+    );
+    await user.click(screen.getByRole("button", { name: /Continuar/i }));
+    await user.click(screen.getByRole("button", { name: /^Asignar$/i }));
+
+    expect(await screen.findByText("Resultado de asignación")).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: "Volver a asignaciones" }),
+    );
+
+    expect(await screen.findByText("1. Seleccionar institución")).toBeInTheDocument();
+    expect(screen.queryByText("Resultado de asignación")).not.toBeInTheDocument();
+  });
+
   it("[MX-06][TVD-ASSIGN-P0-002][INTEGRACION] [MX-06][TVD-ASSIGN-P0-003][INTEGRACION] bloquea wallets no elegibles y datos inválidos", async () => {
     const user = userEvent.setup();
     const captured: CapturedRequest[] = [];

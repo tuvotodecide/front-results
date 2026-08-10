@@ -222,15 +222,6 @@ const ParticipationAnalyticsModal: React.FC<ParticipationAnalyticsModalProps> = 
                   </div>
                 ) : null}
 
-                <div className="flex items-center gap-3 rounded-lg bg-[#F5F5F5] px-5 py-4 text-base text-[#777777]">
-                  <span
-                    className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[#2E7D32] text-xs font-bold text-[#2E7D32]"
-                    aria-hidden="true"
-                  >
-                    ✓
-                  </span>
-                  <span>No se muestra por quién votó ninguna persona.</span>
-                </div>
               </>
             ) : (
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-8 text-center text-sm text-[#777777]">

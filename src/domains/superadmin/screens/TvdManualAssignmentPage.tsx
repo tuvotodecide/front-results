@@ -190,7 +190,9 @@ export default function TvdManualAssignmentPage() {
     ? walletItems.some((wallet) => wallet.assignmentId === selectedWallet.assignmentId)
     : true;
   const assignmentResult =
-    detailQuery.currentData ?? detailQuery.data ?? createdAssignment;
+    trackedAssignmentId
+      ? detailQuery.currentData ?? detailQuery.data ?? createdAssignment
+      : null;
   const isBusy = submitting || createState.isLoading;
 
   useEffect(() => {

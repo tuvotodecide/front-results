@@ -203,8 +203,10 @@ const LoginResultadosPage = () => {
         return;
       }
 
-      dispatch(logOut());
-      setDeniedAccess(result);
+      if (result.kind === "denied") {
+        dispatch(logOut());
+        setDeniedAccess(result);
+      }
     }
   }, [
     accessStatus,
@@ -297,8 +299,10 @@ const LoginResultadosPage = () => {
         return;
       }
 
-      dispatch(logOut());
-      setDeniedAccess(result);
+      if (result.kind === "denied") {
+        dispatch(logOut());
+        setDeniedAccess(result);
+      }
     } catch (error) {
       const accessStatusMessage = getAccessStatusMessage(error);
       if (accessStatusMessage) {

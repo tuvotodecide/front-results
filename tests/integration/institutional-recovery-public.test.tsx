@@ -28,9 +28,14 @@ const fillValidForm = async (user: ReturnType<typeof userEvent.setup>) => {
     }),
   );
   await user.type(screen.getByLabelText(/Nombre completo/i), "Ana Gomez");
+  await user.type(screen.getByLabelText(/Número de teléfono/i), "+591 70000000");
   await user.type(
     screen.getAllByLabelText(/Nuevo correo/i)[0],
     " Admin.Nuevo@Institucion.BO ",
+  );
+  await user.type(
+    screen.getByLabelText(/Número de su inmediato superior/i),
+    "+591 71111111",
   );
 };
 
@@ -39,7 +44,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     vi.unstubAllGlobals();
   });
 
-  it("[MX-02][SOPORTE-REGRESION][INTEGRACION] envía la solicitud pública con body mínimo y respuesta no enumerativa", async () => {
+  it("[MX-02][SOPORTE-REGRESION][INTEGRACION] envía la recuperación pública con cinco campos y respuesta no enumerativa", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const request = input instanceof Request ? input : new Request(input);
@@ -73,18 +78,20 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     renderWithAuthStore(<InstitutionalRecoveryPublicPage />);
 
     expect(
-      screen.getByRole("heading", { name: "Actualizar correo institucional" }),
+      screen.getByRole("heading", { name: "Recuperar acceso institucional" }),
     ).toBeInTheDocument();
     expect(screen.queryByText(/transferir/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/nuevo administrador/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/ID de la institución/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Número de teléfono/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Número de su inmediato superior/i)).toBeInTheDocument();
 
     await fillValidForm(user);
     await user.click(screen.getByRole("button", { name: /Enviar solicitud/i }));
 
     expect(await screen.findByText("Solicitud enviada")).toBeInTheDocument();
     expect(
-      screen.getByText(/La solicitud fue registrada/i),
+      screen.getByText(/Solicitud enviada correctamente/i),
     ).toBeInTheDocument();
     expect(screen.getByText("Tribunal Supremo Electoral")).toBeInTheDocument();
     expect(screen.getByText("admin.nuevo@institucion.bo")).toBeInTheDocument();
@@ -102,7 +109,9 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
       expect(body).toEqual({
         institutionId: "64f1a7f4c5e8a8d0b9a12345",
         fullName: "Ana Gomez",
+        phoneNumber: "+591 70000000",
         newEmail: "admin.nuevo@institucion.bo",
+        supervisorPhoneNumber: "+591 71111111",
       });
       expect(body).not.toHaveProperty("wallet");
       expect(body).not.toHaveProperty("institutionName");
@@ -126,17 +135,23 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
 
     await user.click(screen.getByRole("button", { name: /Enviar solicitud/i }));
     expect(screen.getByText("Selecciona una institución.")).toBeInTheDocument();
+    expect(screen.getByText("Ingresa tu número de teléfono.")).toBeInTheDocument();
     expect(screen.getByText("Ingresa el nuevo correo.")).toBeInTheDocument();
+    expect(screen.getByText("Ingresa el número de tu inmediato superior.")).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
 
     await user.type(screen.getByLabelText(/Institución/i), "x");
     await user.click(screen.getByRole("button", { name: /Buscar/i }));
     await user.type(screen.getByLabelText(/Nombre completo/i), "Ana Gomez");
+    await user.type(screen.getByLabelText(/Número de teléfono/i), "telefono");
     await user.type(screen.getAllByLabelText(/Nuevo correo/i)[0], "correo");
+    await user.type(screen.getByLabelText(/Número de su inmediato superior/i), "superior");
     await user.click(screen.getByRole("button", { name: /Enviar solicitud/i }));
 
     expect(screen.getByText("Selecciona una institución.")).toBeInTheDocument();
+    expect(screen.getByText("El teléfono no es válido.")).toBeInTheDocument();
     expect(screen.getByText("Ingresa un correo válido.")).toBeInTheDocument();
+    expect(screen.getByText("El teléfono del inmediato superior no es válido.")).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

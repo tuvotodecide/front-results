@@ -71,7 +71,10 @@ const ForgotPasswordVotacionPage = () => {
     setIsSubmitting(true);
 
     try {
-      await forgotPassword({ email: values.email.trim() }).unwrap();
+      await forgotPassword({
+        email: values.email.trim(),
+        context: "votacion",
+      }).unwrap();
       setSuccessMessage(
         "Si el correo está registrado, se enviaron instrucciones para restablecer la contraseña.",
       );

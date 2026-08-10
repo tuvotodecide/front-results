@@ -63,7 +63,10 @@ describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | 
     await user.click(container.querySelector('[data-cy="forgot-submit"]') as HTMLButtonElement);
 
     await waitFor(() => {
-      expect(mocks.forgotPassword).toHaveBeenCalledWith({ email: "user@test.com" });
+      expect(mocks.forgotPassword).toHaveBeenCalledWith({
+        email: "user@test.com",
+        context: "resultados",
+      });
     });
     expect(screen.getByRole("link", { name: /volver a iniciar sesión/i })).toHaveAttribute(
       "href",
@@ -123,7 +126,10 @@ describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | 
     await user.click(container.querySelector('[data-cy="forgot-submit"]') as HTMLButtonElement);
 
     await waitFor(() => {
-      expect(mocks.forgotPassword).toHaveBeenCalledWith({ email: "admin@test.com" });
+      expect(mocks.forgotPassword).toHaveBeenCalledWith({
+        email: "admin@test.com",
+        context: "votacion",
+      });
     });
     expect(screen.getByRole("link", { name: /volver a iniciar sesión/i })).toHaveAttribute(
       "href",

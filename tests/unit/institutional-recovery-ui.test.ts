@@ -23,7 +23,9 @@ import type { InstitutionalRecoveryDetail } from "@/store/institutionalRecovery"
 const validDraft = {
   institutionId: "64f1a7f4c5e8a8d0b9a12345",
   fullName: "Ana Gomez",
+  phoneNumber: "  +591 70000000  ",
   newEmail: " Admin.Nuevo@Institucion.BO ",
+  supervisorPhoneNumber: " 71111111 ",
 };
 
 const detail: InstitutionalRecoveryDetail = {
@@ -55,7 +57,9 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(validation.payload).toEqual({
       institutionId: "64f1a7f4c5e8a8d0b9a12345",
       fullName: "Ana Gomez",
+      phoneNumber: "+591 70000000",
       newEmail: "admin.nuevo@institucion.bo",
+      supervisorPhoneNumber: "71111111",
     });
     expect(normalizeRecoveryEmail("  Persona@Dominio.BO ")).toBe(
       "persona@dominio.bo",
@@ -73,7 +77,9 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(Object.keys(emptyValidation.errors)).toEqual([
       "institutionId",
       "fullName",
+      "phoneNumber",
       "newEmail",
+      "supervisorPhoneNumber",
     ]);
 
     const invalidEmail = validateInstitutionalRecoveryPublicDraft({
@@ -91,6 +97,14 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     });
     expect(getPublicRecoveryErrorMessage({ status: 409 })).toBe(
       "No pudimos registrar la solicitud con esos datos.",
+    );
+    expect(
+      getPublicRecoveryErrorMessage({
+        status: 400,
+        data: { code: "RECOVERY_CANDIDATE_NOT_VALIDATED" },
+      }),
+    ).toBe(
+      "No pudimos validar los datos ingresados. Verifica que tu nombre completo coincida con el registrado para esta institución.",
     );
     expect(getAdminRecoveryErrorMessage({ status: 409 })).toBe(
       "La solicitud ya fue resuelta o sus datos cambiaron. Actualiza el detalle.",

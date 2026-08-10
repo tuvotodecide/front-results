@@ -243,6 +243,8 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(
       await screen.findByText("ana.actual@tse.bo"),
     ).toBeInTheDocument();
+    expect(screen.getByText("70000000")).toBeInTheDocument();
+    expect(screen.getByText("71111111")).toBeInTheDocument();
     expect(screen.queryByText(/resetToken/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/IDENTITY_API_KEY/i)).not.toBeInTheDocument();
 
@@ -403,6 +405,9 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     await user.click(screen.getAllByRole("button", { name: /Ver detalle/i })[0]);
 
     expect(screen.getByRole("button", { name: /Aprobar cambio/i })).toBeDisabled();
+    expect(
+      screen.getByText(/Esta solicitud no pudo validarse correctamente/i),
+    ).toBeInTheDocument();
     expect(screen.queryByText("NO_CANDIDATE")).not.toBeInTheDocument();
     expect(captured.approveBodies).toHaveLength(0);
   });
