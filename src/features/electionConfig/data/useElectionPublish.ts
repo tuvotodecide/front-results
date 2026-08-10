@@ -25,6 +25,7 @@ import type {
   ElectionStatus,
 } from './ElectionPublishRepository.mock';
 import type { ReviewReadinessResponse } from '../../../store/votingEvents/types';
+import { copyTextToClipboard } from '../../adminTvd/services/clipboard';
 
 export interface UseElectionPublishReturn {
   votingEvent?: VotingEvent;
@@ -359,17 +360,10 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
     return `${window.location.origin}/votacion/elecciones/${electionId}/publica`;
   }, [electionId]);
 
-  const copyToClipboard = useCallback(async (text: string): Promise<boolean> => {
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
-        return true;
-      }
-      return false;
-    } catch {
-      return false;
-    }
-  }, []);
+  const copyToClipboard = useCallback(
+    (text: string): Promise<boolean> => copyTextToClipboard(text),
+    [],
+  );
 
   const refetch = useCallback(async () => {
     await Promise.all([

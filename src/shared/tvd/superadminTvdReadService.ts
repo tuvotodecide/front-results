@@ -30,10 +30,6 @@ const TOKEN_ABI = [
   "function decimals() view returns (uint8)",
   "function symbol() view returns (string)",
 ];
-const MULTISIG_ABI = [
-  "function required() view returns (uint256)",
-  "function getOwners() view returns (address[])",
-];
 const ELECTORAL_CREDITS_ABI = [
   "function tvdPerCredit() view returns (uint256)",
   "function burnBps() view returns (uint256)",
@@ -387,7 +383,9 @@ export const readTvdContractsOverview = async (
     thresholdLabel: null,
     owners: [],
     warning: null,
-    readStatus: multisigAddress ? "loading" : "not_configured",
+    // La tesorería es un Safe: su dirección configurada es el dato canónico
+    // para esta vista. No se consulta el ABI de otro multisig (required/getOwners).
+    readStatus: multisigAddress ? "available" : "not_configured",
     errorMessage: multisigAddress ? null : "Dirección multisig no configurada",
   };
 
@@ -435,10 +433,6 @@ export const readTvdContractsOverview = async (
       isoDate: null,
       message: tvdTxHash ? "Configuración incompleta" : "txHash no configurado",
     };
-    multisig.readStatus = multisigAddress ? "error" : "not_configured";
-    multisig.errorMessage = multisigAddress
-      ? "Configuración incompleta"
-      : multisig.errorMessage;
     return {
       status: summarizeTvdReadStatus(Boolean(tvdAddress), issues),
       network: config,
@@ -539,12 +533,9 @@ export const readTvdContractsOverview = async (
     return fund;
   });
 
-  const [deploymentResult, multisigResult] =
+  const [deploymentResult] =
     await Promise.allSettled([
       readDeploymentDateFromTransaction(provider, tvdTxHash),
-      multisigAddress
-        ? readMultisig(provider, multisigAddress, config.explorerBaseUrl)
-        : Promise.resolve(null),
       Promise.allSettled(distributionReads),
       Promise.allSettled(balanceReads),
     ]);
@@ -566,17 +557,6 @@ export const readTvdContractsOverview = async (
     issues.push({
       code: "TVD_DEPLOYMENT_DATE_RPC_ERROR",
       message: "Error al consultar fecha de despliegue",
-    });
-  }
-
-  if (multisigResult.status === "fulfilled" && multisigResult.value) {
-    Object.assign(multisig, multisigResult.value);
-  } else if (multisigAddress) {
-    multisig.readStatus = "error";
-    multisig.errorMessage = "Error al consultar la blockchain";
-    issues.push({
-      code: "TVD_MULTISIG_RPC_ERROR",
-      message: "Error al consultar multisig",
     });
   }
 
@@ -603,42 +583,6 @@ export const readTvdContractsOverview = async (
     officialWallets,
     updatedAt: new Date().toISOString(),
     issues,
-  };
-};
-
-const readMultisig = async (
-  provider: JsonRpcProvider,
-  address: string,
-  explorerBaseUrl: string | null,
-) => {
-  const contract = new Contract(address, MULTISIG_ABI, provider);
-  const [requiredRaw, ownersRaw] = await Promise.all([
-    contract.required(),
-    contract.getOwners(),
-  ]);
-  const required = toBigIntValue(requiredRaw);
-  const owners = Array.isArray(ownersRaw)
-    ? ownersRaw.map(normalizeAddress).filter((owner): owner is string => Boolean(owner))
-    : [];
-  const requiredLabel = required?.toString() ?? null;
-  const ownersCount = owners.length;
-  const warning =
-    required !== null && required > BigInt(ownersCount)
-      ? "El umbral configurado supera la cantidad de firmantes."
-      : null;
-
-  return {
-    required: requiredLabel,
-    ownersCount,
-    thresholdLabel:
-      requiredLabel !== null ? `${requiredLabel} de ${ownersCount} firmas` : null,
-    owners: owners.map((owner) => ({
-      address: owner,
-      explorerUrl: buildExplorerAddressUrl(explorerBaseUrl, owner),
-    })),
-    warning,
-    readStatus: "available" as TvdReadStatus,
-    errorMessage: null,
   };
 };
 

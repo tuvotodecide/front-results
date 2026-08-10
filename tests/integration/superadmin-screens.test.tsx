@@ -298,7 +298,7 @@ const tvdParametersReadModel = {
 describe("pantallas Superadmin", () => {
   beforeEach(() => {
     vi.spyOn(clipboardService, "copyTextToClipboard").mockResolvedValue(
-      undefined,
+      true,
     );
   });
 

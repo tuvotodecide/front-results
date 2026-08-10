@@ -349,7 +349,7 @@ describe("vistas Superadmin TVD conectadas a /history/contracts", () => {
     const user = userEvent.setup();
     const copySpy = vi
       .spyOn(clipboardService, "copyTextToClipboard")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue(true);
     mockInternalContractFetch();
 
     renderWithAuthStore(<TvdContractPage />, {

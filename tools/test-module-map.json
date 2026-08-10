@@ -287,6 +287,7 @@
         "tests/integration/superadmin-wallet-lookup.test.tsx",
         "tests/integration/superadmin-tvd-manual-assignment.test.tsx",
         "tests/integration/superadmin-tvd-operations.test.tsx",
+        "tests/unit/admin-tvd-clipboard.test.ts",
         "tests/unit/admin-tvd-recharge-ui.test.ts",
         "tests/unit/admin-tvd-capacity-ui.test.ts",
         "tests/unit/admin-tvd-wallet-ui.test.ts",
@@ -514,7 +515,8 @@
         "tests/integration/election-status-news-blockchain-tvd.test.tsx",
         "tests/integration/election-status-no-regression.test.tsx",
         "tests/integration/election-status-padron-analytics.test.tsx",
-        "tests/integration/election-status-redesign.test.tsx"
+        "tests/integration/election-status-redesign.test.tsx",
+        "tests/unit/election-tvd-usage.test.ts"
       ]
     },
     "results": {

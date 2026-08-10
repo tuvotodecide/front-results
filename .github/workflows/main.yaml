@@ -198,7 +198,7 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm test:coverage
 
-      - name: Cypress MX-03 to MX-06 - mocked frontend browser flows
+      - name: Cypress MX-03 to MX-06 - 
         if: ${{ !cancelled() }}
         shell: bash
         env:

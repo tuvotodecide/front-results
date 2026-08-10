@@ -2,6 +2,8 @@ import { fireEvent, screen, waitFor } from "@testing-library/react";
 import VotacionPrivateGuard from "@/domains/votacion/guards/VotacionPrivateGuard";
 import VotacionPublicHeader from "@/domains/votacion/layout/VotacionPublicHeader";
 import { apiSlice } from "@/store/apiSlice";
+import type { AuthState } from "@/store/auth/authSlice";
+import { votingEventsEndpoints } from "@/store/votingEvents/votingEventsEndpoints";
 import { renderWithAuthStore } from "../utils/renderWithStore";
 
 const replace = vi.fn();
@@ -36,7 +38,7 @@ const authenticatedState = {
     status: "ACTIVE" as const,
   },
   availableContexts: institutions,
-};
+} satisfies Partial<AuthState>;
 
 describe("Flujo 1 | selector de institución en votación", () => {
   beforeEach(() => {
@@ -105,14 +107,19 @@ describe("Flujo 1 | selector de institución en votación", () => {
     expect(store.getState().auth.token).toBe("token");
   });
 
-  it("TEST cache | resetApiState elimina las consultas RTK antes de usar la nueva institución", () => {
-    const cachedState = {
-      ...apiSlice.reducer(undefined, { type: "test/cache" }),
-      queries: {
-        "getVotingEvents({tenantId:tenant-a-internal})": { data: [{ id: "election-a" }] },
-      },
-    };
+  it("TEST cache | resetApiState elimina las consultas RTK antes de usar la nueva institución", async () => {
+    const { store } = renderWithAuthStore(<div />);
 
-    expect(apiSlice.reducer(cachedState, apiSlice.util.resetApiState()).queries).toEqual({});
+    await store.dispatch(
+      votingEventsEndpoints.util.upsertQueryData(
+        "getVotingEvents",
+        { tenantId: "tenant-a-internal" },
+        [],
+      ),
+    );
+    expect(Object.keys(store.getState().api.queries)).not.toHaveLength(0);
+
+    store.dispatch(apiSlice.util.resetApiState());
+    expect(store.getState().api.queries).toEqual({});
   });
 });
