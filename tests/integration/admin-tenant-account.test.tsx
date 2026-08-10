@@ -1028,7 +1028,6 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
   });
 
   it("[MX-02][D-INV-006][INTEGRACION] muestra una invitación aceptada en el historial", async () => {
-    const user = userEvent.setup();
     const invitations = [
       {
         id: "inv-pending",
