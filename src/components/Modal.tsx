@@ -9,6 +9,7 @@ interface ModalProps {
   onClose: () => void;
   title?: string;
   showClose?: boolean;
+  closeOnBackdrop?: boolean;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
 }
@@ -18,6 +19,7 @@ const Modal: React.FC<PropsWithChildren<ModalProps>> = ({
   onClose,
   title,
   showClose = true,
+  closeOnBackdrop = true,
   size = 'md',
   className = '',
   children,
@@ -29,9 +31,11 @@ const Modal: React.FC<PropsWithChildren<ModalProps>> = ({
     if (!dialog) return;
 
     if (isOpen) {
-      dialog.showModal();
-    } else {
-      dialog.close();
+      if (!dialog.open) {
+        dialog.showModal?.();
+      }
+    } else if (dialog.open) {
+      dialog.close?.();
     }
   }, [isOpen]);
 
@@ -47,7 +51,7 @@ const Modal: React.FC<PropsWithChildren<ModalProps>> = ({
         event.clientY <= rect.bottom &&
         rect.left <= event.clientX &&
         event.clientX <= rect.right;
-      if (!isInDialog) {
+      if (!isInDialog && closeOnBackdrop) {
         handleClose();
       }
     }
@@ -65,6 +69,13 @@ const Modal: React.FC<PropsWithChildren<ModalProps>> = ({
     <dialog
       ref={dialogRef}
       onClick={handleClickOutside}
+      onCancel={(event) => {
+        if (!closeOnBackdrop) {
+          event.preventDefault();
+          return;
+        }
+        handleClose();
+      }}
       className="backdrop:bg-slate-950/45 backdrop:backdrop-blur-[4px] p-0 bg-transparent m-auto rounded-3xl overflow-hidden w-[95vw] sm:w-full"
     >
       <div

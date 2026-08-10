@@ -84,6 +84,7 @@
         "tests/integration/admin-tenant-no-regression.test.tsx",
         "tests/integration/institutional-recovery-public.test.tsx",
         "tests/integration/register-votacion-institutional.test.tsx",
+        "tests/integration/votacion-institution-selector.test.tsx",
         "tests/unit/institutional-recovery-ui.test.ts",
         "tests/unit/register-prefill.test.ts",
         "tests/integration/mx02-suspended-domain-access.test.tsx"
@@ -613,13 +614,12 @@
       "name": "MX-05 | Padrón, staging, elegibilidad y archivos | Frontend",
       "flows": [
         "MX-05",
+        "PAD-UPL",
         "PAD-CFM",
-        "PAD-STG",
-        "PAD-ACC",
-        "PAD-PRC"
+        "PAD-STG"
       ],
       "files": [
-        "cypress/e2e/smoke/padron.cy.ts"
+        "cypress/e2e/matrix-05-padron.cy.ts"
       ],
       "manualFiles": []
     },
@@ -654,7 +654,7 @@
         "TVD-UI-P2-004"
       ],
       "files": [
-        "cypress/e2e/smoke/publication-status.cy.ts"
+        "cypress/e2e/matrix-06-tvd-qr-publication.cy.ts"
       ],
       "manualFiles": []
     },

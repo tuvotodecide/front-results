@@ -180,31 +180,47 @@ export default function OperationalRechargePage() {
     error: summaryError,
     isFetching: isSummaryFetching,
     refetch: refetchSummary,
-  } = useGetMyTvdSummaryQuery({ tenantId }, { skip: !tenantId });
+  } = useGetMyTvdSummaryQuery(
+    { tenantId },
+    {
+      skip: !tenantId,
+      refetchOnMountOrArgChange: true,
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
+    },
+  );
   const quoteArg =
-    debouncedAmount && summary?.walletStatus === "VERIFIED"
-      ? { amount: debouncedAmount, currency: "BOB" as const }
+    tenantId && debouncedAmount && summary?.walletStatus === "VERIFIED"
+      ? { amount: debouncedAmount, currency: "BOB" as const, tenantId }
       : undefined;
   const {
     data: quote,
     error: quoteError,
     isFetching: isQuoteFetching,
     refetch: refetchQuote,
-  } = useGetMyTvdQuoteQuery(quoteArg ?? { amount: "0.01", currency: "BOB" }, {
+  } = useGetMyTvdQuoteQuery(quoteArg ?? { amount: "0.01", currency: "BOB", tenantId: tenantId ?? "" }, {
     skip: !quoteArg,
   });
   const [createQrPayment, createQrState] = useCreateQrPaymentMutation();
   const [regenerateQrPayment, regenerateQrState] = useRegenerateQrPaymentMutation();
-  const paymentQuery = useGetMyTvdPaymentQuery(paymentId ?? "", {
-    skip: !paymentId,
+  const paymentQuery = useGetMyTvdPaymentQuery(
+    { paymentId: paymentId ?? "", tenantId: tenantId ?? "" },
+    {
+    skip: !paymentId || !tenantId,
     pollingInterval: pollingEnabled ? 5000 : 0,
     refetchOnMountOrArgChange: true,
     refetchOnFocus: true,
     refetchOnReconnect: true,
-  });
+    },
+  );
   const historyQuery = useListMyTvdPaymentsQuery(
-    { page: 1, limit: 5 },
-    { skip: !tenantId },
+    tenantId ? { tenantId, page: 1, limit: 5 } : undefined,
+    {
+      skip: !tenantId,
+      refetchOnMountOrArgChange: true,
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
+    },
   );
   const visualBalance = useTvdVisualBalance(
     summary?.wallet,
@@ -213,7 +229,10 @@ export default function OperationalRechargePage() {
     tenantContextKey,
   );
 
-  const activePayment = paymentQuery.data ?? createdPayment;
+  const activePayment =
+    paymentQuery.currentData ??
+    (createdPayment?.tenantId === tenantId ? createdPayment : null);
+  const currentHistory = historyQuery.currentData;
   const activeAccreditationStatus = getAccreditationStatus(activePayment);
   const activeQrExpired = isQrExpired(activePayment, nowMs);
   const activePaymentQrImage =
@@ -227,9 +246,9 @@ export default function OperationalRechargePage() {
     Boolean(activePayment?.amount);
   const regenerationQuoteQuery = useGetMyTvdQuoteQuery(
     activePayment?.amount
-      ? { amount: activePayment.amount, currency: "BOB" as const }
-      : { amount: "0.01", currency: "BOB" as const },
-    { skip: !needsFreshQuoteForRegeneration },
+      ? { amount: activePayment.amount, currency: "BOB" as const, tenantId: tenantId ?? "" }
+      : { amount: "0.01", currency: "BOB" as const, tenantId: tenantId ?? "" },
+    { skip: !needsFreshQuoteForRegeneration || !tenantId },
   );
   const quoteMatchesCurrent =
     currentPayload?.amount === debouncedAmount && quote?.fiatAmount === debouncedAmount;
@@ -264,17 +283,9 @@ export default function OperationalRechargePage() {
 
   useEffect(() => {
     if (paymentId || createdPayment || step !== 1) return;
-    const recoverablePayment = historyQuery.data?.items.find((payment) => {
-      if (isQrExpired(payment, Date.now())) return true;
-      if (shouldPollPayment(payment)) return true;
-      if (
-        payment.status === "PAYMENT_CONFIRMED" &&
-        payment.accreditationStatus === "CONFIRMED"
-      ) {
-        return true;
-      }
-      return payment.status === "EXPIRED";
-    });
+    const recoverablePayment = currentHistory?.items.find(
+      (payment) => !isQrExpired(payment, Date.now()) && shouldPollPayment(payment),
+    );
     if (!recoverablePayment) return;
     const nextPaymentId = getPaymentId(recoverablePayment);
     if (!nextPaymentId) return;
@@ -283,7 +294,7 @@ export default function OperationalRechargePage() {
     setQrImageSource(getQrImageSource(recoverablePayment.qrImage));
     setPollingEnabled(shouldPollPayment(recoverablePayment));
     setStep(2);
-  }, [createdPayment, historyQuery.data?.items, paymentId, step]);
+  }, [createdPayment, currentHistory?.items, paymentId, step]);
 
   useEffect(() => {
     if (activePayment && (!paymentShouldPoll || activeQrExpired)) {
@@ -294,9 +305,15 @@ export default function OperationalRechargePage() {
   useEffect(() => {
     if (activeAccreditationStatus === "CONFIRMED") {
       void visualBalance.refetch();
+      void refetchSummary();
       void historyQuery.refetch();
     }
-  }, [activeAccreditationStatus, historyQuery.refetch, visualBalance.refetch]);
+  }, [
+    activeAccreditationStatus,
+    historyQuery.refetch,
+    refetchSummary,
+    visualBalance.refetch,
+  ]);
 
   const handleCreateQr = async () => {
     setFeedback(null);
@@ -329,7 +346,7 @@ export default function OperationalRechargePage() {
 
     try {
       const payment = await createQrPayment({
-        body: currentPayload,
+        body: { ...currentPayload, tenantId },
         idempotencyKey: nextAttempt.key,
       }).unwrap();
       const nextPaymentId = getPaymentId(payment);
@@ -779,7 +796,7 @@ export default function OperationalRechargePage() {
 
         <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-base font-bold text-slate-900">Últimos pagos</h2>
+            <h2 className="text-base font-bold text-slate-900">Últimos movimientos</h2>
             <button
               type="button"
               onClick={() => void historyQuery.refetch()}
@@ -798,7 +815,7 @@ export default function OperationalRechargePage() {
               No pudimos cargar el historial de pagos.
             </p>
           ) : null}
-          {historyQuery.data?.items.length ? (
+          {currentHistory?.items.length ? (
             <div className="mt-4 overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200 text-sm">
                 <thead>
@@ -810,7 +827,7 @@ export default function OperationalRechargePage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {historyQuery.data.items.map((payment) => (
+                  {currentHistory.items.map((payment) => (
                     <tr key={payment.paymentId}>
                       <td className="px-3 py-3 text-slate-600">
                         {formatDateTime(payment.createdAt)}

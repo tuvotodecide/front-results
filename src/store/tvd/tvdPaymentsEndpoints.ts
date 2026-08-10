@@ -1,6 +1,7 @@
 import { apiSlice } from "../apiSlice";
 import type {
   CreateQrPaymentArg,
+  MyTvdPaymentQuery,
   MyTvdPaymentResponse,
   MyTvdPaymentsListResponse,
   PublicQrPaymentResponse,
@@ -13,10 +14,10 @@ import type {
 export const tvdPaymentsEndpoints = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getMyTvdQuote: builder.query<TvdQuoteResponse, TvdQuoteRequest>({
-      query: ({ amount, currency }) => ({
+      query: ({ amount, currency, tenantId }) => ({
         url: "/tvd/me/quote",
         method: "GET",
-        params: { amount, currency },
+        params: { amount, currency, tenantId },
       }),
     }),
     createQrPayment: builder.mutation<PublicQrPaymentResponse, CreateQrPaymentArg>({
@@ -46,12 +47,13 @@ export const tvdPaymentsEndpoints = apiSlice.injectEndpoints({
         { type: "TvdPayment", id: arg.paymentId },
       ],
     }),
-    getMyTvdPayment: builder.query<MyTvdPaymentResponse, string>({
-      query: (paymentId) => ({
+    getMyTvdPayment: builder.query<MyTvdPaymentResponse, MyTvdPaymentQuery>({
+      query: ({ paymentId, tenantId }) => ({
         url: `/tvd/me/payments/${paymentId}`,
         method: "GET",
+        params: { tenantId },
       }),
-      providesTags: (_result, _error, paymentId) => [
+      providesTags: (_result, _error, { paymentId }) => [
         { type: "TvdPayment", id: paymentId },
       ],
     }),

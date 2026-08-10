@@ -23,6 +23,7 @@ import {
   useApproveInstitutionalApplicationMutation,
   useCancelInstitutionalAdminInvitationMutation,
   useCreateInstitutionalAdminInvitationMutation,
+  useCreateInstitutionalRemovalAuthorizationMutation,
   useGetInstitutionalAdminInvitationsQuery,
   useGetInstitutionalApplicationsQuery,
   useRejectInstitutionalApplicationMutation,
@@ -195,7 +196,7 @@ const getAdminDni = (admin: TenantAdminAssignment) =>
 
 const roleLabel = (role?: string) =>
   isPrimaryInstitutionalRole(role)
-    ? "Administrador principal"
+    ? "Responsable institucional"
     : "Administrador de la institución";
 
 const formatDate = (value?: string | null) => {
@@ -587,9 +588,9 @@ function TransferPrimaryModal({
             <p className="font-semibold text-slate-900">{tenantName}</p>
           </div>
           <div>
-            <p className="text-slate-500">Administrador principal actual</p>
+            <p className="text-slate-500">Responsable institucional actual</p>
             <p className="font-semibold text-slate-900">
-              {currentPrimary?.name || currentPrimary?.email || "Administrador principal"}
+              {currentPrimary?.name || currentPrimary?.email || "Responsable institucional"}
             </p>
           </div>
           <div>
@@ -692,6 +693,8 @@ export default function InstitutionalAccountPage() {
   const [resendInvitation] = useResendInstitutionalAdminInvitationMutation();
   const [cancelInvitation] = useCancelInstitutionalAdminInvitationMutation();
   const [updateAdminStatus] = useUpdateTenantAdminStatusMutation();
+  const [createRemovalAuthorization] =
+    useCreateInstitutionalRemovalAuthorizationMutation();
   const [
     transferTenantPrimary,
     { isLoading: isTransferringPrimary, error: transferPrimaryError, reset: resetTransferPrimary },
@@ -793,6 +796,20 @@ export default function InstitutionalAccountPage() {
       }),
     [applications, effectiveAdminKeys, tenantId],
   );
+  const pendingRemovalByAssignmentId = useMemo(() => {
+    const removals = new Map<string, InstitutionalApplication>();
+    applications.forEach((application) => {
+      if (
+        application.tenantId === tenantId &&
+        application.mobileAuthorizationAction === "REMOVE_AUTHORIZED_ADDRESS" &&
+        application.targetAssignmentId &&
+        !["APPROVED", "REVOKED", "REJECTED"].includes(application.status ?? "")
+      ) {
+        removals.set(application.targetAssignmentId, application);
+      }
+    });
+    return removals;
+  }, [applications, tenantId]);
 
   const requiresWalletUpdate = useMemo(() => {
     if (summary?.walletStatus !== "MISSING" && summary?.wallet) return false;
@@ -870,6 +887,16 @@ export default function InstitutionalAccountPage() {
         ? "Acceso habilitado. No se pidió firma ni operación en la red."
         : "Acceso suspendido. La wallet permanece autorizada.",
     );
+  };
+
+  const handleRemovalAuthorization = async (admin: TenantAdminAssignment) => {
+    if (!tenantId || !admin.assignmentId) return;
+    await createRemovalAuthorization({
+      tenantId,
+      assignmentId: admin.assignmentId,
+      reason: "Eliminación solicitada desde Cuenta institucional",
+    }).unwrap();
+    setFeedback("Eliminación pendiente de firma en tu teléfono.");
   };
 
   const handleTransferPrimary = async () => {
@@ -1030,7 +1057,11 @@ export default function InstitutionalAccountPage() {
                 </div>
               ) : effectiveAdmins.length ? (
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  {effectiveAdmins.map((admin) => (
+                  {effectiveAdmins.map((admin) => {
+                    const pendingRemoval = admin.assignmentId
+                      ? pendingRemovalByAssignmentId.get(admin.assignmentId)
+                      : undefined;
+                    return (
                     <article
                       key={admin.assignmentId ?? `${admin.tenantId}-${admin.userId}`}
                       className="rounded-xl border border-slate-200 bg-slate-50 p-4"
@@ -1057,6 +1088,11 @@ export default function InstitutionalAccountPage() {
                           Cuenta pendiente.
                         </p>
                       )}
+                      {pendingRemoval ? (
+                        <p className="mt-3 text-sm font-medium text-amber-800">
+                          Eliminación: {applicationStatusLabel(pendingRemoval.status)}.
+                        </p>
+                      ) : null}
 
                       {isPrimaryAdmin &&
                       admin.assignmentId &&
@@ -1074,6 +1110,20 @@ export default function InstitutionalAccountPage() {
                               className="inline-flex items-center justify-center rounded-lg border border-amber-200 bg-white px-3 py-2 text-xs font-bold text-amber-700 transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               Suspender
+                            </button>
+                          ) : null}
+                          {admin.active && admin.status === "APPROVED" && admin.accountAddress ? (
+                            <button
+                              type="button"
+                              disabled={Boolean(pendingActionKey)}
+                              onClick={() =>
+                                void runRowAction("remove:" + admin.assignmentId, () =>
+                                  handleRemovalAuthorization(admin),
+                                )
+                              }
+                              className="inline-flex items-center justify-center rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-bold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Quitar acceso
                             </button>
                           ) : null}
                           {admin.active && admin.status === "APPROVED" && admin.accountAddress ? (
@@ -1107,7 +1157,8 @@ export default function InstitutionalAccountPage() {
                         </div>
                       ) : null}
                     </article>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="mt-4 rounded-lg border border-dashed border-slate-200 px-4 py-5 text-sm text-slate-500">
@@ -1123,7 +1174,7 @@ export default function InstitutionalAccountPage() {
                     Invitaciones enviadas
                   </h2>
                   <p className="mt-1 text-sm text-slate-500">
-                    Historial de invitaciones enviadas por el administrador principal.
+                    Historial de invitaciones enviadas por la persona responsable de la institución.
                   </p>
                 </div>
               </div>

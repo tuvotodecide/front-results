@@ -240,6 +240,11 @@ const LoginVotacionPage = () => {
         return;
       }
 
+      if (result.kind === "selection_required") {
+        navigate("/votacion/elecciones", { replace: true });
+        return;
+      }
+
       dispatch(logOut());
       setDeniedAccess(result);
     }
@@ -315,6 +320,20 @@ const LoginVotacionPage = () => {
       if (result.kind === "denied") {
         dispatch(logOut());
         setDeniedAccess(result);
+        return;
+      }
+
+      if (result.kind === "selection_required") {
+        dispatch(
+          setAuth({
+            ...res,
+            access_token,
+            activeContext: null,
+            requiresContextSelection: true,
+            user: userPayload,
+          }),
+        );
+        navigate("/votacion/elecciones", { replace: true });
         return;
       }
 

@@ -291,19 +291,25 @@ const getInitialActiveContext = (
   storedActiveContext: AuthContext | null,
   requiresContextSelection: boolean,
 ) => {
-  if (
-    storedActiveContext &&
-    availableContexts.some((ctx) => sameContext(ctx, storedActiveContext))
-  ) {
-    return storedActiveContext;
+  const persistedContext = storedActiveContext
+    ? availableContexts.find((ctx) => sameContext(ctx, storedActiveContext))
+    : null;
+
+  if (persistedContext) {
+    // Use the current server-provided context, not the persisted snapshot. This
+    // keeps role and label in sync when a membership changes between sessions.
+    return persistedContext;
   }
+
+  const hasMultipleInstitutionalContexts =
+    availableContexts.filter((context) => context.type === "TENANT").length > 1;
 
   if (!requiresContextSelection && availableContexts.length === 1) {
     return availableContexts[0];
   }
 
-  if (!requiresContextSelection && defaultContext) {
-    return defaultContext;
+  if (!requiresContextSelection && !hasMultipleInstitutionalContexts && defaultContext) {
+    return availableContexts.find((context) => sameContext(context, defaultContext)) ?? null;
   }
 
   return null;
@@ -347,9 +353,9 @@ const rawSession = safeParse<Partial<AuthState>>(
 const initialAvailableContexts = normalizeContexts(rawSession.availableContexts);
 const initialDefaultContext = normalizeContext(rawSession.defaultContext);
 const initialStoredActiveContext = normalizeContext(rawSession.activeContext);
-const initialRequiresContextSelection = Boolean(
-  rawSession.requiresContextSelection,
-);
+const initialRequiresContextSelection =
+  Boolean(rawSession.requiresContextSelection) ||
+  initialAvailableContexts.filter((context) => context.type === "TENANT").length > 1;
 const initialActiveContext = getInitialActiveContext(
   initialAvailableContexts,
   initialDefaultContext,
@@ -413,9 +419,9 @@ export const authSlice = createSlice({
         "availableContexts" in (action.payload ?? {}) ||
         "requiresContextSelection" in (action.payload ?? {});
       const previousActiveContext = loginContractPayload ? null : state.activeContext;
-      const requiresContextSelection = Boolean(
-        action.payload?.requiresContextSelection,
-      );
+      const requiresContextSelection =
+        Boolean(action.payload?.requiresContextSelection) ||
+        availableContexts.filter((context) => context.type === "TENANT").length > 1;
 
       let user = normalizeUser(action.payload?.user);
       if (validToken && !user && decoded?.sub) {
@@ -599,7 +605,8 @@ export const authSlice = createSlice({
       state.active = true;
       state.tenantId = null;
       state.availableContexts = availableContexts;
-      state.requiresContextSelection = false;
+      state.requiresContextSelection =
+        availableContexts.filter((context) => context.type === "TENANT").length > 1;
       state.defaultContext = defaultContext;
       state.activeContext = activeContext ?? defaultContext;
       state.accessStatus = null;

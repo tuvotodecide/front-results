@@ -3,6 +3,7 @@ export type TvdFiatCurrency = "BOB";
 export type TvdQuoteRequest = {
   amount: string;
   currency: TvdFiatCurrency;
+  tenantId: string;
 };
 
 export type TvdQuoteResponse = {
@@ -21,6 +22,7 @@ export type CreateQrPaymentRequest = {
   amount: string;
   currency: TvdFiatCurrency;
   description: string;
+  tenantId: string;
 };
 
 export type CreateQrPaymentArg = {
@@ -31,6 +33,11 @@ export type CreateQrPaymentArg = {
 export type RegenerateQrPaymentArg = {
   paymentId: string;
   idempotencyKey: string;
+};
+
+export type MyTvdPaymentQuery = {
+  paymentId: string;
+  tenantId: string;
 };
 
 export type PaymentStatus =
@@ -164,6 +171,7 @@ export type MyTvdPaymentsListResponse = {
 };
 
 export type TvdPaymentsListQuery = {
+  tenantId: string;
   page?: number;
   limit?: number;
   status?: PaymentStatus;

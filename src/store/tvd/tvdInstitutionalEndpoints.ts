@@ -12,9 +12,10 @@ export const tvdInstitutionalEndpoints = apiSlice.injectEndpoints({
       TvdMySummaryResponse,
       TvdMySummaryQueryArg | void
     >({
-      query: () => ({
+      query: (arg) => ({
         url: "/tvd/me/summary",
         method: "GET",
+        params: arg?.tenantId ? { tenantId: arg.tenantId } : undefined,
       }),
       providesTags: (_result, _error, arg) => [
         {

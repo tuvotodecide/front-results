@@ -51,10 +51,10 @@ describe("Election status news, blockchain and TVD usage", () => {
     expect(screen.getByRole("heading", { name: "Registro de la votación" })).toBeInTheDocument();
     expect(screen.getByText("Contrato identificado")).toBeInTheDocument();
     expect(screen.getByText("Elección registrada")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Ver en BaseScan" })).toHaveAttribute(
-      "href",
-      "https://basescan.org/address/0xcontract",
-    );
+    expect(screen.getByText("Estado consultado")).toBeInTheDocument();
+    expect(screen.queryByText("Transacción verificada")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Red: No configurada/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("Registro no disponible")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Copiar ID" }));
     expect(screen.getByText("ID copiado.")).toBeInTheDocument();

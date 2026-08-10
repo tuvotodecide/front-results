@@ -198,6 +198,28 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm test:coverage
 
+      - name: Cypress MX-03 to MX-06 - mocked frontend browser flows
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          CYPRESS_BASE_URL: http://127.0.0.1:3000
+          NEXT_PUBLIC_BASE_API_URL: http://127.0.0.1:3999/api/v1
+          VITE_BASE_API_URL: http://127.0.0.1:3999/api/v1
+        run: |
+          set -euo pipefail
+          pnpm dev:next --hostname 127.0.0.1 --port 3000 > /tmp/next-cypress-mx03-06.log 2>&1 &
+          next_pid=$!
+          trap 'kill "$next_pid"' EXIT
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:3000 >/dev/null; then
+              pnpm cypress:matrices:03-06
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/next-cypress-mx03-06.log
+          exit 1
+
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4

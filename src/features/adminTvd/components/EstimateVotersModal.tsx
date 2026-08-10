@@ -10,6 +10,7 @@ import {
 
 interface EstimateVotersModalProps {
   isOpen: boolean;
+  tenantId: string | null | undefined;
   onClose: () => void;
   onContinue: (capacity: TvdEstimatedCapacityResponse) => void;
   onRecharge: (capacity: TvdEstimatedCapacityResponse) => void;
@@ -17,6 +18,7 @@ interface EstimateVotersModalProps {
 
 export default function EstimateVotersModal({
   isOpen,
+  tenantId,
   onClose,
   onContinue,
   onRecharge,
@@ -39,13 +41,14 @@ export default function EstimateVotersModal({
   };
 
   const handleSubmit = async () => {
-    if (!isValid || isLoading || submittingRef.current) return;
+    if (!isValid || !tenantId || isLoading || submittingRef.current) return;
     const requestedParticipants = validation.value;
     submittingRef.current = true;
 
     try {
       const result = await estimateCapacity({
         estimatedParticipants: requestedParticipants,
+        tenantId,
       }).unwrap();
       const latestValidation = validateEstimatedParticipants(latestValueRef.current);
       if (

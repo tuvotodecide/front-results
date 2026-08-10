@@ -516,6 +516,7 @@ const ElectionsPage: React.FC = () => {
 
       <EstimateVotersModal
         isOpen={showEstimateModal}
+        tenantId={tenantId}
         onClose={() => setShowEstimateModal(false)}
         onContinue={continueToCreateWizard}
         onRecharge={handleRechargeFromEstimate}

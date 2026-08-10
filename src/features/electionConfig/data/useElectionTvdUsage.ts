@@ -5,7 +5,6 @@ import { useListHistoryOperationsQuery } from "@/store/history/historyEndpoints"
 import { useGetElectionCreditsUsageQuery } from "@/store/votingEvents/votingEventsEndpoints";
 import { getTvdBlockchainReadConfig } from "@/shared/tvd/tvdBlockchainConfig";
 import {
-  buildExplorerAddressUrl,
   buildExplorerTxUrl,
   formatTvdAmount,
 } from "@/shared/tvd/tvdBlockchainFormatters";
@@ -30,13 +29,9 @@ export type ElectionTvdField = {
 export type ElectionTvdUsage = {
   isLoading: boolean;
   error: string | null;
-  networkName: string;
   creditsContractAddress: string | null;
-  creditsContractUrl: string | null;
   registrationVerified: boolean;
   statusChecked: boolean;
-  publicationTxHash: string | null;
-  publicationTxUrl: string | null;
   fields: ElectionTvdField[];
   operations: ElectionTvdOperation[];
 };
@@ -150,28 +145,12 @@ export const useElectionTvdUsage = (electionId: string): ElectionTvdUsage => {
       })),
     [config.explorerBaseUrl, historyData?.items],
   );
-  const publicationOperation = useMemo(
-    () =>
-      (historyData?.items ?? []).find(
-        (operation) => operation.operationName === "Elección creada",
-      ) ?? null,
-    [historyData?.items],
-  );
-  const publicationTxHash = publicationOperation?.txHash ?? null;
-
   return {
     isLoading: contractsLoading || creditsLoading || historyLoading,
     error: readError,
-    networkName: config.name,
     creditsContractAddress,
-    creditsContractUrl: buildExplorerAddressUrl(
-      config.explorerBaseUrl,
-      creditsContractAddress,
-    ),
     registrationVerified: fields.length > 0,
     statusChecked: fields.length > 0,
-    publicationTxHash,
-    publicationTxUrl: buildExplorerTxUrl(config.explorerBaseUrl, publicationTxHash),
     fields,
     operations,
   };

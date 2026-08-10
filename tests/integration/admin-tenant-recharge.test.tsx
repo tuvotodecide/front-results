@@ -43,6 +43,8 @@ type FetchCall = {
 
 const fetchCalls: FetchCall[] = [];
 const paymentDetailQueue: unknown[] = [];
+const paymentHistoryItems: Record<string, unknown>[] = [];
+const paymentHistoryByTenant = new Map<string, Record<string, unknown>[]>();
 
 const jsonResponse = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -256,13 +258,16 @@ const installFetchMock = () => {
       });
     }
     if (url.pathname.endsWith("/tvd/me/payments")) {
+      const items =
+        paymentHistoryByTenant.get(url.searchParams.get("tenantId") ?? "") ??
+        paymentHistoryItems;
       return jsonResponse({
-        // Los casos de creaciÃ³n deben iniciar en el paso 1. Cada test que
-        // necesite recuperar un pago debe declararlo de forma explÃ­cita.
-        items: [],
+        // Los casos de creación deben iniciar en el paso 1. Cada test que
+        // necesite recuperar un pago debe declararlo de forma explícita.
+        items,
         page: 1,
         limit: 5,
-        total: 1,
+        total: items.length,
         hasNextPage: false,
       });
     }
@@ -278,6 +283,8 @@ describe("Admin tenant operational recharge", () => {
     vi.clearAllMocks();
     fetchCalls.length = 0;
     paymentDetailQueue.length = 0;
+    paymentHistoryItems.length = 0;
+    paymentHistoryByTenant.clear();
     visualBalanceRefetch.mockReset();
     searchParams = new URLSearchParams();
     installFetchMock();
@@ -303,7 +310,7 @@ describe("Admin tenant operational recharge", () => {
     expect(screen.getByText("1 TVD = 2.5 Bs.")).toBeInTheDocument();
     expect(
       fetchCalls.some((call) =>
-        call.url.includes("/tvd/me/quote?amount=10.50&currency=BOB"),
+        call.url.includes("/tvd/me/quote?amount=10.50&currency=BOB&tenantId=tenant-1"),
       ),
     ).toBe(true);
   });
@@ -351,6 +358,7 @@ describe("Admin tenant operational recharge", () => {
       amount: "10.50",
       currency: "BOB",
       description: "Recarga operativa",
+      tenantId: "tenant-1",
     });
     expect(body.walletAddress).toBeUndefined();
     expect(body.bobPerToken).toBeUndefined();
@@ -445,6 +453,101 @@ describe("Admin tenant operational recharge", () => {
     expect(screen.queryByRole("button", { name: /Regenerar QR/i })).not.toBeInTheDocument();
   });
 
+  it("[MX-06][TVD-QR-RESTORE-001][INTEGRACION] recupera el mismo QR activo al volver sin crear otro", async () => {
+    paymentHistoryItems.push(activePaymentDetailResponse);
+    paymentDetailQueue.push(activePaymentDetailResponse, activePaymentDetailResponse);
+
+    const firstVisit = renderRechargePage();
+    expect(await screen.findByAltText("Código QR para pagar la recarga TVD")).toBeInTheDocument();
+    expect(screen.getByText("123456")).toBeInTheDocument();
+    firstVisit.unmount();
+
+    renderRechargePage();
+    expect(await screen.findByAltText("Código QR para pagar la recarga TVD")).toBeInTheDocument();
+    expect(screen.getByText("123456")).toBeInTheDocument();
+    expect(fetchCalls.filter((call) => call.url.endsWith("/payments/qr"))).toHaveLength(0);
+    expect(
+      fetchCalls.filter((call) =>
+        call.url.includes("/tvd/me/payments/payment-1?tenantId=tenant-1"),
+      ),
+    ).toHaveLength(2);
+  });
+
+  it("[MX-06][TVD-QR-RESTORE-002][INTEGRACION] deja una recarga confirmada en historial y permite iniciar otra", async () => {
+    paymentHistoryItems.push(confirmedAccreditationResponse);
+    renderRechargePage();
+
+    expect(await screen.findByLabelText("Monto BOB a pagar")).toBeInTheDocument();
+    expect(await screen.findByText("Tokens recibidos")).toBeInTheDocument();
+    expect(screen.queryByText("TVD acreditados correctamente.")).not.toBeInTheDocument();
+    expect(
+      fetchCalls.some((call) => call.url.includes("/tvd/me/payments/payment-1")),
+    ).toBe(false);
+  });
+
+  it("[MX-06][TVD-QR-RESTORE-005][INTEGRACION] recupera un pago confirmado fuera de pantalla como acreditación en proceso", async () => {
+    paymentHistoryItems.push(confirmedPaymentResponse);
+    paymentDetailQueue.push(confirmedPaymentResponse);
+    renderRechargePage();
+
+    await waitFor(() =>
+      expect(
+        fetchCalls.some((call) =>
+          call.url.includes("/tvd/me/payments/payment-1?tenantId=tenant-1"),
+        ),
+      ).toBe(true),
+    );
+    expect(await screen.findByText("Pago recibido; tokens en proceso.")).toBeInTheDocument();
+    expect(screen.queryByText("TVD acreditados correctamente.")).not.toBeInTheDocument();
+  });
+
+  it("[MX-06][TVD-QR-RESTORE-003][INTEGRACION] no restaura un QR expirado como operación activa", async () => {
+    paymentHistoryItems.push(expiredPaymentDetailResponse);
+    renderRechargePage();
+
+    expect(await screen.findByLabelText("Monto BOB a pagar")).toBeInTheDocument();
+    expect(await screen.findByText("QR vencido")).toBeInTheDocument();
+    expect(screen.queryByAltText("Código QR para pagar la recarga TVD")).not.toBeInTheDocument();
+    expect(
+      fetchCalls.some((call) => call.url.includes("/tvd/me/payments/payment-1")),
+    ).toBe(false);
+  });
+
+  it("[MX-06][TVD-QR-RESTORE-004][INTEGRACION] limpia B y recupera el QR pendiente de A al volver", async () => {
+    paymentHistoryByTenant.set("tenant-1", [activePaymentDetailResponse]);
+    paymentHistoryByTenant.set("tenant-2", []);
+    paymentDetailQueue.push(activePaymentDetailResponse, activePaymentDetailResponse);
+    const rendered = renderRechargePage();
+
+    expect(await screen.findByAltText("Código QR para pagar la recarga TVD")).toBeInTheDocument();
+    act(() => {
+      rendered.store.dispatch(
+        setActiveContext({
+          type: "TENANT",
+          tenantId: "tenant-2",
+          tenantName: "Universidad Demo",
+          role: "TENANT_ADMIN",
+        }),
+      );
+    });
+    expect(await screen.findByLabelText("Monto BOB a pagar")).toBeInTheDocument();
+    expect(screen.queryByAltText("Código QR para pagar la recarga TVD")).not.toBeInTheDocument();
+
+    act(() => {
+      rendered.store.dispatch(
+        setActiveContext({
+          type: "TENANT",
+          tenantId: "tenant-1",
+          tenantName: "Colegio Demo",
+          role: "TENANT_ADMIN",
+        }),
+      );
+    });
+    expect(await screen.findByAltText("Código QR para pagar la recarga TVD")).toBeInTheDocument();
+    expect(screen.getByText("123456")).toBeInTheDocument();
+    expect(fetchCalls.filter((call) => call.url.endsWith("/payments/qr"))).toHaveLength(0);
+  });
+
   it("TVD-QR-P0-001 TVD-UI-P1-002 | limpia QR, quote y polling visual al cambiar de tenant activo", async () => {
     const user = userEvent.setup();
     paymentDetailQueue.push(activePaymentDetailResponse);
@@ -526,6 +629,11 @@ describe("Admin tenant operational recharge", () => {
 
     expect(await screen.findByText("TVD acreditados correctamente.")).toBeInTheDocument();
     await waitFor(() => expect(visualBalanceRefetch).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(
+        fetchCalls.filter((call) => call.url.includes("/tvd/me/summary")).length,
+      ).toBeGreaterThan(1),
+    );
     await user.click(screen.getByRole("button", { name: /Copiar/i }));
 
     expect(writeText).toHaveBeenCalledWith("123456");

@@ -1,6 +1,8 @@
 import { authSlice, setActiveContext, setAuth, type AuthState } from "@/store/auth/authSlice";
 import {
+  getInstitutionalContexts,
   isContextAllowedForDomain,
+  requiresInstitutionSelection,
   resolveDeniedDomainAccessNotice,
   resolveDomainLogin,
   resolveHomeByContext,
@@ -54,6 +56,97 @@ describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | 
       tenantId: "tenant-1",
     });
     expect(resolvePostLoginRedirect(state)).toBe("/votacion/elecciones");
+  });
+
+  it("MULTI-INS-02 | con dos instituciones no activa la primera y exige selección", () => {
+    const state = authSlice.reducer(
+      baseState,
+      setAuth({
+        accessToken: token,
+        role: "TENANT_ADMIN",
+        active: true,
+        availableContexts: [
+          { type: "TENANT", tenantId: "tenant-a", tenantName: "Universidad A" },
+          { type: "TENANT", tenantId: "tenant-b", tenantName: "Universidad B" },
+        ],
+        // The frontend must still protect against an incomplete backend flag.
+        requiresContextSelection: false,
+        defaultContext: { type: "TENANT", tenantId: "tenant-a" },
+        user: {
+          id: "user-1",
+          email: "tenant@test.com",
+          name: "Tenant",
+          role: "TENANT_ADMIN",
+          active: true,
+        },
+      }),
+    );
+
+    expect(state.requiresContextSelection).toBe(true);
+    expect(state.activeContext).toBeNull();
+    expect(requiresInstitutionSelection(state.availableContexts, state.activeContext)).toBe(true);
+    expect(resolveDomainLogin(state, "votacion")).toMatchObject({
+      kind: "selection_required",
+      contexts: [
+        { tenantId: "tenant-a" },
+        { tenantId: "tenant-b" },
+      ],
+    });
+  });
+
+  it("MULTI-INS-05 | conserva un contexto institucional persistido válido con su rol actual", () => {
+    const state = authSlice.reducer(
+      baseState,
+      setAuth({
+        accessToken: token,
+        role: "TENANT_ADMIN",
+        availableContexts: [
+          { type: "TENANT", tenantId: "tenant-a", tenantName: "Universidad A", role: "PRIMARY" },
+          { type: "TENANT", tenantId: "tenant-b", tenantName: "Universidad B", role: "SECONDARY" },
+        ],
+        activeContext: { type: "TENANT", tenantId: "tenant-b", role: "OLD_ROLE" },
+        user: { id: "user-1", email: "tenant@test.com", name: "Tenant", role: "TENANT_ADMIN", active: true },
+      }),
+    );
+
+    expect(state.activeContext).toMatchObject({
+      tenantId: "tenant-b",
+      tenantName: "Universidad B",
+      role: "SECONDARY",
+    });
+    expect(requiresInstitutionSelection(state.availableContexts, state.activeContext)).toBe(false);
+  });
+
+  it("MULTI-INS-06/07 | descarta un contexto persistido inválido sin elegir A si quedan varias", () => {
+    const oneInstitution = authSlice.reducer(
+      baseState,
+      setAuth({
+        accessToken: token,
+        availableContexts: [{ type: "TENANT", tenantId: "tenant-a", tenantName: "Universidad A" }],
+        activeContext: { type: "TENANT", tenantId: "tenant-b", tenantName: "Universidad B" },
+        user: { id: "user-1", email: "tenant@test.com", name: "Tenant", role: "TENANT_ADMIN", active: true },
+      }),
+    );
+    const multipleInstitutions = authSlice.reducer(
+      baseState,
+      setAuth({
+        accessToken: token,
+        availableContexts: [
+          { type: "TENANT", tenantId: "tenant-a", tenantName: "Universidad A" },
+          { type: "TENANT", tenantId: "tenant-b", tenantName: "Universidad B" },
+        ],
+        activeContext: { type: "TENANT", tenantId: "tenant-c", tenantName: "Universidad C" },
+        defaultContext: { type: "TENANT", tenantId: "tenant-a" },
+        user: { id: "user-1", email: "tenant@test.com", name: "Tenant", role: "TENANT_ADMIN", active: true },
+      }),
+    );
+
+    expect(oneInstitution.activeContext).toMatchObject({ tenantId: "tenant-a" });
+    expect(multipleInstitutions.activeContext).toBeNull();
+    expect(getInstitutionalContexts(multipleInstitutions.availableContexts)).toHaveLength(2);
+    expect(resolveDomainLogin(multipleInstitutions, "votacion")).toMatchObject({
+      kind: "selection_required",
+    });
   });
 
   it("AUT-SES-P0-001 | resuelve múltiples contextos aprobados según dominio de entrada", () => {

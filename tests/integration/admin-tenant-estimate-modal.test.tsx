@@ -75,6 +75,7 @@ const renderEstimateModal = (
   renderWithAuthStore(
     <EstimateVotersModal
       isOpen
+      tenantId="tenant-a"
       onClose={vi.fn()}
       onContinue={vi.fn()}
       onRecharge={vi.fn()}
@@ -139,7 +140,7 @@ describe("Admin tenant estimate and insufficient balance modals", () => {
     expect(posts[0].headers.get("x-api-key")).toBeNull();
 
     const body = JSON.parse(posts[0].body ?? "{}") as Record<string, unknown>;
-    expect(body).toEqual({ estimatedParticipants: "10" });
+    expect(body).toEqual({ estimatedParticipants: "10", tenantId: "tenant-a" });
     expect(body.walletAddress).toBeUndefined();
     expect(body.availableTokens).toBeUndefined();
     expect(body.canPublish).toBeUndefined();

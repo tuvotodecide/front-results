@@ -72,6 +72,7 @@ describe("MX-06 | recarga QR TVD", () => {
       amount: "10.50",
       currency: "BOB",
       description: "Recarga operativa",
+      tenantId: "tenant-1",
     });
     expect(posts[0].body).not.toContain("wallet");
   });
@@ -279,7 +280,9 @@ describe("MX-06 | recarga QR TVD", () => {
     });
     await waitFor(() => {
       expect(
-        fetchCalls.filter((call) => call.url.endsWith("/tvd/me/payments/payment-1")),
+        fetchCalls.filter((call) =>
+          call.url.includes("/tvd/me/payments/payment-1?tenantId=tenant-1"),
+        ),
       ).toHaveLength(3);
     });
 
@@ -353,7 +356,7 @@ describe("MX-06 | recarga QR TVD", () => {
     ).toHaveLength(1);
     expect(
       first.fetchCalls.filter((call) =>
-        call.url.endsWith("/tvd/me/payments/payment-2"),
+        call.url.includes("/tvd/me/payments/payment-2?tenantId=tenant-1"),
       ),
     ).toHaveLength(1);
     rendered.unmount();

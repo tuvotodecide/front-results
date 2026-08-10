@@ -25,6 +25,12 @@ export interface InstitutionalApplication {
   institutionName?: string;
   tenantName?: string;
   tenantId?: string;
+  mobileAuthorizationAction?:
+    | "ADD_AUTHORIZED_ADDRESS"
+    | "REMOVE_AUTHORIZED_ADDRESS"
+    | "CHANGE_INSTITUTION_ADMIN"
+    | string;
+  targetAssignmentId?: string;
   status?: ApprovalStatus;
   functionalStatus?: string;
   chainStatus?: string | null;
@@ -99,6 +105,10 @@ const normalizeInstitutional = (raw: any): InstitutionalApplication => {
     institutionName: source?.institutionName ?? source?.tenantName,
     tenantName: source?.tenantName ?? source?.institutionName,
     tenantId: source?.tenantId ? String(source.tenantId) : undefined,
+    mobileAuthorizationAction: source?.mobileAuthorizationAction ?? undefined,
+    targetAssignmentId: source?.targetAssignmentId
+      ? String(source.targetAssignmentId)
+      : undefined,
     status: source?.status,
     functionalStatus: source?.functionalStatus,
     chainStatus: source?.chainStatus ?? null,
@@ -235,6 +245,19 @@ export const accessApprovalsApi = apiSlice.injectEndpoints({
         normalizeInstitutional(response?.data ?? response),
       invalidatesTags: ["AccessApprovals"],
     }),
+    createInstitutionalRemovalAuthorization: builder.mutation<
+      InstitutionalApplication,
+      { tenantId: string; assignmentId: string; reason?: string }
+    >({
+      query: ({ tenantId, assignmentId, reason }) => ({
+        url: `/institutional-admin-applications/tenants/${tenantId}/admins/${assignmentId}/removal-authorizations`,
+        method: "POST",
+        body: reason ? { reason } : undefined,
+      }),
+      transformResponse: (response: any) =>
+        normalizeInstitutional(response?.data ?? response),
+      invalidatesTags: ["AccessApprovals"],
+    }),
     retryInstitutionalAuthorization: builder.mutation<InstitutionalApplication, string>({
       query: (applicationId) => ({
         url: `/institutional-admin-applications/${applicationId}/retry-authorization`,
@@ -335,6 +358,7 @@ export const {
   useGetPendingInstitutionalApplicationsQuery,
   useGetInstitutionalApplicationQuery,
   useApproveInstitutionalApplicationMutation,
+  useCreateInstitutionalRemovalAuthorizationMutation,
   useRetryInstitutionalAuthorizationMutation,
   useRejectInstitutionalApplicationMutation,
   useRevokeInstitutionalApplicationMutation,

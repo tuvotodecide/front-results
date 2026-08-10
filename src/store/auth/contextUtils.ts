@@ -3,6 +3,7 @@ import type { AccessStatus, AuthContext, AuthContextType, AuthState } from "./au
 export type AuthDomain = "votacion" | "resultados" | "approvals";
 export type DomainLoginResult =
   | { kind: "allowed"; context: AuthContext; redirectTo: string }
+  | { kind: "selection_required"; contexts: AuthContext[] }
   | {
       kind: "denied";
       message: string;
@@ -51,13 +52,43 @@ export const hasContextForDomain = (
   domain: AuthDomain,
 ) => contexts.some((context) => isContextAllowedForDomain(context, domain));
 
+export const getInstitutionalContexts = (contexts: AuthContext[]) =>
+  contexts.filter((context) => context.type === "TENANT");
+
+export const getInstitutionDisplayName = (context: AuthContext) =>
+  context.tenantName?.trim() || context.label?.trim() || "Institución";
+
+export const getSelectedInstitutionContext = (
+  contexts: AuthContext[],
+  activeContext: AuthContext | null | undefined,
+) => {
+  if (!activeContext || activeContext.type !== "TENANT") return null;
+
+  return (
+    getInstitutionalContexts(contexts).find(
+      (context) =>
+        (context.tenantId ?? null) === (activeContext.tenantId ?? null) &&
+        (context.membershipId ?? null) ===
+          (activeContext.membershipId ?? null),
+    ) ?? null
+  );
+};
+
+export const requiresInstitutionSelection = (
+  contexts: AuthContext[],
+  activeContext: AuthContext | null | undefined,
+) =>
+  getInstitutionalContexts(contexts).length > 1 &&
+  !getSelectedInstitutionContext(contexts, activeContext);
+
 export const findContextForDomain = (
   contexts: AuthContext[],
   domain: AuthDomain,
 ) => {
   if (domain === "votacion") {
+    const institutionalContexts = getInstitutionalContexts(contexts);
     return (
-      contexts.find((context) => context.type === "TENANT") ??
+      (institutionalContexts.length === 1 ? institutionalContexts[0] : null) ??
       contexts.find((context) => context.type === "GLOBAL_ADMIN") ??
       null
     );
@@ -145,7 +176,7 @@ export const getContextLabel = (context: AuthContext) => {
   }
 
   if (context.type === "TENANT") {
-    return context.tenantName ? `Institución: ${context.tenantName}` : "Institución";
+    return getInstitutionDisplayName(context);
   }
 
   if (context.type === "ACCESS_APPROVALS") return "Aprobador de accesos";
@@ -334,12 +365,36 @@ export const resolveDomainLogin = (
     };
   }
 
-  if (accessApprovalsContext && !findContextForDomain(contexts, domain)) {
+  if (accessApprovalsContext && !hasContextForDomain(contexts, domain)) {
     return {
       kind: "allowed",
       context: accessApprovalsContext,
       redirectTo: resolveHomeByContext(accessApprovalsContext),
     };
+  }
+
+  if (
+    domain === "votacion" &&
+    requiresInstitutionSelection(contexts, auth.activeContext)
+  ) {
+    return {
+      kind: "selection_required",
+      contexts: getInstitutionalContexts(contexts),
+    };
+  }
+
+  if (domain === "votacion") {
+    const selectedInstitution = getSelectedInstitutionContext(
+      contexts,
+      auth.activeContext,
+    );
+    if (selectedInstitution) {
+      return {
+        kind: "allowed",
+        context: selectedInstitution,
+        redirectTo: resolveHomeByContext(selectedInstitution),
+      };
+    }
   }
 
   const context = findContextForDomain(contexts, domain);

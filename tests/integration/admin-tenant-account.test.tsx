@@ -303,7 +303,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
 
     expect((await screen.findAllByText(activeWalletDisplay)).length).toBeGreaterThan(0);
     expect(screen.getByRole("heading", { name: "Cuenta institucional" })).toBeInTheDocument();
-    expect(screen.getByText("Administrador principal")).toBeInTheDocument();
+    expect(screen.getByText("Responsable institucional")).toBeInTheDocument();
     expect(screen.getByText("Acceso habilitado")).toBeInTheDocument();
 
     expect(screen.getAllByRole("button", { name: /Añadir administrador/i }).length).toBeGreaterThan(0);
@@ -397,7 +397,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
       reason: "Transferencia iniciada desde Cuenta institucional",
     });
     expect(await screen.findByText("Transferencia pendiente de firma en tu teléfono.")).toBeInTheDocument();
-    expect(screen.getByText("Administrador principal")).toBeInTheDocument();
+    expect(screen.getByText("Responsable institucional")).toBeInTheDocument();
   });
 
   it("[MX-02][D-TRF-002][INTEGRACION] excluye una administradora pendiente de los destinos de transferencia", async () => {
@@ -488,13 +488,13 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(previousPrimaryCard).not.toBeNull();
     expect(targetCard).not.toBeNull();
     expect(
-      within(previousPrimaryCard as HTMLElement).getByText("Administrador principal"),
+      within(previousPrimaryCard as HTMLElement).getByText("Responsable institucional"),
     ).toBeInTheDocument();
     expect(
       within(targetCard as HTMLElement).getByText("Administrador de la institución"),
     ).toBeInTheDocument();
     expect(
-      within(targetCard as HTMLElement).queryByText("Administrador principal"),
+      within(targetCard as HTMLElement).queryByText("Responsable institucional"),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", {
@@ -565,7 +565,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
 
     const targetCard = (await screen.findByText("Admin B")).closest("article");
     expect(targetCard).not.toBeNull();
-    expect(within(targetCard as HTMLElement).getByText("Administrador principal")).toBeInTheDocument();
+    expect(within(targetCard as HTMLElement).getByText("Responsable institucional")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /Añadir administrador/i }).length).toBeGreaterThan(0);
     expect(within(targetCard as HTMLElement).queryByRole("button", { name: /Transferir rol principal/i })).not.toBeInTheDocument();
   });
@@ -1306,6 +1306,74 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(screen.queryByRole("button", { name: "Reactivar" })).not.toBeInTheDocument();
   });
 
+  it("[MX-02][D-REMOVE-001][INTEGRACION] inicia la eliminación con autorización móvil sin revocar antes del receipt", async () => {
+    const user = userEvent.setup();
+    const removalCalls: Request[] = [];
+    let removalApplication: Record<string, unknown> | null = null;
+    const removableAdmin = {
+      assignmentId: "secondary-removable",
+      tenantId: "tenant-1",
+      userId: "user-removable",
+      name: "Admin a retirar",
+      email: "remove@tenant.test",
+      accountAddress: secondWallet,
+      institutionalRole: "SECONDARY",
+      status: "APPROVED",
+      active: true,
+      hasWallet: true,
+      walletStatus: "VERIFIED",
+    };
+    setupFetch(async (request) => {
+      const url = new URL(request.url);
+      if (url.pathname === "/api/v1/institutional-tenants/tenant-1/admins") {
+        return jsonResponse({
+          tenantId: "tenant-1",
+          data: [...adminsResponse.data, removableAdmin],
+          total: 2,
+        });
+      }
+      if (url.pathname === "/api/v1/institutional-admin-applications") {
+        return jsonResponse({
+          data: removalApplication ? [removalApplication] : [],
+          total: removalApplication ? 1 : 0,
+        });
+      }
+      if (
+        url.pathname ===
+          "/api/v1/institutional-admin-applications/tenants/tenant-1/admins/secondary-removable/removal-authorizations" &&
+        request.method === "POST"
+      ) {
+        removalCalls.push(request);
+        removalApplication = {
+          id: "removal-1",
+          tenantId: "tenant-1",
+          userId: "user-removable",
+          targetAssignmentId: "secondary-removable",
+          status: "PENDING_MOBILE_AUTHORIZATION",
+          mobileAuthorizationAction: "REMOVE_AUTHORIZED_ADDRESS",
+        };
+        return jsonResponse(removalApplication, 201);
+      }
+      return undefined;
+    });
+
+    renderWithAuthStore(<InstitutionalAccountPage />, tenantAuth());
+
+    const targetCard = (await screen.findByText("Admin a retirar")).closest("article");
+    expect(targetCard).not.toBeNull();
+    await user.click(within(targetCard as HTMLElement).getByRole("button", { name: "Quitar acceso" }));
+
+    await waitFor(() => expect(removalCalls).toHaveLength(1));
+    expect(await removalCalls[0].json()).toEqual({
+      reason: "Eliminación solicitada desde Cuenta institucional",
+    });
+    expect(await screen.findByText("Eliminación pendiente de firma en tu teléfono.")).toBeInTheDocument();
+    expect(await screen.findByText("Eliminación: Pendiente de firma en tu teléfono.")).toBeInTheDocument();
+    const refreshedTargetCard = screen.getByText("Admin a retirar").closest("article");
+    expect(refreshedTargetCard).not.toBeNull();
+    expect(within(refreshedTargetCard as HTMLElement).getByText("Acceso habilitado")).toBeInTheDocument();
+  });
+
   it("[MX-02][D-REQ-007][INTEGRACION] un administrador secundario no ve acciones exclusivas de aprobación", async () => {
     const secondaryAdminsResponse = {
       ...adminsResponse,
@@ -1382,8 +1450,8 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     setupFetch();
     renderWithAuthStore(<InstitutionalAccountPage />, tenantAuth());
 
-    expect(await screen.findByText("Administrador principal")).toBeInTheDocument();
-    expect(screen.getAllByText("Administrador principal")).toHaveLength(1);
+    expect(await screen.findByText("Responsable institucional")).toBeInTheDocument();
+    expect(screen.getAllByText("Responsable institucional")).toHaveLength(1);
     expect(screen.getAllByText(activeWalletDisplay).length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: "Suspender" })).not.toBeInTheDocument();
   });
@@ -1392,7 +1460,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     const fetchMock = setupFetch();
     renderWithAuthStore(<InstitutionalAccountPage />, tenantAuth());
 
-    expect(await screen.findByText("Administrador principal")).toBeInTheDocument();
+    expect(await screen.findByText("Responsable institucional")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Suspender" })).not.toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([request]) => request instanceof Request && request.method === "PATCH")).toBe(false);
   });
@@ -1528,7 +1596,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     renderWithAuthStore(<InstitutionalAccountPage />, tenantAuth());
 
     expect(await screen.findByRole("heading", { name: "Cuenta institucional" })).toBeInTheDocument();
-    expect(await screen.findByText("Administrador principal")).toBeInTheDocument();
+    expect(await screen.findByText("Responsable institucional")).toBeInTheDocument();
     expect(screen.getAllByText(activeWalletDisplay).length).toBeGreaterThan(0);
     expect(screen.queryByText("No existe un contexto institucional activo.")).not.toBeInTheDocument();
   });

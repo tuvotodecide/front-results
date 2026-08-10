@@ -1630,10 +1630,6 @@ const ActiveElectionStatusPage: React.FC = () => {
                           label: "Estado consultado",
                           done: tvdUsage.statusChecked,
                         },
-                        {
-                          label: "Transacción verificada",
-                          done: Boolean(tvdUsage.publicationTxHash),
-                        },
                       ].map((step) => (
                         <div
                           key={step.label}
@@ -1661,14 +1657,6 @@ const ActiveElectionStatusPage: React.FC = () => {
                       <p className="mt-1 break-all font-mono text-sm font-semibold text-gray-900">
                         {tvdUsage.creditsContractAddress ?? "No disponible"}
                       </p>
-                      <p className="mt-2 text-sm text-gray-500">
-                        Red: {tvdUsage.networkName}
-                      </p>
-                      {tvdUsage.publicationTxHash ? (
-                        <p className="mt-2 break-all font-mono text-xs text-gray-500">
-                          {tvdUsage.publicationTxHash}
-                        </p>
-                      ) : null}
                     </div>
                     <div className="flex flex-col gap-2 sm:flex-row">
                       <button
@@ -1678,30 +1666,6 @@ const ActiveElectionStatusPage: React.FC = () => {
                       >
                         Copiar ID
                       </button>
-                      {tvdUsage.creditsContractUrl ? (
-                        <a
-                          href={tvdUsage.creditsContractUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded-xl bg-[#2E7D32] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#256b2b]"
-                        >
-                          Ver en BaseScan
-                        </a>
-                      ) : (
-                        <span className="rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-500">
-                          Registro no disponible
-                        </span>
-                      )}
-                      {tvdUsage.publicationTxUrl ? (
-                        <a
-                          href={tvdUsage.publicationTxUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded-xl border border-gray-300 px-5 py-3 text-center text-sm font-semibold text-gray-700 transition hover:border-[#459151]"
-                        >
-                          Ver transacción
-                        </a>
-                      ) : null}
                     </div>
                     {electionIdCopyMessage ? (
                       <p className="text-sm text-gray-500">{electionIdCopyMessage}</p>

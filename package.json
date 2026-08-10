@@ -74,6 +74,7 @@
     "cypress:matrix:04": "node tools/run-module-tests.mjs cypress matrix_04",
     "cypress:matrix:05": "node tools/run-module-tests.mjs cypress matrix_05",
     "cypress:matrix:06": "node tools/run-module-tests.mjs cypress matrix_06",
+    "cypress:matrices:03-06": "node tools/ci/run-cypress.mjs run --browser electron --config specPattern=cypress/e2e/**/*.cy.ts --spec cypress/e2e/smoke/auth-and-guards.cy.ts,cypress/e2e/smoke/election-management.cy.ts,cypress/e2e/matrix-05-padron.cy.ts,cypress/e2e/matrix-06-tvd-qr-publication.cy.ts",
     "cypress:module:applications": "node tools/run-module-tests.mjs cypress matrix_02",
     "cypress:module:election-config": "node tools/run-module-tests.mjs cypress election-config",
     "cypress:module:register": "node tools/run-module-tests.mjs cypress register_remaining",

@@ -18,6 +18,7 @@ export type TvdPublicationReadiness =
 
 export type TvdEstimatedCapacityRequest = {
   estimatedParticipants: string;
+  tenantId: string;
 };
 
 export type TvdEstimatedCapacityResponse = {

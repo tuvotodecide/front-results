@@ -6,7 +6,12 @@ import styles from "@/components/Header.module.css";
 import { useDispatch, useSelector } from "react-redux";
 import { apiSlice } from "@/store/apiSlice";
 import { clearSelectedElection } from "@/store/election/electionSlice";
-import { logOut, selectAuth, selectIsLoggedIn } from "@/store/auth/authSlice";
+import {
+  logOut,
+  selectAuth,
+  selectIsLoggedIn,
+  setActiveContext,
+} from "@/store/auth/authSlice";
 import { resetResults } from "@/store/resultados/resultadosSlice";
 import tuvotoDecideImage from "@/assets/tuvotodecide.webp";
 import { usePathname } from "next/navigation";
@@ -14,7 +19,13 @@ import {
   emitNavigationStart,
   resolveLogoutDestination,
 } from "@/shared/system/navigationFeedback";
-import { isContextAllowedForDomain } from "@/store/auth/contextUtils";
+import {
+  getInstitutionDisplayName,
+  getInstitutionalContexts,
+  getSelectedInstitutionContext,
+  isContextAllowedForDomain,
+} from "@/store/auth/contextUtils";
+import InstitutionSelectorModal from "@/domains/votacion/components/InstitutionSelectorModal";
 
 export default function VotacionPublicHeader() {
   const logoAsset = tuvotoDecideImage as string | { src: string };
@@ -22,9 +33,11 @@ export default function VotacionPublicHeader() {
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const pathname = usePathname();
   const isLoginPage = pathname === "/votacion/login";
-  const { user, activeContext } = useSelector(selectAuth);
+  const { user, activeContext, availableContexts } = useSelector(selectAuth);
   const dispatch = useDispatch();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [isInstitutionSelectorOpen, setIsInstitutionSelectorOpen] =
+    React.useState(false);
   const [hasMounted, setHasMounted] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
 
@@ -59,6 +72,21 @@ export default function VotacionPublicHeader() {
   const showLoginButton = !showUserMenu && !isLoginPage;
   const showMyElectionsButton =
     showUserMenu && pathname !== "/votacion/elecciones";
+  const institutionalContexts = getInstitutionalContexts(availableContexts);
+  const selectedInstitution = getSelectedInstitutionContext(
+    availableContexts,
+    activeContext,
+  );
+  const institutionName = selectedInstitution
+    ? getInstitutionDisplayName(selectedInstitution)
+    : null;
+
+  const selectInstitution = (context: (typeof institutionalContexts)[number]) => {
+    dispatch(clearSelectedElection());
+    dispatch(apiSlice.util.resetApiState());
+    dispatch(setActiveContext(context));
+    setIsInstitutionSelectorOpen(false);
+  };
 
   return (
     <header className={styles.header}>
@@ -75,6 +103,27 @@ export default function VotacionPublicHeader() {
           <Link href="/votacion/elecciones" className={styles.secondaryNavButton}>
             Ir a mis votaciones
           </Link>
+        ) : null}
+        {showUserMenu && institutionName ? (
+          institutionalContexts.length > 1 ? (
+            <button
+              type="button"
+              className={styles.secondaryNavButton}
+              onClick={() => setIsInstitutionSelectorOpen(true)}
+              aria-label={`Cambiar institución. Actual: ${institutionName}`}
+              title={institutionName}
+            >
+              <span className="max-w-40 truncate sm:max-w-56">{institutionName}</span>
+              <span aria-hidden="true">▾</span>
+            </button>
+          ) : (
+            <span
+              className="max-w-40 truncate text-sm font-semibold text-slate-700 sm:max-w-56"
+              title={institutionName}
+            >
+              {institutionName}
+            </span>
+          )
         ) : null}
         {showUserMenu ? (
           <div className={styles.userMenuContainer} ref={menuRef}>
@@ -163,6 +212,11 @@ export default function VotacionPublicHeader() {
           </Link>
         ) : null}
       </div>
+      <InstitutionSelectorModal
+        isOpen={isInstitutionSelectorOpen}
+        institutions={institutionalContexts}
+        onSelect={selectInstitution}
+      />
     </header>
   );
 }
