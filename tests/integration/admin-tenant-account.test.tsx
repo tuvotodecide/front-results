@@ -481,6 +481,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
       await screen.findByText("Transferencia pendiente de firma en tu teléfono."),
     ).toBeInTheDocument();
     await waitFor(() => expect(adminListRequests).toBeGreaterThanOrEqual(2));
+    await screen.findByText("Admin B");
 
     const previousPrimaryCard = screen.getByText("Admin A").closest("article");
     const targetCard = screen.getByText("Admin B").closest("article");
