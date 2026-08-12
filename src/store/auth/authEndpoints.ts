@@ -17,7 +17,14 @@ export interface CreateInstitutionalAdminApplicationPayload {
   password?: string;
   institutionName?: string;
   institutionId?: string;
+  invitationId?: string;
 }
+
+export type InvitationRegistrationContext = {
+  invitationId: string;
+  status: "REQUIRES_ADMIN_ACCOUNT";
+  tenant: { id: string; name: string };
+};
 
 export const authApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -66,7 +73,18 @@ export const authApiSlice = apiSlice.injectEndpoints({
           ...(data.password?.trim() ? { password: data.password } : {}),
           ...(data.institutionId ? { institutionId: data.institutionId } : {}),
           ...(data.institutionName ? { institutionName: data.institutionName } : {}),
+          ...(data.invitationId ? { invitationId: data.invitationId } : {}),
         },
+      }),
+    }),
+
+    getInvitationRegistrationContext: builder.query<
+      InvitationRegistrationContext,
+      string
+    >({
+      query: (invitationId) => ({
+        url: `/institutional-admin-applications/invitations/${encodeURIComponent(invitationId)}/registration-context`,
+        method: "GET",
       }),
     }),
 
@@ -121,6 +139,7 @@ export const {
   useCreateUserMutation,
   useRegisterTenantAdminMutation,
   useCreateInstitutionalAdminApplicationMutation,
+  useLazyGetInvitationRegistrationContextQuery,
   useVerifyInstitutionalAdminApplicationMutation,
   useLoginUserMutation,
   useForgotPasswordMutation,

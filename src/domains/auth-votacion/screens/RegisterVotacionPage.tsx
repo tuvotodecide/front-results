@@ -10,7 +10,10 @@ import {
 } from "formik";
 import * as Yup from "yup";
 import tuvotoDecideImage from "../../../assets/tuvotodecide.webp";
-import { useCreateInstitutionalAdminApplicationMutation } from "../../../store/auth/authEndpoints";
+import {
+  useCreateInstitutionalAdminApplicationMutation,
+  useLazyGetInvitationRegistrationContextQuery,
+} from "../../../store/auth/authEndpoints";
 import { useResolveInstitutionalWalletByDniMutation } from "@/store/institutionalWallets";
 import PublicInstitutionAutocomplete from "../components/PublicInstitutionAutocomplete";
 import { Link, useNavigate, useSearchParams } from "../navigation/compat";
@@ -41,6 +44,7 @@ type RegisterPayload = {
   password?: string;
   institutionName?: string;
   institutionId?: string;
+  invitationId?: string;
 };
 
 type WalletResolutionStatus =
@@ -93,7 +97,10 @@ const getErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
-const buildValidationSchema = (requiresPassword: boolean) =>
+const buildValidationSchema = (
+  requiresPassword: boolean,
+  isInvitationMode: boolean,
+) =>
   Yup.object({
     dni: Yup.string()
       .trim()
@@ -117,17 +124,22 @@ const buildValidationSchema = (requiresPassword: boolean) =>
       .required(),
     institutionId: Yup.string().when("institutionMode", {
       is: "existing",
-      then: (schema) => schema.trim().required("Selecciona una institución."),
+      then: (schema) =>
+        isInvitationMode
+          ? schema.trim().notRequired()
+          : schema.trim().required("Selecciona una institución."),
       otherwise: (schema) => schema.trim().notRequired(),
     }),
     tenantName: Yup.string().when("institutionMode", {
       is: "new",
       then: (schema) =>
-        schema
-          .trim()
-          .required("El nombre de la institución es obligatorio")
-          .min(3, "Mínimo 3 caracteres")
-          .max(160, "Máximo 160 caracteres"),
+        isInvitationMode
+          ? schema.trim().notRequired()
+          : schema
+              .trim()
+              .required("El nombre de la institución es obligatorio")
+              .min(3, "Mínimo 3 caracteres")
+              .max(160, "Máximo 160 caracteres"),
       otherwise: (schema) => schema.trim().notRequired(),
     }),
     password: requiresPassword
@@ -356,12 +368,16 @@ const RegisterVotacionPage = () => {
   const logoSrc = getLogoSrc();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const invitationId = String(searchParams.get("invitationId") || "").trim();
+  const isInvitationMode = Boolean(invitationId);
   const auth = useSelector(selectAuth);
   const { user, token } = auth;
   const prefill = resolveRegisterPrefill(searchParams, user);
   const isExistingIdentityFlow = prefill.hasExistingIdentity;
   const [createInstitutionalAdminApplication] =
     useCreateInstitutionalAdminApplicationMutation();
+  const [loadInvitationContext, invitationContextQuery] =
+    useLazyGetInvitationRegistrationContextQuery();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -389,7 +405,15 @@ const RegisterVotacionPage = () => {
     }
   }, [auth, user, token, navigate]);
 
-  const validationSchema = buildValidationSchema(!isExistingIdentityFlow);
+  const validationSchema = buildValidationSchema(
+    isInvitationMode || !isExistingIdentityFlow,
+    isInvitationMode,
+  );
+
+  useEffect(() => {
+    if (!isInvitationMode) return;
+    void loadInvitationContext(invitationId);
+  }, [invitationId, isInvitationMode, loadInvitationContext]);
 
   const registerVotingUser = async (
     values: VotingFormValues,
@@ -401,12 +425,14 @@ const RegisterVotacionPage = () => {
       dni: values.dni.trim(),
       name: values.name,
       email: values.email,
-      ...(isExistingIdentityFlow || !values.password.trim()
+      ...((isExistingIdentityFlow && !isInvitationMode) || !values.password.trim()
         ? {}
         : { password: values.password }),
-      ...(values.institutionMode === "existing"
-        ? { institutionId: values.institutionId }
-        : { institutionName: values.tenantName }),
+      ...(isInvitationMode
+        ? { invitationId }
+        : values.institutionMode === "existing"
+          ? { institutionId: values.institutionId }
+          : { institutionName: values.tenantName }),
     };
 
     try {
@@ -439,10 +465,16 @@ const RegisterVotacionPage = () => {
               />
             </div>
             <h1 className="text-2xl font-bold text-gray-800 tracking-tight">
-              {isExistingIdentityFlow ? "Solicitar acceso" : "Registrarse"}
+              {isInvitationMode
+                ? "Crear cuenta administrativa"
+                : isExistingIdentityFlow
+                  ? "Solicitar acceso"
+                  : "Registrarse"}
             </h1>
             <p className="text-gray-500 text-sm mt-1 text-center">
-              {isExistingIdentityFlow
+              {isInvitationMode
+                ? "Completa tus propias credenciales para solicitar acceso a la institución invitante."
+                : isExistingIdentityFlow
                 ? "Usaremos tu identidad existente para solicitar acceso institucional."
                 : "Crea tu cuenta y administra votaciones"}
             </p>
@@ -454,7 +486,7 @@ const RegisterVotacionPage = () => {
               accountAddress: "",
               name: prefill.name,
               email: prefill.email,
-              institutionMode: "new",
+              institutionMode: isInvitationMode ? "existing" : "new",
               institutionId: "",
               tenantName: "",
               password: "",
@@ -466,7 +498,22 @@ const RegisterVotacionPage = () => {
           >
             {({ setFieldValue, values }) => (
             <Form className="space-y-5" autoComplete="off">
-              {isExistingIdentityFlow ? (
+              {isInvitationMode ? (
+                <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                  <p className="font-semibold">Invitación institucional</p>
+                  {invitationContextQuery.isLoading ? (
+                    <p className="mt-1">Cargando institución…</p>
+                  ) : invitationContextQuery.data?.tenant?.name ? (
+                    <p className="mt-1">
+                      Institución: <strong>{invitationContextQuery.data.tenant.name}</strong>
+                    </p>
+                  ) : (
+                    <p className="mt-1" role="alert">
+                      No se pudo validar la institución de la invitación.
+                    </p>
+                  )}
+                </div>
+              ) : isExistingIdentityFlow ? (
                 <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
                   Estás ampliando el acceso de tu usuario existente. Los datos
                   básicos se cargaron automáticamente y no necesitas crear otra
@@ -531,21 +578,23 @@ const RegisterVotacionPage = () => {
                 />
               </div>
 
-              <InstitutionModeSelector
-                mode={values.institutionMode}
-                institutionId={values.institutionId}
-                onModeChange={(mode) =>
-                  void setFieldValue("institutionMode", mode, false)
-                }
-                onInstitutionIdChange={(institutionId) =>
-                  void setFieldValue("institutionId", institutionId, false)
-                }
-                onTenantNameChange={(tenantName) =>
-                  void setFieldValue("tenantName", tenantName, false)
-                }
-              />
+              {!isInvitationMode ? (
+                <InstitutionModeSelector
+                  mode={values.institutionMode}
+                  institutionId={values.institutionId}
+                  onModeChange={(mode) =>
+                    void setFieldValue("institutionMode", mode, false)
+                  }
+                  onInstitutionIdChange={(institutionId) =>
+                    void setFieldValue("institutionId", institutionId, false)
+                  }
+                  onTenantNameChange={(tenantName) =>
+                    void setFieldValue("tenantName", tenantName, false)
+                  }
+                />
+              ) : null}
 
-              {!isExistingIdentityFlow ? (
+              {(isInvitationMode || !isExistingIdentityFlow) ? (
                 <>
                   <div className="flex flex-col">
                     <label className="text-sm font-semibold text-gray-700 mb-1 ml-1">
@@ -607,12 +656,19 @@ const RegisterVotacionPage = () => {
                 <LoadingButton
                   type="submit"
                   data-cy="register-submit"
-                  disabled={!values.accountAddress || isSubmitting}
+                  disabled={
+                    !values.accountAddress ||
+                    isSubmitting ||
+                    (isInvitationMode &&
+                      (!invitationContextQuery.data || invitationContextQuery.isLoading))
+                  }
                   isLoading={isSubmitting}
                   style={{ backgroundColor: "#459151" }}
                   className="w-full text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-[#459151]/20 active:scale-[0.98]"
                 >
-                  {isExistingIdentityFlow || values.institutionMode === "existing"
+                  {isInvitationMode
+                    ? "Crear cuenta administrativa"
+                    : isExistingIdentityFlow || values.institutionMode === "existing"
                     ? "Solicitar acceso"
                     : "Registrarse"}
                 </LoadingButton>

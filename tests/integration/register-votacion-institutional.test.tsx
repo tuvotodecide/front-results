@@ -8,11 +8,17 @@ const navigate = vi.fn();
 const createInstitutionalAdminApplication = vi.fn();
 const resolveInstitutionalWalletByDni = vi.fn();
 const listPublicInstitutionalTenants = vi.fn();
+const loadInvitationContext = vi.fn();
+let invitationContextState: { data?: unknown; isLoading: boolean } = { isLoading: false };
 let currentSearchParams = new URLSearchParams();
 
 vi.mock("@/store/auth/authEndpoints", () => ({
   useCreateInstitutionalAdminApplicationMutation: () => [
     createInstitutionalAdminApplication,
+  ],
+  useLazyGetInvitationRegistrationContextQuery: () => [
+    loadInvitationContext,
+    invitationContextState,
   ],
 }));
 
@@ -107,6 +113,8 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     createInstitutionalAdminApplication.mockReset();
     resolveInstitutionalWalletByDni.mockReset();
     currentSearchParams = new URLSearchParams();
+    invitationContextState = { isLoading: false };
+    loadInvitationContext.mockReset();
     createInstitutionalAdminApplication.mockReturnValue({
       unwrap: vi.fn().mockResolvedValue({ ok: true }),
     });
@@ -146,6 +154,43 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     );
     expect(navigate).toHaveBeenCalledWith("/votacion/pendiente", {
       replace: true,
+    });
+  });
+
+  it("[MX-02][D3][INTEGRACION] registra desde invitación sin permitir cambiar la institución", async () => {
+    currentSearchParams = new URLSearchParams("invitationId=64b000000000000000000123");
+    invitationContextState = {
+      isLoading: false,
+      data: {
+        invitationId: "64b000000000000000000123",
+        status: "REQUIRES_ADMIN_ACCOUNT",
+        tenant: { id: activeInstitution.institutionId, name: "Colegio Invitante" },
+      },
+    };
+    const { container } = renderWithAuthStore(<RegisterVotacionPage />);
+    const user = userEvent.setup();
+
+    expect(await screen.findByText("Colegio Invitante")).toBeInTheDocument();
+    expect(screen.queryByText("Crear una nueva institución")).toBeNull();
+    expect(screen.queryByText("Solicitar acceso a una institución existente")).toBeNull();
+    expect(loadInvitationContext).toHaveBeenCalledWith("64b000000000000000000123");
+
+    await user.type(getInput(container, '[data-cy="register-dni"]'), "12345678");
+    expect(await screen.findByDisplayValue(wallet)).toBeInTheDocument();
+    await user.type(getInput(container, '[data-cy="register-name"]'), "Admin Invitado");
+    await user.type(getInput(container, '[data-cy="register-email"]'), "invitado@test.com");
+    await user.type(getInput(container, '[data-cy="register-password"]'), "12345678");
+    await user.type(getInput(container, '[data-cy="register-confirm-password"]'), "12345678");
+    await user.click(screen.getByRole("button", { name: "Crear cuenta administrativa" }));
+
+    await waitFor(() => {
+      expect(createInstitutionalAdminApplication).toHaveBeenCalledWith({
+        dni: "12345678",
+        name: "Admin Invitado",
+        email: "invitado@test.com",
+        password: "12345678",
+        invitationId: "64b000000000000000000123",
+      });
     });
   });
 
