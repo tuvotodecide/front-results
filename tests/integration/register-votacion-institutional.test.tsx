@@ -158,7 +158,9 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
   });
 
   it("[MX-02][D3][INTEGRACION] registra desde invitación sin permitir cambiar la institución", async () => {
-    currentSearchParams = new URLSearchParams("invitationId=64b000000000000000000123");
+    currentSearchParams = new URLSearchParams(
+      "invitationId=64b000000000000000000123&continuationCode=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    );
     invitationContextState = {
       isLoading: false,
       data: {
@@ -173,7 +175,10 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(await screen.findByText("Colegio Invitante")).toBeInTheDocument();
     expect(screen.queryByText("Crear una nueva institución")).toBeNull();
     expect(screen.queryByText("Solicitar acceso a una institución existente")).toBeNull();
-    expect(loadInvitationContext).toHaveBeenCalledWith("64b000000000000000000123");
+    expect(loadInvitationContext).toHaveBeenCalledWith({
+      invitationId: "64b000000000000000000123",
+      continuationCode: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    });
 
     await user.type(getInput(container, '[data-cy="register-dni"]'), "12345678");
     expect(await screen.findByDisplayValue(wallet)).toBeInTheDocument();
@@ -190,6 +195,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
         email: "invitado@test.com",
         password: "12345678",
         invitationId: "64b000000000000000000123",
+        registrationContinuationCode: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       });
     });
   });

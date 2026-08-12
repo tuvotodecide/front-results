@@ -369,6 +369,9 @@ const RegisterVotacionPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const invitationId = String(searchParams.get("invitationId") || "").trim();
+  const registrationContinuationCode = String(
+    searchParams.get("continuationCode") || "",
+  ).trim();
   const isInvitationMode = Boolean(invitationId);
   const auth = useSelector(selectAuth);
   const { user, token } = auth;
@@ -412,8 +415,13 @@ const RegisterVotacionPage = () => {
 
   useEffect(() => {
     if (!isInvitationMode) return;
-    void loadInvitationContext(invitationId);
-  }, [invitationId, isInvitationMode, loadInvitationContext]);
+    void loadInvitationContext({ invitationId, continuationCode: registrationContinuationCode });
+  }, [
+    invitationId,
+    isInvitationMode,
+    registrationContinuationCode,
+    loadInvitationContext,
+  ]);
 
   const registerVotingUser = async (
     values: VotingFormValues,
@@ -429,7 +437,7 @@ const RegisterVotacionPage = () => {
         ? {}
         : { password: values.password }),
       ...(isInvitationMode
-        ? { invitationId }
+        ? { invitationId, registrationContinuationCode }
         : values.institutionMode === "existing"
           ? { institutionId: values.institutionId }
           : { institutionName: values.tenantName }),
@@ -660,7 +668,9 @@ const RegisterVotacionPage = () => {
                     !values.accountAddress ||
                     isSubmitting ||
                     (isInvitationMode &&
-                      (!invitationContextQuery.data || invitationContextQuery.isLoading))
+                      (!registrationContinuationCode ||
+                        !invitationContextQuery.data ||
+                        invitationContextQuery.isLoading))
                   }
                   isLoading={isSubmitting}
                   style={{ backgroundColor: "#459151" }}

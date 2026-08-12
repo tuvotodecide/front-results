@@ -18,6 +18,7 @@ export interface CreateInstitutionalAdminApplicationPayload {
   institutionName?: string;
   institutionId?: string;
   invitationId?: string;
+  registrationContinuationCode?: string;
 }
 
 export type InvitationRegistrationContext = {
@@ -74,17 +75,21 @@ export const authApiSlice = apiSlice.injectEndpoints({
           ...(data.institutionId ? { institutionId: data.institutionId } : {}),
           ...(data.institutionName ? { institutionName: data.institutionName } : {}),
           ...(data.invitationId ? { invitationId: data.invitationId } : {}),
+          ...(data.registrationContinuationCode
+            ? { registrationContinuationCode: data.registrationContinuationCode }
+            : {}),
         },
       }),
     }),
 
     getInvitationRegistrationContext: builder.query<
       InvitationRegistrationContext,
-      string
+      { invitationId: string; continuationCode: string }
     >({
-      query: (invitationId) => ({
+      query: ({ invitationId, continuationCode }) => ({
         url: `/institutional-admin-applications/invitations/${encodeURIComponent(invitationId)}/registration-context`,
         method: "GET",
+        params: { continuationCode },
       }),
     }),
 
