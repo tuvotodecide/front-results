@@ -310,6 +310,7 @@ const ElectionsPage: React.FC = () => {
               )}
             </div>
           </section>
+          ) : null}
 
           {canManageInstitutionalAccount ? (
           <section
