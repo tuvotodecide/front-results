@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import {
   ArrowPathIcon,
@@ -33,7 +34,6 @@ import {
   TenantAdminAssignment,
   useListTenantAdminsQuery,
   useTransferTenantPrimaryMutation,
-  useUpdateTenantAdminStatusMutation,
 } from "@/store/institutionalTenants";
 import { useResolveInstitutionalWalletByDniMutation } from "@/store/institutionalWallets";
 import {
@@ -644,8 +644,11 @@ function TransferPrimaryModal({
 
 export default function InstitutionalAccountPage() {
   const dispatch = useDispatch();
+  const router = useRouter();
   const auth = useSelector(selectAuth);
   const tenantId = auth.activeContext?.tenantId ?? auth.user?.tenantId ?? null;
+  const isSecondaryAdmin =
+    String(auth.activeContext?.role ?? "").trim().toUpperCase() === "SECONDARY";
   const tenantName =
     auth.activeContext?.tenantName ?? auth.user?.tenantName ?? "Institución";
 
@@ -654,7 +657,7 @@ export default function InstitutionalAccountPage() {
     error: summaryError,
     isLoading: isSummaryLoading,
     refetch: refetchSummary,
-  } = useGetMyTvdSummaryQuery({ tenantId }, { skip: !tenantId });
+  } = useGetMyTvdSummaryQuery({ tenantId }, { skip: !tenantId || isSecondaryAdmin });
   const [
     regularizeWallet,
     {
@@ -668,14 +671,14 @@ export default function InstitutionalAccountPage() {
     error: adminsError,
     isFetching: isAdminsFetching,
     refetch: refetchAdmins,
-  } = useListTenantAdminsQuery(tenantId ?? "", { skip: !tenantId });
+  } = useListTenantAdminsQuery(tenantId ?? "", { skip: !tenantId || isSecondaryAdmin });
   const {
     data: invitations = [],
     error: invitationsError,
     isFetching: isInvitationsFetching,
     refetch: refetchInvitations,
   } = useGetInstitutionalAdminInvitationsQuery(tenantId ?? "", {
-    skip: !tenantId,
+    skip: !tenantId || isSecondaryAdmin,
   });
   const {
     data: applications = [],
@@ -684,7 +687,7 @@ export default function InstitutionalAccountPage() {
     refetch: refetchApplications,
   } = useGetInstitutionalApplicationsQuery(
     tenantId ? { tenantId } : undefined,
-    { skip: !tenantId },
+    { skip: !tenantId || isSecondaryAdmin },
   );
   const [
     createInvitation,
@@ -692,7 +695,6 @@ export default function InstitutionalAccountPage() {
   ] = useCreateInstitutionalAdminInvitationMutation();
   const [resendInvitation] = useResendInstitutionalAdminInvitationMutation();
   const [cancelInvitation] = useCancelInstitutionalAdminInvitationMutation();
-  const [updateAdminStatus] = useUpdateTenantAdminStatusMutation();
   const [createRemovalAuthorization] =
     useCreateInstitutionalRemovalAuthorizationMutation();
   const [
@@ -819,6 +821,12 @@ export default function InstitutionalAccountPage() {
   }, [summary?.wallet, summary?.walletStatus, summaryError]);
 
   useEffect(() => {
+    if (isSecondaryAdmin) {
+      router.replace("/votacion/elecciones");
+    }
+  }, [isSecondaryAdmin, router]);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     if (params.get("action") === "associate-account") {
@@ -870,25 +878,6 @@ export default function InstitutionalAccountPage() {
     }
   };
 
-  const handleUpdateAdminStatus = async (admin: TenantAdminAssignment, active: boolean) => {
-    if (!tenantId || !admin.assignmentId) return;
-    await updateAdminStatus({
-      tenantId,
-      assignmentId: admin.assignmentId,
-      data: {
-        active,
-        reason: active
-          ? "Reactivación desde Cuenta institucional"
-          : "Suspensión temporal desde Cuenta institucional",
-      },
-    }).unwrap();
-    setFeedback(
-      active
-        ? "Acceso habilitado. No se pidió firma ni operación en la red."
-        : "Acceso suspendido. La wallet permanece autorizada.",
-    );
-  };
-
   const handleRemovalAuthorization = async (admin: TenantAdminAssignment) => {
     if (!tenantId || !admin.assignmentId) return;
     await createRemovalAuthorization({
@@ -933,6 +922,10 @@ export default function InstitutionalAccountPage() {
       setPendingActionKey(null);
     }
   };
+
+  if (isSecondaryAdmin) {
+    return null;
+  }
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gray-50 px-4 py-8">
@@ -1098,20 +1091,6 @@ export default function InstitutionalAccountPage() {
                       admin.assignmentId &&
                       !isPrimaryInstitutionalRole(admin.institutionalRole) ? (
                         <div className="mt-4 flex flex-wrap gap-2">
-                          {admin.active && admin.status === "APPROVED" ? (
-                            <button
-                              type="button"
-                              disabled={pendingActionKey === "suspend:" + admin.assignmentId}
-                              onClick={() =>
-                                void runRowAction("suspend:" + admin.assignmentId, () =>
-                                  handleUpdateAdminStatus(admin, false),
-                                )
-                              }
-                              className="inline-flex items-center justify-center rounded-lg border border-amber-200 bg-white px-3 py-2 text-xs font-bold text-amber-700 transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                              Suspender
-                            </button>
-                          ) : null}
                           {admin.active && admin.status === "APPROVED" && admin.accountAddress && !pendingRemoval ? (
                             <button
                               type="button"
@@ -1138,20 +1117,6 @@ export default function InstitutionalAccountPage() {
                               className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               Transferir rol principal
-                            </button>
-                          ) : null}
-                          {!admin.active && admin.status === "SUSPENDED" ? (
-                            <button
-                              type="button"
-                              disabled={pendingActionKey === "reactivate:" + admin.assignmentId}
-                              onClick={() =>
-                                void runRowAction("reactivate:" + admin.assignmentId, () =>
-                                  handleUpdateAdminStatus(admin, true),
-                                )
-                              }
-                              className="inline-flex items-center justify-center rounded-lg border border-green-200 bg-white px-3 py-2 text-xs font-bold text-[#2E6A38] transition hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                              Reactivar
                             </button>
                           ) : null}
                         </div>

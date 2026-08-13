@@ -6,6 +6,12 @@ import type { AuthState } from "@/store/auth/authSlice";
 import type { TvdMySummaryResponse } from "@/store/tvd";
 import { renderWithAuthStore } from "../utils/renderWithStore";
 
+const navigation = vi.hoisted(() => ({ replace: vi.fn() }));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: navigation.replace }),
+}));
+
 const activeWallet = "0x1234567890abcdef1234567890abcdef12345678" as const;
 const secondWallet = "0x2222222222222222222222222222222222222222" as const;
 const walletDisplay = (wallet: string) => `${wallet.slice(0, 8)}...${wallet.slice(-6)}`;
@@ -1209,8 +1215,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     await waitFor(() => expect(screen.queryByText("Solicitante B")).not.toBeInTheDocument());
   });
 
-  it("[MX-02][D-DIS-001][INTEGRACION] el principal suspende temporalmente a una administradora activa", async () => {
-    const user = userEvent.setup();
+  it("[MX-02][D-DIS-001][INTEGRACION] el principal no encuentra acciones para suspender o reactivar", async () => {
     const adminRows = [
       {
         ...adminsResponse.data[0],
@@ -1249,36 +1254,10 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
         active: false,
       },
     ];
-    const statusCalls: Array<{ url: string; body: any }> = [];
     setupFetch(async (request) => {
       const url = new URL(request.url);
       if (url.pathname === "/api/v1/institutional-tenants/tenant-1/admins") {
-        if (request.method === "PATCH") {
-          const body = await request.json();
-          statusCalls.push({ url: url.pathname, body });
-          const assignmentId = url.pathname.split("/")[6];
-          const row = adminRows.find((admin) => admin.assignmentId === assignmentId);
-          if (!row) return jsonResponse({ message: "No encontrado" }, 404);
-          row.active = body.active;
-          row.status = body.active ? "APPROVED" : "SUSPENDED";
-          return jsonResponse(row);
-        }
         return jsonResponse({ tenantId: "tenant-1", data: adminRows, total: adminRows.length });
-      }
-      const statusPrefix = "/api/v1/institutional-tenants/tenant-1/admins/";
-      const statusSuffix = "/status";
-      const statusAssignmentId =
-        url.pathname.startsWith(statusPrefix) && url.pathname.endsWith(statusSuffix)
-          ? url.pathname.slice(statusPrefix.length, -statusSuffix.length)
-          : null;
-      if (statusAssignmentId) {
-        const body = await request.json();
-        statusCalls.push({ url: url.pathname, body });
-        const row = adminRows.find((admin) => admin.assignmentId === statusAssignmentId);
-        if (!row) return jsonResponse({ message: "No encontrado" }, 404);
-        row.active = body.active;
-        row.status = body.active ? "APPROVED" : "SUSPENDED";
-        return jsonResponse(row);
       }
       return undefined;
     });
@@ -1299,11 +1278,27 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
 
     const activeCard = screen.getByText("Admin activa").closest("article");
     expect(activeCard).not.toBeNull();
-    await user.click(within(activeCard as HTMLElement).getByRole("button", { name: "Suspender" }));
-    await waitFor(() => expect(statusCalls.some((call) => call.url.includes("secondary-active/status") && call.body.active === false)).toBe(true));
-    expect(await screen.findByText("Acceso suspendido. La wallet permanece autorizada.")).toBeInTheDocument();
-
+    expect(within(activeCard as HTMLElement).queryByRole("button", { name: "Suspender" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Reactivar" })).not.toBeInTheDocument();
+  });
+
+  it("[MX-02][D-LIST-005][INTEGRACION] redirige al secundario que escribe la URL de Cuenta institucional", async () => {
+    const fetchMock = setupFetch();
+    renderWithAuthStore(
+      <InstitutionalAccountPage />,
+      tenantAuth({
+        activeContext: {
+          type: "TENANT",
+          role: "SECONDARY",
+          tenantId: "tenant-1",
+          tenantName: "Colegio Médico",
+        },
+      }),
+    );
+
+    await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith("/votacion/elecciones"));
+    expect(screen.queryByRole("heading", { name: "Cuenta institucional" })).not.toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("[MX-02][D-REMOVE-001][INTEGRACION] inicia la eliminación con autorización móvil sin revocar antes del receipt", async () => {

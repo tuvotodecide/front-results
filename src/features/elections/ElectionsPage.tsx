@@ -8,7 +8,7 @@ import {
 import { useNavigate } from '@/domains/votacion/navigation/compat-private';
 import { useSelector } from 'react-redux';
 import { useGetVotingEventsQuery } from '../../store/votingEvents';
-import { selectTenantId, selectIsLoggedIn } from '../../store/auth/authSlice';
+import { selectAuth, selectTenantId, selectIsLoggedIn } from '../../store/auth/authSlice';
 import type { VotingEvent } from '../../store/votingEvents/types';
 import { formatDateTimeForUi, hasDraftAlreadyStarted, useClientNow } from '../electionConfig/renderUtils';
 import EstimateVotersModal from '../adminTvd/components/EstimateVotersModal';
@@ -86,6 +86,9 @@ const ElectionsPage: React.FC = () => {
   const navigate = useNavigate();
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const tenantId = useSelector(selectTenantId);
+  const activeInstitutionalRole = useSelector(selectAuth).activeContext?.role;
+  const canManageInstitutionalAccount =
+    String(activeInstitutionalRole ?? '').trim().toUpperCase() !== 'SECONDARY';
   const nowMs = useClientNow();
   const [searchTerm, setSearchTerm] = useState('');
   const [showEstimateModal, setShowEstimateModal] = useState(false);
@@ -249,6 +252,7 @@ const ElectionsPage: React.FC = () => {
         ) : null}
 
         <div className="mb-7 grid items-stretch gap-4 lg:grid-cols-2">
+          {canManageInstitutionalAccount ? (
           <section
             role="link"
             tabIndex={0}
@@ -307,6 +311,7 @@ const ElectionsPage: React.FC = () => {
             </div>
           </section>
 
+          {canManageInstitutionalAccount ? (
           <section
             role="link"
             tabIndex={0}
@@ -355,6 +360,7 @@ const ElectionsPage: React.FC = () => {
               <IdentificationIcon className="h-6 w-6" aria-hidden="true" />
             </span>
           </section>
+          ) : null}
         </div>
 
         {/* Header */}
