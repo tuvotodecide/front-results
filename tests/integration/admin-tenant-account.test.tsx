@@ -1372,6 +1372,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     const refreshedTargetCard = screen.getByText("Admin a retirar").closest("article");
     expect(refreshedTargetCard).not.toBeNull();
     expect(within(refreshedTargetCard as HTMLElement).getByText("Acceso habilitado")).toBeInTheDocument();
+    expect(within(refreshedTargetCard as HTMLElement).queryByRole("button", { name: "Quitar acceso" })).toBeNull();
   });
 
   it("[MX-02][D-REQ-007][INTEGRACION] un administrador secundario no ve acciones exclusivas de aprobación", async () => {

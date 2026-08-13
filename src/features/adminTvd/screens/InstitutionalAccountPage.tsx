@@ -1112,7 +1112,7 @@ export default function InstitutionalAccountPage() {
                               Suspender
                             </button>
                           ) : null}
-                          {admin.active && admin.status === "APPROVED" && admin.accountAddress ? (
+                          {admin.active && admin.status === "APPROVED" && admin.accountAddress && !pendingRemoval ? (
                             <button
                               type="button"
                               disabled={Boolean(pendingActionKey)}
