@@ -530,13 +530,7 @@ export const authSlice = createSlice({
     setActiveContext: (state, action) => {
       const context = normalizeContext(action.payload);
       if (!context) return;
-      // A membership can keep the same tenant/assignment while its current
-      // institutional role changes (for example PRIMARY -> SECONDARY). Do not
-      // retain the stale role in that case.
-      const hasSameCurrentRole =
-        String(state.activeContext?.role ?? "").trim().toUpperCase() ===
-        String(context.role ?? "").trim().toUpperCase();
-      if (sameContext(state.activeContext, context) && hasSameCurrentRole) return;
+      if (sameContext(state.activeContext, context)) return;
 
       state.activeContext = context;
       state.tenantId = context.type === "TENANT" ? context.tenantId : state.tenantId ?? null;

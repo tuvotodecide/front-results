@@ -74,12 +74,6 @@ export const getSelectedInstitutionContext = (
   );
 };
 
-export const isPrimaryInstitutionalContext = (
-  context: AuthContext | null | undefined,
-) =>
-  context?.type === "TENANT" &&
-  String(context.role ?? "").trim().toUpperCase() === "PRIMARY";
-
 export const requiresInstitutionSelection = (
   contexts: AuthContext[],
   activeContext: AuthContext | null | undefined,
