@@ -101,6 +101,7 @@ const tvdSummaryWithWallet = {
 const renderDashboard = (
   events: VotingEvent[] = mockEvents,
   tvdQueryState: Record<string, unknown> = {},
+  institutionalRole: "TENANT_ADMIN" | "SECONDARY" = "TENANT_ADMIN",
 ) => {
   vi.mocked(votingEvents.useGetVotingEventsQuery).mockReturnValue({
     data: events,
@@ -154,7 +155,7 @@ const renderDashboard = (
     },
     activeContext: {
       type: "TENANT",
-      role: "TENANT_ADMIN",
+      role: institutionalRole,
       tenantId: "tenant-1",
       label: "TSE",
     },
@@ -208,6 +209,21 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
 
     await user.click(screen.getByRole("link", { name: /Cuenta 0x12345678\.\.\.12345678/i }));
     expect(navigateMock).toHaveBeenCalledWith("/votacion/cuenta-institucional");
+  });
+
+  it("D-LIST-005 | SECONDARY mantiene cuenta y saldo, pero la tarjeta no navega", async () => {
+    const user = userEvent.setup();
+    renderDashboard(mockEvents, {}, "SECONDARY");
+
+    const accountCard = screen.getByText("Cuenta").closest("section");
+    expect(accountCard).not.toBeNull();
+    expect(screen.getByText("0x12345678...12345678")).toBeInTheDocument();
+    expect(screen.getByText("100")).toBeInTheDocument();
+    expect(screen.getByText("Elección de Presidente 2026")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Cuenta 0x12345678\.\.\.12345678/i })).not.toBeInTheDocument();
+
+    await user.click(accountCard as HTMLElement);
+    expect(navigateMock).not.toHaveBeenCalledWith("/votacion/cuenta-institucional");
   });
 
   it("[MX-02][SOPORTE-DASHBOARD][INTEGRACION] mantiene votaciones visibles y alerta roja cuando no existe wallet vinculada", () => {
