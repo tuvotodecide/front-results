@@ -9,6 +9,10 @@ import { useNavigate } from '@/domains/votacion/navigation/compat-private';
 import { useSelector } from 'react-redux';
 import { useGetVotingEventsQuery } from '../../store/votingEvents';
 import { selectAuth, selectTenantId, selectIsLoggedIn } from '../../store/auth/authSlice';
+import {
+  getSelectedInstitutionContext,
+  isPrimaryInstitutionalContext,
+} from '@/store/auth/contextUtils';
 import type { VotingEvent } from '../../store/votingEvents/types';
 import { formatDateTimeForUi, hasDraftAlreadyStarted, useClientNow } from '../electionConfig/renderUtils';
 import EstimateVotersModal from '../adminTvd/components/EstimateVotersModal';
@@ -86,9 +90,14 @@ const ElectionsPage: React.FC = () => {
   const navigate = useNavigate();
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const tenantId = useSelector(selectTenantId);
-  const activeInstitutionalRole = useSelector(selectAuth).activeContext?.role;
-  const canManageInstitutionalAccount =
-    String(activeInstitutionalRole ?? '').trim().toUpperCase() !== 'SECONDARY';
+  const auth = useSelector(selectAuth);
+  const activeInstitutionContext = getSelectedInstitutionContext(
+    auth.availableContexts,
+    auth.activeContext,
+  );
+  const canManageInstitutionalAccount = isPrimaryInstitutionalContext(
+    activeInstitutionContext,
+  );
   const nowMs = useClientNow();
   const [searchTerm, setSearchTerm] = useState('');
   const [showEstimateModal, setShowEstimateModal] = useState(false);
@@ -312,18 +321,25 @@ const ElectionsPage: React.FC = () => {
           </section>
           ) : null}
 
-          {canManageInstitutionalAccount ? (
           <section
-            role="link"
-            tabIndex={0}
-            onClick={() => goToAccount()}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                goToAccount();
-              }
-            }}
-            className="flex min-h-[108px] w-full cursor-pointer items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50/30 px-5 py-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-amber-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-amber-300/40"
+            {...(canManageInstitutionalAccount
+              ? {
+                  role: 'link',
+                  tabIndex: 0,
+                  onClick: () => goToAccount(),
+                  onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      goToAccount();
+                    }
+                  },
+                }
+              : {})}
+            className={`flex min-h-[108px] w-full items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50/30 px-5 py-4 text-left shadow-sm ${
+              canManageInstitutionalAccount
+                ? 'cursor-pointer transition hover:-translate-y-0.5 hover:border-amber-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-amber-300/40'
+                : ''
+            }`}
           >
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold uppercase tracking-wide text-amber-700/70">
@@ -361,7 +377,6 @@ const ElectionsPage: React.FC = () => {
               <IdentificationIcon className="h-6 w-6" aria-hidden="true" />
             </span>
           </section>
-          ) : null}
         </div>
 
         {/* Header */}

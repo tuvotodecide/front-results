@@ -19,6 +19,10 @@ import {
   updateActiveTenantWalletState,
 } from "@/store/auth/authSlice";
 import {
+  getSelectedInstitutionContext,
+  isPrimaryInstitutionalContext,
+} from "@/store/auth/contextUtils";
+import {
   InstitutionalAdminInvitation,
   InstitutionalApplication,
   useApproveInstitutionalApplicationMutation,
@@ -646,18 +650,23 @@ export default function InstitutionalAccountPage() {
   const dispatch = useDispatch();
   const router = useRouter();
   const auth = useSelector(selectAuth);
-  const tenantId = auth.activeContext?.tenantId ?? auth.user?.tenantId ?? null;
-  const isSecondaryAdmin =
-    String(auth.activeContext?.role ?? "").trim().toUpperCase() === "SECONDARY";
+  const activeInstitutionContext = getSelectedInstitutionContext(
+    auth.availableContexts,
+    auth.activeContext,
+  );
+  const tenantId = activeInstitutionContext?.tenantId ?? auth.user?.tenantId ?? null;
+  const canManageInstitutionalAccount = isPrimaryInstitutionalContext(
+    activeInstitutionContext,
+  );
   const tenantName =
-    auth.activeContext?.tenantName ?? auth.user?.tenantName ?? "Institución";
+    activeInstitutionContext?.tenantName ?? auth.user?.tenantName ?? "Institución";
 
   const {
     data: summary,
     error: summaryError,
     isLoading: isSummaryLoading,
     refetch: refetchSummary,
-  } = useGetMyTvdSummaryQuery({ tenantId }, { skip: !tenantId || isSecondaryAdmin });
+  } = useGetMyTvdSummaryQuery({ tenantId }, { skip: !tenantId || !canManageInstitutionalAccount });
   const [
     regularizeWallet,
     {
@@ -671,14 +680,14 @@ export default function InstitutionalAccountPage() {
     error: adminsError,
     isFetching: isAdminsFetching,
     refetch: refetchAdmins,
-  } = useListTenantAdminsQuery(tenantId ?? "", { skip: !tenantId || isSecondaryAdmin });
+  } = useListTenantAdminsQuery(tenantId ?? "", { skip: !tenantId || !canManageInstitutionalAccount });
   const {
     data: invitations = [],
     error: invitationsError,
     isFetching: isInvitationsFetching,
     refetch: refetchInvitations,
   } = useGetInstitutionalAdminInvitationsQuery(tenantId ?? "", {
-    skip: !tenantId || isSecondaryAdmin,
+    skip: !tenantId || !canManageInstitutionalAccount,
   });
   const {
     data: applications = [],
@@ -687,7 +696,7 @@ export default function InstitutionalAccountPage() {
     refetch: refetchApplications,
   } = useGetInstitutionalApplicationsQuery(
     tenantId ? { tenantId } : undefined,
-    { skip: !tenantId || isSecondaryAdmin },
+    { skip: !tenantId || !canManageInstitutionalAccount },
   );
   const [
     createInvitation,
@@ -821,10 +830,10 @@ export default function InstitutionalAccountPage() {
   }, [summary?.wallet, summary?.walletStatus, summaryError]);
 
   useEffect(() => {
-    if (isSecondaryAdmin) {
+    if (!canManageInstitutionalAccount) {
       router.replace("/votacion/elecciones");
     }
-  }, [isSecondaryAdmin, router]);
+  }, [canManageInstitutionalAccount, router]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -923,7 +932,7 @@ export default function InstitutionalAccountPage() {
     }
   };
 
-  if (isSecondaryAdmin) {
+  if (!canManageInstitutionalAccount) {
     return null;
   }
 

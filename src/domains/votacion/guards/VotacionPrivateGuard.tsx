@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import type { ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { selectAuth, setActiveContext } from "@/store/auth/authSlice";
 import { apiSlice } from "@/store/apiSlice";
@@ -13,6 +13,7 @@ import {
   getSelectedInstitutionContext,
   getBlockedAccessMessage,
   getRegisterPathForDomain,
+  isPrimaryInstitutionalContext,
   isSameContext,
   requiresInstitutionSelection,
   resolveBlockedHomeByContext,
@@ -29,6 +30,7 @@ export default function VotacionPrivateGuard({
   children,
 }: VotacionPrivateGuardProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const dispatch = useDispatch();
   const auth = useSelector(selectAuth);
   const { user, token, activeContext, availableContexts } = auth;
@@ -46,6 +48,9 @@ export default function VotacionPrivateGuard({
   const domainContext = needsInstitutionSelection
     ? null
     : selectedInstitution ?? findContextForDomain(availableContexts, "votacion");
+  // Only the current server-provided membership may authorize this route.
+  const activeInstitutionContext =
+    domainContext?.type === "TENANT" ? domainContext : null;
   const hasLegacyAccess =
     !domainContext &&
     availableContexts.length === 0 &&
@@ -68,11 +73,19 @@ export default function VotacionPrivateGuard({
     !redirectTo &&
     !domainContext &&
     !hasLegacyAccess;
+  const shouldBlockInstitutionalAccount =
+    pathname === "/votacion/cuenta-institucional" &&
+    !redirectTo &&
+    !shouldActivateDomainContext &&
+    !needsInstitutionSelection &&
+    !isPrimaryInstitutionalContext(activeInstitutionContext);
   useEffect(() => {
     if (redirectTo) {
       router.replace(redirectTo);
+    } else if (shouldBlockInstitutionalAccount) {
+      router.replace("/votacion/elecciones");
     }
-  }, [redirectTo, router]);
+  }, [redirectTo, router, shouldBlockInstitutionalAccount]);
 
   useEffect(() => {
     if (domainContext && shouldActivateDomainContext) {
@@ -86,7 +99,7 @@ export default function VotacionPrivateGuard({
     dispatch(setActiveContext(context));
   };
 
-  if (redirectTo) {
+  if (redirectTo || shouldBlockInstitutionalAccount) {
     return null;
   }
 

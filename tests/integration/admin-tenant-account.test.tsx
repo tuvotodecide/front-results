@@ -95,14 +95,14 @@ const tenantAuth = (overrides?: Partial<AuthState>): Partial<AuthState> => ({
   availableContexts: [
     {
       type: "TENANT",
-      role: "TENANT_ADMIN",
+      role: "PRIMARY",
       tenantId: "tenant-1",
       tenantName: "Colegio Médico",
     },
   ],
   activeContext: {
     type: "TENANT",
-    role: "TENANT_ADMIN",
+    role: "PRIMARY",
     tenantId: "tenant-1",
     tenantName: "Colegio Médico",
   },
@@ -549,9 +549,18 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     renderWithAuthStore(
       <InstitutionalAccountPage />,
       tenantAuth({
+        availableContexts: [
+          {
+            type: "TENANT",
+            role: "PRIMARY",
+            tenantId: "tenant-1",
+            tenantName: "Colegio Médico",
+            membershipId: "assignment-2",
+          },
+        ],
         activeContext: {
           type: "TENANT",
-          role: "TENANT_ADMIN",
+          role: "PRIMARY",
           tenantId: "tenant-1",
           tenantName: "Colegio Médico",
           membershipId: "assignment-2",
@@ -1282,14 +1291,24 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(screen.queryByRole("button", { name: "Reactivar" })).not.toBeInTheDocument();
   });
 
-  it("[MX-02][D-LIST-005][INTEGRACION] redirige al secundario que escribe la URL de Cuenta institucional", async () => {
+  it("[MX-02][D-LIST-005][INTEGRACION] bloquea a un ex-PRIMARY cuyo contexto vigente ahora es SECONDARY", async () => {
     const fetchMock = setupFetch();
     renderWithAuthStore(
       <InstitutionalAccountPage />,
       tenantAuth({
+        availableContexts: [
+          {
+            type: "TENANT",
+            role: "SECONDARY",
+            tenantId: "tenant-1",
+            tenantName: "Colegio Médico",
+          },
+        ],
         activeContext: {
           type: "TENANT",
-          role: "SECONDARY",
+          // Simula el snapshot persistido antes de la transferencia. La lista
+          // actual del servidor debe prevalecer sobre este valor histórico.
+          role: "PRIMARY",
           tenantId: "tenant-1",
           tenantName: "Colegio Médico",
         },
@@ -1563,9 +1582,17 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
         token: "tenant-b-token",
         accessToken: "tenant-b-token",
         tenantId: "tenant-2",
+        availableContexts: [
+          {
+            type: "TENANT",
+            role: "PRIMARY",
+            tenantId: "tenant-2",
+            tenantName: "Universidad Mayor",
+          },
+        ],
         activeContext: {
           type: "TENANT",
-          role: "TENANT_ADMIN",
+          role: "PRIMARY",
           tenantId: "tenant-2",
           tenantName: "Universidad Mayor",
         },
