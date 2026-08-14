@@ -1,4 +1,5 @@
 import { apiSlice } from "../apiSlice";
+import type { AccessStatus } from "./authSlice";
 
 export interface RegisterTenantAdminPayload {
   dni: string;
@@ -82,6 +83,11 @@ export const authApiSlice = apiSlice.injectEndpoints({
       }),
     }),
 
+    getAccessStatus: builder.query<AccessStatus, void>({
+      query: () => "/auth/access-status",
+      keepUnusedDataFor: 0,
+    }),
+
     getInvitationRegistrationContext: builder.query<
       InvitationRegistrationContext,
       { invitationId: string; continuationCode: string }
@@ -141,6 +147,7 @@ export const authApiSlice = apiSlice.injectEndpoints({
 export const {
   useGetProfileQuery,
   useLazyGetProfileQuery,
+  useLazyGetAccessStatusQuery,
   useCreateUserMutation,
   useRegisterTenantAdminMutation,
   useCreateInstitutionalAdminApplicationMutation,

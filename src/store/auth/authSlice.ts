@@ -37,6 +37,7 @@ export type AuthRole =
 export interface AuthContext {
   type: AuthContextType;
   role?: string;
+  institutionalRole?: "PRIMARY" | "SECONDARY";
   label?: string;
   tenantId?: string | null;
   tenantName?: string | null;
@@ -65,6 +66,7 @@ export interface AccessStatus {
     items: Array<{
       applicationId?: string | null;
       membershipId?: string | null;
+      institutionalRole?: "PRIMARY" | "SECONDARY";
       status: AccessRequestStatus;
       tenantId?: string | null;
       tenantName?: string | null;
@@ -250,6 +252,10 @@ const normalizeContext = (ctx: any): AuthContext | null => {
   return {
     type,
     role: ctx?.role ? String(ctx.role) : undefined,
+    institutionalRole:
+      ctx?.institutionalRole === "PRIMARY" || ctx?.institutionalRole === "SECONDARY"
+        ? ctx.institutionalRole
+        : undefined,
     label: ctx?.label ? String(ctx.label) : undefined,
     tenantId: ctx?.tenantId ?? null,
     tenantName: ctx?.tenantName ?? null,
@@ -590,6 +596,44 @@ export const authSlice = createSlice({
         persistAuthSession(state);
       }
     },
+    refreshActiveTenantInstitutionalRole: (state, action) => {
+      const accessStatus = action.payload?.accessStatus as AccessStatus | undefined;
+      if (!accessStatus) return;
+
+      state.accessStatus = accessStatus;
+
+      const activeContext = state.activeContext;
+      const tenantId = activeContext?.type === "TENANT" ? activeContext.tenantId : null;
+      const membershipId = activeContext?.type === "TENANT" ? activeContext.membershipId : null;
+      if (!tenantId || !membershipId) {
+        if (!state.isDevSession) persistAuthSession(state);
+        return;
+      }
+
+      const assignment = accessStatus.tenant.items.find(
+        (item) => item.tenantId === tenantId && item.membershipId === membershipId,
+      );
+      const institutionalRole =
+        assignment?.institutionalRole === "PRIMARY" || assignment?.institutionalRole === "SECONDARY"
+          ? assignment.institutionalRole
+          : undefined;
+      const applyInstitutionalRole = (context: AuthContext | null) => {
+        if (
+          context?.type !== "TENANT" ||
+          context.tenantId !== tenantId ||
+          context.membershipId !== membershipId
+        ) {
+          return;
+        }
+        context.institutionalRole = institutionalRole;
+      };
+
+      applyInstitutionalRole(state.activeContext);
+      applyInstitutionalRole(state.defaultContext);
+      state.availableContexts.forEach(applyInstitutionalRole);
+
+      if (!state.isDevSession) persistAuthSession(state);
+    },
     setDevAuthSession: (state, action) => {
       const user = normalizeUser(action.payload?.user);
       const availableContexts = normalizeContexts(
@@ -646,6 +690,7 @@ export const {
   setActiveContext,
   setDevAuthSession,
   updateActiveTenantWalletState,
+  refreshActiveTenantInstitutionalRole,
   logOut,
 } = authSlice.actions;
 export const selectAuth = (state: RootState) => state.auth;

@@ -1,4 +1,10 @@
-import { authSlice, setActiveContext, setAuth, type AuthState } from "@/store/auth/authSlice";
+import {
+  authSlice,
+  refreshActiveTenantInstitutionalRole,
+  setActiveContext,
+  setAuth,
+  type AuthState,
+} from "@/store/auth/authSlice";
 import {
   getInstitutionalContexts,
   isContextAllowedForDomain,
@@ -101,10 +107,10 @@ describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | 
         accessToken: token,
         role: "TENANT_ADMIN",
         availableContexts: [
-          { type: "TENANT", tenantId: "tenant-a", tenantName: "Universidad A", role: "PRIMARY" },
-          { type: "TENANT", tenantId: "tenant-b", tenantName: "Universidad B", role: "SECONDARY" },
+          { type: "TENANT", tenantId: "tenant-a", tenantName: "Universidad A", role: "USER", institutionalRole: "PRIMARY" },
+          { type: "TENANT", tenantId: "tenant-b", tenantName: "Universidad B", role: "USER", institutionalRole: "SECONDARY" },
         ],
-        activeContext: { type: "TENANT", tenantId: "tenant-b", role: "OLD_ROLE" },
+        activeContext: { type: "TENANT", tenantId: "tenant-b", role: "USER", institutionalRole: "PRIMARY" },
         user: { id: "user-1", email: "tenant@test.com", name: "Tenant", role: "TENANT_ADMIN", active: true },
       }),
     );
@@ -112,9 +118,140 @@ describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | 
     expect(state.activeContext).toMatchObject({
       tenantId: "tenant-b",
       tenantName: "Universidad B",
-      role: "SECONDARY",
+      role: "USER",
+      institutionalRole: "SECONDARY",
     });
     expect(requiresInstitutionSelection(state.availableContexts, state.activeContext)).toBe(false);
+  });
+
+  it("AUT-INST-ROLE-REFRESH | actualiza solo el assignment activo desde access-status", () => {
+    const initial = {
+      ...baseState,
+      token,
+      accessToken: token,
+      role: "USER",
+      active: true,
+      availableContexts: [
+        {
+          type: "TENANT" as const,
+          role: "USER",
+          institutionalRole: "PRIMARY" as const,
+          tenantId: "tenant-x",
+          membershipId: "assignment-x",
+        },
+        {
+          type: "TENANT" as const,
+          role: "USER",
+          institutionalRole: "SECONDARY" as const,
+          tenantId: "tenant-y",
+          membershipId: "assignment-y",
+        },
+      ],
+      defaultContext: {
+        type: "TENANT" as const,
+        role: "USER",
+        institutionalRole: "PRIMARY" as const,
+        tenantId: "tenant-x",
+        membershipId: "assignment-x",
+      },
+      activeContext: {
+        type: "TENANT" as const,
+        role: "USER",
+        institutionalRole: "PRIMARY" as const,
+        tenantId: "tenant-x",
+        membershipId: "assignment-x",
+      },
+    };
+    const state = authSlice.reducer(
+      initial,
+      refreshActiveTenantInstitutionalRole({
+        accessStatus: {
+          tenant: {
+            hasApprovedAccess: true,
+            canRequest: false,
+            shouldSelectTenantContext: false,
+            message: "Acceso actualizado",
+            items: [
+              {
+                membershipId: "assignment-x",
+                tenantId: "tenant-x",
+                status: "APPROVED",
+                institutionalRole: "SECONDARY",
+              },
+              {
+                membershipId: "assignment-y",
+                tenantId: "tenant-y",
+                status: "APPROVED",
+                institutionalRole: "SECONDARY",
+              },
+            ],
+          },
+          territorial: {
+            hasApprovedAccess: false,
+            status: "NONE",
+            canRequest: true,
+            message: "Sin acceso territorial",
+          },
+        },
+      }),
+    );
+
+    expect(state.activeContext).toMatchObject({
+      role: "USER",
+      institutionalRole: "SECONDARY",
+      tenantId: "tenant-x",
+      membershipId: "assignment-x",
+    });
+    expect(state.availableContexts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ tenantId: "tenant-x", institutionalRole: "SECONDARY" }),
+        expect.objectContaining({ tenantId: "tenant-y", institutionalRole: "SECONDARY" }),
+      ]),
+    );
+  });
+
+  it("AUT-INST-ROLE-REFRESH | conserva PRIMARY cuando el backend no confirmó transferencia", () => {
+    const state = authSlice.reducer(
+      {
+        ...baseState,
+        token,
+        accessToken: token,
+        active: true,
+        activeContext: {
+          type: "TENANT",
+          role: "USER",
+          institutionalRole: "PRIMARY",
+          tenantId: "tenant-x",
+          membershipId: "assignment-x",
+        },
+      },
+      refreshActiveTenantInstitutionalRole({
+        accessStatus: {
+          tenant: {
+            hasApprovedAccess: true,
+            canRequest: false,
+            shouldSelectTenantContext: false,
+            message: "Transferencia pendiente",
+            items: [
+              {
+                membershipId: "assignment-x",
+                tenantId: "tenant-x",
+                status: "APPROVED",
+                institutionalRole: "PRIMARY",
+              },
+            ],
+          },
+          territorial: {
+            hasApprovedAccess: false,
+            status: "NONE",
+            canRequest: true,
+            message: "Sin acceso territorial",
+          },
+        },
+      }),
+    );
+
+    expect(state.activeContext?.institutionalRole).toBe("PRIMARY");
   });
 
   it("MULTI-INS-06/07 | descarta un contexto persistido inválido sin elegir A si quedan varias", () => {

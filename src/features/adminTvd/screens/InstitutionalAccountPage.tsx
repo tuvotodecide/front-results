@@ -15,9 +15,11 @@ import {
 } from "@heroicons/react/24/outline";
 import Modal2 from "@/components/Modal2";
 import {
+  refreshActiveTenantInstitutionalRole,
   selectAuth,
   updateActiveTenantWalletState,
 } from "@/store/auth/authSlice";
+import { useLazyGetAccessStatusQuery } from "@/store/auth/authEndpoints";
 import {
   InstitutionalAdminInvitation,
   InstitutionalApplication,
@@ -647,10 +649,10 @@ export default function InstitutionalAccountPage() {
   const router = useRouter();
   const auth = useSelector(selectAuth);
   const tenantId = auth.activeContext?.tenantId ?? auth.user?.tenantId ?? null;
-  const isSecondaryAdmin =
-    String(auth.activeContext?.role ?? "").trim().toUpperCase() === "SECONDARY";
+  const isSecondaryAdmin = auth.activeContext?.institutionalRole === "SECONDARY";
   const tenantName =
     auth.activeContext?.tenantName ?? auth.user?.tenantName ?? "Institución";
+  const [pendingPrimaryTransferId, setPendingPrimaryTransferId] = useState<string | null>(null);
 
   const {
     data: summary,
@@ -687,8 +689,12 @@ export default function InstitutionalAccountPage() {
     refetch: refetchApplications,
   } = useGetInstitutionalApplicationsQuery(
     tenantId ? { tenantId } : undefined,
-    { skip: !tenantId || isSecondaryAdmin },
+    {
+      skip: !tenantId || isSecondaryAdmin,
+      pollingInterval: pendingPrimaryTransferId ? 3_000 : 0,
+    },
   );
+  const [getAccessStatus] = useLazyGetAccessStatusQuery();
   const [
     createInvitation,
     { isLoading: isCreatingInvitation, error: createInvitationError, reset: resetCreateInvitation },
@@ -827,6 +833,60 @@ export default function InstitutionalAccountPage() {
   }, [isSecondaryAdmin, router]);
 
   useEffect(() => {
+    if (!pendingPrimaryTransferId) return;
+
+    const pendingTransfer = applications.find(
+      (application) => application.id === pendingPrimaryTransferId,
+    );
+    if (
+      pendingTransfer &&
+      ["REJECTED", "REVOKED", "MOBILE_AUTHORIZATION_EXPIRED"].includes(
+        pendingTransfer.status ?? "",
+      )
+    ) {
+      setPendingPrimaryTransferId(null);
+    }
+  }, [applications, pendingPrimaryTransferId]);
+
+  useEffect(() => {
+    if (!pendingPrimaryTransferId) return;
+
+    let cancelled = false;
+    let attempts = 0;
+    let timer: number | undefined;
+    const refreshInstitutionalRole = async () => {
+      try {
+        const accessStatus = await getAccessStatus().unwrap();
+        if (cancelled) return;
+
+        dispatch(refreshActiveTenantInstitutionalRole({ accessStatus }));
+        const activeMembershipId = auth.activeContext?.membershipId;
+        const refreshedRole = accessStatus.tenant.items.find(
+          (item) =>
+            item.tenantId === tenantId && item.membershipId === activeMembershipId,
+        )?.institutionalRole;
+        if (refreshedRole === "SECONDARY") {
+          setPendingPrimaryTransferId(null);
+          return;
+        }
+      } catch {
+        // Keep the UI conservative and retry while the mobile authorization is pending.
+      }
+
+      attempts += 1;
+      if (!cancelled && attempts < 100) {
+        timer = window.setTimeout(refreshInstitutionalRole, 3_000);
+      }
+    };
+
+    void refreshInstitutionalRole();
+    return () => {
+      cancelled = true;
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [auth.activeContext?.membershipId, dispatch, getAccessStatus, pendingPrimaryTransferId, tenantId]);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     if (params.get("action") === "associate-account") {
@@ -892,13 +952,14 @@ export default function InstitutionalAccountPage() {
     if (!tenantId || !transferTarget?.assignmentId || isTransferringPrimary) return;
     setActionError(null);
     try {
-      await transferTenantPrimary({
+      const transfer = await transferTenantPrimary({
         tenantId,
         data: {
           assignmentId: transferTarget.assignmentId,
           reason: "Transferencia iniciada desde Cuenta institucional",
         },
       }).unwrap();
+      setPendingPrimaryTransferId(transfer.applicationId);
       setFeedback("Transferencia pendiente de firma en tu teléfono.");
       setTransferTarget(null);
       resetTransferPrimary();

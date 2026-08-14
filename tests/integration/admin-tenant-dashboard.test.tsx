@@ -101,7 +101,8 @@ const tvdSummaryWithWallet = {
 const renderDashboard = (
   events: VotingEvent[] = mockEvents,
   tvdQueryState: Record<string, unknown> = {},
-  institutionalRole: "TENANT_ADMIN" | "SECONDARY" = "TENANT_ADMIN",
+  institutionalRole: "PRIMARY" | "SECONDARY" | undefined = "PRIMARY",
+  useLegacyInstitutionalContext = false,
 ) => {
   vi.mocked(votingEvents.useGetVotingEventsQuery).mockReturnValue({
     data: events,
@@ -155,8 +156,10 @@ const renderDashboard = (
     },
     activeContext: {
       type: "TENANT",
-      role: institutionalRole,
+      role: "USER",
+      ...(useLegacyInstitutionalContext ? {} : { institutionalRole }),
       tenantId: "tenant-1",
+      membershipId: "assignment-1",
       label: "TSE",
     },
   });
@@ -220,6 +223,20 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(screen.getByText("0x12345678...12345678")).toBeInTheDocument();
     expect(screen.getByText("100")).toBeInTheDocument();
     expect(screen.getByText("Elección de Presidente 2026")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Cuenta 0x12345678\.\.\.12345678/i })).not.toBeInTheDocument();
+
+    await user.click(accountCard as HTMLElement);
+    expect(navigateMock).not.toHaveBeenCalledWith("/votacion/cuenta-institucional");
+  });
+
+  it("D-LIST-006 | un contexto institucional antiguo sin rol no habilita cuenta", async () => {
+    const user = userEvent.setup();
+    renderDashboard(mockEvents, {}, undefined, true);
+
+    const accountCard = screen.getByText("Cuenta").closest("section");
+    expect(accountCard).not.toBeNull();
+    expect(screen.getByText("0x12345678...12345678")).toBeInTheDocument();
+    expect(screen.getByText("100")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Cuenta 0x12345678\.\.\.12345678/i })).not.toBeInTheDocument();
 
     await user.click(accountCard as HTMLElement);

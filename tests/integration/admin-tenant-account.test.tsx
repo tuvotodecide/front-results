@@ -95,16 +95,20 @@ const tenantAuth = (overrides?: Partial<AuthState>): Partial<AuthState> => ({
   availableContexts: [
     {
       type: "TENANT",
-      role: "TENANT_ADMIN",
+      role: "USER",
+      institutionalRole: "PRIMARY",
       tenantId: "tenant-1",
       tenantName: "Colegio Médico",
+      membershipId: "assignment-1",
     },
   ],
   activeContext: {
     type: "TENANT",
-    role: "TENANT_ADMIN",
+    role: "USER",
+    institutionalRole: "PRIMARY",
     tenantId: "tenant-1",
     tenantName: "Colegio Médico",
+    membershipId: "assignment-1",
   },
   user: {
     id: "user-1",
@@ -1289,9 +1293,11 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
       tenantAuth({
         activeContext: {
           type: "TENANT",
-          role: "SECONDARY",
+          role: "USER",
+          institutionalRole: "SECONDARY",
           tenantId: "tenant-1",
           tenantName: "Colegio Médico",
+          membershipId: "assignment-1",
         },
       }),
     );

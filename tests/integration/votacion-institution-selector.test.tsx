@@ -20,8 +20,8 @@ vi.mock("next/link", () => ({
 }));
 
 const institutions = [
-  { type: "TENANT" as const, tenantId: "tenant-a-internal", tenantName: "Universidad A", role: "PRIMARY" },
-  { type: "TENANT" as const, tenantId: "tenant-b-internal", tenantName: "Universidad B", role: "SECONDARY" },
+  { type: "TENANT" as const, tenantId: "tenant-a-internal", tenantName: "Universidad A", role: "USER", institutionalRole: "PRIMARY" as const },
+  { type: "TENANT" as const, tenantId: "tenant-b-internal", tenantName: "Universidad B", role: "USER", institutionalRole: "SECONDARY" as const },
 ];
 
 const authenticatedState = {
@@ -75,7 +75,8 @@ describe("Flujo 1 | selector de institución en votación", () => {
       expect(store.getState().auth.activeContext).toMatchObject({
         tenantId: "tenant-b-internal",
         tenantName: "Universidad B",
-        role: "SECONDARY",
+        role: "USER",
+        institutionalRole: "SECONDARY",
       });
     });
     expect(screen.getByText("área institucional")).toBeInTheDocument();
@@ -98,7 +99,8 @@ describe("Flujo 1 | selector de institución en votación", () => {
       expect(store.getState().auth.activeContext).toMatchObject({
         tenantId: "tenant-a-internal",
         tenantName: "Universidad A",
-        role: "PRIMARY",
+        role: "USER",
+        institutionalRole: "PRIMARY",
       });
     });
     expect(screen.getByRole("button", {

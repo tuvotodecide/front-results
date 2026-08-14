@@ -86,9 +86,8 @@ const ElectionsPage: React.FC = () => {
   const navigate = useNavigate();
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const tenantId = useSelector(selectTenantId);
-  const activeInstitutionalRole = useSelector(selectAuth).activeContext?.role;
-  const canManageInstitutionalAccount =
-    String(activeInstitutionalRole ?? '').trim().toUpperCase() !== 'SECONDARY';
+  const activeInstitutionalRole = useSelector(selectAuth).activeContext?.institutionalRole;
+  const canManageInstitutionalAccount = activeInstitutionalRole === 'PRIMARY';
   const nowMs = useClientNow();
   const [searchTerm, setSearchTerm] = useState('');
   const [showEstimateModal, setShowEstimateModal] = useState(false);
