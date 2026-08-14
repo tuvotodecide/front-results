@@ -41,7 +41,7 @@ const serverEnv = (key: string) =>
 const isProductionRuntime = () =>
   serverEnv("NODE_ENV") === "production" ||
   serverEnv("VERCEL_ENV") === "production" ||
-  serverEnv("NEXT_PUBLIC_VERCEL_ENV") === "production";
+  process.env.NEXT_PUBLIC_VERCEL_ENV === "production";
 
 export const getTvdServerBlockchainConfig = (): TvdBlockchainReadConfig => {
   const configuredChainId = parseSafePositiveInteger(serverEnv("TVD_CHAIN_ID"));
