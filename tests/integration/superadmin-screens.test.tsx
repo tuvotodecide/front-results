@@ -254,6 +254,12 @@ const tvdParametersReadModel = {
     message: null,
     enabled: false,
   },
+  institutionalTvd: {
+    raw: "1000000000000000000000",
+    formatted: "1000 TVD",
+    status: "available",
+    message: null,
+  },
   campaign: {
     status: "available",
     message: "No existe una campaña configurada",
@@ -287,6 +293,13 @@ const tvdParametersReadModel = {
       address: "0x6666666666666666666666666666666666666666",
       txHash: null,
       explorerUrl: "https://basescan.org/address/0x6666666666666666666666666666666666666666",
+      txExplorerUrl: null,
+      status: "available",
+    },
+    institutionalVesting: {
+      address: "0x7777777777777777777777777777777777777777",
+      txHash: null,
+      explorerUrl: "https://basescan.org/address/0x7777777777777777777777777777777777777777",
       txExplorerUrl: null,
       status: "available",
     },

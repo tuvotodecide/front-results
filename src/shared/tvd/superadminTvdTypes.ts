@@ -127,12 +127,14 @@ export type TvdParametersReadModel = {
   rewardByVote: TvdEconomicValue & {
     enabled: boolean | null;
   };
+  institutionalTvd: TvdEconomicValue,
   campaign: TvdCampaignReadModel;
   contracts: {
     tvdToken: TvdAddressInfo;
     electoralCredits: TvdAddressInfo;
     voteManager: TvdAddressInfo;
     incentiveCampaigns: TvdAddressInfo;
+    institutionalVesting: TvdAddressInfo;
   };
   updatedAt: string | null;
   issues: TvdReadIssue[];
