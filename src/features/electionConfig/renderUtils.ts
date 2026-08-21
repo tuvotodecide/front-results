@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
-export const MIN_CREATE_LEAD_HOURS = 0;
-export const PRE_PUBLICATION_CUTOFF_HOURS = 0;
+export const MIN_CREATE_LEAD_HOURS = 12;
+export const PRE_PUBLICATION_CUTOFF_HOURS = 6;
 export const MIN_CREATE_LEAD_MS = MIN_CREATE_LEAD_HOURS * 60 * 60 * 1000;
 export const PRE_PUBLICATION_CUTOFF_MS = PRE_PUBLICATION_CUTOFF_HOURS * 60 * 60 * 1000;
 export const REFERENDUM_TECHNICAL_ROLE = 'CONSULTA';
