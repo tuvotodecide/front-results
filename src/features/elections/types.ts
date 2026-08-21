@@ -18,6 +18,7 @@ export interface CreateElectionPayload {
   description: string;
   isReferendum: boolean;
   isOpenVoting: boolean;
+  maxOpenVoters?: number;
   votingStartDate: string;
   votingEndDate: string;
   resultsDate: string;
@@ -28,6 +29,7 @@ export interface ElectionFormStep1 {
   description: string;
   isReferendum: boolean;
   isOpenVoting: boolean;
+  maxOpenVoters: number;
 }
 
 export interface ElectionFormStep2 {

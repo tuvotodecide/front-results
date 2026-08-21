@@ -142,6 +142,17 @@
         "tests/integration/matrix-open-elections.test.tsx"
       ]
     },
+    "matrix_ea2": {
+      "name": "EA2 | Votación abierta — límite de votantes y costo TVD",
+      "flows": [
+        "EA2",
+        "EA2-P0"
+      ],
+      "files": [
+        "tests/unit/matrix-open-elections-2.test.tsx",
+        "tests/integration/matrix-open-elections-2.test.tsx"
+      ]
+    },
     "matrix_rdv": {
       "name": "RDV | Registro del padrón tras publicación",
       "flows": [
@@ -293,7 +304,8 @@
         "tests/unit/admin-tvd-wallet-ui.test.ts",
         "tests/unit/superadmin-tvd-manual-assignment-ui.test.ts",
         "tests/unit/superadmin-tvd-blockchain-utils.test.ts",
-        "tests/unit/tvd-wallet-lookup-ui.test.ts"
+        "tests/unit/tvd-wallet-lookup-ui.test.ts",
+        "tests/unit/tvd-per-credit-cost.test.ts"
       ]
     },
     "matrix_07": {

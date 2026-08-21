@@ -82,6 +82,7 @@ const ElectionConfigCargos: React.FC = () => {
 
   const isOperating = creating || updating || deleting;
   const isReferendum = Boolean(event?.isReferendum);
+  const isOpenVoting = Boolean(event?.isOpenVoting);
   const hasPositions = positions.length > 0;
   const hasPartiesWithCandidates = options.some((opt) => opt.candidates.length > 0);
   const isPadronReady = padronVersions.length > 0;
@@ -260,6 +261,7 @@ const ElectionConfigCargos: React.FC = () => {
                   ...(isPadronReady ? [3] : []),
                 ] as ConfigStep[]}
                 isReferendum={isReferendum}
+                isOpenVoting={isOpenVoting}
                 onStepChange={handleGoToStep}
                 canNavigate={(step) => {
                   if (step === 1) return true;
@@ -345,9 +347,11 @@ const ElectionConfigCargos: React.FC = () => {
               }
             `}
           >
-            {isReferendum
-              ? 'Continuar: Configurar opciones'
-              : 'Siguiente: Agregar planchas y candidatos'}
+            {isReferendum && isOpenVoting
+              ? 'Finalizar configuración'
+              : isReferendum
+                ? 'Continuar: Configurar opciones'
+                : 'Siguiente: Agregar planchas y candidatos'}
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>

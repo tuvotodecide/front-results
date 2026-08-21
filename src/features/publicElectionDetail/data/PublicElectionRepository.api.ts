@@ -112,6 +112,7 @@ const mapDetailToPublic = (raw: any): PublicElectionDetail => {
     title: raw?.name ?? '',
     subtitle: raw?.objective ?? '',
     isReferendum: Boolean(raw?.isReferendum),
+    isOpenVoting: Boolean(raw?.isOpenVoting),
     status,
     schedule,
     results:

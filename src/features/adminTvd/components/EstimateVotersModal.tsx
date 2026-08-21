@@ -7,6 +7,12 @@ import {
   getCapacityRequestErrorMessage,
   validateEstimatedParticipants,
 } from "../utils/tvdCapacityUi";
+import {
+  formatRequiredTvd,
+  formatSmallestUnitAsTvd,
+  getRequiredSmallestUnit,
+  useTvdPerCredit,
+} from "../data/useTvdPerCredit";
 
 interface EstimateVotersModalProps {
   isOpen: boolean;
@@ -30,8 +36,38 @@ export default function EstimateVotersModal({
     useState<TvdEstimatedCapacityResponse | null>(null);
   const [estimateCapacity, { isLoading, error }] =
     useEstimateMyTvdCapacityMutation();
+  const { tvdPerCredit, error: tvdPerCreditError } = useTvdPerCredit();
   const validation = validateEstimatedParticipants(value);
   const isValid = validation.valid;
+
+  // El costo se calcula con la tasa on-chain (1 participante = tvdPerCredit),
+  // comparando en la unidad más pequeña para no perder precisión.
+  const requiredSmallestUnit = capacity
+    ? getRequiredSmallestUnit(capacity.estimatedParticipants, tvdPerCredit)
+    : null;
+  const availableSmallestUnit = /^\d+$/.test(
+    String(capacity?.availableSmallestUnit ?? "").trim(),
+  )
+    ? BigInt(String(capacity?.availableSmallestUnit).trim())
+    : null;
+  const onChainRequiredLabel = capacity
+    ? formatRequiredTvd(capacity.estimatedParticipants, tvdPerCredit)
+    : null;
+  const onChainMissingLabel =
+    requiredSmallestUnit !== null && availableSmallestUnit !== null
+      ? formatSmallestUnitAsTvd(
+          String(
+            requiredSmallestUnit > availableSmallestUnit
+              ? requiredSmallestUnit - availableSmallestUnit
+              : 0n,
+          ),
+          tvdPerCredit?.decimals ?? 18,
+        )
+      : null;
+  const hasCapacity =
+    requiredSmallestUnit !== null && availableSmallestUnit !== null
+      ? requiredSmallestUnit <= availableSmallestUnit
+      : Boolean(capacity?.hasEstimatedCapacity);
 
   const handleClose = () => {
     setValue("");
@@ -114,7 +150,11 @@ export default function EstimateVotersModal({
         <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
           <div className="flex items-center justify-between border-b border-slate-200 pb-3">
             <span>Regla de capacidad</span>
-            <strong>1 participante = 1 TVD</strong>
+            <strong>
+              {tvdPerCredit
+                ? `1 participante = ${tvdPerCredit.formatted}`
+                : "1 participante = — TVD"}
+            </strong>
           </div>
           {capacity ? (
             <div className="space-y-2 pt-3">
@@ -125,18 +165,20 @@ export default function EstimateVotersModal({
               <div className="flex items-center justify-between">
                 <span>TVD requeridos</span>
                 <strong>
-                  {formatTvdCapacityAmount(capacity.estimatedRequiredTokens)}
+                  {onChainRequiredLabel ??
+                    formatTvdCapacityAmount(capacity.estimatedRequiredTokens)}
                 </strong>
               </div>
               <div className="flex items-center justify-between">
                 <span>Saldo disponible</span>
                 <strong>{formatTvdCapacityAmount(capacity.availableTokens)}</strong>
               </div>
-              {!capacity.hasEstimatedCapacity ? (
+              {!hasCapacity ? (
                 <div className="flex items-center justify-between">
                   <span>Faltante</span>
                   <strong>
-                    {formatTvdCapacityAmount(capacity.estimatedMissingTokens)}
+                    {onChainMissingLabel ??
+                      formatTvdCapacityAmount(capacity.estimatedMissingTokens)}
                   </strong>
                 </div>
               ) : null}
@@ -148,6 +190,12 @@ export default function EstimateVotersModal({
             </div>
           )}
         </div>
+
+        {tvdPerCreditError ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            {tvdPerCreditError}
+          </div>
+        ) : null}
 
         {error ? (
           <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -167,14 +215,10 @@ export default function EstimateVotersModal({
           {capacity ? (
             <button
               type="button"
-              onClick={
-                capacity.hasEstimatedCapacity
-                  ? handleContinue
-                  : () => onRecharge(capacity)
-              }
+              onClick={hasCapacity ? handleContinue : () => onRecharge(capacity)}
               className="rounded-lg bg-[#459151] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#3a7a44]"
             >
-              {capacity.hasEstimatedCapacity ? "Crear votación" : "Recargar tokens"}
+              {hasCapacity ? "Crear votación" : "Recargar tokens"}
             </button>
           ) : (
             <button
@@ -188,7 +232,7 @@ export default function EstimateVotersModal({
           )}
         </div>
 
-        {capacity && !capacity.hasEstimatedCapacity ? (
+        {capacity && !hasCapacity ? (
           <button
             type="button"
             onClick={handleContinue}

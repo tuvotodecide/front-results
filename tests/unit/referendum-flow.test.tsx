@@ -6,6 +6,7 @@ import BallotPreview from "@/features/electionConfig/components/BallotPreview";
 import PartiesTable from "@/features/electionConfig/components/PartiesTable";
 import ElectionConfigCargos from "@/features/electionConfig/ElectionConfigCargos";
 import CreateElectionWizard from "@/features/elections/components/CreateElectionWizard";
+import { renderWithAuthStore, wizardAuthState } from "../utils/renderWithStore";
 import PartyModal from "@/features/electionConfig/components/PartyModal";
 import ConfigStepsTabs from "@/features/electionConfig/components/ConfigStepsTabs";
 
@@ -116,7 +117,7 @@ describe("referendum minimal flow", () => {
     const user = userEvent.setup();
     createElectionMock.mockResolvedValue({ id: "evt-normal" });
 
-    render(<CreateElectionWizard />);
+    renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
 
     await user.type(screen.getByLabelText("¿A qué institución pertenece?"), "Elección normal");
     await user.type(
@@ -146,7 +147,7 @@ describe("referendum minimal flow", () => {
     createElectionMock.mockResolvedValue({ id: "evt-ref" });
     navigateMock.mockReset();
 
-    render(<CreateElectionWizard />);
+    renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
 
     await user.click(screen.getByRole("switch", { name: "¿Es referéndum?" }));
 
@@ -201,7 +202,7 @@ describe("referendum minimal flow", () => {
   it("ELE-REF-P0-002 requires question marks in the referendum question", async () => {
     const user = userEvent.setup();
 
-    render(<CreateElectionWizard />);
+    renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
 
     await user.click(screen.getByRole("switch", { name: "¿Es referéndum?" }));
     await user.type(screen.getByLabelText("Nombre del referéndum"), "Consulta");

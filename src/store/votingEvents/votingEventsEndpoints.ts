@@ -144,6 +144,8 @@ const toVotingEvent = (raw: any): VotingEvent => {
     objective: source?.objective ?? "",
     isReferendum: Boolean(source?.isReferendum),
     isOpenVoting: Boolean(source?.isOpenVoting),
+    maxOpenVoters:
+      source?.maxOpenVoters === undefined ? undefined : Number(source.maxOpenVoters),
     votingStart: source?.votingStart ?? null,
     votingEnd: source?.votingEnd ?? null,
     resultsPublishAt: source?.resultsPublishAt ?? null,

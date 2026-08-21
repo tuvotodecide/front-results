@@ -24,7 +24,7 @@ vi.mock("@/store/votingEvents", () => ({
   useGetPadronWorkflowSummaryQuery: vi.fn(), useGetVotingEventQuery: vi.fn(),
   useLazyDownloadPadronPdfQuery: vi.fn(), useLazyGetPadronImportStatusQuery: vi.fn(),
   useLazyGetPadronStagingQuery: vi.fn(), useUpdatePadronStagingEntryMutation: vi.fn(),
-  useUploadPadronSourceMutation: vi.fn(), useImportPadronUsersMutation: vi.fn(),
+  useUploadPadronSourceMutation: vi.fn(),
 }));
 
 import * as votingEvents from "@/store/votingEvents";
@@ -70,7 +70,6 @@ beforeEach(() => {
   vi.mocked(votingEvents.useLazyDownloadPadronPdfQuery).mockReturnValue([vi.fn()] as any);
   vi.mocked(votingEvents.useAnalyzePadronWithGeminiMutation).mockReturnValue([mutation({ records: [] }), { isLoading: false }] as any);
   vi.mocked(votingEvents.useUploadPadronSourceMutation).mockReturnValue([refs.upload, { isLoading: false }] as any);
-  vi.mocked(votingEvents.useImportPadronUsersMutation).mockReturnValue([mutation(), { isLoading: false }] as any);
   vi.mocked(votingEvents.useAddPadronStagingEntryMutation).mockReturnValue([refs.add, { isLoading: false }] as any);
   vi.mocked(votingEvents.useUpdatePadronStagingEntryMutation).mockReturnValue([refs.update, { isLoading: false }] as any);
   vi.mocked(votingEvents.useDeletePadronStagingEntryMutation).mockReturnValue([refs.remove, { isLoading: false }] as any);

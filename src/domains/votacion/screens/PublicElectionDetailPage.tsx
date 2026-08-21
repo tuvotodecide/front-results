@@ -462,8 +462,13 @@ const PublicElectionDetailPage: React.FC = () => {
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-800">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-800 flex items-center gap-2">
               {election.title}
+              {election.isOpenVoting ? (
+                <span className="text-xs font-medium text-[#2E6A38] bg-[#EFF7F0] border border-[#459151]/20 rounded-full px-2 py-0.5">
+                  Votación abierta
+                </span>
+              ) : null}
             </h1>
             <button
               onClick={handleBack}
@@ -609,7 +614,7 @@ const PublicElectionDetailPage: React.FC = () => {
         </div>
         ) : null}
 
-        {election.publicEligibilityEnabled && (
+        {election.publicEligibilityEnabled && !election.isOpenVoting && (
           <PadronCheckSection onOpenModal={() => setShowPadronModal(true)} />
         )}
       </main>

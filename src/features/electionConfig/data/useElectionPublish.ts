@@ -120,19 +120,20 @@ const getExplorerTxUrl = (txHash?: string | null) => {
 export const useElectionPublish = (electionId: string): UseElectionPublishReturn => {
   const { data: event, isLoading: loadingEvent, refetch: refetchEvent } =
     useGetVotingEventQuery(electionId, { skip: !electionId });
+  const isOpenVoting = Boolean(event?.isOpenVoting);
   const { data: roles = [], isLoading: loadingRoles, refetch: refetchRoles } =
     useGetEventRolesQuery(electionId, { skip: !electionId });
   const { data: options = [], isLoading: loadingOptions, refetch: refetchOptions } =
     useGetEventOptionsQuery(electionId, { skip: !electionId });
   const { data: padronVersions = [], isLoading: loadingPadron, refetch: refetchPadron } =
-    useGetPadronVersionsQuery(electionId, { skip: !electionId });
+    useGetPadronVersionsQuery(electionId, { skip: !electionId || isOpenVoting });
   const {
     data: padronWorkflow,
     isLoading: loadingPadronWorkflow,
     refetch: refetchPadronWorkflow,
-  } = useGetPadronWorkflowSummaryQuery(electionId, { skip: !electionId });
+  } = useGetPadronWorkflowSummaryQuery(electionId, { skip: !electionId || isOpenVoting });
   const { data: padronSummary, isLoading: loadingPadronSummary, refetch: refetchPadronSummary } =
-    useGetPadronSummaryQuery(electionId, { skip: !electionId });
+    useGetPadronSummaryQuery(electionId, { skip: !electionId || isOpenVoting });
   const { data: reviewReadiness, isLoading: loadingReadiness, refetch: refetchReadiness } =
     useGetEventReviewReadinessQuery(electionId, { skip: !electionId });
   const {
@@ -193,11 +194,12 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
     void Promise.all([
       refetchEvent(),
       refetchReadiness(),
-      refetchPadron(),
-      refetchPadronWorkflow(),
-      refetchPadronSummary(),
+      ...(isOpenVoting
+        ? []
+        : [refetchPadron(), refetchPadronWorkflow(), refetchPadronSummary()]),
     ]);
   }, [
+    isOpenVoting,
     officialPublicationStatus,
     refetchEvent,
     refetchPadron,
@@ -243,6 +245,22 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
   }, [event, options]);
 
   const configSummary: ConfigSummary | null = useMemo(() => {
+    const positionsCountOpen = roles.length;
+    const partiesWithCandidatesOpen = options.filter((o) => (o.candidates ?? []).length > 0).length;
+    if (isOpenVoting) {
+      const maxOpenVoters = Number(event?.maxOpenVoters ?? 0);
+      return {
+        positionsOk: positionsCountOpen > 0,
+        partiesOk: partiesWithCandidatesOpen > 0,
+        padronOk: true,
+        positionsCount: positionsCountOpen,
+        partiesCount: options.length,
+        votersCount: maxOpenVoters,
+        enabledToVoteCount: maxOpenVoters,
+        disabledToVoteCount: 0,
+      };
+    }
+
     const reviewPending = new Set(reviewReadiness?.pending ?? []);
     const activeDraft = padronWorkflow?.activeDraft ?? null;
     const padronValidationPendingBlocks =
@@ -286,7 +304,16 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
       enabledToVoteCount,
       disabledToVoteCount,
     };
-  }, [options, padronSummary, padronVersions, padronWorkflow, reviewReadiness?.pending, roles]);
+  }, [
+    event?.maxOpenVoters,
+    isOpenVoting,
+    options,
+    padronSummary,
+    padronVersions,
+    padronWorkflow,
+    reviewReadiness?.pending,
+    roles,
+  ]);
 
   const electionStatus: ElectionStatus = useMemo(() => {
     if (!event) return 'DRAFT';
@@ -319,9 +346,9 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
     await Promise.all([
       refetchReadiness(),
       refetchEvent(),
-      refetchPadron(),
-      refetchPadronWorkflow(),
-      refetchPadronSummary(),
+      ...(isOpenVoting
+        ? []
+        : [refetchPadron(), refetchPadronWorkflow(), refetchPadronSummary()]),
       refetchOfficialPublication(),
     ]);
     return out;
@@ -329,6 +356,7 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
     createOfficialPublicationRequest,
     electionId,
     event?.votingStart,
+    isOpenVoting,
     refetchEvent,
     refetchOfficialPublication,
     refetchPadron,
@@ -370,13 +398,14 @@ export const useElectionPublish = (electionId: string): UseElectionPublishReturn
       refetchEvent(),
       refetchRoles(),
       refetchOptions(),
-      refetchPadron(),
-      refetchPadronWorkflow(),
-      refetchPadronSummary(),
+      ...(isOpenVoting
+        ? []
+        : [refetchPadron(), refetchPadronWorkflow(), refetchPadronSummary()]),
       refetchReadiness(),
       refetchOfficialPublication(),
     ]);
   }, [
+    isOpenVoting,
     refetchEvent,
     refetchOfficialPublication,
     refetchOptions,

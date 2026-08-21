@@ -40,6 +40,7 @@ export interface PublicElectionDetail {
   title: string;
   subtitle: string; // institución/organización
   isReferendum?: boolean;
+  isOpenVoting?: boolean;
   status: PublicElectionStatus;
   schedule: ElectionSchedule;
   results: ElectionResults | null; // null si UPCOMING

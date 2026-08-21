@@ -47,7 +47,6 @@ import {
   useLazyGetPadronImportStatusQuery,
   type PadronImportError,
   useUploadPadronSourceMutation,
-  useImportPadronUsersMutation,
   useUpdatePadronStagingEntryMutation,
 } from "../../store/votingEvents";
 
@@ -106,8 +105,6 @@ const ElectionConfigPadron: React.FC = () => {
   const nowMs = useClientNow();
   const replaceFileInputRef = useRef<HTMLInputElement>(null);
   const startedPollingImportRef = useRef<string | null>(null);
-  const openVotingAutoImportTriggeredRef = useRef<string | null>(null);
-  const [openVotingAutoImportPending, setOpenVotingAutoImportPending] = useState(false);
 
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
@@ -220,7 +217,6 @@ const ElectionConfigPadron: React.FC = () => {
   const [fetchImportStatus] = useLazyGetPadronImportStatusQuery();
   const [fetchStagingPage] = useLazyGetPadronStagingQuery();
   const [uploadPadronSource, { isLoading: uploadingPadronSource }] = useUploadPadronSourceMutation();
-  const [importPadronUsers] = useImportPadronUsersMutation();
   const [analyzePadronWithGemini] = useAnalyzePadronWithGeminiMutation();
   const [addPadronStagingEntry, { isLoading: addingEntry }] = useAddPadronStagingEntryMutation();
   const [updatePadronStagingEntry, { isLoading: updatingEntry }] = useUpdatePadronStagingEntryMutation();
@@ -231,7 +227,7 @@ const ElectionConfigPadron: React.FC = () => {
   const [enableCurrentPadronVoter] = useEnableCurrentPadronVoterMutation();
   const [downloadPadronPdf] = useLazyDownloadPadronPdfQuery();
 
-  const baseLoading = loadingEvent || loadingWorkflowSummary || fetchingWorkflowSummary || fetchingReviewReadiness || loadingRoles || loadingOptions || (openVotingAutoImportPending);
+  const baseLoading = loadingEvent || loadingWorkflowSummary || fetchingWorkflowSummary || fetchingReviewReadiness || loadingRoles || loadingOptions;
   const hasPositions = roles.length > 0;
   const hasPartiesWithCandidates = options.some((option) => option.candidates.length > 0);
   const activeDraft = effectiveWorkflowActiveDraft;
@@ -459,7 +455,7 @@ const ElectionConfigPadron: React.FC = () => {
     }
   }, [activeDraft?.importJobId, activeDraft?.status, pollImportJobUntilReady]);
 
-  const runPadronRefetches = useCallback(async () => {
+  const refetchVisiblePadronData = useCallback(async () => {
     await refetchWorkflowSummary();
     await refetchReviewReadiness();
 
@@ -478,39 +474,6 @@ const ElectionConfigPadron: React.FC = () => {
     refetchWorkflowSummary,
     stagingUninitialized,
   ]);
-
-  const refetchVisiblePadronData = useCallback(async () => {
-    if (event?.isOpenVoting && openVotingAutoImportPending) {
-      return;
-    }
-
-    await runPadronRefetches();
-  }, [event?.isOpenVoting, openVotingAutoImportPending, runPadronRefetches]);
-
-  useEffect(() => {
-    if (!actualElectionId || !event?.isOpenVoting) return;
-    if (!reviewReadiness?.pending.includes('padron')) return;
-    if (openVotingAutoImportTriggeredRef.current === actualElectionId) return;
-
-    openVotingAutoImportTriggeredRef.current = actualElectionId;
-    setOpenVotingAutoImportPending(true);
-
-    void importPadronUsers({ eventId: actualElectionId })
-      .unwrap()
-      .then(async () => {
-        setOpenVotingAutoImportPending(false);
-        await runPadronRefetches();
-      })
-      .catch((importError: any) => {
-        setOpenVotingAutoImportPending(false);
-        setError(
-          getRequestErrorMessage(
-            importError,
-            "No se pudo importar automáticamente a los usuarios registrados en el padrón.",
-          ),
-        );
-      });
-  }, [actualElectionId, reviewReadiness, event?.isOpenVoting, importPadronUsers, runPadronRefetches]);
 
   const preserveScrollDuring = useCallback(async (task: () => Promise<void>) => {
     const scrollX = window.scrollX;
@@ -1001,6 +964,7 @@ const ElectionConfigPadron: React.FC = () => {
                 ...(padronStepCompleted ? [3] : []),
               ] as ConfigStep[]}
               isReferendum={Boolean(event?.isReferendum)}
+              isOpenVoting={Boolean(event?.isOpenVoting)}
               onStepChange={handleGoToStep}
               canNavigate={(step) => step === 1 || step === 2 || step === 3}
             />

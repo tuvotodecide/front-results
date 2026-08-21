@@ -3,12 +3,10 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import CreateElectionWizard from "@/features/elections/components/CreateElectionWizard";
-import ElectionConfigPadron from "@/features/electionConfig/ElectionConfigPadron";
 import { renderWithAuthStore } from "../utils/renderWithStore";
 
 const navigateMock = vi.fn();
 const createVotingEventMock = vi.fn();
-const importUsersMock = vi.fn();
 const route = { electionId: "evt-1" };
 
 vi.mock("@/domains/votacion/navigation/compat-private", () => ({
@@ -61,10 +59,41 @@ vi.mock("@/store/votingEvents", () => ({
   useLazyGetPadronStagingQuery: vi.fn(),
   useUpdatePadronStagingEntryMutation: vi.fn(),
   useUploadPadronSourceMutation: vi.fn(),
-  useImportPadronUsersMutation: vi.fn(),
 }));
 
+const estimateCapacityMock = vi.fn();
+
+vi.mock("@/store/tvd", () => ({
+  useEstimateMyTvdCapacityMutation: () => [estimateCapacityMock, { isLoading: false }],
+}));
+
+vi.mock("@/features/adminTvd/data/useTvdPerCredit", async () => {
+  const actual = await vi.importActual<
+    typeof import("@/features/adminTvd/data/useTvdPerCredit")
+  >("@/features/adminTvd/data/useTvdPerCredit");
+  return {
+    ...actual,
+    fetchTvdPerCredit: vi.fn().mockResolvedValue({
+      raw: "1000000000000000000",
+      decimals: 18,
+      formatted: "1 TVD",
+    }),
+  };
+});
+
 import * as votingEvents from "@/store/votingEvents";
+
+const sufficientCapacity = (participants: string) => ({
+  unwrap: vi.fn().mockResolvedValue({
+    estimatedParticipants: participants,
+    estimatedRequiredTokens: participants,
+    availableTokens: "1000",
+    availableSmallestUnit: "1000000000000000000000",
+    estimatedMissingTokens: "0",
+    hasEstimatedCapacity: true,
+    reasonCode: null,
+  }),
+});
 
 const activeTenantContext = {
   active: true,
@@ -84,6 +113,10 @@ async function fillGeneralData(user: ReturnType<typeof userEvent.setup>) {
     screen.getByLabelText("¿Cuál es el objetivo o descripción?"),
     "Elegir representantes institucionales",
   );
+  const maxOpenVotersInput = screen.queryByLabelText("¿Cuántos votantes pueden participar?");
+  if (maxOpenVotersInput) {
+    await user.type(maxOpenVotersInput, "10");
+  }
   await user.click(screen.getByRole("button", { name: "Siguiente" }));
 }
 
@@ -118,6 +151,7 @@ describe("votación abierta | integración con el repositorio de elecciones", ()
       createVotingEventMock,
       { isLoading: false },
     ] as any);
+    estimateCapacityMock.mockReturnValue(sufficientCapacity("10"));
   });
 
   it("EA-P0-02-001 envía isOpenVoting en true junto al tenant activo a la mutación real", async () => {
@@ -173,13 +207,16 @@ describe("votación abierta | integración con el repositorio de elecciones", ()
 
       await user.click(screen.getByRole("switch", { name: "¿Es votación abierta?" }));
       await fillGeneralData(user);
-      await fillScheduleAndCreate(user);
 
+      // Sin institución activa no se puede cotizar el límite de votantes en TVD,
+      // así que el wizard se detiene en el paso de datos generales.
       expect(
         await screen.findByText(
           "No se encontró un contexto institucional activo. Selecciona tu institución para crear votaciones.",
         ),
       ).toBeInTheDocument();
+      expect(screen.queryByLabelText("¿Cuándo abre la votación?")).not.toBeInTheDocument();
+      expect(estimateCapacityMock).not.toHaveBeenCalled();
       expect(createVotingEventMock).not.toHaveBeenCalled();
     } finally {
       errorSpy.mockRestore();
@@ -207,127 +244,5 @@ describe("votación abierta | integración con el repositorio de elecciones", ()
     } finally {
       errorSpy.mockRestore();
     }
-  });
-});
-
-const padronEvent = (overrides: Record<string, unknown> = {}) => ({
-  id: "evt-1",
-  tenantId: "tenant-1",
-  state: "DRAFT",
-  status: "DRAFT",
-  name: "Elección abierta",
-  objective: "Elegir representantes",
-  isOpenVoting: true,
-  votingStart: "2026-04-18T12:00:00.000Z",
-  votingEnd: "2026-04-18T18:00:00.000Z",
-  resultsPublishAt: "2026-04-19T12:00:00.000Z",
-  publishDeadline: "2026-04-18T06:00:00.000Z",
-  ...overrides,
-});
-
-const padronDraft = (overrides: Record<string, unknown> = {}) => ({
-  importJobId: "job-1",
-  eventId: "evt-1",
-  tenantId: "tenant-1",
-  sourceType: "PDF",
-  status: "PARSED",
-  isActiveDraft: true,
-  originalFile: { fileName: "padron.pdf", mimeType: "application/pdf", size: 10, sha256: "sha" },
-  parser: { provider: "gemini", model: "gemini-test", usedFallback: false },
-  summary: {
-    parsedCount: 2, validCount: 2, duplicateCount: 0, invalidCount: 0,
-    stagingCount: 2, enabledCount: 2, disabledCount: 0, missingIdentityCount: 0,
-  },
-  errors: [],
-  processedAt: "2026-04-16T12:00:00.000Z",
-  createdAt: "2026-04-16T12:00:00.000Z",
-  updatedAt: "2026-04-16T12:00:00.000Z",
-  ...overrides,
-});
-
-const padronRefs = { workflow: vi.fn(), review: vi.fn(), staging: vi.fn(), voters: vi.fn() };
-const asMutation = (value: unknown) => vi.fn().mockReturnValue({ unwrap: vi.fn().mockResolvedValue(value) });
-
-function mockPadronHooks({
-  event = padronEvent(),
-  pending = [] as string[],
-  activeDraft = null as any,
-  currentVersion = null as any,
-} = {}) {
-  vi.mocked(votingEvents.useGetVotingEventQuery).mockReturnValue({ data: event, isLoading: false, isError: false, refetch: vi.fn() } as any);
-  vi.mocked(votingEvents.useGetEventRolesQuery).mockReturnValue({ data: [], isLoading: false, isError: false } as any);
-  vi.mocked(votingEvents.useGetEventOptionsQuery).mockReturnValue({ data: [], isLoading: false, isError: false } as any);
-  vi.mocked(votingEvents.useGetEventReviewReadinessQuery).mockReturnValue({ data: { pending }, isLoading: false, isFetching: false, refetch: padronRefs.review } as any);
-  vi.mocked(votingEvents.useGetPadronWorkflowSummaryQuery).mockReturnValue({ data: { eventId: "evt-1", eventState: event.state, currentVersion, activeDraft }, isLoading: false, isError: false, refetch: padronRefs.workflow } as any);
-  vi.mocked(votingEvents.useGetPadronStagingQuery).mockReturnValue({ data: { data: [], total: 0, totalPages: 1 }, isFetching: false, isError: false, isUninitialized: !activeDraft, refetch: padronRefs.staging } as any);
-  vi.mocked(votingEvents.useGetPadronVotersQuery).mockReturnValue({ data: { voters: [], total: 0, totalPages: 1 }, isFetching: false, isError: false, isUninitialized: !currentVersion, refetch: padronRefs.voters } as any);
-  vi.mocked(votingEvents.useLazyGetPadronStagingQuery).mockReturnValue([vi.fn()] as any);
-  vi.mocked(votingEvents.useLazyDownloadPadronPdfQuery).mockReturnValue([vi.fn()] as any);
-  vi.mocked(votingEvents.useLazyGetPadronImportStatusQuery).mockReturnValue([vi.fn()] as any);
-  vi.mocked(votingEvents.useAnalyzePadronWithGeminiMutation).mockReturnValue([vi.fn(), { isLoading: false }] as any);
-  vi.mocked(votingEvents.useUploadPadronSourceMutation).mockReturnValue([vi.fn(), { isLoading: false }] as any);
-  vi.mocked(votingEvents.useAddPadronStagingEntryMutation).mockReturnValue([vi.fn(), { isLoading: false }] as any);
-  vi.mocked(votingEvents.useUpdatePadronStagingEntryMutation).mockReturnValue([asMutation({}), { isLoading: false }] as any);
-  vi.mocked(votingEvents.useDeletePadronStagingEntryMutation).mockReturnValue([asMutation({}), { isLoading: false }] as any);
-  vi.mocked(votingEvents.useBulkDeletePadronStagingEntriesMutation).mockReturnValue([asMutation({ deletedCount: 0 }), { isLoading: false }] as any);
-  vi.mocked(votingEvents.useConfirmPadronStagingMutation).mockReturnValue([asMutation({}), { isLoading: false }] as any);
-  vi.mocked(votingEvents.useEnableCurrentPadronVoterMutation).mockReturnValue([asMutation({}), { isLoading: false }] as any);
-  vi.mocked(votingEvents.useImportPadronUsersMutation).mockReturnValue([importUsersMock, { isLoading: false }] as any);
-}
-
-function renderPadron() {
-  return renderWithAuthStore(<ElectionConfigPadron />, activeTenantContext as any);
-}
-
-describe("votación abierta | integración de la importación automática del padrón", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    route.electionId = "evt-1";
-    Object.assign(padronRefs, { workflow: vi.fn(), review: vi.fn(), staging: vi.fn(), voters: vi.fn() });
-    importUsersMock.mockReturnValue({ unwrap: vi.fn().mockResolvedValue({}) });
-  });
-
-  it("EA-P0-03-001 importa automáticamente, refresca el resumen y termina mostrando el padrón cargado", async () => {
-    mockPadronHooks({ pending: ["padron"] });
-    padronRefs.workflow.mockImplementation(async () => {
-      vi.mocked(votingEvents.useGetPadronWorkflowSummaryQuery).mockReturnValue({
-        data: { eventId: "evt-1", eventState: "DRAFT", currentVersion: null, activeDraft: padronDraft() },
-        isLoading: false,
-        isError: false,
-        refetch: padronRefs.workflow,
-      } as any);
-    });
-    padronRefs.review.mockImplementation(async () => {
-      vi.mocked(votingEvents.useGetEventReviewReadinessQuery).mockReturnValue({
-        data: { pending: [] },
-        isLoading: false,
-        isFetching: false,
-        refetch: padronRefs.review,
-      } as any);
-    });
-
-    renderPadron();
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Reemplazar archivo" })).toBeInTheDocument();
-    });
-    expect(importUsersMock).toHaveBeenCalledWith({ eventId: "evt-1" });
-    expect(padronRefs.workflow).toHaveBeenCalled();
-    expect(padronRefs.review).toHaveBeenCalled();
-  });
-
-  it("EA-P0-04-001 no refresca el padrón cuando la importación automática falla", async () => {
-    importUsersMock.mockReturnValue({ unwrap: vi.fn().mockRejectedValue({}) });
-    mockPadronHooks({ pending: ["padron"] });
-
-    renderPadron();
-
-    expect(
-      await screen.findByText(
-        "No se pudo importar automáticamente a los usuarios registrados en el padrón.",
-      ),
-    ).toBeInTheDocument();
-    expect(padronRefs.workflow).not.toHaveBeenCalled();
-    expect(padronRefs.review).not.toHaveBeenCalled();
   });
 });

@@ -1,7 +1,8 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { NextRequest } from "next/server";
 import { vi } from "vitest";
 import CreateElectionWizard from "@/features/elections/components/CreateElectionWizard";
+import { renderWithAuthStore, wizardAuthState } from "../utils/renderWithStore";
 import { AUTH_COOKIE_KEYS, config, handleVotacionAccess } from "../../middleware";
 
 vi.mock("@/domains/votacion/navigation/compat-private", () => ({
@@ -34,7 +35,7 @@ const createRequest = (pathname: string, cookies: Record<string, string> = {}) =
 
 describe("MX-02 | Gestión de instituciones, administradores y wallets | Frontend Admin | Compatibilidad", () => {
   it("D-COMPAT-006 | mantiene el wizard real de creacion en /votacion/elecciones/new", async () => {
-    render(<CreateElectionWizard />);
+    renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
 
     expect(await screen.findByText("Crear Nueva Votación")).toBeInTheDocument();
     await waitFor(() => {

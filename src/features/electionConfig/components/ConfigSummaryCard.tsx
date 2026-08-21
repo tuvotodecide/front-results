@@ -3,10 +3,13 @@
 
 import React from 'react';
 import type { ConfigSummary } from '../data/ElectionPublishRepository.mock';
+import { formatOpenVotingTvdCost } from '../../adminTvd/utils/tvdCapacityUi';
 
 interface ConfigSummaryCardProps {
   summary: ConfigSummary;
   isReferendum?: boolean;
+  isOpenVoting?: boolean;
+  maxOpenVoters?: number;
 }
 
 const CheckIcon = () => (
@@ -15,7 +18,12 @@ const CheckIcon = () => (
   </svg>
 );
 
-const ConfigSummaryCard: React.FC<ConfigSummaryCardProps> = ({ summary, isReferendum = false }) => {
+const ConfigSummaryCard: React.FC<ConfigSummaryCardProps> = ({
+  summary,
+  isReferendum = false,
+  isOpenVoting = false,
+  maxOpenVoters = 0,
+}) => {
   const isReadyToPublish = summary.positionsOk && summary.partiesOk && summary.padronOk;
 
   return (
@@ -45,14 +53,36 @@ const ConfigSummaryCard: React.FC<ConfigSummaryCardProps> = ({ summary, isRefere
           </span>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className={`flex-shrink-0 ${summary.padronOk ? 'text-[#459151]' : 'text-gray-300'}`}>
-            <CheckIcon />
+        {isOpenVoting ? (
+          <div className="rounded-lg border border-[#459151]/20 bg-[#EFF7F0] p-4">
+            <span className="inline-flex w-fit items-center rounded-full border border-[#459151]/20 bg-white px-3 py-1 text-xs font-semibold text-[#2E6A38]">
+              Votación abierta
+            </span>
+            <dl className="mt-3 space-y-1 text-sm text-gray-700">
+              <div className="flex items-center justify-between gap-4">
+                <dt>Límite de votantes</dt>
+                <dd className="font-semibold text-gray-900">
+                  {maxOpenVoters.toLocaleString('es-BO')}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <dt>Costo en TVD</dt>
+                <dd className="font-semibold text-gray-900">
+                  {formatOpenVotingTvdCost(maxOpenVoters)}
+                </dd>
+              </div>
+            </dl>
           </div>
-          <span className={`text-sm ${summary.padronOk ? 'text-gray-700' : 'text-gray-400'}`}>
-            Padrón listo
-          </span>
-        </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <div className={`flex-shrink-0 ${summary.padronOk ? 'text-[#459151]' : 'text-gray-300'}`}>
+              <CheckIcon />
+            </div>
+            <span className={`text-sm ${summary.padronOk ? 'text-gray-700' : 'text-gray-400'}`}>
+              Padrón listo
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Badge de estado */}

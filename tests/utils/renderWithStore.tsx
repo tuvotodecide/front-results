@@ -5,6 +5,22 @@ import type { ReactElement } from "react";
 import authReducer, { type AuthState } from "@/store/auth/authSlice";
 import { apiSlice } from "@/store/apiSlice";
 
+// Contexto institucional activo mínimo que necesita el wizard de creación
+// (valida la capacidad TVD del tenant antes de avanzar en votaciones abiertas).
+export const wizardAuthState: Partial<AuthState> = {
+  token: "token",
+  role: "TENANT_ADMIN",
+  active: true,
+  tenantId: "tenant-1",
+  user: { id: "admin-1", role: "TENANT_ADMIN", active: true, tenantId: "tenant-1" } as never,
+  activeContext: {
+    type: "TENANT",
+    role: "TENANT_ADMIN",
+    tenantId: "tenant-1",
+    label: "Institución",
+  } as never,
+};
+
 export const renderWithAuthStore = (
   ui: ReactElement,
   authState?: Partial<AuthState>,

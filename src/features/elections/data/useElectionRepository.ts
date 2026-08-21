@@ -72,6 +72,7 @@ export const useCreateElection = (): UseCreateElectionResult => {
       objective: payload.description,
       isReferendum: payload.isReferendum,
       isOpenVoting: payload.isOpenVoting,
+      maxOpenVoters: payload.isOpenVoting ? payload.maxOpenVoters : undefined,
       votingStart: new Date(payload.votingStartDate).toISOString(),
       votingEnd: new Date(payload.votingEndDate).toISOString(),
       resultsPublishAt: new Date(payload.resultsDate).toISOString(),
