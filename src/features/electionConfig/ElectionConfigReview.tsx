@@ -319,6 +319,8 @@ const ElectionConfigReview: React.FC = () => {
   const isPublicationExpired =
     eventState === "PUBLICATION_EXPIRED" ||
     Boolean(reviewReadiness?.publicationWindow?.expired);
+  const isOpenVoting = Boolean(votingEvent?.isOpenVoting);
+  const maxOpenVoters = Number(votingEvent?.maxOpenVoters ?? 0);
   const presentialKioskEnabled = Boolean(votingEvent?.presentialKioskEnabled);
   const canChangePresentialOption =
     fullElectionEditingEnabled &&
@@ -864,47 +866,49 @@ const ElectionConfigReview: React.FC = () => {
         ) : null}
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700 shadow-sm">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="font-semibold text-gray-900">
-              Permitir habilitar votantes después de la publicación oficial
-            </p>
-            <p className="mt-1 text-xs text-gray-500">
-              Si se desactiva, el padrón quedará en solo lectura.
-            </p>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={allowPostPublicationPadronEnable}
-            disabled={!fullElectionEditingEnabled || activating}
-            onClick={() =>
-              void handlePostPublicationPadronToggle(
-                !allowPostPublicationPadronEnable,
-              )
-            }
-            className={`relative inline-flex h-7 w-12 shrink-0 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-              allowPostPublicationPadronEnable
-                ? "bg-[#459151]"
-                : "bg-gray-300"
-            }`}
-          >
-            <span
-              className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+      {isOpenVoting ? null : (
+        <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="font-semibold text-gray-900">
+                Permitir habilitar votantes después de la publicación oficial
+              </p>
+              <p className="mt-1 text-xs text-gray-500">
+                Si se desactiva, el padrón quedará en solo lectura.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={allowPostPublicationPadronEnable}
+              disabled={!fullElectionEditingEnabled || activating}
+              onClick={() =>
+                void handlePostPublicationPadronToggle(
+                  !allowPostPublicationPadronEnable,
+                )
+              }
+              className={`relative inline-flex h-7 w-12 shrink-0 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                 allowPostPublicationPadronEnable
-                  ? "translate-x-6"
-                  : "translate-x-1"
+                  ? "bg-[#459151]"
+                  : "bg-gray-300"
               }`}
-            />
-          </button>
+            >
+              <span
+                className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                  allowPostPublicationPadronEnable
+                    ? "translate-x-6"
+                    : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
+          {padronLimitedError ? (
+            <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+              {padronLimitedError}
+            </p>
+          ) : null}
         </div>
-        {padronLimitedError ? (
-          <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
-            {padronLimitedError}
-          </p>
-        ) : null}
-      </div>
+      )}
     </div>
   );
 
@@ -959,6 +963,8 @@ const ElectionConfigReview: React.FC = () => {
                     <ConfigSummaryCard
                       summary={configSummary}
                       isReferendum={Boolean(ballotPreview?.isReferendum)}
+                      isOpenVoting={isOpenVoting}
+                      maxOpenVoters={maxOpenVoters}
                     />
                   ) : null}
                   {!configSummary && !hasUnregisteredForPublication && notificationBlockingPending.length === 0 ? (

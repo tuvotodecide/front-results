@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import ElectionsPage from "@/features/elections/ElectionsPage";
 import CreateElectionWizard from "@/features/elections/components/CreateElectionWizard";
 import ElectionConfigReview from "@/features/electionConfig/ElectionConfigReview";
-import { renderWithAuthStore } from "../utils/renderWithStore";
+import { renderWithAuthStore, wizardAuthState } from "../utils/renderWithStore";
 
 const navigateMock = vi.fn();
 const refetchEventsMock = vi.fn();
@@ -133,19 +133,19 @@ describe("MX-04 | listado y wizard de elecciones", () => {
   });
   it("[MX-04][ELE-NEW-P0-002][INTEGRACION] mantiene el wizard en datos inválidos", async () => {
     const user = userEvent.setup();
-    render(<CreateElectionWizard />);
+    renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
     await user.click(screen.getByRole("button", { name: "Siguiente" }));
     expect(screen.queryByLabelText("¿Cuándo abre la votación?")).not.toBeInTheDocument();
     expect(createElectionMock).not.toHaveBeenCalled();
   });
   it("[MX-04][ELE-NEW-P1-004][INTEGRACION] vuelve a datos generales sin perderlos", async () => {
-    const user = userEvent.setup(); render(<CreateElectionWizard />);
+    const user = userEvent.setup(); renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
     await enterGeneral(user); await user.click(screen.getByRole("button", { name: "Anterior" }));
     expect(screen.getByDisplayValue("Elección normal")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Elegir representantes institucionales")).toBeInTheDocument();
   });
   it("[MX-04][ELE-NEW-P1-005][INTEGRACION] cancela el wizard sin crear evento", async () => {
-    const user = userEvent.setup(); render(<CreateElectionWizard />);
+    const user = userEvent.setup(); renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
     await user.click(screen.getByRole("button", { name: "Cancelar" }));
     expect(navigateMock).toHaveBeenCalledWith("/votacion/elecciones");
     expect(createElectionMock).not.toHaveBeenCalled();
@@ -156,7 +156,7 @@ describe("MX-04 | listado y wizard de elecciones", () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
     createElectionMock.mockRejectedValue(expectedError);
     try {
-      render(<CreateElectionWizard />);
+      renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
       await enterCompleteWizard(user); await user.click(screen.getByRole("button", { name: "CREAR" })); await user.click(await screen.findByRole("button", { name: "Confirmar" }));
       expect(await screen.findByText("Nombre duplicado")).toBeInTheDocument();
       expect(screen.getByLabelText("¿Cuándo abre la votación?")).toBeInTheDocument();
@@ -179,7 +179,7 @@ describe("MX-04 | listado y wizard de elecciones", () => {
     await waitFor(() => expect(updateScheduleMock).toHaveBeenCalledWith(expect.objectContaining({ eventId: "evt-1" })));
   });
   it("[MX-04][ELE-REF-P0-001][INTEGRACION] crea normal y navega a cargos", async () => {
-    const user = userEvent.setup(); createElectionMock.mockResolvedValue({ id: "evt-created" }); render(<CreateElectionWizard />);
+    const user = userEvent.setup(); createElectionMock.mockResolvedValue({ id: "evt-created" }); renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
     await enterCompleteWizard(user); await user.click(screen.getByRole("button", { name: "CREAR" })); await user.click(await screen.findByRole("button", { name: "Confirmar" }));
     await waitFor(() => expect(createElectionMock).toHaveBeenCalledWith(expect.objectContaining({ isReferendum: false })));
     expect(navigateMock).toHaveBeenCalledWith("/votacion/elecciones/evt-created/config/cargos", { replace: true });

@@ -166,6 +166,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm test:matrix:ea
 
+      - name: Frontend Admin — elecciones abiertas (límite de votantes y costo TVD)
+        if: ${{ !cancelled() }}
+        run: pnpm test:matrix:ea2
+
       - name: Frontend Admin — registro después de votación
         if: ${{ !cancelled() }}
         run: pnpm test:matrix:rdv

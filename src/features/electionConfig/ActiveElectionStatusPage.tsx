@@ -77,6 +77,7 @@ import {
   DEFAULT_KIOSK_STATION_ID,
 } from "@/domains/votacion/kiosk/constants";
 import { useElectionTvdUsage } from "./data/useElectionTvdUsage";
+import { formatOpenVotingTvdCost } from "@/features/adminTvd/utils/tvdCapacityUi";
 import { publicElectionRepository } from "@/features/publicElectionDetail/data/PublicElectionRepository.api";
 import type {
   Candidate,
@@ -596,6 +597,8 @@ const ActiveElectionStatusPage: React.FC = () => {
     );
   const lifecycle = deriveLifecycle(event, nowMs);
   const isReferendum = Boolean(event?.isReferendum);
+  const isOpenVoting = Boolean(event?.isOpenVoting);
+  const maxOpenVoters = Number(event?.maxOpenVoters ?? 0);
   const shouldShowResults =
     lifecycle === "RESULTS" ||
     lifecycle === "RESULTS_PUBLISHED" ||
@@ -1167,6 +1170,27 @@ const ActiveElectionStatusPage: React.FC = () => {
           <p className="max-w-3xl text-sm leading-6 text-gray-500 sm:text-base">
             {getLifecycleDescriptionUi(lifecycle, isReferendum)}
           </p>
+          {isOpenVoting ? (
+            <div className="max-w-md rounded-xl border border-[#459151]/20 bg-[#EFF7F0] px-4 py-3">
+              <span className="inline-flex w-fit items-center rounded-full border border-[#459151]/20 bg-white px-3 py-1 text-xs font-semibold text-[#2E6A38]">
+                Votación abierta
+              </span>
+              <dl className="mt-3 space-y-1 text-sm text-gray-700">
+                <div className="flex items-center justify-between gap-4">
+                  <dt>Límite de votantes</dt>
+                  <dd className="font-semibold text-gray-900">
+                    {maxOpenVoters.toLocaleString("es-BO")}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <dt>Costo en TVD</dt>
+                  <dd className="font-semibold text-gray-900">
+                    {formatOpenVotingTvdCost(maxOpenVoters)}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          ) : null}
           <button
             type="button"
             onClick={handleCopyPublicElectionLink}

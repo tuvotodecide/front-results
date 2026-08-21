@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { vi } from "vitest";
 import AddPositionModal from "@/features/electionConfig/components/AddPositionModal";
 import CreateElectionWizard from "@/features/elections/components/CreateElectionWizard";
+import { renderWithAuthStore, wizardAuthState } from "../utils/renderWithStore";
 import {
   getMinimumLocalDateTime,
   MIN_CREATE_LEAD_MS,
@@ -42,7 +43,7 @@ describe("election creation and configuration P0 components", () => {
   });
 
   it("ELE-NEW-P0-002 mantiene deshabilitado el avance con campos requeridos vacíos", async () => {
-    render(<CreateElectionWizard />);
+    renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
 
     expect(screen.getByText("Crear Nueva Votación")).toBeInTheDocument();
     expect(screen.getByLabelText("¿A qué institución pertenece?")).toBeInTheDocument();
@@ -55,7 +56,7 @@ describe("election creation and configuration P0 components", () => {
   it("ELE-NEW-P1-005 cancela la creación desde el primer paso sin crear evento", async () => {
     const user = userEvent.setup();
 
-    render(<CreateElectionWizard />);
+    renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
 
     await user.click(screen.getByRole("button", { name: "Cancelar" }));
 
@@ -66,7 +67,7 @@ describe("election creation and configuration P0 components", () => {
   it("ELE-TIM-P0-001 valida orden de fechas y no envía cronogramas inválidos", async () => {
     const user = userEvent.setup();
 
-    render(<CreateElectionWizard />);
+    renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
 
     await user.type(screen.getByLabelText("¿A qué institución pertenece?"), "Eleccion normal");
     await user.type(
@@ -93,7 +94,7 @@ describe("election creation and configuration P0 components", () => {
     try {
       vi.setSystemTime(new Date("2026-04-17T12:00:00.000Z"));
 
-      render(<CreateElectionWizard />);
+      renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
 
       fireEvent.change(screen.getByLabelText("¿A qué institución pertenece?"), {
         target: { value: "Eleccion normal" },
@@ -130,7 +131,7 @@ describe("election creation and configuration P0 components", () => {
   it("ELE-NEW-P0-003 / ELE-NEW-P0-006 conserva datos, confirma una creación y navega a cargos", async () => {
     createElectionMock.mockResolvedValue({ id: "evt-created" });
 
-    render(<CreateElectionWizard />);
+    renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
 
     fireEvent.change(screen.getByLabelText("¿A qué institución pertenece?"), {
       target: { value: "Eleccion normal" },
@@ -174,6 +175,7 @@ describe("election creation and configuration P0 components", () => {
         description: "Elegir representantes institucionales",
         isReferendum: false,
         isOpenVoting: false,
+        maxOpenVoters: 0,
         votingStartDate: "2027-06-01T12:00",
         votingEndDate: "2027-06-01T18:00",
         resultsDate: "2027-06-01T19:00",
@@ -189,7 +191,7 @@ describe("election creation and configuration P0 components", () => {
   it("ELE-NEW-P1-007 conserva el wizard y muestra error cuando falla la creación", async () => {
     createElectionMock.mockRejectedValue(new Error("Nombre duplicado"));
 
-    render(<CreateElectionWizard />);
+    renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
 
     fireEvent.change(screen.getByLabelText("¿A qué institución pertenece?"), {
       target: { value: "Eleccion normal" },

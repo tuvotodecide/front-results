@@ -11,7 +11,7 @@ import {
   getMinimumLocalDateTime,
   MIN_CREATE_LEAD_MS,
 } from "@/features/electionConfig/renderUtils";
-import { renderWithAuthStore } from "../utils/renderWithStore";
+import { renderWithAuthStore, wizardAuthState } from "../utils/renderWithStore";
 
 const navigateMock = vi.fn();
 const createElectionMock = vi.fn();
@@ -99,7 +99,7 @@ describe("MX-04 | configuración de elecciones | unitarias canónicas", () => {
 
   it("[MX-04][ELE-NEW-P0-002][UNITARIA] bloquea datos generales inválidos", async () => {
     const user = userEvent.setup();
-    render(<CreateElectionWizard />);
+    renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
     await user.click(screen.getByRole("button", { name: "Siguiente" }));
     expect(screen.getByLabelText("¿A qué institución pertenece?")).toBeInTheDocument();
     expect(screen.queryByLabelText("¿Cuándo abre la votación?")).not.toBeInTheDocument();
@@ -108,7 +108,7 @@ describe("MX-04 | configuración de elecciones | unitarias canónicas", () => {
 
   it("[MX-04][ELE-NEW-P0-003][UNITARIA] conserva datos generales al volver desde fechas", async () => {
     const user = userEvent.setup();
-    render(<CreateElectionWizard />);
+    renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
     await user.type(screen.getByLabelText("¿A qué institución pertenece?"), "Elección normal");
     await user.type(screen.getByLabelText("¿Cuál es el objetivo o descripción?"), "Elegir representantes institucionales");
     await user.click(screen.getByRole("button", { name: "Siguiente" }));
@@ -120,7 +120,7 @@ describe("MX-04 | configuración de elecciones | unitarias canónicas", () => {
 
   it("[MX-04][ELE-TIM-P0-001][UNITARIA] rechaza un cierre anterior a la apertura", async () => {
     const user = userEvent.setup();
-    render(<CreateElectionWizard />);
+    renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
     await user.type(screen.getByLabelText("¿A qué institución pertenece?"), "Elección normal");
     await user.type(screen.getByLabelText("¿Cuál es el objetivo o descripción?"), "Elegir representantes institucionales");
     await user.click(screen.getByRole("button", { name: "Siguiente" }));
@@ -135,7 +135,7 @@ describe("MX-04 | configuración de elecciones | unitarias canónicas", () => {
   it("[MX-04][ELE-TIM-P1-002][UNITARIA] recalcula el mínimo de apertura al recuperar foco", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-04-17T12:00:00.000Z"));
-    render(<CreateElectionWizard />);
+    renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
     fireEvent.change(screen.getByLabelText("¿A qué institución pertenece?"), { target: { value: "Elección normal" } });
     fireEvent.change(screen.getByLabelText("¿Cuál es el objetivo o descripción?"), { target: { value: "Elegir representantes institucionales" } });
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Siguiente" })); });
@@ -150,7 +150,7 @@ describe("MX-04 | configuración de elecciones | unitarias canónicas", () => {
   it("[MX-04][ELE-REF-P0-001][UNITARIA] envía una votación normal por defecto", async () => {
     const user = userEvent.setup();
     createElectionMock.mockResolvedValue({ id: "evt-normal" });
-    render(<CreateElectionWizard />);
+    renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
     await fillValidWizard(user);
     await user.click(screen.getByRole("button", { name: "CREAR" }));
     await user.click(await screen.findByRole("button", { name: "Confirmar" }));
@@ -159,7 +159,7 @@ describe("MX-04 | configuración de elecciones | unitarias canónicas", () => {
 
   it("[MX-04][ELE-REF-P0-002][UNITARIA] exige una pregunta de referéndum con interrogación", async () => {
     const user = userEvent.setup();
-    render(<CreateElectionWizard />);
+    renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
     await user.click(screen.getByRole("switch", { name: "¿Es referéndum?" }));
     await user.type(screen.getByLabelText("Nombre del referéndum"), "Consulta");
     await user.type(screen.getByLabelText("Pregunta del referéndum"), "Aprueba la normativa institucional");

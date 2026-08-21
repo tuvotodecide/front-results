@@ -48,7 +48,6 @@ vi.mock("@/store/votingEvents", () => ({
   useLazyGetPadronStagingQuery: vi.fn(),
   useUpdatePadronStagingEntryMutation: vi.fn(),
   useUploadPadronSourceMutation: vi.fn(),
-  useImportPadronUsersMutation: vi.fn(),
 }));
 
 import * as votingEvents from "@/store/votingEvents";
@@ -106,7 +105,6 @@ function mockPadronHooks(activeDraft: ReturnType<typeof draft>) {
   vi.mocked(votingEvents.useBulkDeletePadronStagingEntriesMutation).mockReturnValue([asMutation({ deletedCount: 0 }), { isLoading: false }] as any);
   vi.mocked(votingEvents.useConfirmPadronStagingMutation).mockReturnValue([asMutation({}), { isLoading: false }] as any);
   vi.mocked(votingEvents.useEnableCurrentPadronVoterMutation).mockReturnValue([asMutation({}), { isLoading: false }] as any);
-  vi.mocked(votingEvents.useImportPadronUsersMutation).mockReturnValue([asMutation({}), { isLoading: false }] as any);
 }
 
 describe("ElectionConfigPadron | aviso de identidad no verificada removido del staging", () => {

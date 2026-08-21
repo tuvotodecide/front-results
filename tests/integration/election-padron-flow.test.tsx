@@ -38,7 +38,6 @@ vi.mock("@/store/votingEvents", () => ({
   useLazyGetPadronImportStatusQuery: vi.fn(),
   useLazyDownloadPadronPdfQuery: vi.fn(),
   useUploadPadronSourceMutation: vi.fn(),
-  useImportPadronUsersMutation: vi.fn(),
   useUpdatePadronStagingEntryMutation: vi.fn(),
   useGetVotingEventsQuery: vi.fn(),
   useGetEventResultsQuery: vi.fn(),
@@ -345,7 +344,6 @@ describe("MX-05 | Padrón, staging, elegibilidad y archivos | Frontend", () => {
       uploadPadronSourceMock,
       { isLoading: false },
     ] as any);
-    vi.mocked(votingEvents.useImportPadronUsersMutation).mockReturnValue(noopMutation as any);
     vi.mocked(votingEvents.useAnalyzePadronWithGeminiMutation).mockReturnValue([
       analyzePadronWithGeminiMock,
       { isLoading: false },

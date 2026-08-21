@@ -99,3 +99,15 @@ export const formatTvdCapacityAmount = (value: string) => `${value} TVD`;
 export const isTvdCapacityRechargeable = (
   reasonCode: TvdCapacityReasonCode,
 ) => reasonCode === "INSUFFICIENT_TVD_BALANCE";
+
+// Regla de capacidad vigente: 1 participante = 1 TVD.
+export const OPEN_VOTING_TVD_PER_VOTER = 1;
+
+export const getOpenVotingTvdCost = (maxOpenVoters: unknown) => {
+  const voters = Number(maxOpenVoters);
+  if (!Number.isFinite(voters) || voters <= 0) return 0;
+  return Math.floor(voters) * OPEN_VOTING_TVD_PER_VOTER;
+};
+
+export const formatOpenVotingTvdCost = (maxOpenVoters: unknown) =>
+  formatTvdCapacityAmount(String(getOpenVotingTvdCost(maxOpenVoters)));

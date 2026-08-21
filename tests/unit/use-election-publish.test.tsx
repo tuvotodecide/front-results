@@ -227,6 +227,84 @@ describe("useElectionPublish", () => {
     expect(result.current.publicationPadronCount).toBe(0);
   });
 
+  it("skips all padron-related queries and marks padron as ok when the election is open voting", () => {
+    vi.mocked(votingEvents.useGetVotingEventQuery).mockReturnValue({
+      data: {
+        id: "evt-1",
+        name: "Elección abierta",
+        status: "DRAFT",
+        state: "DRAFT",
+        votingStart: "2026-06-01T12:00:00.000Z",
+        isOpenVoting: true,
+        maxOpenVoters: 250,
+      },
+      isLoading: false,
+      refetch: vi.fn(),
+    } as any);
+
+    const { result } = renderHook(() => useElectionPublish("evt-1"));
+
+    expect(votingEvents.useGetPadronVersionsQuery).toHaveBeenCalledWith(
+      "evt-1",
+      expect.objectContaining({ skip: true }),
+    );
+    expect(votingEvents.useGetPadronWorkflowSummaryQuery).toHaveBeenCalledWith(
+      "evt-1",
+      expect.objectContaining({ skip: true }),
+    );
+    expect(votingEvents.useGetPadronSummaryQuery).toHaveBeenCalledWith(
+      "evt-1",
+      expect.objectContaining({ skip: true }),
+    );
+    expect(result.current.configSummary?.padronOk).toBe(true);
+    expect(result.current.configSummary?.votersCount).toBe(250);
+    expect(result.current.configSummary?.enabledToVoteCount).toBe(250);
+  });
+
+  it("does not refetch padron data on activation when the election is open voting", async () => {
+    vi.mocked(votingEvents.useGetVotingEventQuery).mockReturnValue({
+      data: {
+        id: "evt-1",
+        name: "Elección abierta",
+        status: "DRAFT",
+        state: "DRAFT",
+        votingStart: "2026-06-01T12:00:00.000Z",
+        isOpenVoting: true,
+        maxOpenVoters: 250,
+      },
+      isLoading: false,
+      refetch: vi.fn(),
+    } as any);
+    const refetchPadron = vi.fn();
+    const refetchPadronWorkflow = vi.fn();
+    const refetchPadronSummary = vi.fn();
+    vi.mocked(votingEvents.useGetPadronVersionsQuery).mockReturnValue({
+      data: [],
+      isLoading: false,
+      refetch: refetchPadron,
+    } as any);
+    vi.mocked(votingEvents.useGetPadronWorkflowSummaryQuery).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      refetch: refetchPadronWorkflow,
+    } as any);
+    vi.mocked(votingEvents.useGetPadronSummaryQuery).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      refetch: refetchPadronSummary,
+    } as any);
+
+    const { result } = renderHook(() => useElectionPublish("evt-1"));
+
+    await act(async () => {
+      await result.current.activateElection();
+    });
+
+    expect(refetchPadron).not.toHaveBeenCalled();
+    expect(refetchPadronWorkflow).not.toHaveBeenCalled();
+    expect(refetchPadronSummary).not.toHaveBeenCalled();
+  });
+
   it("[MX-06][TVD-PUB-P0-006][INTEGRACION] crea una solicitud de publicación sin usar el endpoint legado", async () => {
     const legacyConfirm = vi.fn();
     const createRequest = vi.fn().mockReturnValue({

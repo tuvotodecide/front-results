@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import CreateElectionWizard from "@/features/elections/components/CreateElectionWizard";
+import { renderWithAuthStore, wizardAuthState } from "../utils/renderWithStore";
 import ElectionConfigPadron from "@/features/electionConfig/ElectionConfigPadron";
 
 const createElectionMock = vi.fn();
@@ -59,10 +60,41 @@ vi.mock("@/store/votingEvents", () => ({
   useLazyGetPadronStagingQuery: vi.fn(),
   useUpdatePadronStagingEntryMutation: vi.fn(),
   useUploadPadronSourceMutation: vi.fn(),
-  useImportPadronUsersMutation: vi.fn(),
 }));
 
+const estimateCapacityMock = vi.fn();
+
+vi.mock("@/store/tvd", () => ({
+  useEstimateMyTvdCapacityMutation: () => [estimateCapacityMock, { isLoading: false }],
+}));
+
+vi.mock("@/features/adminTvd/data/useTvdPerCredit", async () => {
+  const actual = await vi.importActual<
+    typeof import("@/features/adminTvd/data/useTvdPerCredit")
+  >("@/features/adminTvd/data/useTvdPerCredit");
+  return {
+    ...actual,
+    fetchTvdPerCredit: vi.fn().mockResolvedValue({
+      raw: "1000000000000000000",
+      decimals: 18,
+      formatted: "1 TVD",
+    }),
+  };
+});
+
 import * as votingEvents from "@/store/votingEvents";
+
+const capacityFor = (participants: string) => ({
+  unwrap: vi.fn().mockResolvedValue({
+    estimatedParticipants: participants,
+    estimatedRequiredTokens: participants,
+    availableTokens: "1000",
+    availableSmallestUnit: "1000000000000000000000",
+    estimatedMissingTokens: "0",
+    hasEstimatedCapacity: true,
+    reasonCode: null,
+  }),
+});
 
 async function fillGeneralData(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText("¿A qué institución pertenece?"), "Elección normal");
@@ -70,6 +102,10 @@ async function fillGeneralData(user: ReturnType<typeof userEvent.setup>) {
     screen.getByLabelText("¿Cuál es el objetivo o descripción?"),
     "Elegir representantes institucionales",
   );
+  const maxOpenVotersInput = screen.queryByLabelText("¿Cuántos votantes pueden participar?");
+  if (maxOpenVotersInput) {
+    await user.type(maxOpenVotersInput, "10");
+  }
   await user.click(screen.getByRole("button", { name: "Siguiente" }));
 }
 
@@ -88,10 +124,11 @@ describe("votación abierta | asistente de creación", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     createElectionMock.mockResolvedValue({ id: "evt-open" });
+    estimateCapacityMock.mockReturnValue(capacityFor("10"));
   });
 
   it("EA-P0-01-001 muestra la opción de votación abierta desactivada por defecto", async () => {
-    render(<CreateElectionWizard />);
+    renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
 
     const toggle = await screen.findByRole("switch", { name: "¿Es votación abierta?" });
     expect(toggle).toHaveAttribute("aria-checked", "false");
@@ -107,7 +144,7 @@ describe("votación abierta | asistente de creación", () => {
 
   it("EA-P0-01-002 activa la advertencia de irreversibilidad al activar la votación abierta", async () => {
     const user = userEvent.setup();
-    render(<CreateElectionWizard />);
+    renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
 
     await user.click(screen.getByRole("switch", { name: "¿Es votación abierta?" }));
 
@@ -121,7 +158,7 @@ describe("votación abierta | asistente de creación", () => {
 
   it("EA-P0-01-003 permite desactivar la votación abierta antes de continuar", async () => {
     const user = userEvent.setup();
-    render(<CreateElectionWizard />);
+    renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
 
     const toggle = screen.getByRole("switch", { name: "¿Es votación abierta?" });
     await user.click(toggle);
@@ -135,7 +172,7 @@ describe("votación abierta | asistente de creación", () => {
 
   it("EA-P0-01-004 conserva la votación abierta activada al volver desde el paso de fechas", async () => {
     const user = userEvent.setup();
-    render(<CreateElectionWizard />);
+    renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
 
     await user.click(screen.getByRole("switch", { name: "¿Es votación abierta?" }));
     await fillGeneralData(user);
@@ -148,7 +185,7 @@ describe("votación abierta | asistente de creación", () => {
 
   it("EA-P0-02-001 crea una votación abierta y envía isOpenVoting en true al confirmar", async () => {
     const user = userEvent.setup();
-    render(<CreateElectionWizard />);
+    renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
 
     await user.click(screen.getByRole("switch", { name: "¿Es votación abierta?" }));
     await fillGeneralData(user);
@@ -161,7 +198,7 @@ describe("votación abierta | asistente de creación", () => {
 
   it("EA-P0-02-002 crea una votación cerrada por defecto cuando no se activa la opción", async () => {
     const user = userEvent.setup();
-    render(<CreateElectionWizard />);
+    renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
 
     await fillGeneralData(user);
     await fillScheduleAndCreate(user);
@@ -171,8 +208,6 @@ describe("votación abierta | asistente de creación", () => {
     );
   });
 });
-
-const importUsersMock = vi.fn();
 
 const padronEvent = (overrides: Record<string, unknown> = {}) => ({
   id: "evt-1",
@@ -236,84 +271,13 @@ function mockPadronHooks({
   vi.mocked(votingEvents.useBulkDeletePadronStagingEntriesMutation).mockReturnValue([asMutation({ deletedCount: 0 }), { isLoading: false }] as any);
   vi.mocked(votingEvents.useConfirmPadronStagingMutation).mockReturnValue([asMutation({}), { isLoading: false }] as any);
   vi.mocked(votingEvents.useEnableCurrentPadronVoterMutation).mockReturnValue([asMutation({}), { isLoading: false }] as any);
-  vi.mocked(votingEvents.useImportPadronUsersMutation).mockReturnValue([importUsersMock, { isLoading: false }] as any);
 }
 
-describe("votación abierta | importación automática del padrón", () => {
+describe("votación abierta | padrón", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     route.electionId = "evt-1";
     Object.assign(padronRefs, { workflow: vi.fn(), review: vi.fn(), staging: vi.fn(), voters: vi.fn() });
-    importUsersMock.mockReturnValue({ unwrap: vi.fn().mockResolvedValue({}) });
-  });
-
-  it("EA-P0-03-001 dispara la importación automática cuando la votación es abierta y el padrón está pendiente", async () => {
-    mockPadronHooks({ pending: ["padron"] });
-    render(<ElectionConfigPadron />);
-
-    await waitFor(() => {
-      expect(importUsersMock).toHaveBeenCalledWith({ eventId: "evt-1" });
-    });
-  });
-
-  it("EA-P0-03-002 no dispara la importación automática si la votación no es abierta", async () => {
-    mockPadronHooks({ event: padronEvent({ isOpenVoting: false }), pending: ["padron"] });
-    render(<ElectionConfigPadron />);
-
-    expect(await screen.findByText("Elección abierta")).toBeInTheDocument();
-    expect(importUsersMock).not.toHaveBeenCalled();
-  });
-
-  it("EA-P0-03-003 no dispara la importación automática si el padrón no está pendiente de revisión", async () => {
-    mockPadronHooks({ pending: [] });
-    render(<ElectionConfigPadron />);
-
-    expect(await screen.findByText("Elección abierta")).toBeInTheDocument();
-    expect(importUsersMock).not.toHaveBeenCalled();
-  });
-
-  it("EA-P0-03-004 muestra el estado de carga mientras se importa automáticamente y lo oculta al finalizar", async () => {
-    let resolveImport!: (value: unknown) => void;
-    const importPromise = new Promise((resolve) => {
-      resolveImport = resolve;
-    });
-    importUsersMock.mockReturnValue({ unwrap: () => importPromise });
-    mockPadronHooks({ pending: ["padron"] });
-    render(<ElectionConfigPadron />);
-
-    expect(await screen.findByText("Cargando configuración del padrón...")).toBeInTheDocument();
-
-    resolveImport({});
-    await waitFor(() => {
-      expect(screen.queryByText("Cargando configuración del padrón...")).not.toBeInTheDocument();
-    });
-  });
-
-  it("EA-P0-03-005 muestra un error cuando falla la importación automática", async () => {
-    importUsersMock.mockReturnValue({ unwrap: vi.fn().mockRejectedValue({}) });
-    mockPadronHooks({ pending: ["padron"] });
-    render(<ElectionConfigPadron />);
-
-    expect(
-      await screen.findByText(
-        "No se pudo importar automáticamente a los usuarios registrados en el padrón.",
-      ),
-    ).toBeInTheDocument();
-  });
-
-  it("EA-P0-03-006 no repite la importación automática en renders posteriores para la misma elección", async () => {
-    mockPadronHooks({ pending: ["padron"] });
-    const view = render(<ElectionConfigPadron />);
-
-    await waitFor(() => {
-      expect(importUsersMock).toHaveBeenCalledTimes(1);
-    });
-
-    mockPadronHooks({ pending: ["padron"] });
-    view.rerender(<ElectionConfigPadron />);
-
-    expect(await screen.findByText("Elección abierta")).toBeInTheDocument();
-    expect(importUsersMock).toHaveBeenCalledTimes(1);
   });
 
   it("EA-P0-07-001 solicita el padrón en staging con el tamaño de página reducido", async () => {
@@ -341,39 +305,5 @@ describe("votación abierta | importación automática del padrón", () => {
 
     expect(await screen.findByRole("button", { name: "Anterior" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Siguiente" })).toBeInTheDocument();
-  });
-
-  it("EA-P0-04-001 muestra el mensaje del backend cuando la API responde 400 o 403 con mensaje propio", async () => {
-    importUsersMock.mockReturnValue({
-      unwrap: vi.fn().mockRejectedValue({
-        status: 400,
-        data: { message: "El padrón vigente ya tiene votantes importados." },
-      }),
-    });
-    mockPadronHooks({ pending: ["padron"] });
-    render(<ElectionConfigPadron />);
-
-    expect(
-      await screen.findByText("El padrón vigente ya tiene votantes importados."),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText(
-        "No se pudo importar automáticamente a los usuarios registrados en el padrón.",
-      ),
-    ).not.toBeInTheDocument();
-  });
-
-  it("EA-P0-06-001 cae en el mensaje genérico cuando la API responde 500 sin mensaje", async () => {
-    importUsersMock.mockReturnValue({
-      unwrap: vi.fn().mockRejectedValue({ status: 500 }),
-    });
-    mockPadronHooks({ pending: ["padron"] });
-    render(<ElectionConfigPadron />);
-
-    expect(
-      await screen.findByText(
-        "No se pudo importar automáticamente a los usuarios registrados en el padrón.",
-      ),
-    ).toBeInTheDocument();
   });
 });

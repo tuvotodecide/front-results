@@ -12,6 +12,7 @@ interface ConfigStepsTabsProps {
   onStepChange?: (step: ConfigStep) => void;
   canNavigate?: (step: ConfigStep) => boolean;
   isReferendum?: boolean;
+  isOpenVoting?: boolean;
 }
 
 const CheckIcon = () => (
@@ -26,16 +27,17 @@ const ConfigStepsTabs: React.FC<ConfigStepsTabsProps> = ({
   onStepChange,
   canNavigate = () => true,
   isReferendum = false,
+  isOpenVoting = false,
 }) => {
   const steps: { step: ConfigStep; label: string }[] = isReferendum
     ? [
         { step: 2, label: '1. Opciones' },
-        { step: 3, label: '2. Padrón' },
+        ...(isOpenVoting ? [] : [{ step: 3 as ConfigStep, label: '2. Padrón' }]),
       ]
     : [
         { step: 1, label: '1. Cargos' },
         { step: 2, label: '2. Planchas' },
-        { step: 3, label: '3. Padrón' },
+        ...(isOpenVoting ? [] : [{ step: 3 as ConfigStep, label: '3. Padrón' }]),
       ];
 
   const getStepStatus = (step: ConfigStep): StepStatus => {

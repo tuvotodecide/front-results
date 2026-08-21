@@ -6,6 +6,7 @@ export interface CreateVotingEventDto {
   objective: string;
   isReferendum?: boolean;
   isOpenVoting?: boolean;
+  maxOpenVoters?: number;
   votingStart?: string;
   votingEnd?: string;
   resultsPublishAt?: string;
@@ -121,6 +122,7 @@ export interface VotingEvent {
   objective: string;
   isReferendum?: boolean;
   isOpenVoting?: boolean;
+  maxOpenVoters?: number;
   votingStart?: string | null;
   votingEnd?: string | null;
   resultsPublishAt?: string | null;

@@ -14,6 +14,8 @@ const statusMocksState = vi.hoisted(() => {
     publishDeadline: "2026-06-28T08:00:00.000Z",
     state: "RESULTS_PUBLISHED",
     status: "RESULTS_PUBLISHED",
+    isOpenVoting: false,
+    maxOpenVoters: 0,
     publicEligibilityEnabled: true,
     publicEligibility: true,
     publicUrl: "/votacion/elecciones/evt-status/publica",
