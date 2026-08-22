@@ -107,6 +107,17 @@ export const authApiSlice = apiSlice.injectEndpoints({
       }),
     }),
 
+    resendInstitutionalAdminVerificationEmail: builder.mutation<
+      any,
+      { email: string }
+    >({
+      query: ({ email }) => ({
+        url: "/institutional-admin-applications/resend-verification-email",
+        method: "POST",
+        body: { email },
+      }),
+    }),
+
     loginUser: builder.mutation<any, { email: string; password: string }>({
       query: (data) => ({
         url: "/auth/login",
@@ -153,6 +164,7 @@ export const {
   useCreateInstitutionalAdminApplicationMutation,
   useLazyGetInvitationRegistrationContextQuery,
   useVerifyInstitutionalAdminApplicationMutation,
+  useResendInstitutionalAdminVerificationEmailMutation,
   useLoginUserMutation,
   useForgotPasswordMutation,
   useResetPasswordMutation,
