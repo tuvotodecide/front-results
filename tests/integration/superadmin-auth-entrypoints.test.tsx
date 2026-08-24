@@ -47,7 +47,7 @@ describe("entrypoints de Superadmin y recuperación institucional", () => {
       screen.getByRole("link", { name: /Recuperar cuenta institucional/i }),
     ).toHaveAttribute("href", "/votacion/recuperacion-institucional");
     expect(
-      screen.getByText("Si perdiste acceso a tu institución"),
+      screen.getByText("Si perdiste completo acceso a tu institución"),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Iniciar Sesión/i })).toBeInTheDocument();
   });

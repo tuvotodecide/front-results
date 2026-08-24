@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { ErrorMessage, Field, Form, Formik } from "formik";
-import { Landmark } from "lucide-react";
 import * as Yup from "yup";
 import { useDispatch, useSelector } from "react-redux";
 import tuvotoDecideImage from "../../../assets/tuvotodecide.webp";
@@ -516,19 +515,15 @@ const LoginVotacionPage = () => {
 
               <div className="space-y-1 text-center">
                 <Link
-                  to="/votacion/recuperacion-institucional"
+                  to="/votacion/recuperar"
                   style={{ borderColor: "#459151", color: "#459151" }}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 py-2.5 text-sm font-bold transition-all hover:bg-[#459151]/5 active:scale-[0.98]"
                 >
-                  <Landmark className="h-4 w-4" />
-                  Recuperar cuenta institucional
+                  ¿Olvidaste tu contraseña?
                 </Link>
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                  Si perdiste acceso a tu institución
-                </p>
               </div>
 
-              <div className="relative flex items-center py-2">
+              <div className="relative flex items-center pt-2">
                 <div className="flex-grow border-t border-gray-100"></div>
                 <span className="flex-shrink mx-4 text-gray-400 text-xs uppercase tracking-widest">
                   ¿No tienes una cuenta?
@@ -545,21 +540,25 @@ const LoginVotacionPage = () => {
                   Crear cuenta
                 </Link>
               </div>
-              <div className="flex justify-between">
-                <div className="text-left -mt-2">
+              <div className="flex flex-col mt-7">
+                <p className="text-[10px] text-center font-semibold uppercase tracking-wide text-gray-400">
+                  Si perdiste completo acceso a tu institución
+                </p>
+                <div className="text-center">
+                  
+                  <Link
+                    to="/votacion/recuperacion-institucional"
+                    className="text-sm font-semibold text-gray-500 hover:text-[#459151]"
+                  >
+                    Recuperar cuenta institucional
+                  </Link>
+                </div>
+                <div className="text-center mt-5">
                   <Link
                     to="/votacion"
                     className="text-sm font-semibold text-gray-500 hover:text-[#459151]"
                   >
                     Volver al inicio
-                  </Link>
-                </div>
-                <div className="text-right -mt-2">
-                  <Link
-                    to="/votacion/recuperar"
-                    className="text-sm font-semibold text-gray-500 hover:text-[#459151]"
-                  >
-                    ¿Olvidaste tu contraseña?
                   </Link>
                 </div>
               </div>

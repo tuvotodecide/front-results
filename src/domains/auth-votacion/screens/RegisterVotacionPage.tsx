@@ -444,9 +444,14 @@ const RegisterVotacionPage = () => {
     };
 
     try {
-      await createInstitutionalAdminApplication(payload).unwrap();
+      const response = await createInstitutionalAdminApplication(payload).unwrap();
       localStorage.setItem("pendingEmail", payload.email);
-      localStorage.setItem("pendingReason", "VERIFY_EMAIL");
+      localStorage.setItem(
+        "pendingReason",
+        response.status === "PENDING_EMAIL_VERIFICATION"
+          ? "VERIFY_EMAIL"
+          : "SUPERADMIN_APPROVAL",
+      );
       navigate("/votacion/pendiente", { replace: true });
     } catch (error) {
       openModal({
