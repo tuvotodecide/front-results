@@ -108,6 +108,11 @@ export function createSecurityFixtures() {
     quote,
     qrPayment,
     confirmedPayment,
+    // Techo de recarga: saldo TVD del vesting institucional, holgado para no
+    // limitar los escenarios de seguridad y estados de UI.
+    institutionalVestingBalance: {
+      raw: "1000000000000000000000", decimals: 18, formatted: "1000 TVD", readAt: "2026-07-21T12:00:00.000Z",
+    },
     summary: {
       tenantId: "tenant-1", assignmentId: "assignment-1", wallet: "0x1111111111111111111111111111111111111111",
       walletStatus: "VERIFIED", assignedBalance: { smallestUnit: "0", formatted: "0", decimals: 18 },
@@ -164,10 +169,12 @@ export function configureSecurityUiMocks({
   state.refetchPadron.mockReset();
   vi.stubGlobal("crypto", { randomUUID: () => "mx06-security-ui-key", getRandomValues: (bytes: Uint8Array) => bytes });
   vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-    const request = input instanceof Request ? input : new Request(input, init);
+    // Las rutas internas de Next se piden con URL relativa; el Request nativo de Node exige una absoluta.
+    const request = input instanceof Request ? input : new Request(new URL(String(input), "http://localhost"), init);
     const url = new URL(request.url);
     const call = { url: `${url.pathname}${url.search}`, method: request.method, headers: request.headers, body: request.method === "GET" ? null : await request.clone().text() };
     fetchCalls.push(call);
+    if (url.pathname === "/api/tvd/institutional-vesting-balance") return jsonResponse({ success: true, data: fixtures.institutionalVestingBalance });
     if (url.pathname.endsWith("/tvd/me/summary")) return jsonResponse(fixtures.summary);
     if (url.pathname.endsWith("/tvd/me/quote")) return jsonResponse(fixtures.quote);
     if (url.pathname.endsWith("/payments/qr")) return createQr(call);

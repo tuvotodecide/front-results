@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import {
+  ArrowLeftIcon,
   ArrowPathIcon,
   ArrowRightIcon,
   ArrowDownTrayIcon,
@@ -25,6 +26,7 @@ import {
 import AdminTvdStepper from "../components/AdminTvdStepper";
 import {
   createRechargePayloadFingerprint,
+  exceedsInstitutionalVestingBalance,
   formatDateTime,
   generatePaymentIdempotencyKey,
   getAccreditationStatusMessage,
@@ -41,6 +43,7 @@ import {
   validateRechargeDescription,
 } from "../utils/rechargeFlow";
 import { copyTextToClipboard } from "../services/clipboard";
+import { useInstitutionalVestingBalance } from "../hooks/useInstitutionalVestingBalance";
 import { useTvdVisualBalance } from "../hooks/useTvdVisualBalance";
 
 type PaymentAttempt = {
@@ -130,6 +133,9 @@ export default function OperationalRechargePage() {
   const previousContextKey = useRef(tenantContextKey);
   const regeneratingRef = useRef(false);
   const regeneratedPaymentIdsRef = useRef(new Set<string>());
+  // Pagos que el usuario abandonó a propósito para volver al paso 1. Sin esto,
+  // la recuperación automática los devuelve al paso 2 apenas salen de él.
+  const dismissedPaymentIdsRef = useRef(new Set<string>());
 
   useEffect(() => {
     if (previousContextKey.current === tenantContextKey) return;
@@ -145,6 +151,7 @@ export default function OperationalRechargePage() {
     setFormError(null);
     regeneratingRef.current = false;
     regeneratedPaymentIdsRef.current.clear();
+    dismissedPaymentIdsRef.current.clear();
   }, [tenantContextKey]);
 
   const amountValidation = useMemo(() => validateBobAmount(amount), [amount]);
@@ -201,6 +208,11 @@ export default function OperationalRechargePage() {
   } = useGetMyTvdQuoteQuery(quoteArg ?? { amount: "0.01", currency: "BOB", tenantId: tenantId ?? "" }, {
     skip: !quoteArg,
   });
+  const vestingBalance = useInstitutionalVestingBalance();
+  const amountExceedsVestingBalance = exceedsInstitutionalVestingBalance(
+    quote,
+    vestingBalance.data,
+  );
   const [createQrPayment, createQrState] = useCreateQrPaymentMutation();
   const [regenerateQrPayment, regenerateQrState] = useRegenerateQrPaymentMutation();
   const paymentQuery = useGetMyTvdPaymentQuery(
@@ -257,6 +269,8 @@ export default function OperationalRechargePage() {
     quoteMatchesCurrent &&
     Boolean(quote) &&
     summary?.walletStatus === "VERIFIED" &&
+    Boolean(vestingBalance.data) &&
+    !amountExceedsVestingBalance &&
     !createQrState.isLoading;
   const paymentShouldPoll = shouldPollPayment(activePayment);
   const canDownloadQr =
@@ -284,11 +298,14 @@ export default function OperationalRechargePage() {
   useEffect(() => {
     if (paymentId || createdPayment || step !== 1) return;
     const recoverablePayment = currentHistory?.items.find(
-      (payment) => !isQrExpired(payment, Date.now()) && shouldPollPayment(payment),
+      (payment) =>
+        !isQrExpired(payment, Date.now()) &&
+        shouldPollPayment(payment) &&
+        !dismissedPaymentIdsRef.current.has(payment.paymentId),
     );
     if (!recoverablePayment) return;
     const nextPaymentId = getPaymentId(recoverablePayment);
-    if (!nextPaymentId) return;
+    if (!nextPaymentId || dismissedPaymentIdsRef.current.has(nextPaymentId)) return;
     setPaymentId(nextPaymentId);
     setCreatedPayment(null);
     setQrImageSource(getQrImageSource(recoverablePayment.qrImage));
@@ -364,17 +381,39 @@ export default function OperationalRechargePage() {
     }
   };
 
-  const handleNewRecharge = () => {
+  const returnToAmountStep = () => {
+    const abandonedPaymentId = getPaymentId(activePayment) ?? paymentId;
+    if (abandonedPaymentId) {
+      dismissedPaymentIdsRef.current.add(abandonedPaymentId);
+    }
+    // Cualquier otro QR vigente también se descarta: si no, la recuperación
+    // automática devolvería al paso 2 con un pago anterior.
+    currentHistory?.items.forEach((payment) => {
+      if (!isQrExpired(payment, Date.now()) && shouldPollPayment(payment)) {
+        dismissedPaymentIdsRef.current.add(payment.paymentId);
+      }
+    });
     setStep(1);
     setAttempt(null);
     setCreatedPayment(null);
     setQrImageSource(null);
     setPaymentId(null);
     setPollingEnabled(false);
+    setFormError(null);
+  };
+
+  const handleEditAmount = () => {
+    returnToAmountStep();
+    setFeedback(
+      "Corrige el monto y genera un QR nuevo. Ignora el QR anterior para no pagar dos veces.",
+    );
+  };
+
+  const handleNewRecharge = () => {
+    returnToAmountStep();
     setAmount("");
     setDebouncedAmount(null);
     setFeedback(null);
-    setFormError(null);
     regeneratedPaymentIdsRef.current.clear();
   };
 
@@ -609,6 +648,27 @@ export default function OperationalRechargePage() {
                     Ingresa un monto válido para ver una estimación.
                   </p>
                 ) : null}
+                {amountExceedsVestingBalance ? (
+                  <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                    El monto supera el saldo disponible para acreditación
+                    {vestingBalance.data ? ` (${vestingBalance.data.formatted} disponibles)` : ""}.
+                  </div>
+                ) : vestingBalance.data ? (
+                  <p className="mt-4 text-xs text-slate-500">
+                    Saldo disponible para acreditación: {vestingBalance.data.formatted}
+                  </p>
+                ) : vestingBalance.error ? (
+                  <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                    No pudimos consultar el saldo disponible para acreditación.
+                    <button
+                      type="button"
+                      onClick={() => void vestingBalance.refetch()}
+                      className="ml-2 font-bold underline"
+                    >
+                      Reintentar
+                    </button>
+                  </div>
+                ) : null}
               </aside>
             </div>
           </section>
@@ -783,13 +843,25 @@ export default function OperationalRechargePage() {
                 </>
               )}
 
-              <button
-                type="button"
-                onClick={handleNewRecharge}
-                className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 sm:w-auto"
-              >
-                Nueva recarga
-              </button>
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-center">
+                {activePayment.status !== "PAYMENT_CONFIRMED" ? (
+                  <button
+                    type="button"
+                    onClick={handleEditAmount}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 sm:w-auto"
+                  >
+                    <ArrowLeftIcon className="h-5 w-5" aria-hidden="true" />
+                    Corregir monto
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={handleNewRecharge}
+                  className="inline-flex w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 sm:w-auto"
+                >
+                  Nueva recarga
+                </button>
+              </div>
             </div>
           </section>
         ) : null}

@@ -3,6 +3,7 @@ import {
   createRechargePayloadFingerprint,
   buildQrDownloadFilename,
   downloadQrPng,
+  exceedsInstitutionalVestingBalance,
   generatePaymentIdempotencyKey,
   getAccreditationStatusMessage,
   getPaymentStatusMessage,
@@ -55,6 +56,55 @@ describe("admin TVD recharge utilities", () => {
     expect(validateBobAmount("10.555")).toMatchObject({ valid: false });
     expect(validateBobAmount("1e3")).toMatchObject({ valid: false });
     expect(validateBobAmount("  ")).toMatchObject({ valid: false });
+  });
+
+  it("[MX-06][TVD-QR-P0-011][UNITARIA] limita la recarga al saldo TVD del vesting institucional", () => {
+    // 1000 TVD respaldando la acreditación.
+    const balance = { raw: "1000000000000000000000", decimals: 18 };
+
+    expect(
+      exceedsInstitutionalVestingBalance(
+        { estimatedTvd: "4.2", estimatedTvdSmallestUnit: "4200000000000000000" },
+        balance,
+      ),
+    ).toBe(false);
+    // El saldo exacto sigue siendo recargable; una unidad más ya no.
+    expect(
+      exceedsInstitutionalVestingBalance(
+        { estimatedTvd: "1000", estimatedTvdSmallestUnit: "1000000000000000000000" },
+        balance,
+      ),
+    ).toBe(false);
+    expect(
+      exceedsInstitutionalVestingBalance(
+        { estimatedTvd: "1000.000000000000000001", estimatedTvdSmallestUnit: "1000000000000000000001" },
+        balance,
+      ),
+    ).toBe(true);
+    // Sin unidad mínima autoritativa se deriva de estimatedTvd con los decimales del token.
+    expect(
+      exceedsInstitutionalVestingBalance(
+        { estimatedTvd: "2000", estimatedTvdSmallestUnit: null },
+        balance,
+      ),
+    ).toBe(true);
+  });
+
+  it("[MX-06][TVD-QR-P0-011][UNITARIA] no declara exceso sin datos confiables de cotización o saldo", () => {
+    const quote = { estimatedTvd: "4.2", estimatedTvdSmallestUnit: "4200000000000000000" };
+
+    // El techo aún no cargó: el bloqueo lo decide la pantalla, no este comparador.
+    expect(exceedsInstitutionalVestingBalance(quote, null)).toBe(false);
+    expect(exceedsInstitutionalVestingBalance(null, { raw: "0", decimals: 18 })).toBe(false);
+    expect(
+      exceedsInstitutionalVestingBalance(quote, { raw: "no-numerico", decimals: 18 }),
+    ).toBe(false);
+    expect(
+      exceedsInstitutionalVestingBalance(
+        { estimatedTvd: "no-numerico", estimatedTvdSmallestUnit: null },
+        { raw: "1000000000000000000000", decimals: 18 },
+      ),
+    ).toBe(false);
   });
 
   it("TVD-QR-P0-004 | valida descripcion y genera fingerprint sin incluir wallet ni tasa", () => {

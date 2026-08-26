@@ -372,4 +372,75 @@ describe("MX-06 | recarga QR TVD", () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Regenerar QR/i })).not.toBeInTheDocument();
   });
+
+  it("[MX-06][TVD-QR-P0-011][INTEGRACION] informa el techo de recarga respaldado por el vesting institucional", async () => {
+    const user = userEvent.setup();
+    configureRechargeMocks();
+
+    renderRechargePage();
+    await requestQuote(user);
+
+    expect(
+      await screen.findByText("Saldo disponible para acreditación: 1000 TVD"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Generar QR/i })).toBeEnabled();
+  });
+
+  it("[MX-06][TVD-QR-P0-011][INTEGRACION] no genera QR por más TVD del que respalda el vesting institucional", async () => {
+    const user = userEvent.setup();
+    // 1 TVD disponible contra una cotización de 4.2 TVD.
+    const { fetchCalls } = configureRechargeMocks({
+      vestingBalance: () =>
+        jsonResponse({
+          success: true,
+          data: {
+            raw: "1000000000000000000",
+            decimals: 18,
+            formatted: "1 TVD",
+            readAt: "2026-07-21T12:00:00.000Z",
+          },
+        }),
+    });
+
+    renderRechargePage();
+    await requestQuote(user);
+
+    expect(
+      await screen.findByText(/El monto supera el saldo disponible para acreditación/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Saldo disponible para acreditación: /),
+    ).not.toBeInTheDocument();
+
+    const generateButton = screen.getByRole("button", { name: /Generar QR/i });
+    expect(generateButton).toBeDisabled();
+    await user.click(generateButton);
+
+    expect(fetchCalls.filter((call) => call.url.endsWith("/payments/qr"))).toHaveLength(0);
+    expect(screen.queryByAltText("Código QR para pagar la recarga TVD")).not.toBeInTheDocument();
+  });
+
+  it("[MX-06][TVD-QR-P0-011][INTEGRACION] no genera QR si no puede leer el techo de recarga", async () => {
+    const user = userEvent.setup();
+    const { fetchCalls } = configureRechargeMocks({
+      vestingBalance: () =>
+        jsonResponse(
+          { success: false, code: "TVD_RPC_UNAVAILABLE", message: "RPC no disponible" },
+          503,
+        ),
+    });
+
+    renderRechargePage();
+    await requestQuote(user);
+
+    expect(
+      await screen.findByText(/No pudimos consultar el saldo disponible para acreditación/),
+    ).toBeInTheDocument();
+
+    const generateButton = screen.getByRole("button", { name: /Generar QR/i });
+    expect(generateButton).toBeDisabled();
+    await user.click(generateButton);
+
+    expect(fetchCalls.filter((call) => call.url.endsWith("/payments/qr"))).toHaveLength(0);
+  });
 });

@@ -1,8 +1,10 @@
+import { parseUnits } from "ethers";
 import type {
   MyTvdPaymentResponse,
   PaymentStatus,
   PublicQrPaymentResponse,
   TokenAccreditationStatus,
+  TvdQuoteResponse,
 } from "@/store/tvd";
 
 const BOB_AMOUNT_PATTERN = /^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/;
@@ -42,6 +44,50 @@ export const validateBobAmount = (value: string): AmountValidationResult => {
     amount: `${integerPart}.${decimalPart.padEnd(2, "0")}`,
     amountMinor: amountMinor.toString(),
   };
+};
+
+export type InstitutionalVestingBalanceLike = {
+  raw: string;
+  decimals: number;
+};
+
+const getEstimatedTvdSmallestUnit = (
+  quote: Pick<TvdQuoteResponse, "estimatedTvd" | "estimatedTvdSmallestUnit">,
+  decimals: number,
+): bigint | null => {
+  if (quote.estimatedTvdSmallestUnit) {
+    try {
+      return BigInt(quote.estimatedTvdSmallestUnit);
+    } catch {
+      return null;
+    }
+  }
+  try {
+    return parseUnits(quote.estimatedTvd, decimals);
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * El vesting institucional (INSTITUTIONAL_VESTING_ADDRESS) es la fuente de los
+ * TVD que se acreditan en cada recarga: no se puede cotizar más TVD del que
+ * ese contrato tiene disponible.
+ */
+export const exceedsInstitutionalVestingBalance = (
+  quote: Pick<TvdQuoteResponse, "estimatedTvd" | "estimatedTvdSmallestUnit"> | null | undefined,
+  vestingBalance: InstitutionalVestingBalanceLike | null | undefined,
+): boolean => {
+  if (!quote || !vestingBalance) return false;
+  const requested = getEstimatedTvdSmallestUnit(quote, vestingBalance.decimals);
+  if (requested === null) return false;
+  let available: bigint;
+  try {
+    available = BigInt(vestingBalance.raw);
+  } catch {
+    return false;
+  }
+  return requested > available;
 };
 
 export const normalizeRechargeDescription = (value: string) =>

@@ -51,6 +51,7 @@ export type RechargeMockOptions = {
   createQr?: (call: RechargeFetchCall) => Response | Promise<Response>;
   regenerateQr?: (call: RechargeFetchCall) => Response | Promise<Response>;
   quote?: (call: RechargeFetchCall) => Response | Promise<Response>;
+  vestingBalance?: (call: RechargeFetchCall) => Response | Promise<Response>;
 };
 
 export const jsonResponse = (body: unknown, status = 200) =>
@@ -135,6 +136,14 @@ export function createRechargeFixtures() {
   };
 
   return {
+    // Techo de recarga: saldo TVD del vesting institucional, muy por encima de
+    // los 4.2 TVD que cotiza el fixture para no limitar los demás escenarios.
+    institutionalVestingBalance: {
+      raw: "1000000000000000000000",
+      decimals: 18,
+      formatted: "1000 TVD",
+      readAt: "2026-07-21T12:00:00.000Z",
+    },
     summary: {
       tenantId: "tenant-1",
       assignmentId: "assignment-1",
@@ -191,6 +200,8 @@ export function configureRechargeMocks({
   createQr = () => jsonResponse(fixtures.qrPayment),
   regenerateQr = () => jsonResponse(fixtures.regeneratedQrPayment),
   quote = () => jsonResponse(fixtures.quote),
+  vestingBalance = () =>
+    jsonResponse({ success: true, data: fixtures.institutionalVestingBalance }),
 }: RechargeMockOptions = {}) {
   const fetchCalls: RechargeFetchCall[] = [];
   let idempotencySequence = 0;
@@ -214,7 +225,12 @@ export function configureRechargeMocks({
       : fixtures.activePayment;
   };
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-    const request = input instanceof Request ? input : new Request(input, init);
+    // Las rutas internas de Next se piden con URL relativa; el Request nativo de
+    // Node exige una absoluta, así que se resuelven contra un origen ficticio.
+    const request =
+      input instanceof Request
+        ? input
+        : new Request(new URL(String(input), "http://localhost"), init);
     const url = new URL(request.url);
     const call: RechargeFetchCall = {
       url: `${url.pathname}${url.search}`,
@@ -224,6 +240,9 @@ export function configureRechargeMocks({
     };
     fetchCalls.push(call);
 
+    if (url.pathname === "/api/tvd/institutional-vesting-balance") {
+      return vestingBalance(call);
+    }
     if (url.pathname.endsWith("/tvd/me/summary")) return jsonResponse(fixtures.summary);
     if (url.pathname.endsWith("/tvd/me/quote")) return quote(call);
     if (url.pathname.endsWith("/payments/qr")) return createQr(call);

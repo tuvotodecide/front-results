@@ -77,6 +77,15 @@ const summaryResponse = {
   pendingAccreditationsCount: 0,
 };
 
+// Techo de recarga: saldo TVD del vesting institucional, muy por encima de los
+// 4.2 TVD que cotiza el fixture para no limitar los demás escenarios.
+const institutionalVestingBalanceResponse = {
+  raw: "1000000000000000000000",
+  decimals: 18,
+  formatted: "1000 TVD",
+  readAt: "2026-07-21T12:00:00.000Z",
+};
+
 const quoteResponse = {
   fiatAmount: "10.50",
   fiatAmountMinor: "1050",
@@ -221,10 +230,12 @@ const renderRechargePage = () =>
 
 const installFetchMock = () => {
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    // Las rutas internas de Next se piden con URL relativa; el Request nativo de
+    // Node exige una absoluta, así que se resuelven contra un origen ficticio.
     const request =
       input instanceof Request
         ? input
-        : new Request(input, init);
+        : new Request(new URL(String(input), "http://localhost"), init);
     const url = new URL(request.url);
     fetchCalls.push({
       url: `${url.pathname}${url.search}`,
@@ -233,6 +244,9 @@ const installFetchMock = () => {
       body: request.method === "GET" ? null : await request.text(),
     });
 
+    if (url.pathname === "/api/tvd/institutional-vesting-balance") {
+      return jsonResponse({ success: true, data: institutionalVestingBalanceResponse });
+    }
     if (url.pathname.endsWith("/tvd/me/summary")) {
       return jsonResponse(summaryResponse);
     }
@@ -511,6 +525,54 @@ describe("Admin tenant operational recharge", () => {
     expect(
       fetchCalls.some((call) => call.url.includes("/tvd/me/payments/payment-1")),
     ).toBe(false);
+  });
+
+  it("[MX-06][TVD-QR-RESTORE-006][INTEGRACION] vuelve al paso 1 con el monto para corregirlo sin restaurar el QR abandonado", async () => {
+    const user = userEvent.setup();
+    paymentDetailQueue.push(activePaymentDetailResponse, activePaymentDetailResponse);
+    renderRechargePage();
+
+    await user.clear(screen.getByLabelText("Monto BOB a pagar"));
+    await user.type(screen.getByLabelText("Monto BOB a pagar"), "10.50");
+    await screen.findByText("4.2 TVD");
+    await user.click(screen.getByRole("button", { name: /Generar QR/i }));
+    expect(await screen.findByAltText("Código QR para pagar la recarga TVD")).toBeInTheDocument();
+
+    // El QR abandonado sigue vigente en el historial: sin descartarlo, la
+    // recuperación automática devolvería al paso 2 en cuanto se sale de él.
+    paymentHistoryItems.push(activePaymentDetailResponse);
+    const historyCallsBefore = fetchCalls.filter((call) =>
+      call.url.includes("/tvd/me/payments?"),
+    ).length;
+    await user.click(screen.getByRole("button", { name: "Actualizar" }));
+    await waitFor(() =>
+      expect(
+        fetchCalls.filter((call) => call.url.includes("/tvd/me/payments?")).length,
+      ).toBeGreaterThan(historyCallsBefore),
+    );
+
+    await user.click(screen.getByRole("button", { name: /Corregir monto/i }));
+
+    expect(await screen.findByLabelText("Monto BOB a pagar")).toHaveValue("10.50");
+    expect(
+      await screen.findByText(/Ignora el QR anterior para no pagar dos veces/),
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.queryByAltText("Código QR para pagar la recarga TVD"),
+      ).not.toBeInTheDocument(),
+    );
+    expect(fetchCalls.filter((call) => call.url.endsWith("/payments/qr"))).toHaveLength(1);
+  });
+
+  it("[MX-06][TVD-QR-RESTORE-006][INTEGRACION] mantiene Corregir monto fuera de un pago ya confirmado", async () => {
+    paymentHistoryItems.push(confirmedPaymentResponse);
+    paymentDetailQueue.push(confirmedPaymentResponse);
+    renderRechargePage();
+
+    expect(await screen.findByText("Pago recibido; tokens en proceso.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Corregir monto/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Nueva recarga/i })).toBeInTheDocument();
   });
 
   it("[MX-06][TVD-QR-RESTORE-004][INTEGRACION] limpia B y recupera el QR pendiente de A al volver", async () => {
