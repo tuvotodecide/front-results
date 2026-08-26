@@ -315,7 +315,7 @@ jobs:
   deploy-dev:
     name: Deploy to Hetzner (dev) via SSH
     needs: build
-    if: github.event_name == 'push' && github.ref_type != 'tag'
+    if: ${{ always() && needs.build.result == 'success' && github.event_name == 'push' && github.ref_type != 'tag' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: devops_aws
@@ -387,7 +387,7 @@ jobs:
   deploy-prod:
     name: Deploy to Hetzner (prod) via SSH
     needs: build
-    if: github.event_name == 'push' && github.ref_type == 'tag'
+    if: ${{ always() && needs.build.result == 'success' && github.event_name == 'push' && github.ref_type == 'tag' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: devops_aws
