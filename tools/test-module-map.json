@@ -286,7 +286,8 @@
         "tests/integration/matrix-06-tvd-qr.integration.test.tsx",
         "tests/integration/matrix-06-tvd-accreditation-balance.integration.test.tsx",
         "tests/integration/matrix-06-tvd-publication.integration.test.tsx",
-        "tests/integration/matrix-06-tvd-security-ui.integration.test.tsx"
+        "tests/integration/matrix-06-tvd-security-ui.integration.test.tsx",
+        "tests/unit/institutional-vesting-balance.test.ts"
       ]
     },
     "matrix_06_support": {
