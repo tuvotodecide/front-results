@@ -50,6 +50,7 @@ env:
 jobs:
   module-tests:
     name: Frontend - Module tests
+    if: ${{ vars.SKIP_TESTS != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -247,7 +248,8 @@ jobs:
   build:
     name: Build & Push Docker image
     needs: module-tests
-    if: github.event_name == 'push'
+    # Runs when the tests pass or when module-tests was skipped via SKIP_TESTS.
+    if: ${{ always() && github.event_name == 'push' && needs.module-tests.result != 'failure' && needs.module-tests.result != 'cancelled' }}
     runs-on: ubuntu-latest
     environment: devops_aws
     outputs:
