@@ -39,6 +39,16 @@ vi.mock("@/features/adminTvd/data/useTvdPerCredit", async () => {
       decimals: 18,
       formatted: "1 TVD",
     }),
+    useTvdPerCredit: () => ({
+      tvdPerCredit: {
+        raw: "1000000000000000000",
+        decimals: 18,
+        formatted: "1 TVD",
+      },
+      isLoading: false,
+      error: null,
+      reload: vi.fn(),
+    }),
   };
 });
 

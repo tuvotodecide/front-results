@@ -3,7 +3,10 @@
 
 import React from 'react';
 import type { ConfigSummary } from '../data/ElectionPublishRepository.mock';
-import { formatOpenVotingTvdCost } from '../../adminTvd/utils/tvdCapacityUi';
+import {
+  formatRequiredTvd,
+  useTvdPerCredit,
+} from '../../adminTvd/data/useTvdPerCredit';
 
 interface ConfigSummaryCardProps {
   summary: ConfigSummary;
@@ -25,6 +28,9 @@ const ConfigSummaryCard: React.FC<ConfigSummaryCardProps> = ({
   maxOpenVoters = 0,
 }) => {
   const isReadyToPublish = summary.positionsOk && summary.partiesOk && summary.padronOk;
+  // El costo se calcula con la tasa on-chain (1 participante = tvdPerCredit).
+  const { tvdPerCredit } = useTvdPerCredit();
+  const openVotingTvdCost = formatRequiredTvd(maxOpenVoters, tvdPerCredit);
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
@@ -68,7 +74,7 @@ const ConfigSummaryCard: React.FC<ConfigSummaryCardProps> = ({
               <div className="flex items-center justify-between gap-4">
                 <dt>Costo en TVD</dt>
                 <dd className="font-semibold text-gray-900">
-                  {formatOpenVotingTvdCost(maxOpenVoters)}
+                  {openVotingTvdCost ?? '— TVD'}
                 </dd>
               </div>
             </dl>

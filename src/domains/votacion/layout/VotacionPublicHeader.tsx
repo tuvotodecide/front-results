@@ -24,6 +24,8 @@ import {
   getInstitutionalContexts,
   getSelectedInstitutionContext,
   isContextAllowedForDomain,
+  resolveHomeByContext,
+  resolveHomeLabelByContext,
 } from "@/store/auth/contextUtils";
 import InstitutionSelectorModal from "@/domains/votacion/components/InstitutionSelectorModal";
 
@@ -33,7 +35,8 @@ export default function VotacionPublicHeader() {
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const pathname = usePathname();
   const isLoginPage = pathname === "/votacion/login";
-  const { user, activeContext, availableContexts } = useSelector(selectAuth);
+  const { user, activeContext, availableContexts, defaultContext } =
+    useSelector(selectAuth);
   const dispatch = useDispatch();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [isInstitutionSelectorOpen, setIsInstitutionSelectorOpen] =
@@ -70,8 +73,17 @@ export default function VotacionPublicHeader() {
 
   const showUserMenu = hasMounted && isLoggedIn;
   const showLoginButton = !showUserMenu && !isLoginPage;
-  const showMyElectionsButton =
-    showUserMenu && pathname !== "/votacion/elecciones";
+  // El destino del botón es el mismo inicio que resuelve el login para el rol
+  // activo: superadmin, resultados, aprobaciones o las votaciones del tenant.
+  const homeContext =
+    activeContext ??
+    defaultContext ??
+    (availableContexts.length === 1 ? availableContexts[0] : null);
+  const homePath = homeContext
+    ? resolveHomeByContext(homeContext)
+    : "/votacion/elecciones";
+  const homeLabel = resolveHomeLabelByContext(homeContext);
+  const showHomeButton = showUserMenu && pathname !== homePath.split("?")[0];
   const institutionalContexts = getInstitutionalContexts(availableContexts);
   const selectedInstitution = getSelectedInstitutionContext(
     availableContexts,
@@ -99,9 +111,9 @@ export default function VotacionPublicHeader() {
         <span className={styles.logoText}>Tu voto decide</span>
       </a>
       <div className={styles.headerActions}>
-        {showMyElectionsButton ? (
-          <Link href="/votacion/elecciones" className={styles.secondaryNavButton}>
-            Ir a mis votaciones
+        {showHomeButton ? (
+          <Link href={homePath} className={styles.secondaryNavButton}>
+            {homeLabel}
           </Link>
         ) : null}
         {showUserMenu && institutionName ? (

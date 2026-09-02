@@ -139,6 +139,16 @@ export const resolveHomeByContext = (context: AuthContext | null | undefined) =>
   return "/";
 };
 
+/** Texto del botón que lleva al inicio propio del contexto (`resolveHomeByContext`). */
+export const resolveHomeLabelByContext = (
+  context: AuthContext | null | undefined,
+) => {
+  if (context?.type === "GLOBAL_ADMIN") return "Ir al panel de administración";
+  if (context?.type === "TERRITORIAL") return "Ir a resultados";
+  if (context?.type === "ACCESS_APPROVALS") return "Ir a aprobaciones";
+  return "Ir a mis votaciones";
+};
+
 export const resolveBlockedHomeByContext = (
   domain: AuthDomain,
   context: AuthContext | null | undefined,

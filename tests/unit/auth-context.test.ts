@@ -12,6 +12,7 @@ import {
   resolveDeniedDomainAccessNotice,
   resolveDomainLogin,
   resolveHomeByContext,
+  resolveHomeLabelByContext,
   resolvePostLoginRedirect,
 } from "@/store/auth/contextUtils";
 
@@ -35,6 +36,22 @@ const baseState: AuthState = {
 describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | Contextos auth", () => {
   beforeEach(() => {
     localStorage.clear();
+  });
+
+  it("AUT-LOG-P0-002 | etiqueta el acceso al inicio según el contexto activo", () => {
+    expect(resolveHomeLabelByContext({ type: "GLOBAL_ADMIN" })).toBe(
+      "Ir al panel de administración",
+    );
+    expect(resolveHomeLabelByContext({ type: "TERRITORIAL" })).toBe(
+      "Ir a resultados",
+    );
+    expect(resolveHomeLabelByContext({ type: "ACCESS_APPROVALS" })).toBe(
+      "Ir a aprobaciones",
+    );
+    expect(resolveHomeLabelByContext({ type: "TENANT" })).toBe(
+      "Ir a mis votaciones",
+    );
+    expect(resolveHomeLabelByContext(null)).toBe("Ir a mis votaciones");
   });
 
   it("AUT-LOG-P0-002 | activa un único contexto por defecto después del login", () => {

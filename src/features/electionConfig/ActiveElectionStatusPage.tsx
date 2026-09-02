@@ -77,7 +77,10 @@ import {
   DEFAULT_KIOSK_STATION_ID,
 } from "@/domains/votacion/kiosk/constants";
 import { useElectionTvdUsage } from "./data/useElectionTvdUsage";
-import { formatOpenVotingTvdCost } from "@/features/adminTvd/utils/tvdCapacityUi";
+import {
+  formatRequiredTvd,
+  useTvdPerCredit,
+} from "@/features/adminTvd/data/useTvdPerCredit";
 import { publicElectionRepository } from "@/features/publicElectionDetail/data/PublicElectionRepository.api";
 import type {
   Candidate,
@@ -599,6 +602,9 @@ const ActiveElectionStatusPage: React.FC = () => {
   const isReferendum = Boolean(event?.isReferendum);
   const isOpenVoting = Boolean(event?.isOpenVoting);
   const maxOpenVoters = Number(event?.maxOpenVoters ?? 0);
+  // El costo se calcula con la tasa on-chain (1 participante = tvdPerCredit).
+  const { tvdPerCredit } = useTvdPerCredit();
+  const openVotingTvdCost = formatRequiredTvd(maxOpenVoters, tvdPerCredit);
   const shouldShowResults =
     lifecycle === "RESULTS" ||
     lifecycle === "RESULTS_PUBLISHED" ||
@@ -1185,7 +1191,7 @@ const ActiveElectionStatusPage: React.FC = () => {
                 <div className="flex items-center justify-between gap-4">
                   <dt>Costo en TVD</dt>
                   <dd className="font-semibold text-gray-900">
-                    {formatOpenVotingTvdCost(maxOpenVoters)}
+                    {openVotingTvdCost ?? "— TVD"}
                   </dd>
                 </div>
               </dl>

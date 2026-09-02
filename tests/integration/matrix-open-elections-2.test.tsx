@@ -27,6 +27,26 @@ vi.mock("react-router-dom", () => ({
   useParams: () => ({ electionId: "evt-open" }),
 }));
 
+// La tasa on-chain se mockea, pero el cálculo de costo (helpers puros) es el real.
+vi.mock("@/features/adminTvd/data/useTvdPerCredit", async () => {
+  const actual = await vi.importActual<
+    typeof import("@/features/adminTvd/data/useTvdPerCredit")
+  >("@/features/adminTvd/data/useTvdPerCredit");
+  return {
+    ...actual,
+    useTvdPerCredit: () => ({
+      tvdPerCredit: {
+        raw: "1000000000000000000",
+        decimals: 18,
+        formatted: "1 TVD",
+      },
+      isLoading: false,
+      error: null,
+      reload: vi.fn(),
+    }),
+  };
+});
+
 vi.mock("@/components/Modal2", () => ({
   default: ({
     children,
