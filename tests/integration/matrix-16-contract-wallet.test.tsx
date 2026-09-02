@@ -98,6 +98,12 @@ const parametersModel = {
     status: "available",
     message: null,
   },
+  rewardsTvd: {
+    raw: "2000000000000000000000",
+    formatted: "2000 TVD",
+    status: "available",
+    message: null,
+  },
   campaign: { status: "available", message: "No existe una campaña configurada", count: "0", fields: [] },
   contracts: {
     tvdToken: contractModel.tvdToken,

@@ -128,6 +128,7 @@ export type TvdParametersReadModel = {
     enabled: boolean | null;
   };
   institutionalTvd: TvdEconomicValue,
+  rewardsTvd: TvdEconomicValue,
   campaign: TvdCampaignReadModel;
   contracts: {
     tvdToken: TvdAddressInfo;

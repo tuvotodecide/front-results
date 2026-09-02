@@ -225,6 +225,19 @@ export default function TvdParametersPage() {
         explorerUrl: toWriteContractUrl(data?.contracts.institutionalVesting.explorerUrl),
       },
       {
+        id: "rewards-tvd",
+        name: "TVD disponible para recompensas",
+        value:
+          data?.rewardsTvd.status === "error"
+            ? "No disponible"
+            : data?.rewardsTvd.formatted ?? "Pendiente de consulta",
+        status: data?.rewardsTvd.status === "available" ? "available" : data?.rewardsTvd.status === "error" ? "error" : "pending",
+        example: formatRawTvd(data?.rewardsTvd.raw, data?.decimals)
+          ? `Cantidad de TVD disponible para entregar como recompensas por voto válido.`
+          : null,
+        explorerUrl: toWriteContractUrl(data?.contracts.voteManager.explorerUrl),
+      },
+      {
         id: "reward-status",
         name: "Entrega por voto válido",
         value:
@@ -259,7 +272,13 @@ export default function TvdParametersPage() {
   const economicActions = useMemo(
     () =>
       contractActions.filter((action) =>
-        ["vote-consumption", "burn-percentage", "vote-reward", "insitutional-tvd"].includes(
+        [
+          "vote-consumption",
+          "burn-percentage",
+          "vote-reward",
+          "insitutional-tvd",
+          "rewards-tvd",
+        ].includes(
           action.id,
         ),
       ),

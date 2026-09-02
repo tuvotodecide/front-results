@@ -648,6 +648,7 @@ export const readTvdEconomicParameters = async (
       enabled: null,
     },
     institutionalTvd: emptyEconomicValue("not_configured", "TokenTVD no configurado"),
+    rewardsTvd: emptyEconomicValue("not_configured", "TokenTVD no configurado"),
     campaign: {
       status: "not_configured",
       message: "IncentiveCampaigns no configurado",
@@ -675,8 +676,14 @@ export const readTvdEconomicParameters = async (
     });
   }
 
-  const [tvdPerCreditResult, burnResult, rewardResult, campaignResult, insitutinalResult] =
-    await Promise.allSettled([
+  const [
+    tvdPerCreditResult,
+    burnResult,
+    rewardResult,
+    campaignResult,
+    insitutinalResult,
+    rewardsBalanceResult,
+  ] = await Promise.allSettled([
       electoralCreditsAddress && decimals !== null
         ? readTvdPerCredit(provider, electoralCreditsAddress, decimals)
         : Promise.resolve(emptyEconomicValue("not_configured", "ElectoralCredits no configurado")),
@@ -702,8 +709,11 @@ export const readTvdEconomicParameters = async (
             fields: [],
           }),
       tvdAddress && institutionalVestingAddress && decimals !== null
-        ? readInsitutionalBalance(provider, tvdAddress, institutionalVestingAddress, decimals)
+        ? readTvdBalanceOf(provider, tvdAddress, institutionalVestingAddress, decimals)
         : Promise.resolve(emptyEconomicValue("not_configured", "InsitutionalVesting no configurado")),
+      tvdAddress && voteManagerAddress && decimals !== null
+        ? readTvdBalanceOf(provider, tvdAddress, voteManagerAddress, decimals)
+        : Promise.resolve(emptyEconomicValue("not_configured", "VoteManager no configurado")),
     ]);
 
   const tvdPerCredit =
@@ -757,6 +767,17 @@ export const readTvdEconomicParameters = async (
     });
   }
 
+  const rewardsTvd =
+    rewardsBalanceResult.status === "fulfilled"
+      ? rewardsBalanceResult.value
+      : emptyEconomicValue("error", "Error al consultar la blockchain");
+  if (rewardsTvd.status === "error") {
+    issues.push({
+      code: "REWARDS_TVD_RPC_ERROR",
+      message: "Error al consultar balanceOf(voteManager)",
+    });
+  }
+
   const campaign =
     campaignResult.status === "fulfilled"
       ? campaignResult.value
@@ -788,6 +809,7 @@ export const readTvdEconomicParameters = async (
     burn,
     rewardByVote,
     institutionalTvd,
+    rewardsTvd,
     campaign,
     contracts: baseContracts,
     updatedAt: hasSuccessfulRead ? new Date().toISOString() : null,
@@ -895,15 +917,15 @@ const readRewardByVote = async (
   }
 };
 
-const readInsitutionalBalance = async (
+const readTvdBalanceOf = async (
   provider: JsonRpcProvider,
   tvdAddress: string,
-  institutionalAddr: string,
+  holderAddress: string,
   decimals: number,
 ): Promise<TvdEconomicValue> => {
   try {
     const contract = new Contract(tvdAddress, TOKEN_ABI, provider);
-    const raw = toBigIntValue(await contract.balanceOf(institutionalAddr));
+    const raw = toBigIntValue(await contract.balanceOf(holderAddress));
     if (raw === null) throw new Error("raw invalido");
     return {
       raw: raw.toString(),
