@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { selectAuth, setActiveContext } from "@/store/auth/authSlice";
 import {
+  buildLoginRedirect,
   findContextForDomain,
   getBlockedAccessMessage,
   isSameContext,
@@ -33,7 +34,7 @@ export default function AccessApprovalsGuard({
   let redirectTo: string | null = null;
 
   if (!auth.token || !auth.user) {
-    redirectTo = `/resultados/login?from=${encodeURIComponent(pathname)}`;
+    redirectTo = buildLoginRedirect("/resultados/login", pathname);
   }
 
   const shouldBlockDomain =

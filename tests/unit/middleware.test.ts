@@ -70,6 +70,24 @@ describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | 
     );
   });
 
+  it("AUT-GRD-P0-001 | redirige rutas privadas de votación al login conservando la ruta pedida", () => {
+    const response = middleware(createRequest("/votacion/elecciones"));
+
+    expect(response.headers.get("location")).toBe(
+      "http://localhost/votacion/login?from=%2Fvotacion%2Felecciones",
+    );
+  });
+
+  it("AUT-GRD-P0-001 | conserva el query string en el from del login de votación", () => {
+    const response = handleVotacionAccess(
+      createRequest("/votacion/elecciones/e-1/config/general?tab=candidatos"),
+    );
+
+    expect(response.headers.get("location")).toBe(
+      "http://localhost/votacion/login?from=%2Fvotacion%2Felecciones%2Fe-1%2Fconfig%2Fgeneral%3Ftab%3Dcandidatos",
+    );
+  });
+
   it("AUT-STA-P0-002 | redirige usuarios resultados pendientes a pendiente", () => {
     const token = createToken({
       exp: Math.floor(Date.now() / 1000) + 3600,

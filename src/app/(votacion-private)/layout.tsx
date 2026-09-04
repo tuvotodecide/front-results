@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { ReactNode } from "react";
 import VotacionPrivateGuard from "../../domains/votacion/guards/VotacionPrivateGuard";
 import VotacionPrivateShell from "../../domains/votacion/layout/VotacionPrivateShell";
@@ -10,8 +11,10 @@ export default function VotacionPrivateLayout({
   children,
 }: VotacionPrivateLayoutProps) {
   return (
-    <VotacionPrivateGuard>
-      <VotacionPrivateShell>{children}</VotacionPrivateShell>
-    </VotacionPrivateGuard>
+    <Suspense fallback={null}>
+      <VotacionPrivateGuard>
+        <VotacionPrivateShell>{children}</VotacionPrivateShell>
+      </VotacionPrivateGuard>
+    </Suspense>
   );
 }

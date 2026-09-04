@@ -141,9 +141,9 @@ const redirectTo = (request: NextRequest, pathname: string) => {
   return NextResponse.redirect(url);
 };
 
-const redirectResultadosLogin = (request: NextRequest) => {
+const redirectLogin = (request: NextRequest, loginPath: string) => {
   const url = request.nextUrl.clone();
-  url.pathname = "/resultados/login";
+  url.pathname = loginPath;
   url.search = "";
   url.searchParams.set(
     "from",
@@ -151,6 +151,12 @@ const redirectResultadosLogin = (request: NextRequest) => {
   );
   return NextResponse.redirect(url);
 };
+
+const redirectResultadosLogin = (request: NextRequest) =>
+  redirectLogin(request, "/resultados/login");
+
+const redirectVotacionLogin = (request: NextRequest) =>
+  redirectLogin(request, "/votacion/login");
 
 export const getSession = (request: NextRequest) => {
   const devSession = request.cookies.get(DEV_AUTH_COOKIE)?.value ?? null;
@@ -236,7 +242,7 @@ export const handleVotacionAccess = (request: NextRequest) => {
   const session = getSession(request);
 
   if (!session) {
-    return redirectTo(request, "/votacion/login");
+    return redirectVotacionLogin(request);
   }
 
   if (session.status === "PENDING") {

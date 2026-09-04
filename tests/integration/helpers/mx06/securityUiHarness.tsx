@@ -25,6 +25,7 @@ export const securityVisualBalanceRefetch = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: securityRouterReplace }),
   usePathname: () => "/votacion/recarga-operativa",
+  useSearchParams: () => searchParams,
 }));
 
 vi.mock("@/domains/votacion/navigation/compat-private", () => ({

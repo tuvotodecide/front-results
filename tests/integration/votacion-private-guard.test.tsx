@@ -4,19 +4,24 @@ import { renderWithAuthStore } from "../utils/renderWithStore";
 
 const replace = vi.fn();
 let pathname = "/votacion";
+let searchParams = new URLSearchParams();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace }),
   usePathname: () => pathname,
+  useSearchParams: () => searchParams,
 }));
 
 describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | Votación guard", () => {
   beforeEach(() => {
     replace.mockReset();
     pathname = "/votacion";
+    searchParams = new URLSearchParams();
   });
 
-  it("AUT-GRD-P0-001 | redirige anónimos al login canónico de votación", async () => {
+  it("AUT-GRD-P0-001 | redirige anónimos al login canónico de votación conservando la ruta pedida", async () => {
+    pathname = "/votacion/elecciones";
+
     renderWithAuthStore(
       <VotacionPrivateGuard>
         <div>private voting</div>
@@ -24,7 +29,26 @@ describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | 
     );
 
     await waitFor(() => {
-      expect(replace).toHaveBeenCalledWith("/votacion/login");
+      expect(replace).toHaveBeenCalledWith(
+        "/votacion/login?from=%2Fvotacion%2Felecciones",
+      );
+    });
+  });
+
+  it("AUT-GRD-P0-001 | conserva el query string de la ruta pedida en el login", async () => {
+    pathname = "/votacion/elecciones/e-1/config/general";
+    searchParams = new URLSearchParams("tab=candidatos");
+
+    renderWithAuthStore(
+      <VotacionPrivateGuard>
+        <div>private voting</div>
+      </VotacionPrivateGuard>,
+    );
+
+    await waitFor(() => {
+      expect(replace).toHaveBeenCalledWith(
+        "/votacion/login?from=%2Fvotacion%2Felecciones%2Fe-1%2Fconfig%2Fgeneral%3Ftab%3Dcandidatos",
+      );
     });
   });
 

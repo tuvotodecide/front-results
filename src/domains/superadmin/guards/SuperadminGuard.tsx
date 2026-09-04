@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { selectAuth, setDevAuthSession } from "@/store/auth/authSlice";
+import { buildLoginRedirect } from "@/store/auth/contextUtils";
 import { isDevAuthEnabled } from "@/domains/dev-auth/devAuth";
 
 const isGlobalAdminContext = (context?: { type?: string } | null) =>
@@ -35,7 +36,7 @@ export default function SuperadminGuard({
   const [checkingDevSession, setCheckingDevSession] = useState(false);
   const hasSession = Boolean((auth.token || auth.isDevSession) && auth.user);
   const allowed = hasSession && hasSuperadminAccess(auth);
-  const loginPath = `/resultados/login?from=${encodeURIComponent(pathname)}`;
+  const loginPath = buildLoginRedirect("/resultados/login", pathname);
 
   useEffect(() => {
     if (hasSession) {

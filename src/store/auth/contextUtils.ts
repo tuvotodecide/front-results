@@ -419,6 +419,61 @@ export const resolveDomainLogin = (
   return resolveDeniedDomainAccess(domain, auth.accessStatus, auth.user);
 };
 
+/** Rutas de autenticación que nunca deben usarse como destino post-login. */
+const authEntryPaths = [
+  "/login",
+  "/votacion/login",
+  "/votacion/registrarse",
+  "/votacion/pendiente",
+  "/votacion/rechazado",
+  "/votacion/recuperar",
+  "/votacion/restablecer",
+  "/votacion/verificar-correo",
+  "/votacion/recuperacion-institucional",
+  "/resultados/login",
+  "/resultados/registrarse",
+  "/resultados/pendiente",
+  "/resultados/rechazado",
+  "/resultados/recuperar",
+  "/resultados/restablecer",
+  "/resultados/verificar-correo",
+] as const;
+
+/**
+ * Normaliza el destino solicitado (`?from=`) descartando URLs externas,
+ * rutas relativas al protocolo y las propias pantallas de autenticación.
+ */
+export const sanitizeRequestedPath = (requestedPath?: string | null) => {
+  if (!requestedPath) return null;
+
+  const trimmed = requestedPath.trim();
+
+  if (!trimmed.startsWith("/")) return null;
+  if (trimmed.startsWith("//") || trimmed.startsWith("/\\")) return null;
+
+  const [pathnameOnly] = trimmed.split(/[?#]/);
+
+  if (
+    authEntryPaths.some(
+      (path) => pathnameOnly === path || pathnameOnly.startsWith(`${path}/`),
+    )
+  ) {
+    return null;
+  }
+
+  return trimmed;
+};
+
+/** Construye el login del dominio conservando la ruta solicitada en `?from=`. */
+export const buildLoginRedirect = (
+  loginPath: string,
+  requestedPath?: string | null,
+) => {
+  const from = sanitizeRequestedPath(requestedPath);
+
+  return from ? `${loginPath}?from=${encodeURIComponent(from)}` : loginPath;
+};
+
 export const resolvePostLoginRedirect = (
   auth: Pick<
     AuthState,
@@ -428,12 +483,13 @@ export const resolvePostLoginRedirect = (
     | "activeContext"
     | "accessStatus"
   >,
-  requestedPath?: string | null,
+  rawRequestedPath?: string | null,
 ) => {
   const context =
     auth.activeContext ??
     auth.defaultContext ??
     (auth.availableContexts.length === 1 ? auth.availableContexts[0] : null);
+  const requestedPath = sanitizeRequestedPath(rawRequestedPath);
 
   if (!context) {
     return "/";

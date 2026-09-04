@@ -54,7 +54,7 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
   it("[MX-02][SOPORTE-NO-REGRESION][INTEGRACION] protege rutas nuevas igual que rutas privadas de votación", () => {
     const anonymousResponse = handleVotacionAccess(createRequest("/votacion/recarga-operativa"));
     expect(anonymousResponse.headers.get("location")).toBe(
-      "http://localhost/votacion/login",
+      "http://localhost/votacion/login?from=%2Fvotacion%2Frecarga-operativa",
     );
 
     const token = createToken({

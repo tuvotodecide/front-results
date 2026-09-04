@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { selectAuth, setActiveContext } from "@/store/auth/authSlice";
 import {
+  buildLoginRedirect,
   findContextForDomain,
   isSameContext,
   resolveBlockedHomeByContext,
@@ -74,7 +75,7 @@ export default function ResultadosPrivateGuard({
   const from = `${pathname}${search ? `?${search}` : ""}`;
 
   if (!user || !token) {
-    redirectTo = `/resultados/login?from=${encodeURIComponent(from)}`;
+    redirectTo = buildLoginRedirect("/resultados/login", from);
   } else if (status === "PENDING") {
     redirectTo = "/resultados/pendiente";
   } else if (status === "REJECTED" || status === "INACTIVE") {

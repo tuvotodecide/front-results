@@ -6,6 +6,7 @@ import {
   type AuthState,
 } from "@/store/auth/authSlice";
 import {
+  buildLoginRedirect,
   getInstitutionalContexts,
   isContextAllowedForDomain,
   requiresInstitutionSelection,
@@ -14,6 +15,7 @@ import {
   resolveHomeByContext,
   resolveHomeLabelByContext,
   resolvePostLoginRedirect,
+  sanitizeRequestedPath,
 } from "@/store/auth/contextUtils";
 
 const token =
@@ -79,6 +81,56 @@ describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | 
       tenantId: "tenant-1",
     });
     expect(resolvePostLoginRedirect(state)).toBe("/votacion/elecciones");
+  });
+
+  it("AUT-GRD-P0-001 | construye el login del dominio con la ruta pedida en from", () => {
+    expect(
+      buildLoginRedirect("/votacion/login", "/votacion/elecciones?tab=abiertas"),
+    ).toBe("/votacion/login?from=%2Fvotacion%2Felecciones%3Ftab%3Dabiertas");
+    expect(buildLoginRedirect("/votacion/login", "")).toBe("/votacion/login");
+    expect(buildLoginRedirect("/resultados/login", "/superadmin")).toBe(
+      "/resultados/login?from=%2Fsuperadmin",
+    );
+  });
+
+  it("AUT-GRD-P0-001 | descarta destinos externos o de autenticación en from", () => {
+    expect(sanitizeRequestedPath("/votacion/elecciones")).toBe(
+      "/votacion/elecciones",
+    );
+    expect(sanitizeRequestedPath("https://evil.test/votacion")).toBeNull();
+    expect(sanitizeRequestedPath("//evil.test/votacion")).toBeNull();
+    expect(sanitizeRequestedPath("/votacion/login")).toBeNull();
+    expect(sanitizeRequestedPath("/votacion/registrarse")).toBeNull();
+    expect(sanitizeRequestedPath("/resultados/login?from=%2Fsuperadmin")).toBeNull();
+    expect(sanitizeRequestedPath(null)).toBeNull();
+
+    expect(buildLoginRedirect("/votacion/login", "//evil.test/votacion")).toBe(
+      "/votacion/login",
+    );
+  });
+
+  it("AUT-LOG-P0-002 | devuelve la ruta pedida tras el login cuando el contexto la permite", () => {
+    const tenantContext = { type: "TENANT" as const, tenantId: "tenant-1" };
+    const auth = {
+      ...baseState,
+      availableContexts: [tenantContext],
+      activeContext: tenantContext,
+      defaultContext: tenantContext,
+    };
+
+    expect(
+      resolvePostLoginRedirect(auth, "/votacion/elecciones/e-1/config/general"),
+    ).toBe("/votacion/elecciones/e-1/config/general");
+    expect(
+      resolvePostLoginRedirect(auth, "/votacion/elecciones?tab=abiertas"),
+    ).toBe("/votacion/elecciones?tab=abiertas");
+    // Rutas de otro dominio o de autenticación caen al inicio del contexto.
+    expect(resolvePostLoginRedirect(auth, "/resultados/panel")).toBe(
+      "/votacion/elecciones",
+    );
+    expect(resolvePostLoginRedirect(auth, "/votacion/login")).toBe(
+      "/votacion/elecciones",
+    );
   });
 
   it("MULTI-INS-02 | con dos instituciones no activa la primera y exige selección", () => {

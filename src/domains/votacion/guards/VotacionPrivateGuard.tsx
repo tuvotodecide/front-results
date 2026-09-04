@@ -2,12 +2,13 @@
 
 import { useEffect } from "react";
 import type { ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { selectAuth, setActiveContext } from "@/store/auth/authSlice";
 import { apiSlice } from "@/store/apiSlice";
 import { clearSelectedElection } from "@/store/election/electionSlice";
 import {
+  buildLoginRedirect,
   findContextForDomain,
   getInstitutionalContexts,
   getSelectedInstitutionContext,
@@ -29,6 +30,9 @@ export default function VotacionPrivateGuard({
   children,
 }: VotacionPrivateGuardProps) {
   const router = useRouter();
+  const pathname = usePathname() ?? "";
+  const searchParams = useSearchParams();
+  const search = searchParams?.toString() ?? "";
   const dispatch = useDispatch();
   const auth = useSelector(selectAuth);
   const { user, token, activeContext, availableContexts } = auth;
@@ -54,9 +58,10 @@ export default function VotacionPrivateGuard({
     Boolean(domainContext) && !isSameContext(activeContext, domainContext);
 
   let redirectTo: string | null = null;
+  const from = `${pathname}${search ? `?${search}` : ""}`;
 
   if (!user || !token) {
-    redirectTo = "/votacion/login";
+    redirectTo = buildLoginRedirect("/votacion/login", from);
   } else if (status === "PENDING") {
     redirectTo = "/votacion/pendiente";
   } else if (status === "REJECTED" || status === "INACTIVE") {
