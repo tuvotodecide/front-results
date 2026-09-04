@@ -72,7 +72,7 @@ const step2Schema = Yup.object({
     .required('Este campo es obligatorio')
     .test(
       'minimum-12-hours',
-      `Debe programarse con al menos ${MIN_CREATE_LEAD_HOURS} horas de anticipación.`,
+      `Debe programarse con al menos ${MIN_CREATE_LEAD_HOURS} ${MIN_CREATE_LEAD_HOURS === 1 ? 'hora':'horas'} de anticipación.`,
       (value) => {
         if (!value) return true;
         return new Date(value).getTime() >= Date.now() + MIN_CREATE_LEAD_MS;
@@ -325,7 +325,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
       console.error('Error creando elección:', error);
       setShowConfirmModal(false);
       setSubmitError(
-        error?.message || 'No se pudo continuar al siguiente paso. Intenta nuevamente.',
+        error?.message || error?.data?.message || 'No se pudo continuar al siguiente paso. Intenta nuevamente.',
       );
     }
   };
@@ -517,7 +517,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
               {({ isValid, values }) => (
                 <Form className="space-y-6">
                   <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                    {step1Data.isReferendum ? 'El referéndum' : 'La elección'} debe crearse con al menos {MIN_CREATE_LEAD_HOURS} horas de anticipación respecto a la hora actual.
+                    {step1Data.isReferendum ? 'El referéndum' : 'La elección'} debe crearse con al menos {MIN_CREATE_LEAD_HOURS} {MIN_CREATE_LEAD_HOURS === 1 ? 'hora':'horas'} de anticipación respecto a la hora actual.
                   </div>
 
                   {/* Fecha apertura */}

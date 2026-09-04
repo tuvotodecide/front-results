@@ -6,7 +6,7 @@ import { resetResults } from "../store/resultados/resultadosSlice";
 import { clearSelectedElection } from "../store/election/electionSlice";
 import { apiSlice } from "../store/apiSlice";
 import tuvotoDecideImage from "../assets/tuvotodecide.webp";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import {
   emitNavigationStart,
   resolveLogoutDestination,
@@ -28,6 +28,9 @@ export const Header: React.FC<HeaderProps> = ({
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const location = useLocation();
   const isLoginPage = location.pathname === "/login";
+  const [searchParams] = useSearchParams();
+  // ?hideLogin=true oculta el acceso de sesión: botón "Iniciar Sesión" y datos del usuario
+  const hideLogin = searchParams.get("hideLogin") === "true";
   const { user } = useSelector(selectAuth);
   const dispatch = useDispatch();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
@@ -66,7 +69,7 @@ export const Header: React.FC<HeaderProps> = ({
         <span className={styles.logoText}>Tu voto decide</span>
       </a>
       <div className={styles.headerActions}>
-        {isLoggedIn ? (
+        {isLoggedIn && !hideLogin ? (
           <>
             {" "}
             <div className={styles.userMenuContainer} ref={menuRef}>
@@ -145,7 +148,7 @@ export const Header: React.FC<HeaderProps> = ({
           </>
         ) : (
           <>
-            {!isLoginPage && (
+            {!isLoginPage && !hideLogin && (
               <Link to="/login" className={styles.loginButton}>
                 Iniciar Sesión
               </Link>

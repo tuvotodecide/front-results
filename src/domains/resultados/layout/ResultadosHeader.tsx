@@ -12,7 +12,7 @@ import { resetResults } from "../../../store/resultados/resultadosSlice";
 import { clearSelectedElection } from "../../../store/election/electionSlice";
 import { apiSlice } from "../../../store/apiSlice";
 import tuvotoDecideImage from "../../../assets/tuvotodecide.webp";
-import { Link, useLocation } from "../navigation/compat";
+import { Link, useLocation, useSearchParams } from "../navigation/compat";
 import {
   emitNavigationStart,
   resolveLogoutDestination,
@@ -35,6 +35,9 @@ const ResultadosHeader: React.FC<HeaderProps> = ({
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const location = useLocation();
   const isLoginPage = location.pathname === "/resultados/login";
+  const [searchParams] = useSearchParams();
+  // ?hideLogin=true oculta el acceso de sesión: botón "Iniciar Sesión" y datos del usuario
+  const hideLogin = searchParams.get("hideLogin") === "true";
   const { user, activeContext } = useSelector(selectAuth);
   const dispatch = useDispatch();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
@@ -74,7 +77,7 @@ const ResultadosHeader: React.FC<HeaderProps> = ({
         <span className={styles.logoText}>Tu voto decide</span>
       </a>
       <div className={styles.headerActions}>
-        {hasMounted && isLoggedIn ? (
+        {hasMounted && isLoggedIn && !hideLogin ? (
           <>
             {" "}
             <div className={styles.userMenuContainer} ref={menuRef}>
@@ -159,7 +162,7 @@ const ResultadosHeader: React.FC<HeaderProps> = ({
           </>
         ) : (
           <>
-            {hasMounted && !isLoginPage && (
+            {hasMounted && !isLoginPage && !hideLogin && (
               <Link to="/resultados/login" className={styles.loginButton}>
                 Iniciar Sesión
               </Link>

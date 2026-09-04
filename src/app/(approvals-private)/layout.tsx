@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import AccessApprovalsGuard from "@/domains/access-approvals/guards/AccessApprovalsGuard";
 import VotacionPublicHeader from "@/domains/votacion/layout/VotacionPublicHeader";
 
@@ -10,7 +10,9 @@ export default function ApprovalsPrivateLayout({
   return (
     <AccessApprovalsGuard>
       <div data-domain="approvals" data-access="private">
-        <VotacionPublicHeader />
+        <Suspense fallback={null}>
+          <VotacionPublicHeader />
+        </Suspense>
         <div style={{ paddingTop: "64px" }}>{children}</div>
       </div>
     </AccessApprovalsGuard>

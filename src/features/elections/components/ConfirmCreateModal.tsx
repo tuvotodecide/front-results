@@ -87,6 +87,7 @@ const ConfirmCreateModal: React.FC<ConfirmCreateModalProps> = ({
             <span className="font-semibold">
               {officialPublicationDeadlineLabel}
             </span>
+            <br/>DE OTRA MANERA, LA VOTACIÓN CADUCARÁ Y NO SE PODRÁ PUBLICAR
           </div>
         ) : null}
 

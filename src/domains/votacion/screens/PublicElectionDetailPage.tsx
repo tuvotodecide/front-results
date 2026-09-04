@@ -4,6 +4,7 @@ import { PadronCheckModal } from "@/features/padronCheck";
 import { publicElectionRepository } from "@/features/publicElectionDetail/data/PublicElectionRepository.api";
 import type { Candidate, PublicElectionDetail } from "@/features/publicElectionDetail/types";
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useNavigate, useParams } from "../navigation/compat";
 
 const ArrowLeftIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
@@ -374,6 +375,9 @@ const PadronCheckSection: React.FC<{ onOpenModal: () => void }> = ({ onOpenModal
 const PublicElectionDetailPage: React.FC = () => {
   const { electionId } = useParams<{ electionId: string }>();
   const navigate = useNavigate();
+  const searchParams = useSearchParams();
+  // ?hideLogin=true oculta el acceso de sesión y la navegación de retorno
+  const hideLogin = searchParams?.get("hideLogin") === "true";
   const [election, setElection] = useState<PublicElectionDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -470,13 +474,15 @@ const PublicElectionDetailPage: React.FC = () => {
                 </span>
               ) : null}
             </h1>
-            <button
-              onClick={handleBack}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
-            >
-              <ArrowLeftIcon className="w-4 h-4" />
-              Volver
-            </button>
+            {!hideLogin && (
+              <button
+                onClick={handleBack}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                <ArrowLeftIcon className="w-4 h-4" />
+                Volver
+              </button>
+            )}
           </div>
         </div>
       </header>

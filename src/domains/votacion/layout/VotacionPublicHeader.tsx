@@ -14,7 +14,7 @@ import {
 } from "@/store/auth/authSlice";
 import { resetResults } from "@/store/resultados/resultadosSlice";
 import tuvotoDecideImage from "@/assets/tuvotodecide.webp";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   emitNavigationStart,
   resolveLogoutDestination,
@@ -35,6 +35,9 @@ export default function VotacionPublicHeader() {
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const pathname = usePathname();
   const isLoginPage = pathname === "/votacion/login";
+  const searchParams = useSearchParams();
+  // ?hideLogin=true oculta el acceso de sesión: botón "Iniciar Sesión" y datos del usuario
+  const hideLogin = searchParams?.get("hideLogin") === "true";
   const { user, activeContext, availableContexts, defaultContext } =
     useSelector(selectAuth);
   const dispatch = useDispatch();
@@ -71,8 +74,8 @@ export default function VotacionPublicHeader() {
     window.location.replace(resolveLogoutDestination(pathname));
   };
 
-  const showUserMenu = hasMounted && isLoggedIn;
-  const showLoginButton = !showUserMenu && !isLoginPage;
+  const showUserMenu = hasMounted && isLoggedIn && !hideLogin;
+  const showLoginButton = !showUserMenu && !isLoginPage && !hideLogin;
   // El destino del botón es el mismo inicio que resuelve el login para el rol
   // activo: superadmin, resultados, aprobaciones o las votaciones del tenant.
   const homeContext =

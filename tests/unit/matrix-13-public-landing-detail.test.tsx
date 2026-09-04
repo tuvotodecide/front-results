@@ -37,6 +37,7 @@ vi.mock("@/domains/votacion/navigation/compat", () => ({
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/votacion",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock("next/link", () => ({

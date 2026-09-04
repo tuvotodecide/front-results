@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import VotacionPublicHeader from "./VotacionPublicHeader";
 
 interface VotacionPublicShellProps {
@@ -21,7 +21,9 @@ export default function VotacionPublicShell({
         overflow: "auto",
       }}
     >
-      <VotacionPublicHeader />
+      <Suspense fallback={null}>
+        <VotacionPublicHeader />
+      </Suspense>
       <main
         style={{
           marginTop: "64px",
