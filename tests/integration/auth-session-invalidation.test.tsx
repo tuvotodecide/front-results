@@ -47,6 +47,10 @@ const buildStore = () =>
     },
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware().concat(apiSlice.middleware),
+    // Evita el batching por requestAnimationFrame, que deja callbacks vivos
+    // tras el teardown de jsdom.
+    enhancers: (getDefaultEnhancers) =>
+      getDefaultEnhancers({ autoBatch: { type: "tick" } }),
     preloadedState: {
       auth: {
         token: "old-token",

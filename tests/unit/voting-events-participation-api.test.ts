@@ -12,6 +12,10 @@ const createApiStore = () =>
       auth: () => ({ token: "token" }),
     },
     middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(apiSlice.middleware),
+    // Evita el batching por requestAnimationFrame, que deja callbacks vivos
+    // tras el teardown de jsdom.
+    enhancers: (getDefaultEnhancers) =>
+      getDefaultEnhancers({ autoBatch: { type: "tick" } }),
   });
 
 const getFetchCall = () => {

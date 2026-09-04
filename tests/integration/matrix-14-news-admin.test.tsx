@@ -58,6 +58,11 @@ vi.mock("@/store/votingEvents", async (importOriginal) => {
   };
 });
 
+// Estas pruebas escriben cientos de caracteres sobre pantallas grandes. El delay
+// por defecto de userEvent cede al event loop en cada tecla y hace que el archivo
+// roce el timeout de 5s cuando la suite corre en paralelo.
+const setupUser = () => userEvent.setup({ delay: null });
+
 const jsonResponse = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
@@ -233,7 +238,7 @@ beforeEach(() => {
 
 describe("MX-14 | publicación administrativa de noticias", () => {
   it("[MX-14][NOT-ADM-P1-001][INTEGRACION] valida el modal y publica desde la pantalla administrativa mediante el endpoint real", async () => {
-    const modalUser = userEvent.setup();
+    const modalUser = setupUser();
     const { onSubmit: standaloneSubmit } = renderNewsModal();
     const standalonePublish = screen.getByRole("button", { name: "Publicar noticia" });
     const standaloneDialog = screen.getByRole("dialog", { name: "Crear noticia" });
@@ -256,7 +261,7 @@ describe("MX-14 | publicación administrativa de noticias", () => {
     renderNewsModal({ isLoading: true });
     expect(screen.getByRole("button", { name: "Publicando..." })).toBeDisabled();
 
-    const user = userEvent.setup();
+    const user = setupUser();
     const captured: CapturedRequest[] = [];
     vi.stubGlobal(
       "fetch",
@@ -301,10 +306,10 @@ describe("MX-14 | publicación administrativa de noticias", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/12 enviad[oa]s/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/0 omitid[oa]s/i)).not.toBeInTheDocument();
-  });
+  }, 15000);
 
   it("[MX-14][NOT-ADM-P1-002][INTEGRACION] conserva campos editables ante validación inválida y rechazo backend con un único envío", async () => {
-    const modalUser = userEvent.setup();
+    const modalUser = setupUser();
     const { onSubmit: standaloneSubmit } = renderNewsModal();
     await fillModalRequiredFields(modalUser);
     const standaloneLink = screen.getByLabelText("Enlace opcional");
@@ -318,7 +323,7 @@ describe("MX-14 | publicación administrativa de noticias", () => {
     expect(standaloneImage).toBeEnabled();
     expect(standaloneSubmit).not.toHaveBeenCalled();
 
-    const user = userEvent.setup();
+    const user = setupUser();
     const captured: CapturedRequest[] = [];
     vi.stubGlobal(
       "fetch",
@@ -359,10 +364,10 @@ describe("MX-14 | publicación administrativa de noticias", () => {
         imageUrl: "https://cdn.test/horarios.png",
       },
     });
-  });
+  }, 15000);
 
   it("[MX-14][NOT-SEC-P0-002][INTEGRACION] muestra solo datos de la noticia y excluye tokens, secretos y cabeceras del DOM", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const { onSubmit } = renderNewsModal();
 
     await fillModalRequiredFields(user);

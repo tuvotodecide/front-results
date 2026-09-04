@@ -13,6 +13,10 @@ const createApiStore = () =>
     },
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware().concat(apiSlice.middleware),
+    // Evita el batching por requestAnimationFrame, que deja callbacks vivos
+    // tras el teardown de jsdom.
+    enhancers: (getDefaultEnhancers) =>
+      getDefaultEnhancers({ autoBatch: { type: "tick" } }),
   });
 
 const getFetchRequest = () => vi.mocked(fetch).mock.calls[0]?.[0] as Request;

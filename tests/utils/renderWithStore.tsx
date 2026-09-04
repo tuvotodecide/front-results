@@ -32,6 +32,14 @@ export const renderWithAuthStore = (
     },
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware().concat(apiSlice.middleware),
+    // RTK agrupa por defecto las notificaciones de RTK Query con
+    // requestAnimationFrame. jsdom mantiene vivo su intervalo de animación
+    // mientras haya un callback pendiente, y si la prueba termina antes de que
+    // se dispare, el callback corre sobre una ventana ya cerrada y lanza un
+    // error no capturado durante el teardown. `tick` usa queueMicrotask, que
+    // siempre se vacía dentro de la propia prueba.
+    enhancers: (getDefaultEnhancers) =>
+      getDefaultEnhancers({ autoBatch: { type: "tick" } }),
     preloadedState: {
       auth: {
         token: null,
