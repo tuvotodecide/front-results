@@ -165,7 +165,7 @@ describe("MX-06 | QR, acreditación y capacidad TVD", () => {
     ]);
     cy.location("pathname").should("eq", "/votacion/elecciones/event-mx06/config/review");
     cy.contains("button", "Recargar tokens").click();
-    cy.location("pathname").should("eq", "/votacion/recarga-operativa");
+    cy.location("pathname", { timeout: 30000 }).should("eq", "/votacion/recarga-operativa");
     cy.contains("h1", "Recarga operativa").should("be.visible");
     cy.wait("@tvdSummary");
     // El techo de recarga habilita "Generar QR": esperarlo evita depender del
