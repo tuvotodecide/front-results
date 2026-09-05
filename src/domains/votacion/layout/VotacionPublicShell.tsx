@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, type ReactNode } from "react";
+import { useSearchParams } from "next/navigation";
 import VotacionPublicHeader from "./VotacionPublicHeader";
 
 interface VotacionPublicShellProps {
@@ -10,6 +11,10 @@ interface VotacionPublicShellProps {
 export default function VotacionPublicShell({
   children,
 }: VotacionPublicShellProps) {
+  const searchParams = useSearchParams();
+  // Con ?hideLogin=true la cabecera no se renderiza, así que no hay que compensar su altura
+  const headerOffset = searchParams?.get("hideLogin") === "true" ? 0 : "64px";
+
   return (
     <div
       data-domain="votacion"
@@ -26,7 +31,7 @@ export default function VotacionPublicShell({
       </Suspense>
       <main
         style={{
-          marginTop: "64px",
+          marginTop: headerOffset,
           flex: 1,
         }}
       >

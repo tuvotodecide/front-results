@@ -3,7 +3,7 @@ import { useScreenSize } from '../hooks/useScreenSize';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { MainContent } from './MainContent';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useSearchParams } from 'react-router-dom';
 import './BasicLayout.css'; // Assuming you have a CSS file for styles
 
 interface BasicLayoutProps {
@@ -13,6 +13,10 @@ interface BasicLayoutProps {
 const BasicLayout: React.FC<BasicLayoutProps> = ({ children }) => {
   const { isSmallScreen } = useScreenSize();
   const [isSidebarOpen, setSidebarOpen] = useState(!isSmallScreen);
+  const [searchParams] = useSearchParams();
+  // Con ?hideLogin=true la cabecera no se renderiza, así que no hay que compensar su altura
+  const headerOffset =
+    searchParams.get('hideLogin') === 'true' ? '0px' : '64px';
 
   const toggleSidebar = () => {
     setSidebarOpen(!isSidebarOpen);
@@ -33,6 +37,7 @@ const BasicLayout: React.FC<BasicLayoutProps> = ({ children }) => {
         overflow: 'hidden',
         ['--sidebar-width' as string]:
           !isSmallScreen && isSidebarOpen ? '280px' : '0px',
+        ['--header-offset' as string]: headerOffset,
       }}
     >
       <Header toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />

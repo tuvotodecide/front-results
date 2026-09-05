@@ -36,7 +36,7 @@ export default function VotacionPublicHeader() {
   const pathname = usePathname();
   const isLoginPage = pathname === "/votacion/login";
   const searchParams = useSearchParams();
-  // ?hideLogin=true oculta el acceso de sesión: botón "Iniciar Sesión" y datos del usuario
+  // ?hideLogin=true oculta la cabecera por completo
   const hideLogin = searchParams?.get("hideLogin") === "true";
   const { user, activeContext, availableContexts, defaultContext } =
     useSelector(selectAuth);
@@ -74,8 +74,13 @@ export default function VotacionPublicHeader() {
     window.location.replace(resolveLogoutDestination(pathname));
   };
 
-  const showUserMenu = hasMounted && isLoggedIn && !hideLogin;
-  const showLoginButton = !showUserMenu && !isLoginPage && !hideLogin;
+  // Se evalúa después de los hooks para no alterar su orden entre renders
+  if (hideLogin) {
+    return null;
+  }
+
+  const showUserMenu = hasMounted && isLoggedIn;
+  const showLoginButton = !showUserMenu && !isLoginPage;
   // El destino del botón es el mismo inicio que resuelve el login para el rol
   // activo: superadmin, resultados, aprobaciones o las votaciones del tenant.
   const homeContext =

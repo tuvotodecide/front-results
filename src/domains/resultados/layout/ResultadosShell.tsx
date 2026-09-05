@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useScreenSize } from "../../../hooks/useScreenSize";
+import { useSearchParams } from "../navigation/compat";
 import { MainContent } from "../../../components/MainContent";
 import ResultadosHeader from "./ResultadosHeader";
 import ResultadosSidebar from "./ResultadosSidebar";
@@ -17,6 +18,10 @@ export default function ResultadosShell({
   access,
 }: ResultadosShellProps) {
   const { isSmallScreen, isScreenSizeReady } = useScreenSize();
+  const [searchParams] = useSearchParams();
+  // Con ?hideLogin=true la cabecera no se renderiza, así que no hay que compensar su altura
+  const headerOffset =
+    searchParams.get("hideLogin") === "true" ? "0px" : "64px";
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const hasSyncedInitialSidebar = useRef(false);
 
@@ -50,6 +55,7 @@ export default function ResultadosShell({
         overflow: "hidden",
         ["--sidebar-width" as string]:
           !isSmallScreen && isSidebarOpen ? "280px" : "0px",
+        ["--header-offset" as string]: headerOffset,
       }}
     >
       <ResultadosHeader

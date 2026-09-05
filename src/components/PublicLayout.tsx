@@ -2,6 +2,7 @@
 // Reutiliza Header existente con la prop hideSidebarToggle
 
 import React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Header } from './Header';
 
 interface PublicLayoutProps {
@@ -11,6 +12,10 @@ interface PublicLayoutProps {
 const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
   // Funciones dummy ya que no hay sidebar en este layout
   const noopToggle = () => {};
+  const [searchParams] = useSearchParams();
+  // Con ?hideLogin=true la cabecera no se renderiza, así que no hay que compensar su altura
+  const headerOffset =
+    searchParams.get('hideLogin') === 'true' ? 0 : '64px';
 
   return (
     <div
@@ -28,7 +33,7 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
       />
       <main
         style={{
-          marginTop: '64px', // Altura del header fijo
+          marginTop: headerOffset, // Altura del header fijo
           flex: 1,
         }}
       >

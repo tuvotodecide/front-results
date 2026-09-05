@@ -36,7 +36,7 @@ const ResultadosHeader: React.FC<HeaderProps> = ({
   const location = useLocation();
   const isLoginPage = location.pathname === "/resultados/login";
   const [searchParams] = useSearchParams();
-  // ?hideLogin=true oculta el acceso de sesión: botón "Iniciar Sesión" y datos del usuario
+  // ?hideLogin=true oculta la cabecera por completo
   const hideLogin = searchParams.get("hideLogin") === "true";
   const { user, activeContext } = useSelector(selectAuth);
   const dispatch = useDispatch();
@@ -70,6 +70,12 @@ const ResultadosHeader: React.FC<HeaderProps> = ({
     emitNavigationStart();
     window.location.replace(resolveLogoutDestination(location.pathname));
   };
+
+  // Se evalúa después de los hooks para no alterar su orden entre renders
+  if (hideLogin) {
+    return null;
+  }
+
   return (
     <header className={styles.header}>
       <a className={styles.logo}>
@@ -77,7 +83,7 @@ const ResultadosHeader: React.FC<HeaderProps> = ({
         <span className={styles.logoText}>Tu voto decide</span>
       </a>
       <div className={styles.headerActions}>
-        {hasMounted && isLoggedIn && !hideLogin ? (
+        {hasMounted && isLoggedIn ? (
           <>
             {" "}
             <div className={styles.userMenuContainer} ref={menuRef}>
@@ -162,7 +168,7 @@ const ResultadosHeader: React.FC<HeaderProps> = ({
           </>
         ) : (
           <>
-            {hasMounted && !isLoginPage && !hideLogin && (
+            {hasMounted && !isLoginPage && (
               <Link to="/resultados/login" className={styles.loginButton}>
                 Iniciar Sesión
               </Link>
