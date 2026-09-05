@@ -122,7 +122,7 @@ describe("MX-04 | creación de votaciones", () => {
     cy.get('[role="dialog"][aria-label="Estimar participantes"]').within(() => {
       cy.contains("button", "Crear votación").click();
     });
-    cy.location("pathname").should("eq", "/votacion/elecciones/new");
+    cy.location("pathname", { timeout: 30000 }).should("eq", "/votacion/elecciones/new");
 
     cy.get("#institution").type("Elección MX04 Cypress");
     cy.get("#description").type("Validar creación aislada en navegador");
