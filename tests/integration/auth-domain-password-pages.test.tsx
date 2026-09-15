@@ -51,6 +51,10 @@ describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | 
     mocks.searchParams = new URLSearchParams();
   });
 
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("AUT-PWD-P1-001 | solicita recuperación desde resultados y conserva enlaces de resultados", async () => {
     const user = userEvent.setup();
     mocks.forgotPassword.mockReturnValue({
@@ -171,5 +175,46 @@ describe("MX-03 | Autenticación, sesiones, roles y permisos | Frontend Admin | 
       expect(mocks.verifyInstitutional).toHaveBeenCalledWith({ token: "votacion-verify" });
     });
     expect(await screen.findByText("Correo verificado correctamente")).toBeInTheDocument();
+  });
+
+  it("AUT-EML-P1-002 | enlaza a WhatsApp con número de entorno y datos del solicitante", async () => {
+    vi.stubEnv("VITE_WHATSAPP_NUMBER", "+591 12345678");
+    vi.stubEnv("NEXT_PUBLIC_WHATSAPP_NUMBER", "+591 12345678");
+    mocks.searchParams = new URLSearchParams("token=votacion-verify");
+    mocks.verifyInstitutional.mockReturnValue({
+      unwrap: vi.fn().mockResolvedValue({
+        id: "6aa98c25183e0799635332ce",
+        status: "PENDING_APPROVAL",
+        emailVerifiedAt: "2026-09-15T18:20:04.563Z",
+        email: "alex@test.com",
+        username: "Alex",
+      }),
+    });
+
+    renderWithAuthStore(<VerifyVotacionPage />);
+
+    const link = await screen.findByRole("link", { name: /solicitar aprobación/i });
+    const url = new URL(link.getAttribute("href") as string);
+    expect(url.origin + url.pathname).toBe("https://wa.me/59112345678");
+    expect(url.searchParams.get("text")).toContain("Nombre: Alex");
+    expect(url.searchParams.get("text")).toContain("Correo: alex@test.com");
+  });
+
+  it("AUT-EML-P1-003 | sin número de WhatsApp configurado muestra el enlace de login", async () => {
+    vi.stubEnv("VITE_WHATSAPP_NUMBER", "");
+    vi.stubEnv("NEXT_PUBLIC_WHATSAPP_NUMBER", "");
+    mocks.searchParams = new URLSearchParams("token=votacion-verify");
+    mocks.verifyInstitutional.mockReturnValue({
+      unwrap: vi.fn().mockResolvedValue({ email: "alex@test.com", username: "Alex" }),
+    });
+
+    renderWithAuthStore(<VerifyVotacionPage />);
+
+    expect(await screen.findByText("Correo verificado correctamente")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /solicitar aprobación/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /ir a iniciar sesión/i })).toHaveAttribute(
+      "href",
+      "/votacion/login",
+    );
   });
 });

@@ -11,8 +11,14 @@ import {
   ClipboardDocumentIcon,
   ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
+import { FaWhatsapp } from "react-icons/fa";
 import { useSearchParams } from "@/domains/votacion/navigation/compat-private";
 import { selectAuth } from "@/store/auth/authSlice";
+import {
+  getInstitutionDisplayName,
+  getSelectedInstitutionContext,
+} from "@/store/auth/contextUtils";
+import { buildWhatsappLink, getWhatsappNumber } from "@/shared/system/whatsapp";
 import {
   useCreateQrPaymentMutation,
   useGetMyTvdPaymentQuery,
@@ -240,6 +246,21 @@ export default function OperationalRechargePage() {
     summary?.chainId,
     tenantContextKey,
   );
+  // Mismo nombre de institución que muestra VotacionPublicHeader.
+  const institutionContext =
+    getSelectedInstitutionContext(auth.availableContexts, auth.activeContext) ??
+    (auth.activeContext?.type === "TENANT" ? auth.activeContext : null);
+  const institutionName = institutionContext
+    ? getInstitutionDisplayName(institutionContext)
+    : null;
+  const whatsappNumber = getWhatsappNumber();
+  const freeTvdWhatsappLink = whatsappNumber
+    ? buildWhatsappLink(whatsappNumber, [
+        "Hola, requiero fondos TVD para mi institución en Tu Voto Decide.",
+        institutionName && `Institución: ${institutionName}`,
+        summary?.wallet && `Wallet: ${summary.wallet}`,
+      ])
+    : null;
 
   const activePayment =
     paymentQuery.currentData ??
@@ -863,6 +884,33 @@ export default function OperationalRechargePage() {
                 </button>
               </div>
             </div>
+          </section>
+        ) : null}
+
+        {freeTvdWhatsappLink ? (
+          <section className="mt-6 flex flex-col gap-4 rounded-2xl border border-green-200 bg-green-50 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <FaWhatsapp className="h-6 w-6 shrink-0 text-[#25D366]" aria-hidden="true" />
+              <div>
+                <h2 className="text-base font-bold text-slate-900">
+                  ¿Necesitas TVD sin costo?
+                </h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  También puedes solicitar créditos TVD gratuitos escribiéndonos por
+                  WhatsApp. Enviaremos el nombre de tu institución y tu wallet en el mensaje.
+                </p>
+              </div>
+            </div>
+            <a
+              href={freeTvdWhatsappLink}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:brightness-110 active:scale-[0.98]"
+              style={{ backgroundColor: "#25D366" }}
+            >
+              <FaWhatsapp className="h-5 w-5" aria-hidden="true" />
+              Solicitar TVD +{whatsappNumber}
+            </a>
           </section>
         ) : null}
 

@@ -46,6 +46,8 @@ const getStaticNextPublicEnv = (key: string): string | undefined => {
       return process.env.NEXT_PUBLIC_TVD_ASSIGNMENT_CONTRACT_ADDRESS;
     case "NEXT_PUBLIC_TVD_DECIMALS":
       return process.env.NEXT_PUBLIC_TVD_DECIMALS;
+    case "NEXT_PUBLIC_WHATSAPP_NUMBER":
+      return process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
     default:
       return undefined;
   }

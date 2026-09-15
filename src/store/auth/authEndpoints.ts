@@ -10,6 +10,14 @@ export interface RegisterTenantAdminPayload {
   tenantDescription?: string;
 }
 
+export interface VerifyInstitutionalAdminApplicationResponse {
+  id: string;
+  status: string;
+  emailVerifiedAt: string;
+  email: string;
+  username: string;
+}
+
 export interface CreateInstitutionalAdminApplicationPayload {
   dni: string;
   accountAddress?: string;
@@ -99,7 +107,10 @@ export const authApiSlice = apiSlice.injectEndpoints({
       }),
     }),
 
-    verifyInstitutionalAdminApplication: builder.mutation<any, { token: string }>({
+    verifyInstitutionalAdminApplication: builder.mutation<
+      VerifyInstitutionalAdminApplicationResponse,
+      { token: string }
+    >({
       query: ({ token }) => ({
         url: "/institutional-admin-applications/verify-email",
         method: "POST",

@@ -3,7 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import tuvotoDecideImage from "../../../assets/tuvotodecide.webp";
 import { Link, useSearchParams } from "../navigation/compat";
-import { useVerifyInstitutionalAdminApplicationMutation } from "../../../store/auth/authEndpoints";
+import {
+  useVerifyInstitutionalAdminApplicationMutation,
+  type VerifyInstitutionalAdminApplicationResponse,
+} from "../../../store/auth/authEndpoints";
+import { buildWhatsappLink, getWhatsappNumber } from "@/shared/system/whatsapp";
 import { useSelector } from "react-redux";
 import { selectAuth } from "@/store/auth/authSlice";
 import { useNavigate } from "../navigation/compat";
@@ -47,12 +51,15 @@ const getErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
-const WHATSAPP_NUMBER = "59167014222";
-const WHATSAPP_MESSAGE =
-  "Hola, deseo solicitar aprobación de mi cuenta institucional en Tu Voto Decide.";
-const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-  WHATSAPP_MESSAGE,
-)}`;
+const buildApprovalWhatsappLink = (
+  number: string,
+  applicant: VerifyInstitutionalAdminApplicationResponse | null,
+) =>
+  buildWhatsappLink(number, [
+    "Hola, deseo solicitar aprobación de mi cuenta institucional en Tu Voto Decide.",
+    applicant?.username && `Nombre: ${applicant.username}`,
+    applicant?.email && `Correo: ${applicant.email}`,
+  ]);
 
 const VerifyVotacionPage = () => {
   const logoSrc = getLogoSrc();
@@ -66,7 +73,10 @@ const VerifyVotacionPage = () => {
     "idle",
   );
   const [errorMsg, setErrorMsg] = useState("");
+  const [applicant, setApplicant] =
+    useState<VerifyInstitutionalAdminApplicationResponse | null>(null);
   const attemptedTokenRef = useRef<string | null>(null);
+  const whatsappNumber = getWhatsappNumber();
 
   useEffect(() => {
     const target = resolveAuthVotacionRedirect(user, authToken);
@@ -93,7 +103,8 @@ const VerifyVotacionPage = () => {
 
     verifyInstitutional({ token })
       .unwrap()
-      .then(() => {
+      .then((response) => {
+        setApplicant(response);
         setStatus("success");
       })
       .catch((error) => {
@@ -185,16 +196,16 @@ const VerifyVotacionPage = () => {
         </div>
 
         <div className="pt-6 border-t border-gray-100 space-y-3">
-          {status === "success" ? (
+          {status === "success" && whatsappNumber ? (
             <a
-              href={WHATSAPP_LINK}
+              href={buildApprovalWhatsappLink(whatsappNumber, applicant)}
               target="_blank"
               rel="noreferrer"
               className="flex w-full items-center justify-center gap-2 py-3 text-white font-bold rounded-xl transition-all shadow-lg active:scale-[0.98] hover:brightness-110"
               style={{ backgroundColor: "#25D366" }}
             >
               <FaWhatsapp className="h-5 w-5" />
-              <span>Solicitar aprobación 67014222</span>
+              <span>Solicitar aprobación +{whatsappNumber}</span>
             </a>
           ) : (
             <Link

@@ -306,6 +306,31 @@ describe("Admin tenant operational recharge", () => {
 
   afterEach(() => {
         vi.unstubAllGlobals();
+        vi.unstubAllEnvs();
+  });
+
+  it("TVD-QR-P1-006 | ofrece solicitar TVD gratis por WhatsApp con institución y wallet", async () => {
+    vi.stubEnv("VITE_WHATSAPP_NUMBER", "59112345678");
+    vi.stubEnv("NEXT_PUBLIC_WHATSAPP_NUMBER", "59112345678");
+    renderRechargePage();
+
+    expect(await screen.findByText("¿Necesitas TVD sin costo?")).toBeInTheDocument();
+    await waitFor(() => {
+      const link = screen.getByRole("link", { name: /solicitar tvd/i });
+      const url = new URL(link.getAttribute("href") as string);
+      expect(url.origin + url.pathname).toBe("https://wa.me/59112345678");
+      expect(url.searchParams.get("text")).toContain("Institución: Colegio Demo");
+      expect(url.searchParams.get("text")).toContain(`Wallet: ${summaryResponse.wallet}`);
+    });
+  });
+
+  it("TVD-QR-P1-007 | oculta la tarjeta de TVD gratis sin número de WhatsApp configurado", async () => {
+    vi.stubEnv("VITE_WHATSAPP_NUMBER", "");
+    vi.stubEnv("NEXT_PUBLIC_WHATSAPP_NUMBER", "");
+    renderRechargePage();
+
+    expect(await screen.findByText("Recarga operativa")).toBeInTheDocument();
+    expect(screen.queryByText("¿Necesitas TVD sin costo?")).not.toBeInTheDocument();
   });
 
   it("[MX-06][TVD-QR-P0-001][INTEGRACION] consulta cotización y muestra datos económicos", async () => {
