@@ -163,10 +163,6 @@ const ContactSection: React.FC<ContactSectionProps> = ({ cards, contact }) => {
               </a>
             </div>
 
-            <p className="text-base text-slate-400 md:text-center">
-              © {new Date().getFullYear()} {contact.brandName}. Todos los derechos reservados.
-            </p>
-
             <div className="flex items-center justify-center gap-3">
               {contact.socialLinks.map((social) => (
                 <a
@@ -182,6 +178,9 @@ const ContactSection: React.FC<ContactSectionProps> = ({ cards, contact }) => {
               ))}
             </div>
           </div>
+          <p className="text-base text-slate-400 md:text-center mt-10">
+            © {new Date().getFullYear()}. Sistema creado y desarrollado por <a href="https://blockchainconsultora.com/es" target="_blank" rel="noopener noreferrer" className="font-bold underline">Blockchain Consultora</a>. Todos los derechos reservados.
+          </p>
         </div>
       </footer>
 

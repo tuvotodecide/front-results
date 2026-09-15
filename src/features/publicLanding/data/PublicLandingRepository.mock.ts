@@ -1,10 +1,6 @@
 import asoLogo from '../../../assets/aso.webp';
-import bisaLogo from '../../../assets/bisa.webp';
-import boaLogo from '../../../assets/boa.webp';
-import caincoLogo from '../../../assets/cainco.webp';
-import pilLogo from '../../../assets/pil.webp';
-import tigreLogo from '../../../assets/tigre.webp';
-import ypfbLogo from '../../../assets/ypfb.webp';
+import blcLogo from '../../../assets/blc-logo.png';
+import ethLogo from '../../../assets/eth-bol.jpg';
 import type { IPublicLandingRepository } from './PublicLandingRepository';
 import type { ActiveElection, PublicLandingData } from '../types';
 
@@ -137,16 +133,11 @@ const mockLandingData: PublicLandingData = {
     electionsLabel: 'Elecciones ',
     electionsValue: '+120',
     trustedTitle: 'Confían en nosotros',
-    trustedSubtitle: 'Empresas, colegios y sindicatos',
+    trustedSubtitle: 'Empresas y comunidades',
     brands: [
       { id: '1', name: 'ASO', logoSrc: asoLogo, logoAlt: 'Aso Blockchain Bolivia' },
-      { id: '2', name: 'CAINCO', logoSrc: caincoLogo, logoAlt: 'CAINCO' },
-      { id: '3', name: 'Banco BISA', logoSrc: bisaLogo, logoAlt: 'Banco BISA' },
-      { id: '4', name: 'BoA', logoSrc: boaLogo, logoAlt: 'BoA' },
-      { id: '5', name: 'PIL', logoSrc: pilLogo, logoAlt: 'PIL' },
-      { id: '6', name: 'The Strongest', logoSrc: tigreLogo, logoAlt: 'Club The Strongest' },
-      { id: '7', name: 'YPFB', logoSrc: ypfbLogo, logoAlt: 'YPFB' },
-      { id: '8', name: '+30', accent: '#94a3b8' },
+      { id: '2', name: 'Blockchain Consultora', logoSrc: blcLogo, logoAlt: 'Blockchain Consultora' },
+      { id: '3', name: 'Ethereum Bolivia', logoSrc: ethLogo, logoAlt: 'Ethereum Bolivia' },
     ],
   },
   howItWorks: {
@@ -213,10 +204,7 @@ const mockLandingData: PublicLandingData = {
     attentionHours: '08:30–20:00',
     brandName: 'Tu Voto Decide',
     socialLinks: [
-      { id: 'facebook', href: 'https://facebook.com', label: 'Facebook', icon: 'facebook' },
-      { id: 'twitter', href: 'https://twitter.com', label: 'Twitter', icon: 'twitter' },
-      { id: 'instagram', href: 'https://instagram.com', label: 'Instagram', icon: 'instagram' },
-      { id: 'linkedin', href: 'https://linkedin.com', label: 'LinkedIn', icon: 'linkedin' },
+      { id: 'facebook', href: 'https://www.facebook.com/profile.php?id=61579034805579', label: 'Facebook', icon: 'facebook' },
     ],
   },
 };

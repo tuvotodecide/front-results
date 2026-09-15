@@ -1,4 +1,4 @@
-import { parseUnits } from "ethers";
+import { formatUnits, parseUnits } from "ethers";
 import type {
   MyTvdPaymentResponse,
   PaymentStatus,
@@ -88,6 +88,17 @@ export const exceedsInstitutionalVestingBalance = (
     return false;
   }
   return requested > available;
+};
+
+export const getInstitutionalVestingBalanceAmount = (
+  vestingBalance: InstitutionalVestingBalanceLike | null | undefined,
+): number | null => {
+  if (!vestingBalance) return null;
+  try {
+    return Number(formatUnits(BigInt(vestingBalance.raw), vestingBalance.decimals));
+  } catch {
+    return null;
+  }
 };
 
 export const normalizeRechargeDescription = (value: string) =>

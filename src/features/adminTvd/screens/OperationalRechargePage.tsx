@@ -34,6 +34,7 @@ import {
   createRechargePayloadFingerprint,
   exceedsInstitutionalVestingBalance,
   formatDateTime,
+  getInstitutionalVestingBalanceAmount,
   generatePaymentIdempotencyKey,
   getAccreditationStatusMessage,
   getAccreditationStatusLabel,
@@ -219,6 +220,9 @@ export default function OperationalRechargePage() {
     quote,
     vestingBalance.data,
   );
+  const vestingBalanceAmount = getInstitutionalVestingBalanceAmount(vestingBalance.data);
+  const insufficientVestingBalance =
+    vestingBalanceAmount !== null && vestingBalanceAmount < 20;
   const [createQrPayment, createQrState] = useCreateQrPaymentMutation();
   const [regenerateQrPayment, regenerateQrState] = useRegenerateQrPaymentMutation();
   const paymentQuery = useGetMyTvdPaymentQuery(
@@ -292,6 +296,7 @@ export default function OperationalRechargePage() {
     summary?.walletStatus === "VERIFIED" &&
     Boolean(vestingBalance.data) &&
     !amountExceedsVestingBalance &&
+    !insufficientVestingBalance &&
     !createQrState.isLoading;
   const paymentShouldPoll = shouldPollPayment(activePayment);
   const canDownloadQr =
@@ -577,7 +582,8 @@ export default function OperationalRechargePage() {
                       }}
                       inputMode="decimal"
                       aria-describedby="recharge-amount-help"
-                      className="w-0 min-w-0 flex-1 appearance-none border-0 bg-transparent text-2xl font-bold text-slate-900 outline-none placeholder:text-slate-400 sm:text-3xl"
+                      disabled={insufficientVestingBalance}
+                      className="w-0 min-w-0 flex-1 appearance-none border-0 bg-transparent text-2xl font-bold text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:text-slate-400 sm:text-3xl"
                       placeholder="10.50"
                     />
                     <span className="ml-3 rounded-full bg-slate-100 px-3 py-1 text-sm font-bold text-slate-600">
@@ -675,9 +681,21 @@ export default function OperationalRechargePage() {
                     {vestingBalance.data ? ` (${vestingBalance.data.formatted} disponibles)` : ""}.
                   </div>
                 ) : vestingBalance.data ? (
-                  <p className="mt-4 text-xs text-slate-500">
-                    Saldo disponible para acreditación: {vestingBalance.data.formatted}
-                  </p>
+                    insufficientVestingBalance ? (
+                      <div className="mt-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                        No hay suficientes créditos disponibles para realizar una compra.
+                      </div>
+                    ) : <p
+                      className={`mt-4 text-md font-bold ${
+                        vestingBalanceAmount !== null && vestingBalanceAmount > 50
+                          ? "text-green-600"
+                          : vestingBalanceAmount !== null && vestingBalanceAmount >= 20
+                            ? "text-yellow-600"
+                            : "text-red-600"
+                      }`}
+                    >
+                      Saldo disponible para acreditación: {vestingBalance.data.formatted}
+                    </p>
                 ) : vestingBalance.error ? (
                   <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                     No pudimos consultar el saldo disponible para acreditación.

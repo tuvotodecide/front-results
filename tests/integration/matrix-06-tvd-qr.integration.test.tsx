@@ -386,24 +386,62 @@ describe("MX-06 | recarga QR TVD", () => {
     expect(screen.getByRole("button", { name: /Generar QR/i })).toBeEnabled();
   });
 
-  it("[MX-06][TVD-QR-P0-011][INTEGRACION] no genera QR por más TVD del que respalda el vesting institucional", async () => {
-    const user = userEvent.setup();
-    // 1 TVD disponible contra una cotización de 4.2 TVD.
-    const { fetchCalls } = configureRechargeMocks({
+  it("[MX-06][TVD-QR-P0-011][INTEGRACION] bloquea la recarga cuando el saldo del vesting institucional es menor a 20 TVD", async () => {
+    // 15 TVD disponibles, por debajo del piso operativo de 20 TVD: el input
+    // se deshabilita antes de poder cotizar ningún monto.
+    configureRechargeMocks({
       vestingBalance: () =>
         jsonResponse({
           success: true,
           data: {
-            raw: "1000000000000000000",
+            raw: "15000000000000000000",
             decimals: 18,
-            formatted: "1 TVD",
+            formatted: "15 TVD",
             readAt: "2026-07-21T12:00:00.000Z",
           },
         }),
     });
 
     renderRechargePage();
-    await requestQuote(user);
+
+    expect(
+      await screen.findByText("No hay suficientes créditos disponibles para realizar una compra."),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(amountInputName)).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Generar QR/i })).toBeDisabled();
+  });
+
+  it("[MX-06][TVD-QR-P0-011][INTEGRACION] no genera QR por más TVD del que respalda el vesting institucional", async () => {
+    const user = userEvent.setup();
+    const fixtures = createRechargeFixtures();
+    // 25 TVD disponibles (por encima del piso operativo de 20) contra una
+    // cotización de 30 TVD, para aislar el aviso de "monto supera" del de
+    // saldo insuficiente.
+    const { fetchCalls } = configureRechargeMocks({
+      fixtures,
+      quote: () =>
+        jsonResponse({
+          ...fixtures.quote,
+          estimatedTvd: "30",
+          estimatedTvdSmallestUnit: "30000000000000000000",
+        }),
+      vestingBalance: () =>
+        jsonResponse({
+          success: true,
+          data: {
+            raw: "25000000000000000000",
+            decimals: 18,
+            formatted: "25 TVD",
+            readAt: "2026-07-21T12:00:00.000Z",
+          },
+        }),
+    });
+
+    renderRechargePage();
+    const amountInput = screen.getByLabelText(amountInputName);
+    await user.clear(amountInput);
+    await user.type(amountInput, "10.50");
+    await screen.findByText("30 TVD");
 
     expect(
       await screen.findByText(/El monto supera el saldo disponible para acreditación/),
@@ -411,6 +449,10 @@ describe("MX-06 | recarga QR TVD", () => {
     expect(
       screen.queryByText(/Saldo disponible para acreditación: /),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("No hay suficientes créditos disponibles para realizar una compra."),
+    ).not.toBeInTheDocument();
+    expect(amountInput).toBeEnabled();
 
     const generateButton = screen.getByRole("button", { name: /Generar QR/i });
     expect(generateButton).toBeDisabled();
