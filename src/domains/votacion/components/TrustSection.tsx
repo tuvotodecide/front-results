@@ -2,7 +2,6 @@
 
 import React from "react";
 import type { TrustSectionData } from "@/features/publicLanding/types";
-import { Link } from "../navigation/compat";
 
 interface TrustSectionProps {
   trust: TrustSectionData;
