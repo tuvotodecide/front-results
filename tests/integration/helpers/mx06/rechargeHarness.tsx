@@ -52,6 +52,7 @@ export type RechargeMockOptions = {
   regenerateQr?: (call: RechargeFetchCall) => Response | Promise<Response>;
   quote?: (call: RechargeFetchCall) => Response | Promise<Response>;
   vestingBalance?: (call: RechargeFetchCall) => Response | Promise<Response>;
+  activeExchangeRate?: (call: RechargeFetchCall) => Response | Promise<Response>;
 };
 
 export const jsonResponse = (body: unknown, status = 200) =>
@@ -136,6 +137,10 @@ export function createRechargeFixtures() {
   };
 
   return {
+    activeExchangeRate: {
+      fiatCurrency: "BOB" as const,
+      bobPerToken: "2.5",
+    },
     // Techo de recarga: saldo TVD del vesting institucional, muy por encima de
     // los 4.2 TVD que cotiza el fixture para no limitar los demás escenarios.
     institutionalVestingBalance: {
@@ -202,6 +207,7 @@ export function configureRechargeMocks({
   quote = () => jsonResponse(fixtures.quote),
   vestingBalance = () =>
     jsonResponse({ success: true, data: fixtures.institutionalVestingBalance }),
+  activeExchangeRate = () => jsonResponse(fixtures.activeExchangeRate),
 }: RechargeMockOptions = {}) {
   const fetchCalls: RechargeFetchCall[] = [];
   let idempotencySequence = 0;
@@ -242,6 +248,9 @@ export function configureRechargeMocks({
 
     if (url.pathname === "/api/tvd/institutional-vesting-balance") {
       return vestingBalance(call);
+    }
+    if (url.pathname.endsWith("/tvd/exchange-rates/active-rate")) {
+      return activeExchangeRate(call);
     }
     if (url.pathname.endsWith("/tvd/me/summary")) return jsonResponse(fixtures.summary);
     if (url.pathname.endsWith("/tvd/me/quote")) return quote(call);

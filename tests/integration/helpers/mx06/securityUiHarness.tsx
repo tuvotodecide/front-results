@@ -176,6 +176,7 @@ export function configureSecurityUiMocks({
     const call = { url: `${url.pathname}${url.search}`, method: request.method, headers: request.headers, body: request.method === "GET" ? null : await request.clone().text() };
     fetchCalls.push(call);
     if (url.pathname === "/api/tvd/institutional-vesting-balance") return jsonResponse({ success: true, data: fixtures.institutionalVestingBalance });
+    if (url.pathname.endsWith("/tvd/exchange-rates/active-rate")) return jsonResponse({ fiatCurrency: "BOB", bobPerToken: "2.5" });
     if (url.pathname.endsWith("/tvd/me/summary")) return jsonResponse(fixtures.summary);
     if (url.pathname.endsWith("/tvd/me/quote")) return jsonResponse(fixtures.quote);
     if (url.pathname.endsWith("/payments/qr")) return createQr(call);

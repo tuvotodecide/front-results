@@ -64,10 +64,10 @@ const AuthVotacionHeader = () => {
 
   return (
     <header className={styles.header}>
-      <a className={styles.logo}>
+      <Link href="/votacion" className={styles.logo}>
         <img src={logoSrc} alt="Tu voto decide" className={styles.logoImage} />
         <span className={styles.logoText}>Tu voto decide</span>
-      </a>
+      </Link>
       <div className={styles.headerActions}>
         {showUserMenu ? (
           <div className={styles.userMenuContainer} ref={menuRef}>

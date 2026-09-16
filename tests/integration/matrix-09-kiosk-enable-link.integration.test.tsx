@@ -7,16 +7,21 @@ import {
   statusMocks,
 } from "./helpers/electionStatusTestUtils";
 
-const openKioskPanel = async (user: ReturnType<typeof userEvent.setup>) => {
+// useClientNow está fijado en 2026-07-01T12:00Z: esta ventana deja la votación ACTIVE.
+const makeActiveEvent = () => ({
+  ...statusMocks.makeEvent(),
+  votingStart: "2026-07-01T08:00:00.000Z",
+  votingEnd: "2026-07-01T17:00:00.000Z",
+  resultsPublishAt: "2026-07-02T12:00:00.000Z",
+  state: "OFFICIALLY_PUBLISHED",
+  status: "OFFICIALLY_PUBLISHED",
+});
+
+const renderKioskCard = () => {
   const page = renderStatusPage();
-  await user.click(screen.getByRole("tab", { name: "Mas" }));
-  const kioskOption = screen
-    .getAllByRole("button")
-    .find((button) => button.textContent?.includes("Punto presencial QR"));
-  if (!kioskOption) {
-    throw new Error("No se encontró la opción del punto presencial.");
-  }
-  await user.click(kioskOption);
+  expect(
+    screen.getByRole("heading", { name: "Punto presencial QR" }),
+  ).toBeInTheDocument();
   return page;
 };
 
@@ -32,7 +37,7 @@ const setupClipboardInteraction = () => {
 describe("MX-09 | enlace del punto presencial", () => {
   beforeEach(() => {
     resetStatusMocks();
-    statusMocks.event = statusMocks.makeEvent();
+    statusMocks.event = makeActiveEvent();
   });
 
   afterEach(() => {
@@ -41,7 +46,7 @@ describe("MX-09 | enlace del punto presencial", () => {
 
   it("[MX-09][KIO-HAB-P1-002][INTEGRACION] abre el punto autorizado y copia su enlace limitado", async () => {
     const { user, clipboardWriteText } = setupClipboardInteraction();
-    const page = await openKioskPanel(user);
+    const page = renderKioskCard();
 
     await user.click(screen.getByRole("button", { name: "Abrir punto QR" }));
     expect(statusMocks.open).toHaveBeenCalledWith(
@@ -77,14 +82,16 @@ describe("MX-09 | enlace del punto presencial", () => {
     page.unmount();
     resetStatusMocks();
     statusMocks.event = {
-      ...statusMocks.makeEvent(),
+      ...makeActiveEvent(),
       presentialKioskEnabled: false,
     };
     const disabledPage = renderStatusPage();
-    await user.click(screen.getByRole("tab", { name: "Mas" }));
 
     expect(
-      screen.queryByRole("button", { name: "Punto presencial QR" }),
+      screen.queryByRole("heading", { name: "Punto presencial QR" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Abrir punto QR" }),
     ).not.toBeInTheDocument();
     expect(statusMocks.open).not.toHaveBeenCalled();
     expect(statusMocks.createPresentialSession).not.toHaveBeenCalled();
@@ -93,7 +100,7 @@ describe("MX-09 | enlace del punto presencial", () => {
 
   it("[MX-09][KIO-QR-P0-005][INTEGRACION] muestra el enlace rotado y conserva el error cuando la sesión está reclamada", async () => {
     const { user, clipboardWriteText } = setupClipboardInteraction();
-    await openKioskPanel(user);
+    renderKioskCard();
 
     await user.click(screen.getByRole("button", { name: "Copiar enlace QR" }));
     await waitFor(() => {
@@ -130,5 +137,21 @@ describe("MX-09 | enlace del punto presencial", () => {
       await screen.findByText("Hay un votante usando el código"),
     ).toBeInTheDocument();
     expect(clipboardWriteText).toHaveBeenCalledTimes(1);
+  });
+
+  it("[MX-09][KIO-HAB-P1-002][INTEGRACION] oculta el punto presencial cuando la votación no está activa", async () => {
+    // Evento por defecto: votación finalizada con resultados publicados.
+    statusMocks.event = statusMocks.makeEvent();
+    renderStatusPage();
+
+    expect(
+      screen.queryByRole("heading", { name: "Punto presencial QR" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Abrir punto QR" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Copiar enlace QR" }),
+    ).not.toBeInTheDocument();
   });
 });

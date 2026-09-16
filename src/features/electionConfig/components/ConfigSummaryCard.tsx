@@ -10,6 +10,8 @@ import {
 
 interface ConfigSummaryCardProps {
   summary: ConfigSummary;
+  /** `tvdCapacity.canPublish` del backend; false mientras carga o si falló. */
+  tvdCapacityOk: boolean;
   isReferendum?: boolean;
   isOpenVoting?: boolean;
   maxOpenVoters?: number;
@@ -23,11 +25,13 @@ const CheckIcon = () => (
 
 const ConfigSummaryCard: React.FC<ConfigSummaryCardProps> = ({
   summary,
+  tvdCapacityOk,
   isReferendum = false,
   isOpenVoting = false,
   maxOpenVoters = 0,
 }) => {
-  const isReadyToPublish = summary.positionsOk && summary.partiesOk && summary.padronOk;
+  const isReadyToPublish =
+    summary.positionsOk && summary.partiesOk && summary.padronOk && tvdCapacityOk;
   // El costo se calcula con la tasa on-chain (1 participante = tvdPerCredit).
   const { tvdPerCredit } = useTvdPerCredit();
   const openVotingTvdCost = formatRequiredTvd(maxOpenVoters, tvdPerCredit);
@@ -89,6 +93,15 @@ const ConfigSummaryCard: React.FC<ConfigSummaryCardProps> = ({
             </span>
           </div>
         )}
+
+        <div className="flex items-center gap-3">
+          <div className={`flex-shrink-0 ${tvdCapacityOk ? 'text-[#459151]' : 'text-gray-300'}`}>
+            <CheckIcon />
+          </div>
+          <span className={`text-sm ${tvdCapacityOk ? 'text-gray-700' : 'text-gray-400'}`}>
+            Capacidad TVD suficiente
+          </span>
+        </div>
       </div>
 
       {/* Badge de estado */}

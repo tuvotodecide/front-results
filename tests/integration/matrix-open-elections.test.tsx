@@ -61,39 +61,7 @@ vi.mock("@/store/votingEvents", () => ({
   useUploadPadronSourceMutation: vi.fn(),
 }));
 
-const estimateCapacityMock = vi.fn();
-
-vi.mock("@/store/tvd", () => ({
-  useEstimateMyTvdCapacityMutation: () => [estimateCapacityMock, { isLoading: false }],
-}));
-
-vi.mock("@/features/adminTvd/data/useTvdPerCredit", async () => {
-  const actual = await vi.importActual<
-    typeof import("@/features/adminTvd/data/useTvdPerCredit")
-  >("@/features/adminTvd/data/useTvdPerCredit");
-  return {
-    ...actual,
-    fetchTvdPerCredit: vi.fn().mockResolvedValue({
-      raw: "1000000000000000000",
-      decimals: 18,
-      formatted: "1 TVD",
-    }),
-  };
-});
-
 import * as votingEvents from "@/store/votingEvents";
-
-const sufficientCapacity = (participants: string) => ({
-  unwrap: vi.fn().mockResolvedValue({
-    estimatedParticipants: participants,
-    estimatedRequiredTokens: participants,
-    availableTokens: "1000",
-    availableSmallestUnit: "1000000000000000000000",
-    estimatedMissingTokens: "0",
-    hasEstimatedCapacity: true,
-    reasonCode: null,
-  }),
-});
 
 const activeTenantContext = {
   active: true,
@@ -151,7 +119,6 @@ describe("votación abierta | integración con el repositorio de elecciones", ()
       createVotingEventMock,
       { isLoading: false },
     ] as any);
-    estimateCapacityMock.mockReturnValue(sufficientCapacity("10"));
   });
 
   it("EA-P0-02-001 envía isOpenVoting en true junto al tenant activo a la mutación real", async () => {
@@ -207,16 +174,14 @@ describe("votación abierta | integración con el repositorio de elecciones", ()
 
       await user.click(screen.getByRole("switch", { name: "¿Es votación abierta?" }));
       await fillGeneralData(user);
+      await fillScheduleAndCreate(user);
 
-      // Sin institución activa no se puede cotizar el límite de votantes en TVD,
-      // así que el wizard se detiene en el paso de datos generales.
+      // El repositorio rechaza la creación al confirmar sin institución activa.
       expect(
         await screen.findByText(
           "No se encontró un contexto institucional activo. Selecciona tu institución para crear votaciones.",
         ),
       ).toBeInTheDocument();
-      expect(screen.queryByLabelText("¿Cuándo abre la votación?")).not.toBeInTheDocument();
-      expect(estimateCapacityMock).not.toHaveBeenCalled();
       expect(createVotingEventMock).not.toHaveBeenCalled();
     } finally {
       errorSpy.mockRestore();

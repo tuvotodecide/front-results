@@ -12,6 +12,7 @@ import { selectAuth, selectTenantId, selectIsLoggedIn } from '../../store/auth/a
 import type { VotingEvent } from '../../store/votingEvents/types';
 import { formatDateTimeForUi, hasDraftAlreadyStarted, useClientNow } from '../electionConfig/renderUtils';
 import EstimateVotersModal from '../adminTvd/components/EstimateVotersModal';
+import TvdInfoPopover from '../adminTvd/components/TvdInfoPopover';
 import { useGetMyTvdSummaryQuery } from '@/store/tvd';
 import type { TvdMySummaryResponse } from '@/store/tvd';
 import { copyTextToClipboard } from '../adminTvd/services/clipboard';
@@ -265,9 +266,12 @@ const ElectionsPage: React.FC = () => {
           >
             <div className="flex w-full items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#2E6A38]/70">
-                  Saldo
-                </p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs font-bold uppercase tracking-wide text-[#2E6A38]/70">
+                    Saldo
+                  </p>
+                  <TvdInfoPopover />
+                </div>
                 {isTvdSummaryLoading || isTvdSummaryFetching ? (
                   <div className="mt-2 h-9 w-28 animate-pulse rounded bg-green-100/70" />
                 ) : walletLinked && formattedTvdBalance ? (

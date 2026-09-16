@@ -247,6 +247,9 @@ const installFetchMock = () => {
     if (url.pathname === "/api/tvd/institutional-vesting-balance") {
       return jsonResponse({ success: true, data: institutionalVestingBalanceResponse });
     }
+    if (url.pathname.endsWith("/tvd/exchange-rates/active-rate")) {
+      return jsonResponse({ fiatCurrency: "BOB", bobPerToken: "2.5" });
+    }
     if (url.pathname.endsWith("/tvd/me/summary")) {
       return jsonResponse(summaryResponse);
     }

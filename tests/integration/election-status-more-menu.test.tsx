@@ -39,7 +39,7 @@ describe("Election status more menu", () => {
     expect(screen.getByText("Analiticas")).toBeInTheDocument();
     expect(screen.getByText("Enlace publico")).toBeInTheDocument();
     expect(screen.getByText("Verificacion blockchain")).toBeInTheDocument();
-    expect(screen.getByText("Punto presencial QR")).toBeInTheDocument();
+    expect(screen.queryByText("Punto presencial QR")).not.toBeInTheDocument();
     expect(screen.getByText("Noticias")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Cerrar" }));
@@ -84,7 +84,7 @@ describe("Election status more menu", () => {
     expect(screen.getByText("Participacion")).toBeInTheDocument();
   });
 
-  it("selecciona Enlace publico, Punto presencial QR, Blockchain y Noticias", async () => {
+  it("selecciona Enlace publico, Blockchain y Noticias", async () => {
     let user = await openMore();
 
     await clickMoreOption(user, "Enlace publico");
@@ -94,15 +94,6 @@ describe("Election status more menu", () => {
     ).not.toBeNull();
     expect(screen.getByRole("button", { name: "Copiar enlace" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Abrir votaci.n p.blica/i })).toBeInTheDocument();
-
-    user = userEvent.setup();
-    await user.click(screen.getByRole("tab", { name: "Mas" }));
-    await clickMoreOption(user, "Punto presencial QR");
-    expect(screen.getByRole("heading", { name: "Punto presencial QR" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "Punto presencial QR" }).closest("section")?.querySelector(".max-w-xl"),
-    ).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Abrir punto QR" })).toBeInTheDocument();
 
     user = userEvent.setup();
     await user.click(screen.getByRole("tab", { name: "Mas" }));

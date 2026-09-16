@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -9,7 +9,6 @@ import { renderWithAuthStore, wizardAuthState } from "../utils/renderWithStore";
 
 const createElectionMock = vi.fn();
 const navigateMock = vi.fn();
-const estimateCapacityMock = vi.fn();
 
 vi.mock("@/domains/votacion/navigation/compat-private", () => ({
   useNavigate: () => navigateMock,
@@ -23,10 +22,6 @@ vi.mock("@/features/elections/data/useElectionRepository", () => ({
   }),
 }));
 
-vi.mock("@/store/tvd", () => ({
-  useEstimateMyTvdCapacityMutation: () => [estimateCapacityMock, { isLoading: false }],
-}));
-
 // La tasa on-chain se mockea, pero el cálculo de costo (helpers puros) es el real.
 vi.mock("@/features/adminTvd/data/useTvdPerCredit", async () => {
   const actual = await vi.importActual<
@@ -34,11 +29,6 @@ vi.mock("@/features/adminTvd/data/useTvdPerCredit", async () => {
   >("@/features/adminTvd/data/useTvdPerCredit");
   return {
     ...actual,
-    fetchTvdPerCredit: vi.fn().mockResolvedValue({
-      raw: "1000000000000000000",
-      decimals: 18,
-      formatted: "1 TVD",
-    }),
     useTvdPerCredit: () => ({
       tvdPerCredit: {
         raw: "1000000000000000000",
@@ -67,22 +57,6 @@ vi.mock("@/components/Modal2", () => ({
 const MAX_OPEN_VOTERS_LABEL = "¿Cuántos votantes pueden participar?";
 const OPEN_VOTING_SWITCH = "¿Es votación abierta?";
 
-const TVD = (whole: number) => `${whole}${"0".repeat(18)}`;
-
-const capacityResult = (overrides: Record<string, unknown> = {}) => ({
-  unwrap: vi.fn().mockResolvedValue({
-    estimatedParticipants: "250",
-    tokensPerParticipant: "1",
-    estimatedRequiredTokens: "250",
-    availableTokens: "1000",
-    availableSmallestUnit: TVD(1000),
-    estimatedMissingTokens: "0",
-    hasEstimatedCapacity: true,
-    reasonCode: null,
-    ...overrides,
-  }),
-});
-
 const configSummary = (overrides: Record<string, unknown> = {}) => ({
   positionsOk: true,
   partiesOk: true,
@@ -95,22 +69,10 @@ const configSummary = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-async function fillGeneralData(user: ReturnType<typeof userEvent.setup>) {
-  await user.type(
-    screen.getByLabelText("¿A qué institución pertenece?"),
-    "Elección abierta",
-  );
-  await user.type(
-    screen.getByLabelText("¿Cuál es el objetivo o descripción?"),
-    "Elegir representantes institucionales",
-  );
-}
-
 describe("EA2-01 | límite de votantes y costo en TVD", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     createElectionMock.mockResolvedValue({ id: "evt-open" });
-    estimateCapacityMock.mockReturnValue(capacityResult());
   });
 
   it("EA2-01-001 activa el input de límite de votantes al encender la votación abierta", async () => {
@@ -146,70 +108,6 @@ describe("EA2-01 | límite de votantes y costo en TVD", () => {
     expect(input).toHaveAttribute("min", "1");
     expect(input).toHaveAttribute("step", "1");
   });
-
-  it("EA2-01-003 cotiza el límite de votantes contra el saldo TVD antes de avanzar", async () => {
-    const user = userEvent.setup();
-    renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
-
-    await user.click(screen.getByRole("switch", { name: OPEN_VOTING_SWITCH }));
-    await fillGeneralData(user);
-    await user.type(screen.getByLabelText(MAX_OPEN_VOTERS_LABEL), "250");
-    await user.click(screen.getByRole("button", { name: "Siguiente" }));
-
-    await waitFor(() => {
-      expect(estimateCapacityMock).toHaveBeenCalledWith({
-        estimatedParticipants: "250",
-        tenantId: "tenant-1",
-      });
-    });
-    expect(
-      await screen.findByLabelText("¿Cuándo abre la votación?"),
-    ).toBeInTheDocument();
-  });
-
-  it("EA2-01-004 bloquea el avance cuando el costo en TVD del límite supera el saldo disponible", async () => {
-    const user = userEvent.setup();
-    estimateCapacityMock.mockReturnValue(
-      capacityResult({
-        estimatedParticipants: "5000",
-        estimatedRequiredTokens: "5000",
-        availableTokens: "100",
-        availableSmallestUnit: TVD(100),
-        estimatedMissingTokens: "4900",
-        hasEstimatedCapacity: false,
-        reasonCode: "INSUFFICIENT_TVD_BALANCE",
-      }),
-    );
-    renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
-
-    await user.click(screen.getByRole("switch", { name: OPEN_VOTING_SWITCH }));
-    await fillGeneralData(user);
-    await user.type(screen.getByLabelText(MAX_OPEN_VOTERS_LABEL), "5000");
-    await user.click(screen.getByRole("button", { name: "Siguiente" }));
-
-    expect(
-      await screen.findByText(
-        "El límite de votantes cuesta 5000 TVD y solo tienes 100 TVD. Reduce el límite o recarga tokens.",
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByLabelText("¿Cuándo abre la votación?"),
-    ).not.toBeInTheDocument();
-    expect(createElectionMock).not.toHaveBeenCalled();
-  });
-
-  it("EA2-01-005 no cotiza capacidad TVD cuando la votación no es abierta", async () => {
-    const user = userEvent.setup();
-    renderWithAuthStore(<CreateElectionWizard />, wizardAuthState);
-
-    await fillGeneralData(user);
-    await user.click(screen.getByRole("button", { name: "Siguiente" }));
-
-    expect(
-      await screen.findByLabelText("¿Cuándo abre la votación?"),
-    ).toBeInTheDocument();
-    expect(estimateCapacityMock).not.toHaveBeenCalled();
-  });
 });
 
 describe("EA2-02 | el padrón desaparece de la configuración abierta", () => {
@@ -240,6 +138,7 @@ describe("EA2-03 | revisión de datos de una votación abierta", () => {
     render(
       <ConfigSummaryCard
         summary={configSummary()}
+        tvdCapacityOk
         isOpenVoting
         maxOpenVoters={250}
       />,
@@ -254,10 +153,28 @@ describe("EA2-03 | revisión de datos de una votación abierta", () => {
   });
 
   it("EA2-03-002 mantiene el estado del padrón en la revisión de una votación cerrada", () => {
-    render(<ConfigSummaryCard summary={configSummary()} />);
+    render(<ConfigSummaryCard summary={configSummary()} tvdCapacityOk />);
 
     expect(screen.getByText("Padrón listo")).toBeInTheDocument();
     expect(screen.queryByText("Votación abierta")).not.toBeInTheDocument();
     expect(screen.queryByText("Costo en TVD")).not.toBeInTheDocument();
+  });
+
+  it("EA2-03-003 marca la capacidad TVD y queda listo para publicar cuando todo está completo", () => {
+    render(<ConfigSummaryCard summary={configSummary()} tvdCapacityOk />);
+
+    const capacityLabel = screen.getByText("Capacidad TVD suficiente");
+    expect(capacityLabel).toHaveClass("text-gray-700");
+    expect(screen.getByText("Listo para publicar")).toBeInTheDocument();
+    expect(screen.queryByText("Configuración incompleta")).not.toBeInTheDocument();
+  });
+
+  it("EA2-03-004 no queda listo para publicar sin capacidad TVD suficiente", () => {
+    render(<ConfigSummaryCard summary={configSummary()} tvdCapacityOk={false} />);
+
+    const capacityLabel = screen.getByText("Capacidad TVD suficiente");
+    expect(capacityLabel).toHaveClass("text-gray-400");
+    expect(screen.getByText("Configuración incompleta")).toBeInTheDocument();
+    expect(screen.queryByText("Listo para publicar")).not.toBeInTheDocument();
   });
 });

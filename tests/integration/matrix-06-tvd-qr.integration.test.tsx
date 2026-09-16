@@ -387,8 +387,8 @@ describe("MX-06 | recarga QR TVD", () => {
   });
 
   it("[MX-06][TVD-QR-P0-011][INTEGRACION] bloquea la recarga cuando el saldo del vesting institucional es menor a 20 TVD", async () => {
-    // 15 TVD disponibles, por debajo del piso operativo de 20 TVD: el input
-    // se deshabilita antes de poder cotizar ningún monto.
+    // 15 TVD disponibles, por debajo del piso operativo de 20 TVD: el paso 1
+    // completo se reemplaza por el aviso de compras deshabilitadas.
     configureRechargeMocks({
       vestingBalance: () =>
         jsonResponse({
@@ -405,10 +405,13 @@ describe("MX-06 | recarga QR TVD", () => {
     renderRechargePage();
 
     expect(
-      await screen.findByText("No hay suficientes créditos disponibles para realizar una compra."),
+      await screen.findByText("Las compras por QR no están habilitadas en este momento."),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText(amountInputName)).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Generar QR/i })).toBeDisabled();
+    expect(screen.queryByLabelText(amountInputName)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Generar QR/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Saldo disponible para acreditación: /),
+    ).not.toBeInTheDocument();
   });
 
   it("[MX-06][TVD-QR-P0-011][INTEGRACION] no genera QR por más TVD del que respalda el vesting institucional", async () => {
@@ -450,7 +453,7 @@ describe("MX-06 | recarga QR TVD", () => {
       screen.queryByText(/Saldo disponible para acreditación: /),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByText("No hay suficientes créditos disponibles para realizar una compra."),
+      screen.queryByText("Las compras por QR no están habilitadas en este momento."),
     ).not.toBeInTheDocument();
     expect(amountInput).toBeEnabled();
 
@@ -484,5 +487,76 @@ describe("MX-06 | recarga QR TVD", () => {
     await user.click(generateButton);
 
     expect(fetchCalls.filter((call) => call.url.endsWith("/payments/qr"))).toHaveLength(0);
+  });
+
+  it("[MX-06][TVD-QR-P0-001][INTEGRACION] muestra el tipo de cambio activo junto al monto a pagar", async () => {
+    const { fetchCalls } = configureRechargeMocks({
+      activeExchangeRate: () => jsonResponse({ fiatCurrency: "BOB", bobPerToken: "3.75" }),
+    });
+
+    renderRechargePage();
+
+    expect(
+      await screen.findByText("Tipo de cambio: 1 TVD = 3.75 Bs."),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(amountInputName)).toBeEnabled();
+    const rateCall = fetchCalls.find((call) =>
+      call.url.endsWith("/tvd/exchange-rates/active-rate"),
+    );
+    expect(rateCall?.method).toBe("GET");
+  });
+
+  it("[MX-06][TVD-QR-P0-001][INTEGRACION] oculta el paso 1 si no puede cargar el tipo de cambio activo", async () => {
+    const { fetchCalls } = configureRechargeMocks({
+      activeExchangeRate: () =>
+        jsonResponse({ code: "TVD_EXCHANGE_RATE_UNAVAILABLE" }, 503),
+    });
+
+    renderRechargePage();
+
+    expect(
+      await screen.findByText(
+        "Algo salió mal al cargar el tipo de cambio. Intenta nuevamente más tarde.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText(amountInputName)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Generar QR/i })).not.toBeInTheDocument();
+    expect(screen.queryByText("Cotización")).not.toBeInTheDocument();
+    expect(fetchCalls.filter((call) => call.url.endsWith("/payments/qr"))).toHaveLength(0);
+  });
+
+  it("[MX-06][TVD-QR-P0-001][INTEGRACION] prioriza el error del tipo de cambio sobre el saldo insuficiente", async () => {
+    const { fetchCalls } = configureRechargeMocks({
+      activeExchangeRate: () => jsonResponse({ code: "INTERNAL_ERROR" }, 500),
+      vestingBalance: () =>
+        jsonResponse({
+          success: true,
+          data: {
+            raw: "15000000000000000000",
+            decimals: 18,
+            formatted: "15 TVD",
+            readAt: "2026-07-21T12:00:00.000Z",
+          },
+        }),
+    });
+
+    renderRechargePage();
+
+    expect(
+      await screen.findByText(
+        "Algo salió mal al cargar el tipo de cambio. Intenta nuevamente más tarde.",
+      ),
+    ).toBeInTheDocument();
+    // Espera a que el saldo del vesting también resuelva antes de afirmar.
+    await waitFor(() =>
+      expect(
+        fetchCalls.some((call) => call.url === "/api/tvd/institutional-vesting-balance"),
+      ).toBe(true),
+    );
+    await act(async () => {});
+    expect(
+      screen.queryByText("Las compras por QR no están habilitadas en este momento."),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(amountInputName)).not.toBeInTheDocument();
   });
 });

@@ -62,39 +62,7 @@ vi.mock("@/store/votingEvents", () => ({
   useUploadPadronSourceMutation: vi.fn(),
 }));
 
-const estimateCapacityMock = vi.fn();
-
-vi.mock("@/store/tvd", () => ({
-  useEstimateMyTvdCapacityMutation: () => [estimateCapacityMock, { isLoading: false }],
-}));
-
-vi.mock("@/features/adminTvd/data/useTvdPerCredit", async () => {
-  const actual = await vi.importActual<
-    typeof import("@/features/adminTvd/data/useTvdPerCredit")
-  >("@/features/adminTvd/data/useTvdPerCredit");
-  return {
-    ...actual,
-    fetchTvdPerCredit: vi.fn().mockResolvedValue({
-      raw: "1000000000000000000",
-      decimals: 18,
-      formatted: "1 TVD",
-    }),
-  };
-});
-
 import * as votingEvents from "@/store/votingEvents";
-
-const capacityFor = (participants: string) => ({
-  unwrap: vi.fn().mockResolvedValue({
-    estimatedParticipants: participants,
-    estimatedRequiredTokens: participants,
-    availableTokens: "1000",
-    availableSmallestUnit: "1000000000000000000000",
-    estimatedMissingTokens: "0",
-    hasEstimatedCapacity: true,
-    reasonCode: null,
-  }),
-});
 
 async function fillGeneralData(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText("¿A qué institución pertenece?"), "Elección normal");
@@ -124,7 +92,6 @@ describe("votación abierta | asistente de creación", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     createElectionMock.mockResolvedValue({ id: "evt-open" });
-    estimateCapacityMock.mockReturnValue(capacityFor("10"));
   });
 
   it("EA-P0-01-001 muestra la opción de votación abierta desactivada por defecto", async () => {

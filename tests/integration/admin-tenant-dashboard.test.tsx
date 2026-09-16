@@ -214,6 +214,59 @@ describe("MX-02 | Gestión de instituciones, administradores y wallets | Fronten
     expect(navigateMock).toHaveBeenCalledWith("/votacion/cuenta-institucional");
   });
 
+  it("D-LIST-007 | explica qué son los TVD sin navegar a la recarga", async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+
+    expect(screen.queryByRole("dialog", { name: "¿Qué son los TVD?" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "¿Qué son los TVD?" }));
+
+    const popover = screen.getByRole("dialog", { name: "¿Qué son los TVD?" });
+    expect(popover).toHaveTextContent(
+      "Los tokens TVD son créditos utilizados para crear tus propias votaciones.",
+    );
+    expect(popover).toHaveTextContent(
+      "se te devolverán 30 TVD por las personas que no participaron cuando termine la votación.",
+    );
+
+    await user.click(popover);
+    expect(navigateMock).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Cerrar" }));
+    expect(screen.queryByRole("dialog", { name: "¿Qué son los TVD?" })).not.toBeInTheDocument();
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it("D-LIST-007b | abre la información de TVD con teclado sin activar la tarjeta de saldo", async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+    const infoButton = screen.getByRole("button", { name: "¿Qué son los TVD?" });
+
+    infoButton.focus();
+    await user.keyboard("{Enter}");
+    expect(screen.getByRole("dialog", { name: "¿Qué son los TVD?" })).toBeInTheDocument();
+    await user.keyboard(" ");
+    expect(screen.queryByRole("dialog", { name: "¿Qué son los TVD?" })).not.toBeInTheDocument();
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it("D-LIST-008 | cierra la información de TVD con Escape o al hacer clic fuera", async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+    const infoButton = screen.getByRole("button", { name: "¿Qué son los TVD?" });
+
+    await user.click(infoButton);
+    expect(infoButton).toHaveAttribute("aria-expanded", "true");
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog", { name: "¿Qué son los TVD?" })).not.toBeInTheDocument();
+
+    await user.click(infoButton);
+    await user.click(screen.getByRole("heading", { name: "Mis Votaciones" }));
+    expect(screen.queryByRole("dialog", { name: "¿Qué son los TVD?" })).not.toBeInTheDocument();
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
   it("D-LIST-005 | SECONDARY mantiene cuenta y saldo, pero la tarjeta no navega", async () => {
     const user = userEvent.setup();
     renderDashboard(mockEvents, {}, "SECONDARY");

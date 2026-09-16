@@ -24,14 +24,37 @@ describe("MX-06 | publicación oficial TVD", () => {
     resetPublicationMocks();
   });
 
-  it("[MX-06][TVD-PUB-P0-001][INTEGRACION] permite revisar el borrador sin exigir saldo ni preparar publicación", async () => {
-    configurePublicationMocks({ eventState: "DRAFT" });
+  it("[MX-06][TVD-PUB-P0-001][INTEGRACION] permite notificar el borrador con capacidad TVD suficiente", async () => {
+    const { capacityRequests, createRequest } = configurePublicationMocks({ eventState: "DRAFT" });
     renderPublicationReview();
 
     expect(await screen.findByRole("heading", { name: "Revisión antes de publicar" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Estado general" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Notificar a los votantes/i })).toBeEnabled();
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Notificar a los votantes/i })).toBeEnabled();
+    });
+    expect(
+      screen.queryByText("Valida capacidad TVD suficiente antes de avanzar."),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText("Falta saldo para publicar")).not.toBeInTheDocument();
+    expect(capacityRequests[0]?.url).toBe("/api/v1/voting/events/evt-1/tvd-capacity");
+    expect(createRequest).not.toHaveBeenCalled();
+  });
+
+  it("[MX-06][TVD-PUB-P0-001][INTEGRACION] bloquea la notificación del borrador sin capacidad TVD suficiente", async () => {
+    configurePublicationMocks({
+      eventState: "DRAFT",
+      capacityResponses: [
+        createCapacityFixture({ availableTokens: "5", missingTokens: "7", canPublish: false, reasonCode: "INSUFFICIENT_TVD_BALANCE" }),
+      ],
+    });
+    renderPublicationReview();
+
+    expect(await screen.findByText("Falta saldo para publicar")).toBeInTheDocument();
+    expect(
+      screen.getByText("Valida capacidad TVD suficiente antes de avanzar."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Notificar a los votantes/i })).toBeDisabled();
   });
 
   it("[MX-06][TVD-PUB-P0-002][INTEGRACION] bloquea publicación cuando el padrón no está confirmado", async () => {
@@ -117,6 +140,10 @@ describe("MX-06 | publicación oficial TVD", () => {
 
     await preparePublication(user);
     expect(createRequest).toHaveBeenCalledWith({ eventId: "evt-1" });
+    expect(
+      await screen.findByRole("heading", { name: "Esperando confirmación móvil" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Publicar oficialmente/i })).not.toBeInTheDocument();
     setRequest(request);
     review.unmount();
     renderPublicationReview();

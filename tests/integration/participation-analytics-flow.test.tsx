@@ -71,6 +71,20 @@ vi.mock("@/store/votingEvents", () => ({
   useUpdateEventScheduleMutation: vi.fn(),
 }));
 
+vi.mock("@/features/electionConfig/data/useElectionTvdUsage", () => ({
+  useElectionTvdUsage: () => ({
+    isLoading: false,
+    error: null,
+    creditsContractAddress: null,
+    registrationVerified: false,
+    statusChecked: false,
+    economicFields: [],
+    operationalFields: [],
+    liquidationStatus: "",
+    operations: [],
+  }),
+}));
+
 vi.mock("@/store/contracts/contractsEndpoints", () => ({
   useGetHistoryContractsQuery: () => ({
     data: { data: [], total: 0 },

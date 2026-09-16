@@ -10,7 +10,9 @@ import PhoneMockup from "./components/PhoneMockup";
 import BallotPreview from "./components/BallotPreview";
 import ConfigSummaryCard from "./components/ConfigSummaryCard";
 import ScheduleSummaryCard from "./components/ScheduleSummaryCard";
-import ConfirmActivateModal from "./components/ConfirmActivateModal";
+import ConfirmActivateModal, {
+  type OfficialPublicationModalStatus,
+} from "./components/ConfirmActivateModal";
 import ActivatedSuccessModal from "./components/ActivatedSuccessModal";
 import CreateNewsModal from "./components/CreateNewsModal";
 import ReviewAccordionSection from "./components/review/ReviewAccordionSection";
@@ -129,7 +131,7 @@ const ElectionConfigReview: React.FC = () => {
     {
       skip:
         !actualElectionId ||
-        (eventState !== "READY_FOR_REVIEW" && eventState !== "PUBLISHED"),
+        (eventState !== "DRAFT" && eventState !== "READY_FOR_REVIEW" && eventState !== "PUBLISHED"),
       refetchOnMountOrArgChange: true,
     },
   );
@@ -161,6 +163,8 @@ const ElectionConfigReview: React.FC = () => {
   ]);
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [publicationSubmitted, setPublicationSubmitted] = useState(false);
+  const [publicationSeenActive, setPublicationSeenActive] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showPadronShareModal, setShowPadronShareModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -225,7 +229,15 @@ const ElectionConfigReview: React.FC = () => {
 
   const handleConfirmClick = () => {
     setPublishErrorMessage(null);
+    setPublicationSubmitted(false);
+    setPublicationSeenActive(false);
     setShowConfirmModal(true);
+  };
+
+  const handleCloseConfirmModal = () => {
+    setShowConfirmModal(false);
+    setPublicationSubmitted(false);
+    setPublicationSeenActive(false);
   };
 
   const handleOpenReview = async () => {
@@ -251,7 +263,7 @@ const ElectionConfigReview: React.FC = () => {
         throw new Error("Could not load voting event data");
       }
       await activateElection();
-      setShowConfirmModal(false);
+      setPublicationSubmitted(true);
       setShowSuccessModal(false);
     } catch (error: any) {
       setShowConfirmModal(false);
@@ -272,6 +284,21 @@ const ElectionConfigReview: React.FC = () => {
     navigate("/votacion/elecciones");
   };
 
+  useEffect(() => {
+    if (publicationSubmitted && officialPublicationIsActive) {
+      setPublicationSeenActive(true);
+    }
+  }, [officialPublicationIsActive, publicationSubmitted]);
+
+  const confirmModalPublicationStatus: OfficialPublicationModalStatus =
+    !publicationSubmitted
+      ? "idle"
+      : eventState === "OFFICIALLY_PUBLISHED"
+        ? "confirmed"
+        : publicationSeenActive && !officialPublicationIsActive
+          ? "failed"
+          : "waiting";
+
   const handleDeleteExpired = async () => {
     if (!actualElectionId) return;
     await deleteVotingEvent(actualElectionId).unwrap();
@@ -280,12 +307,15 @@ const ElectionConfigReview: React.FC = () => {
 
   const officialPublicationState =
     eventState === "READY_FOR_REVIEW" || eventState === "PUBLISHED";
+  const tvdCapacityNotConfirmed =
+    tvdCapacityLoading ||
+    tvdCapacityFetching ||
+    Boolean(tvdCapacityError) ||
+    tvdCapacity?.canPublish !== true;
   const tvdCapacityBlocksOfficialPublication =
-    officialPublicationState &&
-    (tvdCapacityLoading ||
-      tvdCapacityFetching ||
-      Boolean(tvdCapacityError) ||
-      tvdCapacity?.canPublish !== true);
+    officialPublicationState && tvdCapacityNotConfirmed;
+  const tvdCapacityBlocksReviewNotification =
+    eventState === "DRAFT" && tvdCapacityNotConfirmed;
   const isPublishButtonDisabled = () => {
     return (
       !canProceedToOfficialPublication ||
@@ -738,13 +768,6 @@ const ElectionConfigReview: React.FC = () => {
 
   const tvdCapacityContent = (
     <div className="space-y-4">
-      {!officialPublicationState ? (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-          La capacidad definitiva se valida cuando la elección está lista para
-          publicación. La estimación inicial no se usa como conteo definitivo.
-        </div>
-      ) : null}
-
       {tvdCapacityLoading ? (
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
           Validando capacidad TVD...
@@ -962,6 +985,7 @@ const ElectionConfigReview: React.FC = () => {
                   {configSummary ? (
                     <ConfigSummaryCard
                       summary={configSummary}
+                      tvdCapacityOk={tvdCapacity?.canPublish === true}
                       isReferendum={Boolean(ballotPreview?.isReferendum)}
                       isOpenVoting={isOpenVoting}
                       maxOpenVoters={maxOpenVoters}
@@ -974,6 +998,12 @@ const ElectionConfigReview: React.FC = () => {
                   ) : null}
                 </div>
               </ReviewAccordionSection>
+
+              {tvdCapacityLoading || tvdCapacityError || (tvdCapacity && !tvdCapacity.canPublish) ? (
+                <ReviewAccordionSection title="Capacidad TVD" defaultOpen>
+                  {tvdCapacityContent}
+                </ReviewAccordionSection>
+              ) : null}
 
               <ReviewAccordionSection
                 title="Vista previa para votantes"
@@ -992,12 +1022,6 @@ const ElectionConfigReview: React.FC = () => {
               >
                 {warningsContent}
               </ReviewAccordionSection>
-
-              {tvdCapacityLoading || tvdCapacityError || (tvdCapacity && !tvdCapacity.canPublish) ? (
-                <ReviewAccordionSection title="Capacidad TVD" defaultOpen>
-                  {tvdCapacityContent}
-                </ReviewAccordionSection>
-              ) : null}
 
               <ReviewAccordionSection title="Configuración adicional">
                 {additionalConfigContent}
@@ -1046,9 +1070,9 @@ const ElectionConfigReview: React.FC = () => {
                   {publicationDeadlineLabel}.
                 </p>
               ) : null}
-              {officialPublicationState &&
-              !reviewReadiness?.publicationWindow?.expired &&
-              tvdCapacityBlocksOfficialPublication ? (
+              {!reviewReadiness?.publicationWindow?.expired &&
+              (tvdCapacityBlocksOfficialPublication ||
+                tvdCapacityBlocksReviewNotification) ? (
                 <p className="mb-2 text-sm text-amber-700">
                   Valida capacidad TVD suficiente antes de avanzar.
                 </p>
@@ -1116,11 +1140,17 @@ const ElectionConfigReview: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleOpenReview}
-                  disabled={!canOpenReview || openingReview}
+                  disabled={
+                    !canOpenReview ||
+                    openingReview ||
+                    tvdCapacityBlocksReviewNotification
+                  }
                   className={`
                     w-full sm:w-auto px-8 py-3 font-semibold rounded-lg transition-all
                     ${
-                      canOpenReview && !openingReview
+                      canOpenReview &&
+                      !openingReview &&
+                      !tvdCapacityBlocksReviewNotification
                         ? "bg-[#459151] hover:bg-[#3a7a44] text-white shadow-md hover:shadow-lg"
                         : "bg-gray-300 text-gray-500 cursor-not-allowed"
                     }
@@ -1139,11 +1169,14 @@ const ElectionConfigReview: React.FC = () => {
       {/* Modal de confirmación */}
       <ConfirmActivateModal
         isOpen={showConfirmModal}
-        onClose={() => setShowConfirmModal(false)}
+        onClose={handleCloseConfirmModal}
         onConfirm={handleActivate}
         isLoading={activating}
         isReferendum={Boolean(ballotPreview?.isReferendum)}
         unregisteredCount={publicationMissingIdentityCount}
+        publicationStatus={confirmModalPublicationStatus}
+        failureMessage={officialPublicationMessage}
+        onGoToElections={() => navigate("/votacion/elecciones")}
       />
 
       {/* Modal de éxito */}

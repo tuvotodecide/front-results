@@ -21,6 +21,7 @@ import {
 import { buildWhatsappLink, getWhatsappNumber } from "@/shared/system/whatsapp";
 import {
   useCreateQrPaymentMutation,
+  useGetActiveTvdExchangeRateQuery,
   useGetMyTvdPaymentQuery,
   useGetMyTvdQuoteQuery,
   useGetMyTvdSummaryQuery,
@@ -214,6 +215,13 @@ export default function OperationalRechargePage() {
     refetch: refetchQuote,
   } = useGetMyTvdQuoteQuery(quoteArg ?? { amount: "0.01", currency: "BOB", tenantId: tenantId ?? "" }, {
     skip: !quoteArg,
+  });
+  const {
+    data: activeExchangeRate,
+    error: activeExchangeRateError,
+    isLoading: isActiveExchangeRateLoading,
+  } = useGetActiveTvdExchangeRateQuery(undefined, {
+    refetchOnMountOrArgChange: true,
   });
   const vestingBalance = useInstitutionalVestingBalance();
   const amountExceedsVestingBalance = exceedsInstitutionalVestingBalance(
@@ -559,7 +567,35 @@ export default function OperationalRechargePage() {
           </div>
         ) : null}
 
-        {step === 1 ? (
+        {step === 1 && activeExchangeRateError ? (
+          <section className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm sm:p-7">
+            <div className="flex items-start gap-3">
+              <ExclamationTriangleIcon
+                className="h-6 w-6 shrink-0 text-red-700"
+                aria-hidden="true"
+              />
+              <p className="text-sm font-semibold text-red-800" role="alert">
+                Algo salió mal al cargar el tipo de cambio. Intenta nuevamente más tarde.
+              </p>
+            </div>
+          </section>
+        ) : null}
+
+        {step === 1 && !activeExchangeRateError && insufficientVestingBalance ? (
+          <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm sm:p-7">
+            <div className="flex items-start gap-3">
+              <ExclamationTriangleIcon
+                className="h-6 w-6 shrink-0 text-amber-700"
+                aria-hidden="true"
+              />
+              <p className="text-sm font-semibold text-amber-900" role="status">
+                Las compras por QR no están habilitadas en este momento.
+              </p>
+            </div>
+          </section>
+        ) : null}
+
+        {step === 1 && !activeExchangeRateError && !insufficientVestingBalance ? (
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
             <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
               <div className="space-y-5">
@@ -570,6 +606,13 @@ export default function OperationalRechargePage() {
                   >
                     Monto BOB a pagar
                   </label>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {activeExchangeRate
+                      ? `Tipo de cambio: 1 TVD = ${activeExchangeRate.bobPerToken} Bs.`
+                      : isActiveExchangeRateLoading
+                        ? "Cargando tipo de cambio..."
+                        : null}
+                  </p>
                   <div className="mt-2 flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition focus-within:border-[#459151] focus-within:ring-2 focus-within:ring-[#459151]/15">
                     <input
                       id="recharge-amount"
@@ -582,8 +625,7 @@ export default function OperationalRechargePage() {
                       }}
                       inputMode="decimal"
                       aria-describedby="recharge-amount-help"
-                      disabled={insufficientVestingBalance}
-                      className="w-0 min-w-0 flex-1 appearance-none border-0 bg-transparent text-2xl font-bold text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:text-slate-400 sm:text-3xl"
+                      className="w-0 min-w-0 flex-1 appearance-none border-0 bg-transparent text-2xl font-bold text-slate-900 outline-none placeholder:text-slate-400 sm:text-3xl"
                       placeholder="10.50"
                     />
                     <span className="ml-3 rounded-full bg-slate-100 px-3 py-1 text-sm font-bold text-slate-600">
@@ -681,21 +723,15 @@ export default function OperationalRechargePage() {
                     {vestingBalance.data ? ` (${vestingBalance.data.formatted} disponibles)` : ""}.
                   </div>
                 ) : vestingBalance.data ? (
-                    insufficientVestingBalance ? (
-                      <div className="mt-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                        No hay suficientes créditos disponibles para realizar una compra.
-                      </div>
-                    ) : <p
-                      className={`mt-4 text-md font-bold ${
-                        vestingBalanceAmount !== null && vestingBalanceAmount > 50
-                          ? "text-green-600"
-                          : vestingBalanceAmount !== null && vestingBalanceAmount >= 20
-                            ? "text-yellow-600"
-                            : "text-red-600"
-                      }`}
-                    >
-                      Saldo disponible para acreditación: {vestingBalance.data.formatted}
-                    </p>
+                  <p
+                    className={`mt-4 text-md font-bold ${
+                      vestingBalanceAmount !== null && vestingBalanceAmount > 50
+                        ? "text-green-600"
+                        : "text-yellow-600"
+                    }`}
+                  >
+                    Saldo disponible para acreditación: {vestingBalance.data.formatted}
+                  </p>
                 ) : vestingBalance.error ? (
                   <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                     No pudimos consultar el saldo disponible para acreditación.

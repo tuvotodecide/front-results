@@ -11,6 +11,11 @@ export type TvdExchangeRate = {
   updatedAt?: string | null;
 };
 
+export type TvdActiveExchangeRate = {
+  fiatCurrency: "BOB";
+  bobPerToken: string;
+};
+
 export type CreateTvdExchangeRateRequest = {
   fiatCurrency: "BOB";
   bobPerToken: string;

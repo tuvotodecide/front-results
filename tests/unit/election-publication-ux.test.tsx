@@ -755,7 +755,7 @@ describe("publication deadlines UX", () => {
       refetch: refetchMock,
     } satisfies UseElectionPublishReturn);
 
-    render(<ElectionConfigReview />);
+    const view = render(<ElectionConfigReview />);
 
     await user.click(
       screen.getByRole("button", { name: /confirmar publicación oficial/i }),
@@ -763,6 +763,100 @@ describe("publication deadlines UX", () => {
     await user.click(screen.getByRole("button", { name: "Publicar oficialmente" }));
 
     expect(activateElectionMock).toHaveBeenCalledTimes(1);
+
+    expect(
+      await screen.findByRole("heading", { name: "Esperando confirmación móvil" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Publicar oficialmente" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Ir a mis votaciones" }),
+    ).not.toBeInTheDocument();
+
+    const publishState = useElectionPublishMock.mock.results.at(-1)?.value;
+    useElectionPublishMock.mockReturnValue({
+      ...publishState,
+      votingEvent: {
+        ...readyForReviewEvent,
+        state: "OFFICIALLY_PUBLISHED",
+        status: "OFFICIALLY_PUBLISHED",
+      },
+    });
+    view.rerender(<ElectionConfigReview />);
+
+    expect(
+      screen.getByRole("heading", { name: "Publicación oficial confirmada" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Esperando confirmación móvil" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Ir a mis votaciones" }));
+    expect(navigateMock).toHaveBeenCalledWith("/votacion/elecciones");
+  });
+
+  it("shows the failure inside the modal when the mobile confirmation does not complete", async () => {
+    const user = userEvent.setup();
+    const baseState = {
+      votingEvent: readyForReviewEvent,
+      ballotPreview: null,
+      configSummary: makeConfigSummary(),
+      publicationMissingIdentityCount: 0,
+      publicationPadronCount: 10,
+      reviewReadiness: completeReadiness,
+      loading: false,
+      error: null,
+      electionStatus: "DRAFT",
+      openReview: vi.fn(),
+      openingReview: false,
+      activateElection: vi.fn(() => Promise.resolve(null as any)),
+      activating: false,
+      activationResult: null,
+      copyToClipboard: vi.fn(),
+      getShareUrl: vi.fn(),
+      refetch: refetchMock,
+    } satisfies UseElectionPublishReturn;
+    useElectionPublishMock.mockReturnValue(baseState);
+
+    const view = render(<ElectionConfigReview />);
+
+    await user.click(
+      screen.getByRole("button", { name: /confirmar publicación oficial/i }),
+    );
+    await user.click(screen.getByRole("button", { name: "Publicar oficialmente" }));
+    expect(
+      await screen.findByRole("heading", { name: "Esperando confirmación móvil" }),
+    ).toBeInTheDocument();
+
+    useElectionPublishMock.mockReturnValue({
+      ...baseState,
+      officialPublicationIsActive: true,
+    });
+    view.rerender(<ElectionConfigReview />);
+
+    useElectionPublishMock.mockReturnValue({
+      ...baseState,
+      officialPublicationIsActive: false,
+      officialPublicationCanRetry: true,
+      officialPublicationMessage:
+        "La solicitud de publicación fue rechazada desde la aplicación móvil.",
+    });
+    view.rerender(<ElectionConfigReview />);
+
+    expect(
+      screen.getByRole("heading", { name: "Publicación no completada" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "La solicitud de publicación fue rechazada desde la aplicación móvil.",
+      ),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cerrar" }));
+    expect(
+      screen.queryByRole("heading", { name: "Publicación no completada" }),
+    ).not.toBeInTheDocument();
+    expect(navigateMock).not.toHaveBeenCalled();
   });
 
   it("shows the API error when official publication fails", async () => {
@@ -1213,9 +1307,7 @@ describe("publication deadlines UX", () => {
     );
     expect(screen.getByText("Enlace copiado.")).toBeInTheDocument();
   });
-  it("keeps the presential QR option available before official publication", async () => {
-    const user = userEvent.setup();
-
+  it("hides the presential QR card before the voting window opens", async () => {
     vi.mocked(votingEvents.useGetVotingEventQuery).mockReturnValue({
       data: makeVotingEvent({
         state: "DRAFT",
@@ -1233,22 +1325,24 @@ describe("publication deadlines UX", () => {
       role: "ADMIN",
     });
 
-    await user.click(screen.getByRole("tab", { name: /M.s/i }));
-    await user.click(
-      screen.getByRole("button", { name: /Punto presencial QR/i }),
-    );
-
     expect(
-      screen.getByRole("heading", { name: /Punto presencial QR/i }),
-    ).toBeInTheDocument();
+      screen.queryByRole("heading", { name: /Punto presencial QR/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Abrir punto QR/i }),
+    ).not.toBeInTheDocument();
   });
-  it("offers the public link and presential QR as separate additional views", async () => {
+  it("shows the presential QR card while voting is active and keeps it out of the more menu", async () => {
     const user = userEvent.setup();
 
+    // useClientNow está fijado en 2026-04-17T12:00Z: esta ventana deja la votación ACTIVE.
     vi.mocked(votingEvents.useGetVotingEventQuery).mockReturnValue({
       data: makeVotingEvent({
         state: "OFFICIALLY_PUBLISHED",
         status: "OFFICIALLY_PUBLISHED",
+        votingStart: "2026-04-17T10:00:00.000Z",
+        votingEnd: "2026-04-17T14:00:00.000Z",
+        resultsPublishAt: "2026-04-17T15:00:00.000Z",
         presentialKioskEnabled: true,
       }),
       isLoading: false,
@@ -1262,37 +1356,30 @@ describe("publication deadlines UX", () => {
       role: "ADMIN",
     });
 
-    await user.click(screen.getByRole("tab", { name: /M.s/i }));
-
-    let moreDialog = screen.getByRole("dialog", {
-      name: /Opciones adicionales/i,
-    });
-
-    await user.click(
-      within(moreDialog).getByRole("button", {
-        name: /Enlace p.blico/i,
-      }),
-    );
-
-    expect(
-      screen.getByRole("heading", { name: /Enlace p.blico/i }),
-    ).toBeInTheDocument();
-
-    await user.click(screen.getByRole("tab", { name: /M.s/i }));
-
-    moreDialog = screen.getByRole("dialog", {
-      name: /Opciones adicionales/i,
-    });
-
-    await user.click(
-      within(moreDialog).getByRole("button", {
-        name: /Punto presencial QR/i,
-      }),
-    );
-
     expect(
       screen.getByRole("heading", { name: /Punto presencial QR/i }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Abrir punto QR/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Copiar enlace QR/i }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: /M.s/i }));
+
+    const moreDialog = screen.getByRole("dialog", {
+      name: /Opciones adicionales/i,
+    });
+
+    expect(
+      within(moreDialog).getByRole("button", { name: /Enlace p.blico/i }),
+    ).toBeInTheDocument();
+    expect(
+      within(moreDialog).queryByRole("button", {
+        name: /Punto presencial QR/i,
+      }),
+    ).not.toBeInTheDocument();
   });
   it("shows the protected padron consultation view", async () => {
     const user = userEvent.setup();
@@ -1402,6 +1489,45 @@ describe("publication deadlines UX", () => {
     expect(
       screen.getByRole("button", { name: "Publicar oficialmente" }),
     ).toBeInTheDocument();
+  });
+
+  it("shows the mobile confirmation wait inside the official publication modal", () => {
+    render(
+      <ConfirmActivateModal
+        isOpen
+        onClose={vi.fn()}
+        onConfirm={vi.fn()}
+        isLoading={false}
+        publicationStatus="waiting"
+      />,
+    );
+
+    expect(screen.getByText("Esperando confirmación móvil")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Publicar oficialmente" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Ir a mis votaciones" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("offers navigation to elections once official publication is confirmed", async () => {
+    const user = userEvent.setup();
+    const onGoToElections = vi.fn();
+    render(
+      <ConfirmActivateModal
+        isOpen
+        onClose={vi.fn()}
+        onConfirm={vi.fn()}
+        isLoading={false}
+        publicationStatus="confirmed"
+        onGoToElections={onGoToElections}
+      />,
+    );
+
+    expect(screen.getByText("Publicación oficial confirmada")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Ir a mis votaciones" }));
+    expect(onGoToElections).toHaveBeenCalledTimes(1);
   });
 
   it("shows a visible warning in the official publication modal when there are unregistered records", () => {

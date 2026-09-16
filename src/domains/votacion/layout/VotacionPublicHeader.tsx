@@ -110,14 +110,10 @@ export default function VotacionPublicHeader() {
 
   return (
     <header className={styles.header}>
-      <a className={styles.logo}>
-        <img
-          src={logoSrc}
-          alt="Tu voto decide"
-          className={styles.logoImage}
-        />
+      <Link href="/votacion" className={styles.logo}>
+        <img src={logoSrc} alt="Tu voto decide" className={styles.logoImage} />
         <span className={styles.logoText}>Tu voto decide</span>
-      </a>
+      </Link>
       <div className={styles.headerActions}>
         {showHomeButton ? (
           <Link href={homePath} className={styles.secondaryNavButton}>
@@ -201,6 +197,9 @@ export default function VotacionPublicHeader() {
                   Aprobaciones
                 </Link>
               ) : null}
+              <Link href={homePath} className={styles.menuItem}>
+                {homeLabel}
+              </Link>
               <button
                 data-cy="logout-button"
                 onClick={logout}

@@ -2,21 +2,9 @@
 // Basado en capturas 02_step1.png y 03_step2.png
 
 import React, { useEffect, useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
 import { useNavigate } from '@/domains/votacion/navigation/compat-private';
 import { Formik, Form, Field, ErrorMessage, type FieldProps } from 'formik';
 import * as Yup from 'yup';
-import { selectTenantId } from '@/store/auth/authSlice';
-import { useEstimateMyTvdCapacityMutation } from '@/store/tvd';
-import {
-  formatTvdCapacityAmount,
-  getCapacityRequestErrorMessage,
-} from '../../adminTvd/utils/tvdCapacityUi';
-import {
-  fetchTvdPerCredit,
-  formatRequiredTvd,
-  getRequiredSmallestUnit,
-} from '../../adminTvd/data/useTvdPerCredit';
 import Stepper from './Stepper';
 import ConfirmCreateModal from './ConfirmCreateModal';
 import ToggleOptionField from './ToggleOptionField';
@@ -182,9 +170,6 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
 }) => {
   const navigate = useNavigate();
   const { createElection, creating } = useCreateElection();
-  const tenantId = useSelector(selectTenantId);
-  const [estimateCapacity, { isLoading: validatingCapacity }] =
-    useEstimateMyTvdCapacityMutation();
 
   const [step, setStep] = useState<1 | 2>(1);
   const [step1Data, setStep1Data] = useState<ElectionFormStep1>({
@@ -220,60 +205,8 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
   }, []);
 
   // Step 1: Info básica
-  const handleStep1Submit = async (values: ElectionFormStep1) => {
+  const handleStep1Submit = (values: ElectionFormStep1) => {
     setSubmitError(null);
-
-    // Votación abierta: el límite de votantes se cobra en TVD según la tasa
-    // on-chain (1 votante = tvdPerCredit), así que no puede superar el saldo
-    // disponible de la institución.
-    if (values.isOpenVoting) {
-      if (!tenantId) {
-        setSubmitError(
-          'No se encontró un contexto institucional activo. Selecciona tu institución para crear votaciones.',
-        );
-        return;
-      }
-
-      try {
-        const [capacity, tvdPerCredit] = await Promise.all([
-          estimateCapacity({
-            estimatedParticipants: String(values.maxOpenVoters),
-            tenantId,
-          }).unwrap(),
-          fetchTvdPerCredit(),
-        ]);
-
-        const requiredSmallestUnit = getRequiredSmallestUnit(
-          values.maxOpenVoters,
-          tvdPerCredit,
-        );
-        const availableRaw = String(capacity.availableSmallestUnit ?? '').trim();
-        const availableSmallestUnit = /^\d+$/.test(availableRaw)
-          ? BigInt(availableRaw)
-          : null;
-
-        const hasCapacity =
-          requiredSmallestUnit !== null && availableSmallestUnit !== null
-            ? requiredSmallestUnit <= availableSmallestUnit
-            : capacity.hasEstimatedCapacity;
-
-        if (!hasCapacity) {
-          const requiredLabel =
-            formatRequiredTvd(values.maxOpenVoters, tvdPerCredit) ??
-            formatTvdCapacityAmount(capacity.estimatedRequiredTokens);
-          setSubmitError(
-            `El límite de votantes cuesta ${requiredLabel} y solo tienes ${formatTvdCapacityAmount(
-              capacity.availableTokens,
-            )}. Reduce el límite o recarga tokens.`,
-          );
-          return;
-        }
-      } catch (error: unknown) {
-        setSubmitError(getCapacityRequestErrorMessage(error));
-        return;
-      }
-    }
-
     setStep1Data({
       ...values,
       maxOpenVoters: values.isOpenVoting ? values.maxOpenVoters : 0,
@@ -485,10 +418,10 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                     </button>
                     <button
                       type="submit"
-                      disabled={!isValid || validatingCapacity}
+                      disabled={!isValid}
                       className="px-12 py-3 bg-[#459151] hover:bg-[#3a7a44] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {validatingCapacity ? 'Validando capacidad...' : 'Siguiente'}
+                      Siguiente
                     </button>
                   </div>
                 </Form>

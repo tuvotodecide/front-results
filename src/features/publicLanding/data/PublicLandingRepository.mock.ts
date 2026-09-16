@@ -199,7 +199,7 @@ const mockLandingData: PublicLandingData = {
     },
   },
   contact: {
-    whatsappNumber: '71234567',
+    whatsappNumber: '77587175',
     email: 'info@tuvotodecide.com',
     attentionHours: '08:30–20:00',
     brandName: 'Tu Voto Decide',

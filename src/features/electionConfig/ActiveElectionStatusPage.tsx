@@ -345,12 +345,6 @@ const MORE_OPTIONS_UI: Array<{
     icon: "B",
   },
   {
-    id: "kiosk",
-    label: "Punto presencial QR",
-    description: "Acceso operativo para mesa presencial.",
-    icon: "QR",
-  },
-  {
     id: "news",
     label: "Noticias",
     description: "Informacion relacionada.",
@@ -1197,6 +1191,36 @@ const ActiveElectionStatusPage: React.FC = () => {
               </dl>
             </div>
           ) : null}
+
+          {presentialKioskEnabled && lifecycle === 'ACTIVE' ? (
+            <CardShell title="Punto presencial QR">
+              <div className="mx-auto w-full max-w-xl space-y-4">
+                <p className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600 text-center">
+                  {presentialKioskEnabled
+                    ? "El punto presencial está activo para generar enlaces QR."
+                    : "El voto presencial con QR no está activado para esta elección."}
+                </p>
+                <div className="flex flex-col gap-2 sm:flex-row justify-center">
+                  <button
+                    type="button"
+                    onClick={handleOpenKiosk}
+                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 transition hover:border-[#459151]"
+                  >
+                    Abrir punto QR
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleCopyKioskLink()}
+                    disabled={creatingKioskLink}
+                    className="rounded-lg bg-[#2E7D32] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#256b2b] disabled:opacity-60"
+                  >
+                    {creatingKioskLink ? "Generando..." : "Copiar enlace QR"}
+                  </button>
+                </div>
+              </div>
+            </CardShell>
+          ) : null}
+
           <button
             type="button"
             onClick={handleCopyPublicElectionLink}
@@ -1602,35 +1626,6 @@ const ActiveElectionStatusPage: React.FC = () => {
                     >
                       Abrir votación pública
                     </button>
-                  </div>
-                </CardShell>
-              ) : null}
-
-              {activeMoreView === "kiosk" && presentialKioskEnabled ? (
-                <CardShell title="Punto presencial QR">
-                  <div className="mx-auto w-full max-w-xl space-y-4">
-                    <p className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-                      {presentialKioskEnabled
-                        ? "El punto presencial está activo para generar enlaces QR."
-                        : "El voto presencial con QR no está activado para esta elección."}
-                    </p>
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                      <button
-                        type="button"
-                        onClick={handleOpenKiosk}
-                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 transition hover:border-[#459151]"
-                      >
-                        Abrir punto QR
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleCopyKioskLink()}
-                        disabled={creatingKioskLink}
-                        className="rounded-lg bg-[#2E7D32] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#256b2b] disabled:opacity-60"
-                      >
-                        {creatingKioskLink ? "Generando..." : "Copiar enlace QR"}
-                      </button>
-                    </div>
                   </div>
                 </CardShell>
               ) : null}
