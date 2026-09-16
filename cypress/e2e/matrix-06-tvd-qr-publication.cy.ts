@@ -75,6 +75,13 @@ describe("MX-06 | QR, acreditación y capacidad TVD", () => {
         },
       },
     }).as("institutionalVestingBalance");
+    // Tipo de cambio activo: si falla, la pantalla reemplaza el paso 1 completo
+    // por un aviso de error y el input de monto no se renderiza. Coincide con
+    // el bobPerToken de la cotización (10.50 BOB = 21 TVD).
+    cy.intercept("GET", "**/api/v1/tvd/exchange-rates/active-rate*", {
+      statusCode: 200,
+      body: { fiatCurrency: "BOB", bobPerToken: "0.50" },
+    }).as("activeExchangeRate");
     cy.intercept("GET", "**/api/v1/tvd/me/quote*", (request) => {
       expect(request.query).to.include({ amount: "10.50", currency: "BOB" });
       request.reply({ statusCode: 200, body: { fiatAmount: "10.50", fiatAmountMinor: "1050", fiatCurrency: "BOB", estimatedTvd: "21", estimatedTvdSmallestUnit: "21000000000000000000", bobPerToken: "0.50", exchangeRateVersion: 1, quotedAt: "2026-08-10T12:00:00.000Z" } });
@@ -168,9 +175,10 @@ describe("MX-06 | QR, acreditación y capacidad TVD", () => {
     cy.location("pathname", { timeout: 30000 }).should("eq", "/votacion/recarga-operativa");
     cy.contains("h1", "Recarga operativa").should("be.visible");
     cy.wait("@tvdSummary");
-    // El techo de recarga habilita "Generar QR": esperarlo evita depender del
-    // reintento de actionability de Cypress.
-    cy.wait("@institutionalVestingBalance");
+    // El techo de recarga y el tipo de cambio activo deciden si se muestra el
+    // paso 1: esperarlos evita depender del reintento de actionability de Cypress.
+    cy.wait(["@institutionalVestingBalance", "@activeExchangeRate"]);
+    cy.contains("Tipo de cambio: 1 TVD = 0.50 Bs.").should("be.visible");
     cy.get("#recharge-amount").type("10.50");
     cy.wait("@tvdQuote");
     cy.contains("Saldo disponible para acreditación: 1000 TVD").should("be.visible");
