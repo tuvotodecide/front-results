@@ -11,6 +11,7 @@ const reviewMocks = vi.hoisted(() => ({
   useElectionPublish: vi.fn(),
 }));
 
+vi.mock("@/features/elections/data/useWalletMigrationGate", () => ({ useWalletMigrationGate: () => ({ blocking: false, reason: "NONE", institutionalRole: null, isChecking: false, recheck: () => undefined }) }));
 vi.mock("@/domains/votacion/navigation/compat-private", () => ({
   useNavigate: () => vi.fn(),
   useParams: () => ({ electionId: "eleccion-09" }),

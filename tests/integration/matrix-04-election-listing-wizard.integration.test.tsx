@@ -23,6 +23,7 @@ vi.mock("@/features/electionConfig/renderUtils", async () => {
 vi.mock("@/features/elections/data/useElectionRepository", () => ({ useCreateElection: () => ({ createElection: createElectionMock, creating: false }) }));
 vi.mock("@/components/Modal2", () => ({ default: ({ children, isOpen = true, title }: { children?: ReactNode; isOpen?: boolean; title?: string }) => isOpen ? <div role="dialog" aria-label={title ?? "Modal"}>{title ? <h2>{title}</h2> : null}{children}</div> : null }));
 vi.mock("@/features/electionConfig/data/useElectionPublish", () => ({ useElectionPublish: (...args: unknown[]) => useElectionPublishMock(...args) }));
+vi.mock("@/features/elections/data/useWalletMigrationGate", () => ({ useWalletMigrationGate: () => ({ blocking: false, reason: "NONE", institutionalRole: null, isChecking: false, recheck: () => undefined }) }));
 vi.mock("@/store/tvd", () => ({
   useGetMyTvdSummaryQuery: vi.fn(), useEstimateMyTvdCapacityMutation: vi.fn(),
   useGetVotingEventTvdCapacityQuery: (...args: unknown[]) => capacityMock(...args),

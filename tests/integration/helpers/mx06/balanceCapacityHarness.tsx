@@ -8,6 +8,7 @@ const electionDependencies = vi.hoisted(() => ({
   mutation: vi.fn(() => ({ unwrap: () => Promise.resolve({}) })),
 }));
 
+vi.mock("@/features/elections/data/useWalletMigrationGate", () => ({ useWalletMigrationGate: () => ({ blocking: false, reason: "NONE", institutionalRole: null, isChecking: false, recheck: () => undefined }) }));
 vi.mock("@/features/electionConfig/data/useElectionPublish", () => ({
   useElectionPublish: (...args: unknown[]) => electionDependencies.useElectionPublish(...args),
 }));

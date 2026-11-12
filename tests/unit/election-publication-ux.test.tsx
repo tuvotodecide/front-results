@@ -14,6 +14,7 @@ import { completeReadiness, readyForReviewEvent } from "../fixtures/admin/padron
 
 const navigateMock = vi.fn();
 const refetchMock = vi.fn();
+vi.mock("@/features/elections/data/useWalletMigrationGate", () => ({ useWalletMigrationGate: () => ({ blocking: false, reason: "NONE", institutionalRole: null, isChecking: false, recheck: () => undefined }) }));
 vi.mock("@/domains/votacion/navigation/compat-private", () => ({
   useNavigate: () => navigateMock,
   useParams: () => ({ electionId: "evt-1" }),

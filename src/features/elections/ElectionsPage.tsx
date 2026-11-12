@@ -20,6 +20,8 @@ import {
   formatTvdDisplay,
   isWalletUpdateRequiredError,
 } from '../adminTvd/utils/institutionalWalletUi';
+import { useWalletMigrationGate } from './data/useWalletMigrationGate';
+import WalletMigrationNotice from './components/WalletMigrationNotice';
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const DEADLINE_REMINDER_WINDOW_MS = 24 * ONE_HOUR_MS;
@@ -129,12 +131,20 @@ const ElectionsPage: React.FC = () => {
     );
   }, [events, searchTerm]);
 
+  const walletMigrationGate = useWalletMigrationGate();
+  const creationBlocked = walletMigrationGate.blocking;
+  const createButtonStateClass = creationBlocked
+    ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
+    : 'bg-[#459151] hover:bg-[#3a7a44] text-white';
+
   const handleCreateClick = () => {
+    if (creationBlocked) return;
     setShowEstimateModal(true);
   };
 
   const continueToCreateWizard = () => {
     setShowEstimateModal(false);
+    if (creationBlocked) return;
     navigate('/votacion/elecciones/new');
   };
 
@@ -367,12 +377,15 @@ const ElectionsPage: React.FC = () => {
           </section>
         </div>
 
+        <WalletMigrationNotice gate={walletMigrationGate} className="mb-7" />
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <h1 className="text-2xl font-bold text-gray-900">Mis Votaciones</h1>
           <button
             onClick={handleCreateClick}
-            className="inline-flex items-center gap-2 bg-[#459151] hover:bg-[#3a7a44] text-white font-semibold px-6 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+            disabled={creationBlocked}
+            className={`inline-flex items-center gap-2 font-semibold px-6 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ${createButtonStateClass}`}
           >
             <svg
               className="w-5 h-5"
@@ -413,7 +426,8 @@ const ElectionsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={handleCreateClick}
-                className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#459151] px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#3a7a44]"
+                disabled={creationBlocked}
+                className={`mt-6 inline-flex items-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold shadow-sm transition ${createButtonStateClass}`}
               >
                 Crear votación
               </button>

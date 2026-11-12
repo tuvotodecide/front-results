@@ -11,6 +11,7 @@ const publishMock = vi.fn(); const capacityMock = vi.hoisted(() => vi.fn());
 vi.mock("@/domains/votacion/navigation/compat-private", () => ({ useNavigate: () => navigateMock, useParams: () => route }));
 vi.mock("@/features/electionConfig/renderUtils", async () => { const actual = await vi.importActual<typeof import("@/features/electionConfig/renderUtils")>("@/features/electionConfig/renderUtils"); return { ...actual, useClientNow: () => new Date("2026-04-17T12:00:00.000Z").getTime() }; });
 vi.mock("@/features/electionConfig/data/useElectionPublish", () => ({ useElectionPublish: (...args: unknown[]) => publishMock(...args) }));
+vi.mock("@/features/elections/data/useWalletMigrationGate", () => ({ useWalletMigrationGate: () => ({ blocking: false, reason: "NONE", institutionalRole: null, isChecking: false, recheck: () => undefined }) }));
 vi.mock("@/store/tvd", () => ({ useGetVotingEventTvdCapacityQuery: (...args: unknown[]) => capacityMock(...args) }));
 vi.mock("@/features/electionConfig/components/PhoneMockup", () => ({ default: ({ children }: { children?: ReactNode }) => <div data-testid="phone-mockup">{children}</div> }));
 vi.mock("@/features/electionConfig/components/BallotPreview", () => ({ default: ({ isReferendum, question, parties = [] }: { isReferendum?: boolean; question?: string; parties?: Array<{ name: string }> }) => <div data-testid="ballot-preview">{isReferendum ? question : "Elige a tu candidato"}{parties.map((party) => <span key={party.name}>{party.name}</span>)}</div> }));

@@ -9,6 +9,8 @@ import Stepper from './Stepper';
 import ConfirmCreateModal from './ConfirmCreateModal';
 import ToggleOptionField from './ToggleOptionField';
 import { useCreateElection } from '../data/useElectionRepository';
+import { useWalletMigrationGate } from '../data/useWalletMigrationGate';
+import WalletMigrationNotice from './WalletMigrationNotice';
 import {
   addMinutesToLocalDateTime,
   getCurrentLocalDateTime,
@@ -170,6 +172,8 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
 }) => {
   const navigate = useNavigate();
   const { createElection, creating } = useCreateElection();
+  const walletMigrationGate = useWalletMigrationGate();
+  const creationBlocked = walletMigrationGate.blocking;
 
   const [step, setStep] = useState<1 | 2>(1);
   const [step1Data, setStep1Data] = useState<ElectionFormStep1>({
@@ -216,6 +220,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
 
   // Step 2: Fechas -> Abrir modal
   const handleStep2Submit = (values: ElectionFormStep2) => {
+    if (creationBlocked) return;
     setSubmitError(null);
     const fullData: ElectionFormData = {
       ...step1Data,
@@ -228,6 +233,10 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
   // Confirmar creación
   const handleConfirm = async () => {
     if (!pendingData) return;
+    if (creationBlocked) {
+      setShowConfirmModal(false);
+      return;
+    }
 
     try {
       setSubmitError(null);
@@ -276,6 +285,8 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-2xl mx-auto px-4">
+        <WalletMigrationNotice gate={walletMigrationGate} className="mb-6" />
+
         {/* Stepper */}
         <div className="mb-8">
           <Stepper currentStep={step} />
@@ -534,7 +545,7 @@ const CreateElectionWizard: React.FC<CreateElectionWizardProps> = ({
                     </button>
                     <button
                       type="submit"
-                      disabled={!isValid}
+                      disabled={!isValid || creationBlocked}
                       className="px-12 py-3 bg-[#459151] hover:bg-[#3a7a44] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       CREAR

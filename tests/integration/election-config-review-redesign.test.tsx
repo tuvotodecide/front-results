@@ -42,6 +42,20 @@ vi.mock("@/features/electionConfig/data/useElectionPublish", () => ({
   useElectionPublish: (...args: unknown[]) => useElectionPublishMock(...args),
 }));
 
+const walletMigrationGateMock = vi.hoisted(() =>
+  vi.fn(() => ({
+    blocking: false,
+    reason: "NONE",
+    institutionalRole: null as "PRIMARY" | "SECONDARY" | null,
+    isChecking: false,
+    recheck: () => undefined,
+  })),
+);
+
+vi.mock("@/features/elections/data/useWalletMigrationGate", () => ({
+  useWalletMigrationGate: () => walletMigrationGateMock(),
+}));
+
 vi.mock("@/store/tvd", () => ({
   useGetVotingEventTvdCapacityQuery: (
     ...args: ReadonlyArray<unknown>
@@ -588,6 +602,30 @@ describe("election config review redesign", () => {
       screen.getByRole("button", { name: /Confirmar publicación oficial/i }),
     ).toBeEnabled();
     expect(activateElectionMock).not.toHaveBeenCalled();
+  });
+
+  it("bloquea la publicación oficial mientras la billetera institucional no termina de migrarse", () => {
+    const defaultGate = walletMigrationGateMock.getMockImplementation()!;
+    walletMigrationGateMock.mockImplementation(() => ({
+      blocking: true,
+      reason: "IN_PROGRESS",
+      institutionalRole: "PRIMARY",
+      isChecking: false,
+      recheck: () => undefined,
+    }));
+    try {
+      renderReview();
+
+      expect(screen.getByTestId("wallet-migration-notice")).toHaveTextContent(
+        "Estamos actualizando la billetera de la institución",
+      );
+      expect(
+        screen.getByRole("button", { name: /Confirmar publicación oficial/i }),
+      ).toBeDisabled();
+      expect(activateElectionMock).not.toHaveBeenCalled();
+    } finally {
+      walletMigrationGateMock.mockImplementation(defaultGate);
+    }
   });
 
   it("bloquea con padrón no listo y permite reintentar sin ofrecer recarga", async () => {
