@@ -17,6 +17,8 @@ import ActivatedSuccessModal from "./components/ActivatedSuccessModal";
 import CreateNewsModal from "./components/CreateNewsModal";
 import ReviewAccordionSection from "./components/review/ReviewAccordionSection";
 import { useElectionPublish } from "./data/useElectionPublish";
+import { useWalletMigrationGate } from "../elections/data/useWalletMigrationGate";
+import WalletMigrationNotice from "../elections/components/WalletMigrationNotice";
 import Modal2 from "../../components/Modal2";
 import ConfigPageFallback from "./components/ConfigPageFallback";
 import { getRequestErrorMessage } from "./requestErrorMessage";
@@ -83,6 +85,7 @@ const ElectionConfigReview: React.FC = () => {
   const { electionId } = useParams<{ electionId: string }>();
   const actualElectionId = electionId || "";
   const nowMs = useClientNow();
+  const walletMigrationGate = useWalletMigrationGate();
 
   const {
     votingEvent,
@@ -258,6 +261,10 @@ const ElectionConfigReview: React.FC = () => {
   };
 
   const handleActivate = async () => {
+    if (walletMigrationGate.blocking) {
+      setShowConfirmModal(false);
+      return;
+    }
     try {
       if (!votingEvent) {
         throw new Error("Could not load voting event data");
@@ -322,7 +329,8 @@ const ElectionConfigReview: React.FC = () => {
       activating ||
       officialPublicationIsActive ||
       reviewReadiness?.publicationWindow?.expired ||
-      tvdCapacityBlocksOfficialPublication
+      tvdCapacityBlocksOfficialPublication ||
+      walletMigrationGate.blocking
     );
   };
   const fullElectionEditingEnabled = canEditElectionBeforeCutoff(
@@ -969,6 +977,11 @@ const ElectionConfigReview: React.FC = () => {
               {reviewSubtitle}
             </p>
           </header>
+
+          <WalletMigrationNotice
+            gate={walletMigrationGate}
+            className="mx-auto max-w-3xl text-left"
+          />
 
           <div className="grid gap-6 lg:grid-cols-[minmax(280px,380px)_minmax(0,1fr)] lg:items-start">
             <aside className="hidden lg:sticky lg:top-6 lg:flex lg:flex-col lg:items-center">
