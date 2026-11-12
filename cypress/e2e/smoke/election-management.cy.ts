@@ -1,4 +1,5 @@
 import { installMatrixMockOnlyNetworkGuard } from "../../support/matrixNetworkGuard";
+import { mockWalletMigrationGate } from "../../support/walletMigrationMocks";
 
 describe("MX-04 | creación de votaciones", () => {
   beforeEach(() => {
@@ -22,6 +23,7 @@ describe("MX-04 | creación de votaciones", () => {
       resultsPublishAt: "2027-01-10T19:00:00.000Z",
     };
 
+    mockWalletMigrationGate("tenant-smoke");
     cy.intercept("GET", "**/api/v1/voting/events*", {
       statusCode: 200,
       body: { data: [] },

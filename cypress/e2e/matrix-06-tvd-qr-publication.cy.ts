@@ -1,4 +1,5 @@
 import { installMatrixMockOnlyNetworkGuard } from "../support/matrixNetworkGuard";
+import { mockWalletMigrationGate } from "../support/walletMigrationMocks";
 
 const qrImage = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL7WQAAAABJRU5ErkJggg==";
 
@@ -27,6 +28,7 @@ describe("MX-06 | QR, acreditación y capacidad TVD", () => {
     const verifyMockOnlyNetwork = installMatrixMockOnlyNetworkGuard("TVD-UI-P2-004");
     let paymentReads = 0;
     let exposeRecoverablePayment = false;
+    mockWalletMigrationGate("tenant-smoke");
     cy.intercept("GET", "**/api/v1/tvd/me/summary*", {
       statusCode: 200,
       body: {
