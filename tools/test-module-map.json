@@ -199,7 +199,8 @@
         "BRS-F10"
       ],
       "files": [
-        "tests/integration/election-config-components.test.tsx"
+        "tests/integration/election-config-components.test.tsx",
+        "tests/integration/wallet-migration-gate.test.tsx"
       ]
     },
     "election-options": {
