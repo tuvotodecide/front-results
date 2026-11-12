@@ -167,8 +167,6 @@ const ResultadosMesa2 = () => {
     province: filters.province,
     municipality: filters.municipality,
     electoralLocation: searchElectoralLocationId,
-    page: 1,
-    limit: 20,
     isLiveMode: isPreliminaryPhase && !isFinalPhase,
     enablePolling: isAutoRefreshWindow,
     skip:
@@ -223,8 +221,6 @@ const ResultadosMesa2 = () => {
     electionType: primaryElectionType,
     electionId: resolvedElectionId,
     electoralLocation: currentElectoralLocationId,
-    page: 1,
-    limit: 200,
     isLiveMode: isPreliminaryPhase && !isFinalPhase,
     enablePolling: isAutoRefreshWindow,
     skip:

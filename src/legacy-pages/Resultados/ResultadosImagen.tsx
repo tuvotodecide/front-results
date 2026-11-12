@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { toIpfsGatewayUrl } from "../../utils/ipfs";
 // import ModalImage from '../../components/ModalImage';
 // import actaImage from '../../assets/acta.jpg';
 import LocationSection from "./LocationSection";
@@ -457,10 +458,7 @@ const ResultadosImagen = () => {
                       {currentItem?.image && (
                         <a
                           data-cy="ipfs-image-link"
-                          href={`https://ipfs.io/ipfs/${currentItem.image.replace(
-                            "ipfs://",
-                            "",
-                          )}`}
+                          href={toIpfsGatewayUrl(currentItem.image)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="px-3 py-2.5 text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-md hover:bg-slate-100 hover:border-slate-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-1 text-center no-underline"

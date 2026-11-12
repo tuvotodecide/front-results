@@ -204,6 +204,14 @@ const Configurations = () => {
                       Editar
                     </button>
                     <button
+                      onClick={() =>
+                        navigation(`/resultados/partidos-eleccion?election=${activeConfig.id}`)
+                      }
+                      className="inline-flex items-center px-4 py-2 border border-white/20 text-sm font-medium rounded-lg text-white bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors duration-200"
+                    >
+                      Partidos
+                    </button>
+                    <button
                       onClick={() => handleDelete(activeConfig)}
                       className="inline-flex items-center px-4 py-2 border border-white/20 text-sm font-medium rounded-lg text-white bg-red-500/20 hover:bg-red-500/30 focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors duration-200"
                     >

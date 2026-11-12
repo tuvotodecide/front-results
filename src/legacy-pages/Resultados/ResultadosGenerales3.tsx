@@ -188,8 +188,6 @@ const ResultadosGenerales3 = () => {
     province: locationParams.province,
     municipality: locationParams.municipality,
     electoralLocation: electoralLocationId,
-    page: 1,
-    limit: 200,
     isLiveMode: isPreliminaryPhase && !isFinalPhase,
     enablePolling: isAutoRefreshWindow,
     skip:

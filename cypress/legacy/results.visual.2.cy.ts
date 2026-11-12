@@ -68,7 +68,7 @@ describe("Resultados - Casos Visuales Parte 2 (21-47)", () => {
         cy.visitResultadosImagen(id);
         cy.wait("@ballotById");
         cy.wait("@attestationsByBallot");
-        cy.get('[data-cy="ipfs-image-link"]').should("have.attr", "href").and("include", "https://ipfs.io/ipfs/");
+        cy.get('[data-cy="ipfs-image-link"]').should("have.attr", "href").and("include", "/ipfs/");
         cy.get("body").then(($b) => {
             if ($b.find('[data-cy="ballot-image"]').length) {
                 cy.get('[data-cy="ballot-image"]').trigger("error");

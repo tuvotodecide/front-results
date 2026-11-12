@@ -187,7 +187,7 @@ describe("MX-11 | Atestiguamiento, actas y evidencias | unitarias", () => {
     expect(within(screen.getByText("A favor").parentElement!).getByText("1")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Imagen" })).toHaveAttribute(
       "href",
-      "https://ipfs.io/ipfs/cid-acta-1",
+      "https://gateway.pinata.cloud/ipfs/cid-acta-1",
     );
 
     cleanup();
@@ -211,7 +211,7 @@ describe("MX-11 | Atestiguamiento, actas y evidencias | unitarias", () => {
     expect(within(screen.getByText("Jurados").parentElement!).getByText("1")).toBeInTheDocument();
     expect(
       screen.getByRole("img", { name: "Vista previa de hoja de trabajo electoral" }),
-    ).toHaveAttribute("src", "https://ipfs.io/ipfs/cid-acta-1");
+    ).toHaveAttribute("src", "https://gateway.pinata.cloud/ipfs/cid-acta-1");
     expect(screen.getByRole("link", { name: "Detalles" })).toHaveAttribute(
       "href",
       "/resultados/imagen/ballot-1?electionId=election-2026&electionType=mayor",

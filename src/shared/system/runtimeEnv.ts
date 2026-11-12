@@ -48,6 +48,8 @@ const getStaticNextPublicEnv = (key: string): string | undefined => {
       return process.env.NEXT_PUBLIC_TVD_DECIMALS;
     case "NEXT_PUBLIC_WHATSAPP_NUMBER":
       return process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
+    case "NEXT_PUBLIC_IPFS_GATEWAY_URL":
+      return process.env.NEXT_PUBLIC_IPFS_GATEWAY_URL;
     default:
       return undefined;
   }

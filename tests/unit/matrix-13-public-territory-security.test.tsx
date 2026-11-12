@@ -162,7 +162,7 @@ describe("MX-13 | territorio, mesa, acta y seguridad pública", () => {
 
     expect(screen.getByRole("img", { name: "Vista previa de hoja de trabajo electoral" })).toHaveAttribute(
       "src",
-      "https://ipfs.io/ipfs/public-image",
+      "https://gateway.pinata.cloud/ipfs/public-image",
     );
     expect(screen.getByText("2")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Detalles" })).toHaveAttribute(
@@ -336,7 +336,7 @@ describe("MX-13 | territorio, mesa, acta y seguridad pública", () => {
 
     expect(screen.getByRole("img", { name: "Vista previa de hoja de trabajo electoral" })).toHaveAttribute(
       "src",
-      "https://ipfs.io/ipfs/public-image",
+      "https://gateway.pinata.cloud/ipfs/public-image",
     );
     expect(screen.getByRole("link", { name: "NFT" })).toHaveAttribute(
       "href",

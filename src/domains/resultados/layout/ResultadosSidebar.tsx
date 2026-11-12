@@ -211,6 +211,16 @@ const ResultadosSidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => 
                     <span className={styles.icon}>⚙️</span>Partidos Políticos
                   </Link>
                 </li>
+                <li className={styles.menuItem}>
+                  <Link to="/resultados/partidos-eleccion" className={styles.menuLink}>
+                    <span className={styles.icon}>🗳️</span>Partidos por Elección
+                  </Link>
+                </li>
+                <li className={styles.menuItem}>
+                  <Link to="/resultados/contratos" className={styles.menuLink}>
+                    <span className={styles.icon}>📄</span>Contratos
+                  </Link>
+                </li>
               </ul>
             </div>
           </>

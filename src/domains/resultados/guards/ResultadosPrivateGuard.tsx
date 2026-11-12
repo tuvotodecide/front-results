@@ -59,6 +59,8 @@ export default function ResultadosPrivateGuard({
     "/configuraciones",
     "/partidos",
     "/partidos-politicos",
+    "/partidos-eleccion",
+    "/contratos",
   ];
 
   const isAdminPath = adminPaths.some((path) =>

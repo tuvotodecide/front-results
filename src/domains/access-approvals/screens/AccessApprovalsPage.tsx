@@ -11,14 +11,25 @@ import {
   useReopenInstitutionalApplicationMutation,
   useRetryInstitutionalAuthorizationMutation,
   useRevokeInstitutionalApplicationMutation,
+  useGetTerritorialAccessRequestsQuery,
   type ApprovalStatus,
   type InstitutionalApplication,
 } from "@/store/accessApprovals";
-import CopyButton from "@/domains/superadmin/components/CopyButton";
+import {
+  CloseIcon,
+  InfoLine,
+  SearchIcon,
+  actionClassName,
+  badgeClassName,
+  formatDate,
+  getActionErrorMessage,
+  normalizeSearchText,
+  type FeedbackState,
+} from "@/domains/access-approvals/components/approvalsUi";
+import TerritorialApprovalsSection from "@/domains/access-approvals/components/TerritorialApprovalsSection";
 
 type InstitutionalTab = "pending" | "approved" | "rejected";
-type FeedbackState = { kind: "success" | "warning" | "error"; message: string } | null;
-type ActionTone = "primary" | "danger" | "secondary";
+type ApprovalKind = "institutional" | "territorial";
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING_APPROVAL: "Pendiente de aprobación",
@@ -49,13 +60,6 @@ const ROLE_LABELS: Record<string, string> = {
   SUPERADMIN: "Superadmin",
   ACCESS_APPROVER: "Aprobador",
 };
-
-const normalizeSearchText = (value?: string | null) =>
-  String(value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
 
 const statusLabel = (status?: ApprovalStatus) =>
   STATUS_LABELS[status ?? ""] ?? status ?? "Sin estado";
@@ -100,20 +104,6 @@ const actionFeedbackForResult = (result: unknown): NonNullable<FeedbackState> =>
     return { kind: "warning", message: "La solicitud quedó pendiente de autorización desde el teléfono." };
   }
   return { kind: "success", message: message || "La operación fue procesada." };
-};
-
-const getActionErrorMessage = (error: unknown) => {
-  const data = (error as { data?: unknown })?.data;
-  const message =
-    typeof data === "object" && data !== null && "message" in data
-      ? (data as { message?: unknown }).message
-      : undefined;
-
-  if (typeof message === "string" && message.trim()) return message;
-  if (Array.isArray(message) && message.every((item) => typeof item === "string")) {
-    return message.join(" ");
-  }
-  return "No se pudo completar la acción. Revisa el estado actual y vuelve a intentarlo.";
 };
 
 const chainStatusLabel = (status?: string | null) => {
@@ -170,19 +160,6 @@ const getStatusBucket = (status?: ApprovalStatus): InstitutionalTab | null => {
   return null;
 };
 
-const formatDate = (value?: string) => {
-  if (!value) return "No informado";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return new Intl.DateTimeFormat("es-BO", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(date);
-};
-
 const matchesSearch = (row: InstitutionalApplication, search: string) => {
   const term = normalizeSearchText(search);
   if (!term) return true;
@@ -196,76 +173,6 @@ const matchesSearch = (row: InstitutionalApplication, search: string) => {
   ].some((value) => normalizeSearchText(value).includes(term));
 };
 
-const badgeClassName = (status?: ApprovalStatus) => {
-  if (status === "APPROVED") {
-    return "border-[#5fd08b] bg-[#ebfff1] text-[#15703c]";
-  }
-
-  if (
-    status === "PENDING_APPROVAL" ||
-    status === "PENDING_MOBILE_AUTHORIZATION" ||
-    status === "PENDING_CHAIN_CONFIRMATION" ||
-    status === "RECONCILIATION_PENDING"
-  ) {
-    return "border-[#f2d88a] bg-[#fff8de] text-[#8a6a14]";
-  }
-
-  if (status === "CHAIN_RETRY_PENDING" || status === "CHAIN_FAILED") {
-    return "border-[#f3bf8d] bg-[#fff3e7] text-[#a45b16]";
-  }
-
-  if (status === "REVOKED") {
-    return "border-slate-200 bg-slate-100 text-slate-700";
-  }
-
-  if (status === "REJECTED") {
-    return "border-[#ffb4b4] bg-[#fff0f0] text-[#cc2e2e]";
-  }
-
-  return "border-gray-200 bg-gray-100 text-gray-700";
-};
-
-const actionClassName = (tone: ActionTone) => {
-  if (tone === "primary") {
-    return "bg-[#2f8b3c] text-white hover:bg-[#287633]";
-  }
-
-  if (tone === "danger") {
-    return "bg-[#db3732] text-white hover:bg-[#c02e29]";
-  }
-
-  return "border border-[#f0bc68] text-[#a86600] hover:bg-[#fff8ec]";
-};
-
-const abbreviateHash = (value: string) =>
-  value.length > 20 ? `${value.slice(0, 10)}…${value.slice(-8)}` : value;
-
-const InfoLine = ({
-  label,
-  value,
-  technicalHash = false,
-}: {
-  label: string;
-  value?: string | null;
-  technicalHash?: boolean;
-}) => (
-  <div className="min-w-0 space-y-1">
-    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400">
-      {label}
-    </p>
-    {technicalHash && value ? (
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <p className="min-w-0 break-all font-mono text-sm text-gray-800" title={value}>
-          {abbreviateHash(value)}
-        </p>
-        <CopyButton value={value} label="Copiar" />
-      </div>
-    ) : (
-      <p className="break-words text-sm text-gray-800">{value || "No informado"}</p>
-    )}
-  </div>
-);
-
 export default function AccessApprovalsPage() {
   const auth = useSelector(selectAuth);
   const [tab, setTab] = useState<InstitutionalTab>("pending");
@@ -273,8 +180,16 @@ export default function AccessApprovalsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(true);
+  const [kind, setKind] = useState<ApprovalKind>("institutional");
 
   const institutional = useGetInstitutionalApplicationsQuery();
+  const territorial = useGetTerritorialAccessRequestsQuery();
+  const territorialPendingCount = (territorial.data ?? []).filter(
+    (row) => row.status === "PENDING_APPROVAL",
+  ).length;
+  const institutionalPendingCount = (institutional.data ?? []).filter(
+    (row) => getStatusBucket(row.status) === "pending",
+  ).length;
   const institutionalRows = [...(institutional.data ?? [])].sort((a, b) =>
     String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")),
   );
@@ -446,15 +361,63 @@ export default function AccessApprovalsPage() {
                 Gestión de registros
               </h1>
               <p className="mt-2 text-sm text-[#7a7a7a]">
-                Revisa y actualiza el estado de las solicitudes institucionales.
+                {kind === "institutional"
+                  ? "Revisa y actualiza el estado de las solicitudes institucionales."
+                  : "Revisa y actualiza el acceso de alcaldes y gobernadores a /resultados."}
               </p>
             </div>
             <span className="inline-flex items-center rounded-xl bg-[#f8f8f8] px-3 py-2 text-sm font-medium text-[#666]">
               {roleLabel}
             </span>
           </div>
+          <div
+            className="mt-5 inline-flex flex-wrap gap-1 rounded-xl bg-[#f3f5f7] p-1"
+            aria-label="Tipo de solicitud"
+          >
+            {(
+              [
+                ["institutional", "Institucionales", institutionalPendingCount],
+                ["territorial", "Territoriales", territorialPendingCount],
+              ] as const
+            ).map(([value, label, pending]) => {
+              const isActive = kind === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={isActive}
+                  onClick={() => {
+                    setKind(value);
+                    setFeedback(null);
+                  }}
+                  className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                    isActive
+                      ? "bg-white text-[#2f8b3c] shadow-sm"
+                      : "text-[#555] hover:text-[#2f8b3c]"
+                  }`}
+                >
+                  {label}
+                  {pending > 0 ? (
+                    <span
+                      className="rounded-md bg-[#fff1c7] px-2 py-0.5 text-xs font-semibold text-[#8a6a14]"
+                      title="Pendientes de aprobación"
+                    >
+                      {pending}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
         </header>
 
+        {kind === "territorial" ? (
+          <TerritorialApprovalsSection
+            query={territorial}
+            canReopen={auth.user?.role === "SUPERADMIN" || auth.user?.role === "ACCESS_APPROVER"}
+          />
+        ) : (
+        <>
         <section className="rounded-2xl border border-[#e6ebef] bg-white px-4 py-4 shadow-[0_6px_18px_rgba(15,23,42,0.05)] sm:px-5">
           <label className="flex items-center gap-3 rounded-xl border border-[#e5e7eb] bg-[#fafafa] px-4 py-3">
             <SearchIcon />
@@ -719,34 +682,10 @@ export default function AccessApprovalsPage() {
             </aside>
           </div>
         </section>
+        </>
+        )}
       </section>
     </main>
   );
 }
 
-const SearchIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.8"
-    className="h-5 w-5 text-[#9ca3af]"
-    aria-hidden="true"
-  >
-    <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35" />
-    <circle cx="11" cy="11" r="6.5" />
-  </svg>
-);
-
-const CloseIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.8"
-    className="h-5 w-5"
-    aria-hidden="true"
-  >
-    <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6 6 18" />
-  </svg>
-);

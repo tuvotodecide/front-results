@@ -4,6 +4,7 @@ import {
   MostSupportedBallotType,
 } from '../../types';
 import { useMemo } from 'react';
+import { toIpfsGatewayUrl } from "../../utils/ipfs";
 
 // interface Image {
 //   id: number;
@@ -49,9 +50,7 @@ const ImagesSection = ({
   }, [images, attestationCases]);
 
   const getImageUrl = (image: BallotType) => {
-    const baseUrl = 'https://ipfs.io/ipfs/';
-    const ipfsHash = image.image.replace('ipfs://', '');
-    return `${baseUrl}${ipfsHash}`;
+    return toIpfsGatewayUrl(image.image);
   };
 
   const getDetailsHref = (ballotId: string) => {
@@ -147,8 +146,11 @@ const ImagesSection = ({
                     alt="Acta Electoral Preview"
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = '/src/assets/acta.jpg'; // Fallback image
+                      const target = e.currentTarget;
+                      // Evita bucle infinito si el fallback también falla
+                      if (target.dataset.fallbackApplied) return;
+                      target.dataset.fallbackApplied = 'true';
+                      target.src = '/acta.jpg'; // Fallback image (public/)
                     }}
                   />
                 </div>

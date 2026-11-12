@@ -11,7 +11,31 @@ import {
   useUpdateConfigurationMutation,
   useGetConfigurationQuery,
 } from '@/store/configurations/configurationsEndpoints';
-import { CreateConfigurationType, UpdateConfigurationType } from '@/types';
+import {
+  CreateConfigurationType,
+  ElectionConfigRound,
+  ElectionConfigType,
+  UpdateConfigurationType,
+} from '@/types';
+
+const ELECTION_TYPE_OPTIONS: { value: ElectionConfigType; label: string }[] = [
+  { value: 'presidential', label: 'Nacional (Presidencial)' },
+  { value: 'departamental', label: 'Departamental' },
+  { value: 'municipal', label: 'Municipal' },
+  { value: 'congress', label: 'Congreso' },
+  { value: 'parlacen', label: 'Parlacen' },
+  { value: 'referendum', label: 'Referéndum' },
+];
+
+const ELECTION_ROUND_OPTIONS: { value: `${ElectionConfigRound}`; label: string }[] = [
+  { value: '1', label: 'Primera vuelta' },
+  { value: '2', label: 'Segunda vuelta' },
+];
+
+type ConfigurationFormValues = Omit<CreateConfigurationType, 'type' | 'round'> & {
+  type: ElectionConfigType | '';
+  round: `${ElectionConfigRound}` | '';
+};
 
 const getErrorMessage = (error: unknown) => {
   if (typeof error === 'object' && error !== null) {
@@ -61,23 +85,41 @@ const ConfigurationForm = () => {
     resultsStartDate: Yup.string().required(
       'La fecha de habilitación es requerida'
     ),
+    type: Yup.string()
+      .oneOf(
+        ELECTION_TYPE_OPTIONS.map((option) => option.value),
+        'Selecciona un tipo de elección válido'
+      )
+      .required('El tipo de elección es requerido'),
+    round: Yup.string()
+      .oneOf(
+        ELECTION_ROUND_OPTIONS.map((option) => option.value),
+        'Selecciona una vuelta válida'
+      )
+      .required('La vuelta es requerida'),
   });
 
-  const initialValues: CreateConfigurationType = {
+  const existingRound = existingConfig?.round;
+  const initialValues: ConfigurationFormValues = {
     name: existingConfig?.name || '',
     votingStartDate: existingConfig?.votingStartDateBolivia || '',
     votingEndDate: existingConfig?.votingEndDateBolivia || '',
     resultsStartDate: existingConfig?.resultsStartDateBolivia || '',
     allowDataModification: true,
+    type: existingConfig?.type ?? '',
+    round: existingRound === 1 || existingRound === 2 ? `${existingRound}` : '1',
   };
 
-  const handleSubmit = (values: CreateConfigurationType) => {
+  const handleSubmit = (values: ConfigurationFormValues) => {
     // Clear any previous error message
     setErrorMessage('');
-    // Always set allowDataModification to true
-    const submissionValues = {
+    // Always set allowDataModification to true.
+    // Validation guarantees type and round are set; the backend expects round as a number.
+    const submissionValues: CreateConfigurationType = {
       ...values,
       allowDataModification: true,
+      type: values.type as ElectionConfigType,
+      round: Number(values.round) as ElectionConfigRound,
     };
     setPendingValues(submissionValues);
     setIsConfirmationModalOpen(true);
@@ -203,6 +245,72 @@ const ConfigurationForm = () => {
                     {errors.name && touched.name && (
                       <div className="text-red-500 text-xs mt-1">
                         {errors.name}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <label
+                    htmlFor="type"
+                    className="text-sm font-medium text-gray-700 w-48 pt-2"
+                  >
+                    Tipo *
+                  </label>
+                  <div className="flex-1 max-w-xs">
+                    <Field
+                      as="select"
+                      id="type"
+                      name="type"
+                      className="w-full border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg px-3 py-2 text-sm bg-white transition-colors"
+                    >
+                      <option value="" disabled>
+                        Selecciona un tipo
+                      </option>
+                      {ELECTION_TYPE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </Field>
+                    {errors.type && touched.type ? (
+                      <div className="text-red-500 text-xs mt-1">
+                        {errors.type}
+                      </div>
+                    ) : (
+                      isCreateMode && (
+                        <p className="text-gray-500 text-xs mt-1">
+                          Al crearla, se desactiva la configuración activa del
+                          mismo tipo.
+                        </p>
+                      )
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <label
+                    htmlFor="round"
+                    className="text-sm font-medium text-gray-700 w-48"
+                  >
+                    Vuelta *
+                  </label>
+                  <div className="flex-1 max-w-xs">
+                    <Field
+                      as="select"
+                      id="round"
+                      name="round"
+                      className="w-full border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg px-3 py-2 text-sm bg-white transition-colors"
+                    >
+                      {ELECTION_ROUND_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </Field>
+                    {errors.round && touched.round && (
+                      <div className="text-red-500 text-xs mt-1">
+                        {errors.round}
                       </div>
                     )}
                   </div>

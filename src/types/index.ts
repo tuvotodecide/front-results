@@ -10,5 +10,6 @@ export * from './electoralLocations';
 export * from './electoralTable';
 export * from './configurations';
 export * from './politicalParties';
+export * from './electionParties';
 export * from './attestations';
 export * from './modalview';

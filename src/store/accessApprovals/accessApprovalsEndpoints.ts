@@ -73,8 +73,10 @@ export interface InstitutionalAdminInvitation {
 export interface TerritorialAccessRequest {
   userId: string;
   id?: string;
+  dni?: string;
   name?: string;
   email?: string;
+  emailVerified?: boolean;
   role?: "MAYOR" | "GOVERNOR" | string;
   status?: ApprovalStatus;
   territorialAccessStatus?: ApprovalStatus;
@@ -142,18 +144,24 @@ const normalizeInvitation = (raw: any): InstitutionalAdminInvitation => ({
   reason: raw?.reason ?? null,
 });
 
+// El backend devuelve el territorio anidado en `territory` (ver contracts.controller.ts);
+// se mantienen los campos planos como alternativa.
 const normalizeTerritorial = (raw: any): TerritorialAccessRequest => ({
   userId: String(raw?.userId ?? raw?.id ?? raw?._id ?? ""),
   id: raw?.id ? String(raw.id) : raw?._id ? String(raw._id) : undefined,
+  dni: raw?.dni ?? undefined,
   name: raw?.name ?? raw?.fullName,
   email: raw?.email,
+  emailVerified: raw?.emailVerified,
   role: raw?.role,
   status: raw?.status ?? raw?.territorialAccessStatus,
   territorialAccessStatus: raw?.territorialAccessStatus ?? raw?.status,
-  votingDepartmentId: raw?.votingDepartmentId ?? raw?.departmentId ?? null,
-  votingMunicipalityId: raw?.votingMunicipalityId ?? raw?.municipalityId ?? null,
-  departmentName: raw?.departmentName ?? null,
-  municipalityName: raw?.municipalityName ?? null,
+  votingDepartmentId:
+    raw?.territory?.departmentId ?? raw?.votingDepartmentId ?? raw?.departmentId ?? null,
+  votingMunicipalityId:
+    raw?.territory?.municipalityId ?? raw?.votingMunicipalityId ?? raw?.municipalityId ?? null,
+  departmentName: raw?.territory?.departmentName ?? raw?.departmentName ?? null,
+  municipalityName: raw?.territory?.municipalityName ?? raw?.municipalityName ?? null,
   reason: raw?.reason ?? raw?.territorialReason ?? null,
   createdAt: raw?.createdAt,
   updatedAt: raw?.updatedAt,
@@ -346,6 +354,14 @@ export const accessApprovalsApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["AccessApprovals"],
     }),
+    reopenTerritorialAccessRequest: builder.mutation<void, string>({
+      query: (userId) => ({
+        url: `/contracts/territorial-access-requests/${userId}/reopen`,
+        method: "POST",
+        body: {},
+      }),
+      invalidatesTags: ["AccessApprovals"],
+    }),
   }),
 });
 
@@ -368,4 +384,5 @@ export const {
   useApproveTerritorialAccessRequestMutation,
   useRejectTerritorialAccessRequestMutation,
   useRevokeTerritorialAccessRequestMutation,
+  useReopenTerritorialAccessRequestMutation,
 } = accessApprovalsApi;

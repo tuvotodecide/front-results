@@ -39,6 +39,16 @@ vi.mock("@/store/accessApprovals", () => {
     useRevokeInstitutionalApplicationMutation: () => mutation(approvals.revoke),
     useReopenInstitutionalApplicationMutation: () => mutation(approvals.reopen),
     useRetryInstitutionalAuthorizationMutation: () => mutation(vi.fn()),
+    useGetTerritorialAccessRequestsQuery: () => ({
+      data: [],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    }),
+    useApproveTerritorialAccessRequestMutation: () => mutation(vi.fn()),
+    useRejectTerritorialAccessRequestMutation: () => mutation(vi.fn()),
+    useRevokeTerritorialAccessRequestMutation: () => mutation(vi.fn()),
+    useReopenTerritorialAccessRequestMutation: () => mutation(vi.fn()),
   };
 });
 

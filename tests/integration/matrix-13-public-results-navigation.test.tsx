@@ -167,7 +167,7 @@ describe("MX-13 | resultados y navegación pública", () => {
     await user.click(detailLink);
     expect(screen.getByRole("img", { name: "Vista previa de hoja de trabajo electoral" })).toHaveAttribute(
       "src",
-      "https://ipfs.io/ipfs/public-image",
+      "https://gateway.pinata.cloud/ipfs/public-image",
     );
     expect(detailLink).toHaveAttribute(
       "href",

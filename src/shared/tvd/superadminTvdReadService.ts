@@ -38,13 +38,12 @@ const ELECTORAL_CREDITS_ABI = [
 const VOTE_MANAGER_ABI = ["function tvdPerVote() view returns (uint256)"];
 const INCENTIVE_CAMPAIGNS_ABI = [
   "function isPaused() view returns (bool)",
+  "function isActive() view returns (bool)",
   "function campaignsCount() view returns (uint256)",
   "function campaignCount() view returns (uint256)",
   "function campaigns(uint256) view returns (tuple(uint256 incentivePerWallet,uint256 startTime,uint256 duration,bool paused,uint256 maxWallets,uint256 registeredWallets,address fundingWallet))",
   "function campaign(uint256) view returns (tuple(uint256 incentivePerWallet,uint256 startTime,uint256 duration,bool paused,uint256 maxWallets,uint256 registeredWallets,address fundingWallet))",
 ];
-const BASE_SEPOLIA_INITIAL_CAMPAIGN_ADDRESS =
-  "0x78D7215D20EB2e2DD1F80400E3A9228B0E7166d5";
 
 const toNullableString = (value: unknown) => {
   if (typeof value !== "string") return null;
@@ -600,10 +599,7 @@ export const readTvdEconomicParameters = async (
   const configuredIncentiveCampaignsAddress = normalizeAddress(
     contracts.incentiveCampaigns?.address,
   );
-  const incentiveCampaignsAddress =
-    config.chainId === 84532
-      ? BASE_SEPOLIA_INITIAL_CAMPAIGN_ADDRESS
-      : configuredIncentiveCampaignsAddress;
+  const incentiveCampaignsAddress = configuredIncentiveCampaignsAddress;
 
   const baseContracts = {
     tvdToken: addressInfo(
@@ -944,13 +940,14 @@ const readCampaign = async (
   decimals: number | null,
 ) => {
   const contract = new Contract(address, INCENTIVE_CAMPAIGNS_ABI, provider);
-  const paused = await contract.isPaused().catch(() => null);
-  if (typeof paused === "boolean") {
+  const active = await contract.isActive().catch(() => null);
+  console.log(active);
+  if (typeof active === "boolean") {
     return {
       status: "available" as TvdReadStatus,
-      message: paused ? "Campaña cerrada" : "Campaña abierta",
+      message: active ? "Campaña abierta" : "Campaña cerrada",
       count: null,
-      fields: [{ label: "Estado", value: paused ? "Cerrada" : "Abierta" }],
+      fields: [{ label: "Estado", value: active ? "Abierta" : "Cerrada" }],
     };
   }
 

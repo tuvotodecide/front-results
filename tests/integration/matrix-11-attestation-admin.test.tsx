@@ -583,7 +583,7 @@ describe("MX-11 | Atestiguamiento, actas y evidencias | Frontend Admin", () => {
     expect(screen.getByText("Validado")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Imagen" })).toHaveAttribute(
       "href",
-      "https://ipfs.io/ipfs/cid-acta-1",
+      "https://gateway.pinata.cloud/ipfs/cid-acta-1",
     );
 
     await user.type(screen.getByRole("textbox"), "ballot-404");
@@ -645,7 +645,7 @@ describe("MX-11 | Atestiguamiento, actas y evidencias | Frontend Admin", () => {
       within(versionOneCard).getByRole("img", {
         name: "Vista previa de hoja de trabajo electoral",
       }),
-    ).toHaveAttribute("src", "https://ipfs.io/ipfs/cid-acta-1");
+    ).toHaveAttribute("src", "https://gateway.pinata.cloud/ipfs/cid-acta-1");
     expect(within(versionOneCard).getByRole("link", { name: "Detalles" })).toHaveAttribute(
       "href",
       "/resultados/imagen/ballot-1?electionId=election-2026&electionType=mayor",
@@ -659,7 +659,7 @@ describe("MX-11 | Atestiguamiento, actas y evidencias | Frontend Admin", () => {
       within(versionTwoCard).getByRole("img", {
         name: "Vista previa de hoja de trabajo electoral",
       }),
-    ).toHaveAttribute("src", "https://ipfs.io/ipfs/cid-acta-2");
+    ).toHaveAttribute("src", "https://gateway.pinata.cloud/ipfs/cid-acta-2");
     expect(within(versionTwoCard).getByRole("link", { name: "Detalles" })).toHaveAttribute(
       "href",
       "/resultados/imagen/ballot-2?electionId=election-2026&electionType=mayor",

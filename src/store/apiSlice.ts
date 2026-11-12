@@ -73,9 +73,10 @@ const needsElectionId = (path: string) => {
     p.startsWith("/results") ||
     p.startsWith("/attestations") ||
     p.startsWith("/ballots") ||
-    p.startsWith("/geographic/electoral-") ||
-    p.startsWith("/geographic/electoral_") ||
-    p.startsWith("/geographic/electoral-tables/attested-only")||
+    // Geographic CRUD lists validate their query DTO with forbidNonWhitelisted,
+    // so only the endpoints that actually read electionId get it.
+    p.startsWith("/geographic/electoral-tables/attested-only") ||
+    p.startsWith("/geographic/electoral-locations/nearby") ||
     p.startsWith("/client-reports")
 
   );
@@ -148,6 +149,7 @@ export const apiSlice = createApi({
     "ElectoralTables",
     "Configurations",
     "PoliticalParties",
+    "ElectionParties",
     "Attestations",
     "ClientReports",
     "Contracts",

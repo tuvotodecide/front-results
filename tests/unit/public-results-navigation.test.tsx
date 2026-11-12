@@ -93,7 +93,7 @@ describe("MX-13 public results navigation and refresh", () => {
     );
     expect(screen.getByRole("link", { name: "Imagen" })).toHaveAttribute(
       "href",
-      "https://ipfs.io/ipfs/cid-acta",
+      "https://gateway.pinata.cloud/ipfs/cid-acta",
     );
     expect(JSON.stringify(document.body.textContent)).not.toContain("dni");
     expect(JSON.stringify(document.body.textContent)).not.toContain("wallet");

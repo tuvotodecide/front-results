@@ -39,6 +39,32 @@ export interface MyElection {
   contracts: ContractInfo[];
 }
 
+// Contrato tal como lo devuelve GET /contracts (listado de administración)
+export interface AdminContract {
+  id: string;
+  clientId: string;
+  client?: { name?: string; email?: string; role?: string };
+  clientRole: "MAYOR" | "GOVERNOR" | string;
+  territory: {
+    departmentId: string | null;
+    departmentName?: string | null;
+    municipalityId: string | null;
+    municipalityName?: string | null;
+  };
+  electionId: string;
+  active: boolean;
+  startDate: string;
+  endDate?: string | null;
+}
+
+export interface CreateContractPayload {
+  clientId: string;
+  electionId: string;
+  departmentId?: string;
+  municipalityId?: string;
+  startDate: string;
+}
+
 export type MyElectionsResponse = MyElection[];
 export interface PublicContractsResponse {
   data: PublicContractInfo[];
@@ -77,6 +103,31 @@ export const contractsApi = apiSlice.injectEndpoints({
       }),
       providesTags: ["Contracts"],
     }),
+    getActiveContracts: builder.query<
+      { data: AdminContract[]; total: number },
+      { electionId?: string } | void
+    >({
+      query: (params) => ({
+        url: `/contracts`,
+        params: params ?? undefined,
+      }),
+      providesTags: ["Contracts"],
+    }),
+    createContract: builder.mutation<unknown, CreateContractPayload>({
+      query: (body) => ({
+        url: `/contracts`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Contracts"],
+    }),
+    deactivateContract: builder.mutation<unknown, string>({
+      query: (contractId) => ({
+        url: `/contracts/${contractId}/deactivate`,
+        method: "PATCH",
+      }),
+      invalidatesTags: ["Contracts"],
+    }),
   }),
 });
 
@@ -84,4 +135,7 @@ export const {
   useGetMyElectionsQuery,
   useGetPublicActiveContractsQuery,
   useGetHistoryContractsQuery,
+  useGetActiveContractsQuery,
+  useCreateContractMutation,
+  useDeactivateContractMutation,
 } = contractsApi;

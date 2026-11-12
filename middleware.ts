@@ -25,6 +25,8 @@ const resultadosAdminPaths = [
   "/configuraciones",
   "/partidos",
   "/partidos-politicos",
+  "/partidos-eleccion",
+  "/contratos",
 ] as const;
 
 const restrictedResultadosPaths = [
@@ -330,6 +332,8 @@ export const config = {
     "/resultados/configuraciones/:path*",
     "/resultados/partidos/:path*",
     "/resultados/partidos-politicos/:path*",
+    "/resultados/partidos-eleccion/:path*",
+    "/resultados/contratos/:path*",
     "/votacion/elecciones",
     "/votacion/elecciones/new",
     "/votacion/recarga-operativa",
