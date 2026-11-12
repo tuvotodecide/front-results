@@ -941,7 +941,6 @@ const readCampaign = async (
 ) => {
   const contract = new Contract(address, INCENTIVE_CAMPAIGNS_ABI, provider);
   const active = await contract.isActive().catch(() => null);
-  console.log(active);
   if (typeof active === "boolean") {
     return {
       status: "available" as TvdReadStatus,

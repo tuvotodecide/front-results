@@ -76,6 +76,12 @@ vi.mock("ethers", async () => {
       if (ethersMocks.failRpc) throw new Error("rpc");
       return true;
     });
+
+    isActive = vi.fn(async () => {
+      if (ethersMocks.failRpc) throw new Error("rpc");
+      return false;
+    });
+
     campaignsCount = vi.fn(async () => {
       if (ethersMocks.failRpc) throw new Error("rpc");
       return 0n;

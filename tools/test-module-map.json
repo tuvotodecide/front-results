@@ -408,7 +408,8 @@
         "MX-10-SUPPORT"
       ],
       "files": [
-        "tests/unit/matrix-10-territorial-ui.test.ts"
+        "tests/unit/matrix-10-territorial-ui.test.ts",
+        "tests/integration/territorial-approvals.test.tsx"
       ]
     },
     "matrix_11": {
@@ -541,7 +542,8 @@
         "BRS-F22"
       ],
       "files": [
-        "tests/integration/table-search-pagination.test.tsx"
+        "tests/integration/table-search-pagination.test.tsx",
+        "tests/integration/resultados-contracts-page.test.tsx"
       ]
     },
     "participation": {
