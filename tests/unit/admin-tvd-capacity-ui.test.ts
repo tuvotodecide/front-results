@@ -1,5 +1,6 @@
 import {
   getCapacityRequestErrorMessage,
+  getTvdCapacityBannerCopy,
   getTvdCapacityReasonMessage,
   isTvdCapacityRechargeable,
   validateEstimatedParticipants,
@@ -39,6 +40,21 @@ describe("admin TVD capacity UI helpers", () => {
     expect(getTvdCapacityReasonMessage("PADRON_EMPTY")).toBe(
       "No hay participantes habilitados en el padrón vigente.",
     );
+  });
+
+  it("usa el texto de saldo solo cuando el bloqueo es por saldo insuficiente", () => {
+    expect(getTvdCapacityBannerCopy("INSUFFICIENT_TVD_BALANCE")).toEqual({
+      title: "Falta saldo para publicar",
+      description: "Recarga $TVD para cubrir a todos los participantes habilitados.",
+    });
+    expect(getTvdCapacityBannerCopy("PADRON_NOT_FOUND")).toEqual({
+      title: "El padrón no está listo para publicar",
+      description: "Aún no se cargó un padrón vigente.",
+    });
+    expect(getTvdCapacityBannerCopy("PADRON_EMPTY")).toEqual({
+      title: "El padrón no está listo para publicar",
+      description: "No hay participantes habilitados en el padrón vigente.",
+    });
   });
 
   it("TVD-PUB-P0-006 TVD-UI-P1-002 | traduce errores HTTP a mensajes seguros", () => {

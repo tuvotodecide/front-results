@@ -94,6 +94,22 @@ export const getCapacityRequestErrorMessage = (error: unknown) => {
   return "No se pudo validar la disponibilidad de TVD. Intenta nuevamente.";
 };
 
+export const getTvdCapacityBannerCopy = (
+  reasonCode: TvdCapacityReasonCode,
+) => {
+  if (reasonCode === "INSUFFICIENT_TVD_BALANCE") {
+    return {
+      title: "Falta saldo para publicar",
+      description: "Recarga $TVD para cubrir a todos los participantes habilitados.",
+    };
+  }
+
+  return {
+    title: "El padrón no está listo para publicar",
+    description: getTvdCapacityReasonMessage(reasonCode),
+  };
+};
+
 export const formatTvdCapacityAmount = (value: string) => `${value} TVD`;
 
 export const isTvdCapacityRechargeable = (

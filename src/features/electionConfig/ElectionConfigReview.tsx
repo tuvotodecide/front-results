@@ -47,6 +47,7 @@ import { useGetVotingEventTvdCapacityQuery } from "@/store/tvd";
 import {
   formatTvdCapacityAmount,
   getCapacityRequestErrorMessage,
+  getTvdCapacityBannerCopy,
   isTvdCapacityRechargeable,
 } from "../adminTvd/utils/tvdCapacityUi";
 
@@ -800,10 +801,10 @@ const ElectionConfigReview: React.FC = () => {
       {tvdCapacity ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 shadow-sm">
           <p className="text-base font-bold text-amber-950">
-            Falta saldo para publicar
+            {getTvdCapacityBannerCopy(tvdCapacity.reasonCode).title}
           </p>
           <p className="mt-1">
-            Recarga $TVD para cubrir a todos los participantes habilitados.
+            {getTvdCapacityBannerCopy(tvdCapacity.reasonCode).description}
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>

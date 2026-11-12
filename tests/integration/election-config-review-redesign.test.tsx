@@ -658,7 +658,13 @@ describe("election config review redesign", () => {
 
     renderReview();
 
-    expect(screen.getByText("Falta saldo para publicar")).toBeInTheDocument();
+    expect(screen.queryByText("Falta saldo para publicar")).not.toBeInTheDocument();
+    expect(
+      screen.getByText("El padrón no está listo para publicar"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("El padrón todavía está procesándose."),
+    ).toBeInTheDocument();
     expect(screen.getByText("Participantes habilitados")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /Confirmar publicación oficial/i }),
